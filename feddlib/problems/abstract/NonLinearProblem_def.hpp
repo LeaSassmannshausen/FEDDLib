@@ -148,7 +148,17 @@ int NonLinearProblem<SC,LO,GO,NO>::solveAndUpdate( const std::string& criterion,
         criterionValue = updateNorm[0];
     }
 
+    // We could here print out || x^(k+1)-x^(k) || = || Update x ||
+    // this will be done by all processes
+    Teuchos::Array<SC> norm(1);
+    this->solution_->norm2(norm);
+    criterionValue = norm[0];
+   // std::cout << "\t ### ### WRITE OUT || x^{k+1}-x^k || = || delta x || ###:" << norm[0] << std::endl;
+    
+    //this = alpha*A + beta*this - hier wird x^k + update x berechnet
     this->solution_->update(1., *previousSolution_, 1.);
+
+    
 
     return its;
 }

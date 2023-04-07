@@ -312,6 +312,8 @@ void NonLinearSolver<SC,LO,GO,NO>::solveFixedPoint(NonLinearProblem_Type &proble
 
 
         gmresIts += problem.solveAndUpdate( criterion, criterionValue );
+        if (verbose) std::cout << "\t ### ### 2. WRITE OUT || x^{k+1}-x^k || = || delta x || ###:" << criterionValue << std::endl;
+
         nlIts++;
         if(criterion=="Update"){
             if (verbose)
@@ -373,6 +375,8 @@ void NonLinearSolver<SC,LO,GO,NO>::solveNewton( NonLinearProblem_Type &problem )
         }
 
         gmresIts += problem.solveAndUpdate( criterion, criterionValue );
+        if (verbose) std::cout << "\t ### ### 2. WRITE OUT || x^{k+1}-x^k || = || delta x || ###:" << criterionValue << std::endl;
+
         nlIts++;
         if(criterion=="Update"){
             if (verbose)
@@ -436,6 +440,8 @@ void NonLinearSolver<SC,LO,GO,NO>::solveFixedPoint(TimeProblem_Type &problem, do
         }
 
         gmresIts += problem.solveAndUpdate( criterion, criterionValue );
+        if (verbose) std::cout << "\t ### ### 2. WRITE OUT || x^{k+1}-x^k || = || delta x || ###:" << criterionValue << std::endl;
+
         
         nlIts++;
         if(criterion=="Update"){
@@ -510,6 +516,8 @@ void NonLinearSolver<SC,LO,GO,NO>::solveNewton(TimeProblem_Type &problem, double
         else
             gmresIts += problem.solveAndUpdate( criterion, criterionValue );
                     
+        if (verbose) std::cout << "\t ### ### 2. WRITE OUT || x^{k+1}-x^k || = || delta x || ###:" << criterionValue << std::endl;
+
         nlIts++;
         if(criterion=="Update"){
             if (verbose)
