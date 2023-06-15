@@ -309,64 +309,48 @@ void NavierStokes<SC, LO, GO, NO>::reAssembleFSI(std::string type,
   if (this->verbose_)
     std::cout << "done -- " << std::endl;
 }
+    
 
-template <class SC, class LO, class GO, class NO>
-void NavierStokes<SC, LO, GO, NO>::reAssemble(std::string type) const {
+template<class SC,class LO,class GO,class NO>
+void NavierStokes<SC,LO,GO,NO>::reAssemble(std::string type) const {
 
-  if (this->verbose_)
-    std::cout << "-- Reassembly Navier-Stokes (" << type << ") ... "
-              << std::flush;
-
-  double density =
-      this->parameterList_->sublist("Parameter").get("Density", 1.);
-
-  MatrixPtr_Type ANW = Teuchos::rcp(
-      new Matrix_Type(this->getDomain(0)->getMapVecFieldUnique(),
-                      this->getDomain(0)->getDimension() *
-                          this->getDomain(0)->getApproxEntriesPerRow()));
-  if (type == "FixedPoint") {
-
-    MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
-    u_rep_->importFromVector(u, true);
-
-    MatrixPtr_Type N = Teuchos::rcp(
-        new Matrix_Type(this->getDomain(0)->getMapVecFieldUnique(),
-                        this->getDomain(0)->getDimension() *
-                            this->getDomain(0)->getApproxEntriesPerRow()));
-    // kho only the nonlinear component of the system (advection) needs to be
-    // reevaluated in each iteration
-    this->feFactory_->assemblyAdvectionVecField(
-        this->dim_, this->domain_FEType_vec_.at(0), N, u_rep_, true);
-
-    N->resumeFill();
-    N->scale(density);
-    N->fillComplete(this->getDomain(0)->getMapVecFieldUnique(),
-                    this->getDomain(0)->getMapVecFieldUnique());
-
-    A_->addMatrix(1., ANW, 0.);
-    N->addMatrix(1., ANW, 1.);
-  } else if (type == "Newton") { // We assume that reAssmble("FixedPoint") was
-                                 // already called for the current iterate
-    MatrixPtr_Type W = Teuchos::rcp(
-        new Matrix_Type(this->getDomain(0)->getMapVecFieldUnique(),
-                        this->getDomain(0)->getDimension() *
-                            this->getDomain(0)->getApproxEntriesPerRow()));
-    this->feFactory_->assemblyAdvectionInUVecField(
-        this->dim_, this->domain_FEType_vec_.at(0), W, u_rep_, true);
-    W->resumeFill();
-    W->scale(density);
-    W->fillComplete(this->getDomain(0)->getMapVecFieldUnique(),
-                    this->getDomain(0)->getMapVecFieldUnique());
-    this->system_->getBlock(0, 0)->addMatrix(1., ANW, 0.);
-    W->addMatrix(1., ANW, 1.);
-  }
-  ANW->fillComplete(this->getDomain(0)->getMapVecFieldUnique(),
-                    this->getDomain(0)->getMapVecFieldUnique());
-
-  this->system_->addBlock(ANW, 0, 0);
-
-  if (this->verbose_)
-    std::cout << "done -- " << std::endl;
+    
+    if (this->verbose_)
+        std::cout << "-- Reassembly Navier-Stokes ("<< type <<") ... " << std::flush;
+    
+    double density = this->parameterList_->sublist("Parameter").get("Density",1.);
+    
+    MatrixPtr_Type ANW = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+    if (type=="FixedPoint") {
+        
+        MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
+        u_rep_->importFromVector(u, true);
+                
+        MatrixPtr_Type N = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+        this->feFactory_->assemblyAdvectionVecField( this->dim_, this->domain_FEType_vec_.at(0), N, u_rep_, true );
+        
+        N->resumeFill();
+        N->scale(density);
+        N->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
+        
+        A_->addMatrix(1.,ANW,0.);
+        N->addMatrix(1.,ANW,1.);
+    }
+    else if(type=="Newton"){ // We assume that reAssmble("FixedPoint") was already called for the current iterate
+        MatrixPtr_Type W = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+        this->feFactory_->assemblyAdvectionInUVecField( this->dim_, this->domain_FEType_vec_.at(0), W, u_rep_, true );
+        W->resumeFill();
+        W->scale(density);
+        W->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
+        this->system_->getBlock( 0, 0 )->addMatrix(1.,ANW,0.);
+        W->addMatrix(1.,ANW,1.);
+    }
+    ANW->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique() );
+    
+    this->system_->addBlock( ANW, 0, 0 );
+    
+    if (this->verbose_)
+        std::cout << "done -- " << std::endl;
 }
 
 template <class SC, class LO, class GO, class NO>
