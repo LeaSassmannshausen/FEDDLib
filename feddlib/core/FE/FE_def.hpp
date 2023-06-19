@@ -1,6 +1,7 @@
 #ifndef FE_DEF_hpp
 #define FE_DEF_hpp
 
+#include "feddlib/core/FEDDCore.hpp"
 #ifdef FEDD_HAVE_ACEGENINTERFACE
 #include "aceinterface.hpp"
 #endif
@@ -2239,11 +2240,98 @@ void FE<SC,LO,GO,NO>::assemblyLaplaceVecFieldV2(int dim,
         A->fillComplete();
 }
 
+/*!
+ \brief Assembly of Jacobian for nonlinear Laplace example 
+@param[in] dim Dimension
+@param[in] FEType FE Discretization
+@param[in] degree Degree of basis function
+@param[in] A Resulting matrix
+@param[in] callFillComplete If Matrix A should be completely filled at end of function
+@param[in] FELocExternal 
+*/
+
 template<class SC, class LO, class GO, class NO>
-void FE<SC,LO,GO,NO>::assemblyNonlinearLaplace(std::string FEType, MatrixPtr_Type &A,
+void FE<SC,LO,GO,NO>::assemblyNonlinearLaplace(int dim, std::string FEType, int degree, int dofs, MatrixPtr_Type &A,
                                    MultiVectorPtr_Type f,
-                                   MultiVectorPtr_Type u){
-  
+                                   MultiVectorPtr_Type u,
+                                   ParameterListPtr_Type params,
+                                   bool reAssemble,
+                                   string assembleMode,
+                                   bool callFillComplete,
+	                                 int FELocExternal){
+
+	ElementsPtr_Type elements = domainVec_.at(0)->getElementsC();
+
+	int dofsElement = elements->getElement(0).getVectorNodeList().size();
+
+	vec2D_dbl_ptr_Type pointsRep = domainVec_.at(0)->getPointsRepeated();
+
+	MapConstPtr_Type map= domainVec_.at(0)->getMapRepeated();
+
+	vec_dbl_Type solution(0);
+	vec_dbl_Type solution_u;
+
+	vec_dbl_ptr_Type rhsVec;
+
+	/// Tupel construction follows follwing pattern:
+	/// string: Physical Entity (i.e. Velocity) , string: Discretisation (i.e. "P2"), int: Degrees of Freedom per Node, int: Number of Nodes per element)
+	int numNodes=3;
+  if(FEType== "P2"){
+      numNodes=6;
+  }
+	if(dim==3){
+		numNodes=4;
+    if(FEType== "P2"){
+        numNodes=10;
+    }
+	}
+	tuple_disk_vec_ptr_Type problemDisk = Teuchos::rcp(new tuple_disk_vec_Type(0));
+	tuple_ssii_Type temp ("Solution",FEType,dofs,numNodes);
+	problemDisk->push_back(temp);
+
+	if(assemblyFEElements_.size()== 0){
+    initAssembleFEElements("Nonlinearlaplace",problemDisk,elements, params,pointsRep); // In cas of non Newtonian Fluid
+  }
+	else if(assemblyFEElements_.size() != elements->numberElements()) {
+    TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error, "Number Elements not the same as number assembleFE elements." );
+  }
+
+	MultiVectorPtr_Type resVec_u = Teuchos::rcp( new MultiVector_Type( domainVec_.at(0)->getMapVecFieldRepeated(), 1 ) );
+	
+	BlockMultiVectorPtr_Type resVecRep = Teuchos::rcp( new BlockMultiVector_Type( 2) );
+	resVecRep->addBlock(resVec_u,0);
+
+	for (UN T=0; T<assemblyFEElements_.size(); T++) {
+		vec_dbl_Type solution(0);
+
+		solution_u = getSolution(elements->getElement(T).getVectorNodeList(), u, dofs);
+
+		solution.insert( solution.end(), solution_u.begin(), solution_u.end() );
+
+		assemblyFEElements_[T]->updateSolution(solution);
+ 
+ 		SmallMatrixPtr_Type elementMatrix;
+
+		if(assembleMode == "Jacobian"){
+			assemblyFEElements_[T]->assembleJacobian();
+
+      elementMatrix = assemblyFEElements_[T]->getJacobian(); 
+
+			assemblyFEElements_[T]->advanceNewtonStep(); // n genereal non linear solver step
+      //TODO this might be wrong since Blockmatrix was another option
+      addFeBlock(A, elementMatrix, elements->getElement(T), map, 0, 0, problemDisk);
+		}
+
+		if(assembleMode == "Rhs"){
+      assemblyFEElements_[T]->assembleRHS();
+      rhsVec = assemblyFEElements_[T]->getRHS(); 
+			addFeBlockMv(resVecRep, rhsVec, elements->getElement(T), dofs);
+		}
+			
+	}
+	if (callFillComplete){
+	   A->getBlock(0,0)->fillComplete( domainVec_.at(0)->getMapVecFieldUnique(),domainVec_.at(0)->getMapVecFieldUnique());
+  }
 }
 
 
