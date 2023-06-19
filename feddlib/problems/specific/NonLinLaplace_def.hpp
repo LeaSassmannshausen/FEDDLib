@@ -1,10 +1,10 @@
-#ifndef NonLinLapAssFE_def_hpp
-#define NonLinLapAssFE_def_hpp
-#include "NonLinLapAssFE_decl.hpp"
+#ifndef NonLinLaplace_def_hpp
+#define NonLinLaplace_def_hpp
+#include "NonLinLaplace_decl.hpp"
 /*!
- Definition of NonLinLapAssFE
+ Definition of NonLinLaplace
 
- @brief NonLinLapAssFE
+ @brief NonLinLaplace
  @author Kyrill Ho
  @version 1.0
  @copyright KH
@@ -12,7 +12,7 @@
 
 namespace FEDD {
 template <class SC, class LO, class GO, class NO>
-NonLinLapAssFE<SC, LO, GO, NO>::NonLinLapAssFE(
+NonLinLaplace<SC, LO, GO, NO>::NonLinLaplace(
     const DomainConstPtr_Type &domain, std::string FEType,
     ParameterListPtr_Type parameterList)
     : NonLinearProblem<SC, LO, GO, NO>(parameterList, domain->getComm()),
@@ -25,16 +25,16 @@ NonLinLapAssFE<SC, LO, GO, NO>::NonLinLapAssFE(
 }
 
 template <class SC, class LO, class GO, class NO>
-NonLinLapAssFE<SC, LO, GO, NO>::~NonLinLapAssFE() {}
+NonLinLaplace<SC, LO, GO, NO>::~NonLinLaplace() {}
 
 template <class SC, class LO, class GO, class NO>
-void NonLinLapAssFE<SC, LO, GO, NO>::info() {
+void NonLinLaplace<SC, LO, GO, NO>::info() {
   this->infoProblem();
   this->infoNonlinProblem();
 }
 
 template <class SC, class LO, class GO, class NO>
-void NonLinLapAssFE<SC, LO, GO, NO>::assemble(std::string type) const {
+void NonLinLaplace<SC, LO, GO, NO>::assemble(std::string type) const {
 
   if (type == "") {
     if (this->verbose_) {
@@ -72,7 +72,7 @@ void NonLinLapAssFE<SC, LO, GO, NO>::assemble(std::string type) const {
 }
 
 template <class SC, class LO, class GO, class NO>
-void NonLinLapAssFE<SC, LO, GO, NO>::reAssemble(std::string type) const {
+void NonLinLaplace<SC, LO, GO, NO>::reAssemble(std::string type) const {
   std::string material_model = this->parameterList_->sublist("Parameter")
                                    .get("Material model", "Neo-Hooke");
 
@@ -92,7 +92,6 @@ void NonLinLapAssFE<SC, LO, GO, NO>::reAssemble(std::string type) const {
         new Matrix_Type(this->getDomain(0)->getMapVecFieldUnique(),
                         this->getDomain(0)->getDimension() *
                             this->getDomain(0)->getApproxEntriesPerRow()));
-    // TODO implement this
     this->feFactory_->assemblyNonLinLaplaceAceFEM(
         this->getDomain(0)->getFEType(), W, f, u_rep_);
 
@@ -112,7 +111,7 @@ void NonLinLapAssFE<SC, LO, GO, NO>::reAssemble(std::string type) const {
 }
 
 template <class SC, class LO, class GO, class NO>
-void NonLinLapAssFE<SC, LO, GO, NO>::reAssembleExtrapolation(
+void NonLinLaplace<SC, LO, GO, NO>::reAssembleExtrapolation(
     BlockMultiVectorPtrArray_Type previousSolutions) {
 
   TEUCHOS_TEST_FOR_EXCEPTION(
@@ -122,7 +121,7 @@ void NonLinLapAssFE<SC, LO, GO, NO>::reAssembleExtrapolation(
 
 // TODO setup for nox solver?
 template <class SC, class LO, class GO, class NO>
-void NonLinLapAssFE<SC, LO, GO, NO>::evalModelImpl(
+void NonLinLaplace<SC, LO, GO, NO>::evalModelImpl(
     const Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
     const Thyra::ModelEvaluatorBase::OutArgs<SC> &outArgs) const {
   using Teuchos::Array;
@@ -242,7 +241,7 @@ void NonLinLapAssFE<SC, LO, GO, NO>::evalModelImpl(
 
 template <class SC, class LO, class GO, class NO>
 Teuchos::RCP<Thyra::LinearOpBase<SC>>
-NonLinLapAssFE<SC, LO, GO, NO>::create_W_op() const {
+NonLinLaplace<SC, LO, GO, NO>::create_W_op() const {
 
   Teuchos::RCP<const Thyra::LinearOpBase<SC>> W_opConst =
       this->system_->getThyraLinOp();
@@ -253,7 +252,7 @@ NonLinLapAssFE<SC, LO, GO, NO>::create_W_op() const {
 
 template <class SC, class LO, class GO, class NO>
 Teuchos::RCP<Thyra::PreconditionerBase<SC>>
-NonLinLapAssFE<SC, LO, GO, NO>::create_W_prec() const {
+NonLinLaplace<SC, LO, GO, NO>::create_W_prec() const {
   this->initializeSolverBuilder();
   this->initializePreconditioner();
 
@@ -266,7 +265,7 @@ NonLinLapAssFE<SC, LO, GO, NO>::create_W_prec() const {
 }
 
 template <class SC, class LO, class GO, class NO>
-void NonLinLapAssFE<SC, LO, GO, NO>::calculateNonLinResidualVec(
+void NonLinLaplace<SC, LO, GO, NO>::calculateNonLinResidualVec(
     std::string type, double time) const {
 
   this->reAssemble("Newton-Residual");

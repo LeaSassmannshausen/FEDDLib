@@ -1,12 +1,12 @@
-#ifndef NonLinLapAssFE_decl_hpp
-#define NonLinLapAssFE_decl_hpp
+#ifndef NonLinLaplace_decl_hpp
+#define NonLinLaplace_decl_hpp
 #include "feddlib/problems/abstract/NonLinearProblem.hpp"
 #include <Thyra_ModelEvaluatorBase_decl.hpp>
 #include <Thyra_PreconditionerBase.hpp>
 /*!
- Declaration of NonLinLapAssFE
+ Declaration of NonLinLaplace
 
- @brief NonLinLapAssFE
+ @brief NonLinLaplace
  @author Kyrill Ho
  @version 1.0
  @copyright KH
@@ -15,7 +15,7 @@
 namespace FEDD {
 template <class SC = default_sc, class LO = default_lo, class GO = default_go,
           class NO = default_no>
-class NonLinLapAssFE : public NonLinearProblem<SC, LO, GO, NO> {
+class NonLinLaplace : public NonLinearProblem<SC, LO, GO, NO> {
 
 public:
   //! @name Public Types
@@ -57,10 +57,10 @@ public:
 
   //! @name Constructor/Destructor
   //@{
-  NonLinLapAssFE(const DomainConstPtr_Type &domain, std::string FEType,
-                 ParameterListPtr_Type parameterList);
+  NonLinLaplace(const DomainConstPtr_Type &domain, std::string FEType,
+                ParameterListPtr_Type parameterList);
   //@}
-  ~NonLinLapAssFE();
+  ~NonLinLaplace();
 
   virtual void info();
 

@@ -1,4 +1,4 @@
-<ParameterList name="steady nonlinear elasticity">
+<ParameterList name="nonlinear Laplace">
     <ParameterList name="Parameter">
         <Parameter name="Dimension"							    type="int"   	value="3"/>
         <Parameter name="Discretization"                        type="string"   value="P2"/><!--P1, P2-->

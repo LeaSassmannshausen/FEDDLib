@@ -178,9 +178,8 @@ public:
                                  MatrixPtr_Type &A,
                                  bool callFillComplete = true);
 
-  void assemblyNonLinLaplaceAceFEM(std::string FEType, MatrixPtr_Type &A,
-                                   MultiVectorPtr_Type f,
-                                   MultiVectorPtr_Type u);
+  void assemblyNonlinearLaplace(std::string FEType, MatrixPtr_Type &A,
+                                MultiVectorPtr_Type f, MultiVectorPtr_Type u);
 
   // Assembling the reaction term of the reaction diffusion equation. Maybe add
   // default function.
