@@ -2239,6 +2239,14 @@ void FE<SC,LO,GO,NO>::assemblyLaplaceVecFieldV2(int dim,
         A->fillComplete();
 }
 
+template<class SC, class LO, class GO, class NO>
+void FE<SC,LO,GO,NO>::assemblyNonLinLaplaceAceFEM(std::string FEType, MatrixPtr_Type &A,
+                                   MultiVectorPtr_Type f,
+                                   MultiVectorPtr_Type u){
+  
+}
+
+
 template <class SC, class LO, class GO, class NO>
 void FE<SC,LO,GO,NO>::assemblyElasticityJacobianAndStressAceFEM(int dim,
                                                                 std::string FEType,

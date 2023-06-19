@@ -37,8 +37,9 @@ template <class SC, class LO, class GO, class NO>
 void NonLinLapAssFE<SC, LO, GO, NO>::assemble(std::string type) const {
 
   if (type == "") {
-    if (this->verbose_)
+    if (this->verbose_) {
       std::cout << "-- Assembly nonlinear laplace ... " << std::flush;
+    }
 
     MatrixPtr_Type A(
         new Matrix_Type(this->getDomain(0)->getMapVecFieldUnique(),
@@ -52,7 +53,6 @@ void NonLinLapAssFE<SC, LO, GO, NO>::assemble(std::string type) const {
 
     this->assembleSourceTerm(0.);
     this->addToRhs(this->sourceTerm_);
-
     this->setBoundariesRHS();
 
     this->solution_->putScalar(0.);
@@ -62,12 +62,13 @@ void NonLinLapAssFE<SC, LO, GO, NO>::assemble(std::string type) const {
     MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
     u_rep_->importFromVector(u, true);
 
-    if (this->verbose_)
+    if (this->verbose_) {
       std::cout << "done -- " << std::endl;
-
+    }
     this->reAssemble("Newton-Residual");
-  } else
+  } else {
     this->reAssemble(type);
+  }
 }
 
 template <class SC, class LO, class GO, class NO>
@@ -76,8 +77,8 @@ void NonLinLapAssFE<SC, LO, GO, NO>::reAssemble(std::string type) const {
                                    .get("Material model", "Neo-Hooke");
 
   if (this->verbose_)
-    std::cout << "-- Reassembly nonlinear elasticity with material model "
-              << material_model << " (" << type << ") ... " << std::flush;
+    std::cout << "-- Reassembly nonlinear laplace " << material_model << " ("
+              << type << ") ... " << std::flush;
 
   if (type == "Newton-Residual") {
     MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
@@ -86,13 +87,14 @@ void NonLinLapAssFE<SC, LO, GO, NO>::reAssemble(std::string type) const {
 
     MultiVectorPtr_Type f = Teuchos::rcp(
         new MultiVector_Type(this->getDomain(0)->getMapVecFieldRepeated(), 1));
+
     MatrixPtr_Type W = Teuchos::rcp(
         new Matrix_Type(this->getDomain(0)->getMapVecFieldUnique(),
                         this->getDomain(0)->getDimension() *
                             this->getDomain(0)->getApproxEntriesPerRow()));
-    this->feFactory_->assemblyElasticityJacobianAndStressAceFEM(
-        this->dim_, this->getDomain(0)->getFEType(), W, f, u_rep_,
-        this->parameterList_, C_);
+    // TODO implement this
+    this->feFactory_->assemblyNonLinLaplaceAceFEM(
+        this->getDomain(0)->getFEType(), W, f, u_rep_);
 
     MultiVectorPtr_Type fUnique = Teuchos::rcp(
         new MultiVector_Type(this->getDomain(0)->getMapVecFieldUnique(), 1));
@@ -110,10 +112,6 @@ void NonLinLapAssFE<SC, LO, GO, NO>::reAssemble(std::string type) const {
 }
 
 template <class SC, class LO, class GO, class NO>
-void NonLinLapAssFE<SC, LO, GO, NO>::reAssemble(MatrixPtr_Type &massmatrix,
-                                                std::string type) const {}
-
-template <class SC, class LO, class GO, class NO>
 void NonLinLapAssFE<SC, LO, GO, NO>::reAssembleExtrapolation(
     BlockMultiVectorPtrArray_Type previousSolutions) {
 
@@ -122,6 +120,7 @@ void NonLinLapAssFE<SC, LO, GO, NO>::reAssembleExtrapolation(
       "Only Newton/NOX implemented for nonlinear material models!");
 }
 
+// TODO setup for nox solver?
 template <class SC, class LO, class GO, class NO>
 void NonLinLapAssFE<SC, LO, GO, NO>::evalModelImpl(
     const Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,

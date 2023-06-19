@@ -70,7 +70,8 @@ public:
 
   virtual void reAssemble(BlockMultiVectorPtr_Type previousSolution) const {};
 
-  virtual void reAssemble(MatrixPtr_Type &massmatrix, std::string type) const;
+  virtual void reAssemble(MatrixPtr_Type &massmatrix,
+                          std::string type) const {};
 
   virtual void
   reAssembleExtrapolation(BlockMultiVectorPtrArray_Type previousSolutions);
