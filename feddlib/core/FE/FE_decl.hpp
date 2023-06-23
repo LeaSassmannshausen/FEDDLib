@@ -179,7 +179,7 @@ public:
                                  bool callFillComplete = true);
 
   void assemblyNonlinearLaplace(int dim, std::string FEType, int degree,
-                                int dofs, MatrixPtr_Type &A,
+                                int dofs, BlockMatrixPtr_Type &A,
                                 MultiVectorPtr_Type f, MultiVectorPtr_Type u,
                                 ParameterListPtr_Type params, bool reAssemble,
                                 string assembleMode, bool callFillComplete,

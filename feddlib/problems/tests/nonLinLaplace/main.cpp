@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
     parameterListAll->setParameters(*parameterListPrec);
     parameterListAll->setParameters(*parameterListSolver);
 
-    int dim = parameterListProblem->sublist("Parameter").get("Dimension", 3);
+    int dim = parameterListProblem->sublist("Parameter").get("Dimension", 2);
     string meshType = parameterListProblem->sublist("Parameter")
                           .get("Mesh Type", "structured");
     string meshName = parameterListProblem->sublist("Parameter")
@@ -273,28 +273,28 @@ int main(int argc, char *argv[]) {
     }
 
     // Declare nonlinlaplace object
-    NonLinLapAssFE<SC, LO, GO, NO> NonLinLapAssFE(domain, FEType,
-                                                  parameterListAll);
+    NonLinLaplace<SC, LO, GO, NO> NonLinLaplace(domain, FEType,
+                                                parameterListAll);
 
-    NonLinLapAssFE.addBoundaries(bcFactory);
+    NonLinLaplace.addBoundaries(bcFactory);
 
     if (dim == 2)
-      NonLinLapAssFE.addRhsFunction(rhs2D);
+      NonLinLaplace.addRhsFunction(rhs2D);
     else if (dim == 3)
-      NonLinLapAssFE.addRhsFunction(rhsYZ);
+      NonLinLaplace.addRhsFunction(rhsYZ);
 
     // ######################
     // Assemble matrix, set boundary conditions and solve
     // ######################
-    NonLinLapAssFE.initializeProblem();
-    NonLinLapAssFE.assemble();
-    NonLinLapAssFE.setBoundaries();
-    NonLinLapAssFE.setBoundariesRHS();
+    NonLinLaplace.initializeProblem();
+    NonLinLaplace.assemble();
+    NonLinLaplace.setBoundaries();
+    NonLinLaplace.setBoundariesRHS();
 
     std::string nlSolverType = parameterListProblem->sublist("General").get(
         "Linearization", "FixedPoint");
     NonLinearSolver<SC, LO, GO, NO> nlSolverAssFE(nlSolverType);
-    nlSolverAssFE.solve(NonLinLapAssFE);
+    nlSolverAssFE.solve(NonLinLaplace);
     comm->barrier();
 
     if (comm->getRank() == 0) {
@@ -310,14 +310,14 @@ int main(int argc, char *argv[]) {
     exPara->setup("displacements", domain->getMesh(), FEType);
 
     MultiVectorConstPtr_Type valuesSolidConst1 =
-        NonLinLapAssFE.getSolution()->getBlock(0);
-    exPara->addVariable(valuesSolidConst1, "valuesNonLinLapAssFE", "Vector",
-                        dim, domain->getMapUnique());
+        NonLinLaplace.getSolution()->getBlock(0);
+    exPara->addVariable(valuesSolidConst1, "valuesNonLinLaplace", "Vector", dim,
+                        domain->getMapUnique());
 
     MultiVectorConstPtr_Type valuesSolidConst2 =
-        NonLinLapAssFE.getSolution()->getBlock(0);
-    exPara->addVariable(valuesSolidConst2, "valuesNonLinLapAssFE", "Vector",
-                        dim, domain->getMapUnique());
+        NonLinLaplace.getSolution()->getBlock(0);
+    exPara->addVariable(valuesSolidConst2, "valuesNonLinLaplace", "Vector", dim,
+                        domain->getMapUnique());
 
     // Calculating the error per node
     Teuchos::RCP<MultiVector<SC, LO, GO, NO>> errorValues = Teuchos::rcp(
@@ -344,13 +344,13 @@ int main(int argc, char *argv[]) {
       cout << " Inf Norm of Error of Solutions " << res << endl;
     double infNormError = res;
 
-    NonLinLapAssFE.getSolution()->getBlock(0)->normInf(norm);
+    NonLinLaplace.getSolution()->getBlock(0)->normInf(norm);
     res = norm[0];
     if (comm->getRank() == 0)
       cout << " Relative error Inf-Norm of solution nonlinear elasticity "
            << infNormError / res << endl;
 
-    NonLinLapAssFE.getSolution()->getBlock(0)->normInf(norm);
+    NonLinLaplace.getSolution()->getBlock(0)->normInf(norm);
     res = norm[0];
     if (comm->getRank() == 0)
       cout << " Relative error Inf-Norm of solutions nonlinear elasticity "

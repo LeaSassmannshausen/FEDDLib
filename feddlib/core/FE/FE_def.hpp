@@ -2127,6 +2127,8 @@ void FE<SC,LO,GO,NO>::assemblyLaplaceVecField(int dim,
                     value[j] = 0.;
                 }
             }
+            //kho vector valued laplacian has one dof per dimension
+            // Need to insert value into A for each dimension 
             for (UN d=0; d<dim; d++) {
                 for (UN j=0; j < indices.size(); j++)
                     indices[j] = GO ( dim * map->getGlobalElement( elements->getElement(T).getNode(j) ) + d );
@@ -2251,7 +2253,7 @@ void FE<SC,LO,GO,NO>::assemblyLaplaceVecFieldV2(int dim,
 */
 
 template<class SC, class LO, class GO, class NO>
-void FE<SC,LO,GO,NO>::assemblyNonlinearLaplace(int dim, std::string FEType, int degree, int dofs, MatrixPtr_Type &A,
+void FE<SC,LO,GO,NO>::assemblyNonlinearLaplace(int dim, std::string FEType, int degree, int dofs, BlockMatrixPtr_Type &A,
                                    MultiVectorPtr_Type f,
                                    MultiVectorPtr_Type u,
                                    ParameterListPtr_Type params,
@@ -2298,7 +2300,7 @@ void FE<SC,LO,GO,NO>::assemblyNonlinearLaplace(int dim, std::string FEType, int 
 
 	MultiVectorPtr_Type resVec_u = Teuchos::rcp( new MultiVector_Type( domainVec_.at(0)->getMapVecFieldRepeated(), 1 ) );
 	
-	BlockMultiVectorPtr_Type resVecRep = Teuchos::rcp( new BlockMultiVector_Type( 2) );
+	BlockMultiVectorPtr_Type resVecRep = Teuchos::rcp( new BlockMultiVector_Type( 1) );
 	resVecRep->addBlock(resVec_u,0);
 
 	for (UN T=0; T<assemblyFEElements_.size(); T++) {
@@ -2318,7 +2320,6 @@ void FE<SC,LO,GO,NO>::assemblyNonlinearLaplace(int dim, std::string FEType, int 
       elementMatrix = assemblyFEElements_[T]->getJacobian(); 
 
 			assemblyFEElements_[T]->advanceNewtonStep(); // n genereal non linear solver step
-      //TODO this might be wrong since Blockmatrix was another option
       addFeBlock(A, elementMatrix, elements->getElement(T), map, 0, 0, problemDisk);
 		}
 

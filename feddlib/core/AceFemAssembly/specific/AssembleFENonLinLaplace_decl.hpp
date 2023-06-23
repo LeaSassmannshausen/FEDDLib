@@ -49,7 +49,7 @@ protected:
           tuple); /// \todo Tupel for Disk Anzahl Knoten, Anzahl Freiheitsgrade
 
 private:
-  void assemblyLaplacian(SmallMatrixPtr_Type &elementMatrix);
+  void assemblyNonLinLaplacian(SmallMatrixPtr_Type &elementMatrix);
 
   friend class AssembleFEFactory<SC, LO, GO,
                                  NO>; // Must have for specfic classes
