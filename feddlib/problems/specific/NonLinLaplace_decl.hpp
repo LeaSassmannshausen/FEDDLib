@@ -33,6 +33,8 @@ public:
   typedef typename Problem_Type::MultiVectorPtr_Type MultiVectorPtr_Type;
   typedef
       typename Problem_Type::MultiVectorConstPtr_Type MultiVectorConstPtr_Type;
+
+  typedef typename Problem_Type::BlockMultiVector_Type BlockMultiVector_Type;
   typedef
       typename Problem_Type::BlockMultiVectorPtr_Type BlockMultiVectorPtr_Type;
 
@@ -65,6 +67,8 @@ public:
   virtual void info();
 
   virtual void assemble(std::string type = "") const;
+
+  void initAssemble() const;
 
   void reAssemble(std::string type) const;
 

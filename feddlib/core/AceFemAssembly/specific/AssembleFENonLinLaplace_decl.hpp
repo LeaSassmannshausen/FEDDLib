@@ -37,8 +37,8 @@ public:
   virtual void assembleRHS();
 
   /*!
-          \brief Assemble the element Jacobian matrix.
-          @param[in] block ID i
+  \brief Assemble the element Jacobian matrix.
+  @param[in] block ID i
   */
   virtual void assembleJacobianBlock(LO i){};
 
@@ -51,13 +51,16 @@ protected:
 private:
   void assemblyNonLinLaplacian(SmallMatrixPtr_Type &elementMatrix);
 
-  friend class AssembleFEFactory<SC, LO, GO,
-                                 NO>; // Must have for specfic classes
-
   void buildTransformation(SmallMatrix<SC> &B);
 
   void applyBTinv(vec3D_dbl_ptr_Type &dPhiIn, vec3D_dbl_Type &dPhiOut,
                   SmallMatrix<SC> &Binv);
+
+  friend class AssembleFEFactory<SC, LO, GO, NO>;
+  string FEType_;
+  int dofs_;
+  int numNodes_;
+  int dofsElement_;
 };
 
 } // namespace FEDD

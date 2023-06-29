@@ -179,11 +179,12 @@ public:
                                  bool callFillComplete = true);
 
   void assemblyNonlinearLaplace(int dim, std::string FEType, int degree,
-                                int dofs, BlockMatrixPtr_Type &A,
-                                MultiVectorPtr_Type f, MultiVectorPtr_Type u,
-                                ParameterListPtr_Type params, bool reAssemble,
-                                string assembleMode, bool callFillComplete,
-                                int FELocExternal);
+                                MultiVectorPtr_Type u, BlockMatrixPtr_Type &A,
+                                BlockMultiVectorPtr_Type &resVec,
+                                ParameterListPtr_Type params,
+                                string assembleMode,
+                                bool callFillComplete = true,
+                                int FELocExternal = -1);
 
   // Assembling the reaction term of the reaction diffusion equation. Maybe add
   // default function.

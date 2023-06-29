@@ -2249,22 +2249,21 @@ void FE<SC,LO,GO,NO>::assemblyLaplaceVecFieldV2(int dim,
 @param[in] degree Degree of basis function
 @param[in] A Resulting matrix
 @param[in] callFillComplete If Matrix A should be completely filled at end of function
-@param[in] FELocExternal 
+@param[in] FELocExternal
 */
 
 template<class SC, class LO, class GO, class NO>
-void FE<SC,LO,GO,NO>::assemblyNonlinearLaplace(int dim, std::string FEType, int degree, int dofs, BlockMatrixPtr_Type &A,
-                                   MultiVectorPtr_Type f,
-                                   MultiVectorPtr_Type u,
-                                   ParameterListPtr_Type params,
-                                   bool reAssemble,
-                                   string assembleMode,
+void FE<SC,LO,GO,NO>::assemblyNonlinearLaplace(
+    int dim, std::string FEType, int degree, MultiVectorPtr_Type u,
+    BlockMatrixPtr_Type &A, BlockMultiVectorPtr_Type &resVec,
+    ParameterListPtr_Type params, string assembleMode,
                                    bool callFillComplete,
 	                                 int FELocExternal){
 
 	ElementsPtr_Type elements = domainVec_.at(0)->getElementsC();
 
-	int dofsElement = elements->getElement(0).getVectorNodeList().size();
+	//int dofsElement = elements->getElement(0).getVectorNodeList().size();
+  int dofs = 1;
 
 	vec2D_dbl_ptr_Type pointsRep = domainVec_.at(0)->getPointsRepeated();
 
@@ -2292,7 +2291,7 @@ void FE<SC,LO,GO,NO>::assemblyNonlinearLaplace(int dim, std::string FEType, int 
 	problemDisk->push_back(temp);
 
 	if(assemblyFEElements_.size()== 0){
-    initAssembleFEElements("Nonlinearlaplace",problemDisk,elements, params,pointsRep); // In cas of non Newtonian Fluid
+    initAssembleFEElements("NonLinearLaplace",problemDisk,elements, params,pointsRep); // In cas of non Newtonian Fluid
   }
 	else if(assemblyFEElements_.size() != elements->numberElements()) {
     TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error, "Number Elements not the same as number assembleFE elements." );
@@ -2313,7 +2312,7 @@ void FE<SC,LO,GO,NO>::assemblyNonlinearLaplace(int dim, std::string FEType, int 
 		assemblyFEElements_[T]->updateSolution(solution);
  
  		SmallMatrixPtr_Type elementMatrix;
-
+    //TODO do I need these if blocks? 
 		if(assembleMode == "Jacobian"){
 			assemblyFEElements_[T]->assembleJacobian();
 
@@ -2325,7 +2324,7 @@ void FE<SC,LO,GO,NO>::assemblyNonlinearLaplace(int dim, std::string FEType, int 
 
 		if(assembleMode == "Rhs"){
       assemblyFEElements_[T]->assembleRHS();
-      rhsVec = assemblyFEElements_[T]->getRHS(); 
+      rhsVec = assemblyFEElements_[T]->getRHS();
 			addFeBlockMv(resVecRep, rhsVec, elements->getElement(T), dofs);
 		}
 			

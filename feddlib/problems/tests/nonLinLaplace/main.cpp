@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  bool verbose(comm->getRank() == 0); // Print-Ausgaben nur auf rank = 0
+  bool verbose(comm->getRank() == 0); // Only first rank prints
   if (verbose) {
     cout << "###############################################################"
          << endl;
@@ -189,13 +189,12 @@ int main(int argc, char *argv[]) {
     string meshType = parameterListProblem->sublist("Parameter")
                           .get("Mesh Type", "structured");
     string meshName = parameterListProblem->sublist("Parameter")
-                          .get("Mesh Name", "cube_0_1.mesh");
+                          .get("Mesh Name", "square.mesh");
     string meshDelimiter =
         parameterListProblem->sublist("Parameter").get("Mesh Delimiter", " ");
-    int n;
     int m = parameterListProblem->sublist("Parameter").get("H/h", 5);
     string FEType =
-        parameterListProblem->sublist("Parameter").get("Discretization", "P2");
+        parameterListProblem->sublist("Parameter").get("Discretization", "P1");
 
     int numProcsCoarseSolve =
         parameterListProblem->sublist("General").get("Mpi Ranks Coarse", 0);
@@ -235,28 +234,6 @@ int main(int argc, char *argv[]) {
     // Flags setzen
     // ########################
 
-    Teuchos::RCP<ExporterParaView<SC, LO, GO, NO>> exParaF(
-        new ExporterParaView<SC, LO, GO, NO>());
-
-    Teuchos::RCP<MultiVector<SC, LO, GO, NO>> exportSolution(
-        new MultiVector<SC, LO, GO, NO>(domain->getMapUnique()));
-    vec_int_ptr_Type BCFlags = domain->getBCFlagUnique();
-
-    Teuchos::ArrayRCP<SC> entries = exportSolution->getDataNonConst(0);
-    for (int i = 0; i < entries.size(); i++) {
-      entries[i] = BCFlags->at(i);
-    }
-
-    Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> exportSolutionConst =
-        exportSolution;
-
-    exParaF->setup("Flags", domain->getMesh(), FEType);
-
-    exParaF->addVariable(exportSolutionConst, "Flags", "Scalar", 1,
-                         domain->getMapUnique(), domain->getMapUniqueP2());
-
-    exParaF->save(0.0);
-
     Teuchos::RCP<BCBuilder<SC, LO, GO, NO>> bcFactory(
         new BCBuilder<SC, LO, GO, NO>());
     if (dim == 2)
@@ -291,71 +268,11 @@ int main(int argc, char *argv[]) {
     NonLinLaplace.setBoundaries();
     NonLinLaplace.setBoundariesRHS();
 
-    std::string nlSolverType = parameterListProblem->sublist("General").get(
-        "Linearization", "FixedPoint");
+    std::string nlSolverType =
+        parameterListProblem->sublist("General").get("Linearization", "NOX");
     NonLinearSolver<SC, LO, GO, NO> nlSolverAssFE(nlSolverType);
     nlSolverAssFE.solve(NonLinLaplace);
     comm->barrier();
-
-    if (comm->getRank() == 0) {
-      cout << " ############################################### " << endl;
-      cout << " Nonlinear Iterations AceGEN Assembly  : "
-           << nlSolverAssFE.getNonLinIts() << endl;
-      cout << " ############################################### " << endl;
-    }
-
-    Teuchos::RCP<ExporterParaView<SC, LO, GO, NO>> exPara(
-        new ExporterParaView<SC, LO, GO, NO>());
-
-    exPara->setup("displacements", domain->getMesh(), FEType);
-
-    MultiVectorConstPtr_Type valuesSolidConst1 =
-        NonLinLaplace.getSolution()->getBlock(0);
-    exPara->addVariable(valuesSolidConst1, "valuesNonLinLaplace", "Vector", dim,
-                        domain->getMapUnique());
-
-    MultiVectorConstPtr_Type valuesSolidConst2 =
-        NonLinLaplace.getSolution()->getBlock(0);
-    exPara->addVariable(valuesSolidConst2, "valuesNonLinLaplace", "Vector", dim,
-                        domain->getMapUnique());
-
-    // Calculating the error per node
-    Teuchos::RCP<MultiVector<SC, LO, GO, NO>> errorValues = Teuchos::rcp(
-        new MultiVector<SC, LO, GO, NO>(valuesSolidConst1->getMap()));
-    // this = alpha*A + beta*B + gamma*this
-    errorValues->update(1., valuesSolidConst2, -1., valuesSolidConst1, 0.);
-
-    // Taking abs norm
-    Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> errorValuesAbs =
-        errorValues;
-
-    errorValues->abs(errorValuesAbs);
-
-    exPara->addVariable(errorValuesAbs, "erroeValues", "Vector", dim,
-                        domain->getMapUnique());
-    exPara->save(0.0);
-
-    Teuchos::Array<SC> norm(1);
-    errorValues->normInf(
-        norm); // const Teuchos::ArrayView<typename
-               // Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
-    double res = norm[0];
-    if (comm->getRank() == 0)
-      cout << " Inf Norm of Error of Solutions " << res << endl;
-    double infNormError = res;
-
-    NonLinLaplace.getSolution()->getBlock(0)->normInf(norm);
-    res = norm[0];
-    if (comm->getRank() == 0)
-      cout << " Relative error Inf-Norm of solution nonlinear elasticity "
-           << infNormError / res << endl;
-
-    NonLinLaplace.getSolution()->getBlock(0)->normInf(norm);
-    res = norm[0];
-    if (comm->getRank() == 0)
-      cout << " Relative error Inf-Norm of solutions nonlinear elasticity "
-              "assemFE "
-           << infNormError / res << endl;
   }
   return (EXIT_SUCCESS);
 }
