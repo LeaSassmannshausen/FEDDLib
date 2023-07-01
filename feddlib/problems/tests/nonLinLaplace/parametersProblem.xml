@@ -8,7 +8,7 @@
         <Parameter name="Mesh Delimiter"					    type="string"   value=" "/>
         <Parameter name="H/h"							    	type="int"   	value="10"/>   
           <Parameter name="relNonLinTol" type="double" value="1.0e-4"/>
-        <Parameter name="MaxNonLinIts" type="int" value="5"/>
+        <Parameter name="MaxNonLinIts" type="int" value="10"/>
         <Parameter name="Criterion" type="string" value="Residual"/>     
     </ParameterList>
 
