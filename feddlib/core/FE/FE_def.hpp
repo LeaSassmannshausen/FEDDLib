@@ -2511,9 +2511,8 @@ void FE<SC, LO, GO, NO>::assemblyNonlinearLaplace(
     }
     // TODO might need to differentiate between reAssemble
     if (callFillComplete && assembleMode != "Rhs") {
-        A->getBlock(0, 0)->fillComplete(
-            domainVec_.at(0)->getMapVecFieldUnique(),
-            domainVec_.at(0)->getMapVecFieldUnique());
+        A->getBlock(0, 0)->fillComplete(domainVec_.at(0)->getMapUnique(),
+                                        domainVec_.at(0)->getMapUnique());
     }
     /* if (assembleMode == "Rhs") { */
     /*     MultiVectorPtr_Type resVecUnique = Teuchos::rcp( */

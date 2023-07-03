@@ -12,55 +12,56 @@ namespace FEDD {
 template <class SC = default_sc, class LO = default_lo, class GO = default_go,
           class NO = default_no>
 class AssembleFENonLinLaplace : public AssembleFE<SC, LO, GO, NO> {
-public:
-  typedef Matrix<SC, LO, GO, NO> Matrix_Type;
-  typedef Teuchos::RCP<Matrix_Type> MatrixPtr_Type;
+  public:
+    typedef Matrix<SC, LO, GO, NO> Matrix_Type;
+    typedef Teuchos::RCP<Matrix_Type> MatrixPtr_Type;
 
-  typedef SmallMatrix<SC> SmallMatrix_Type;
-  typedef Teuchos::RCP<SmallMatrix_Type> SmallMatrixPtr_Type;
+    typedef SmallMatrix<SC> SmallMatrix_Type;
+    typedef Teuchos::RCP<SmallMatrix_Type> SmallMatrixPtr_Type;
 
-  typedef MultiVector<SC, LO, GO, NO> MultiVector_Type;
-  typedef Teuchos::RCP<MultiVector_Type> MultiVectorPtr_Type;
+    typedef MultiVector<SC, LO, GO, NO> MultiVector_Type;
+    typedef Teuchos::RCP<MultiVector_Type> MultiVectorPtr_Type;
 
-  typedef AssembleFE<SC, LO, GO, NO> AssembleFE_Type;
+    typedef AssembleFE<SC, LO, GO, NO> AssembleFE_Type;
 
-  /*!
-   \brief Assemble the element Jacobian matrix.
-   \return the element Jacobian matrix
-  */
-  virtual void assembleJacobian();
+    /*!
+     \brief Assemble the element Jacobian matrix.
+     \return the element Jacobian matrix
+    */
+    virtual void assembleJacobian();
 
-  /*!
-   \brief Assemble the element right hand side vector.
-   \return the element right hand side vector
-  */
-  virtual void assembleRHS();
+    /*!
+     \brief Assemble the element right hand side vector.
+     \return the element right hand side vector
+    */
+    virtual void assembleRHS();
 
-  /*!
-  \brief Assemble the element Jacobian matrix.
-  @param[in] block ID i
-  */
-  virtual void assembleJacobianBlock(LO i){};
+    /*!
+    \brief Assemble the element Jacobian matrix.
+    @param[in] block ID i
+    */
+    virtual void assembleJacobianBlock(LO i){};
 
-protected:
-  AssembleFENonLinLaplace(
-      int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type parameters,
-      tuple_disk_vec_ptr_Type
-          tuple); /// \todo Tupel for Disk Anzahl Knoten, Anzahl Freiheitsgrade
+  protected:
+    AssembleFENonLinLaplace(
+        int flag, vec2D_dbl_Type nodesRefConfig,
+        ParameterListPtr_Type parameters,
+        tuple_disk_vec_ptr_Type tuple); /// \todo Tupel for Disk Anzahl Knoten,
+                                        /// Anzahl Freiheitsgrade
 
-private:
-  void assemblyNonLinLaplacian(SmallMatrixPtr_Type &elementMatrix);
+  private:
+    void assemblyNonLinLaplacian(SmallMatrixPtr_Type &elementMatrix);
 
-  void buildTransformation(SmallMatrix<SC> &B);
+    void buildTransformation(SmallMatrix<SC> &B);
 
-  void applyBTinv(vec3D_dbl_ptr_Type &dPhiIn, vec3D_dbl_Type &dPhiOut,
-                  SmallMatrix<SC> &Binv);
+    void applyBTinv(vec3D_dbl_ptr_Type &dPhiIn, vec3D_dbl_Type &dPhiOut,
+                    SmallMatrix<SC> &Binv);
 
-  friend class AssembleFEFactory<SC, LO, GO, NO>;
-  string FEType_;
-  int dofs_;
-  int numNodes_;
-  int dofsElement_;
+    friend class AssembleFEFactory<SC, LO, GO, NO>;
+    string FEType_;
+    int dofs_;
+    int numNodes_;
+    int dofsElement_;
 };
 
 } // namespace FEDD
