@@ -246,7 +246,6 @@ int main(int argc, char *argv[]) {
         parameterListProblem->sublist("General").get("Linearization", "NOX");
     NonLinearSolver<SC, LO, GO, NO> nlSolverAssFE(nlSolverType);
     nlSolverAssFE.solve(NonLinLaplace);
-    NonLinLaplace.getSystem()->getBlock(0, 0)->print();
     comm->barrier();
 
     bool boolExportSolution = true;

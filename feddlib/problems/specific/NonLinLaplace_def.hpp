@@ -53,9 +53,6 @@ void NonLinLaplace<SC, LO, GO, NO>::assemble(std::string type) const {
 template <class SC, class LO, class GO, class NO>
 void NonLinLaplace<SC, LO, GO, NO>::initAssemble() const {
 
-    MatrixPtr_Type A(
-        new Matrix_Type(this->getDomain(0)->getMapUnique(),
-                        this->getDomain(0)->getApproxEntriesPerRow()));
     if (this->verbose_) {
         std::cout << "-- Initial assembly " << std::flush;
     }
@@ -66,19 +63,12 @@ void NonLinLaplace<SC, LO, GO, NO>::initAssemble() const {
     if (this->residualVec_.is_null())
         this->residualVec_.reset(new BlockMultiVector_Type(1));
 
-    this->system_->addBlock(A, 0, 0);
-    // TODO here the initialisation of the system may still be wrong.
-    /* this->assembleSourceTerm(0.); */
-    /* this->addToRhs(this->sourceTerm_); */
     this->feFactory_->assemblyNonlinearLaplace(
         this->dim_, this->getDomain(0)->getFEType(), 2, this->u_rep_,
         this->system_, this->residualVec_, this->parameterList_, "Jacobian");
-    /* this->feFactory_->assemblyNonlinearLaplace( */
-    /*     this->dim_, this->getDomain(0)->getFEType(), 2, this->u_rep_, */
-    /*     this->system_, this->residualVec_, this->parameterList_, "Rhs"); */
 
     // Initialise solution to 1 everywhere
-    this->solution_->putScalar(0.);
+    this->solution_->putScalar(1.);
 
     if (this->verbose_) {
         std::cout << "done -- " << std::endl;
@@ -92,19 +82,9 @@ void NonLinLaplace<SC, LO, GO, NO>::reAssemble(std::string type) const {
         std::cout << "-- Reassembly nonlinear laplace"
                   << " (" << type << ") ... " << std::flush;
 
-    MatrixPtr_Type W = Teuchos::rcp(
-        new Matrix_Type(this->getDomain(0)->getMapUnique(),
-                        this->getDomain(0)->getApproxEntriesPerRow()));
-
     MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
 
     this->u_rep_->importFromVector(u, true);
-
-    this->system_->addBlock(W, 0, 0);
-
-    // MultiVectorPtr_Type f = Teuchos::rcp(
-    //     new MultiVector_Type(this->getDomain(0)->getMapRepeated(),
-    //     1));
 
     if (type == "Rhs") {
 
@@ -132,7 +112,6 @@ void NonLinLaplace<SC, LO, GO, NO>::reAssembleExtrapolation(
         "Only Newton/NOX implemented for nonlinear material models!");
 }
 
-// TODO setup for nox solver?
 template <class SC, class LO, class GO, class NO>
 void NonLinLaplace<SC, LO, GO, NO>::evalModelImpl(
     const Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
@@ -286,22 +265,37 @@ void NonLinLaplace<SC, LO, GO, NO>::calculateNonLinResidualVec(
     std::string type, double time) const {
 
     this->reAssemble("Rhs");
+    // TODO understand how the boundary conditions are handled
+    //  Seems that they are included in the solution vector and corrected for
+    //  here Why is this a good approach?
+
+    // rhs_ contains the dirichlet boundary conditions
+    // Apparently so does bcFactory_. Not sure why both do.
     if (!type.compare("standard")) {
+        // this = 1*this - 1*rhs
         this->residualVec_->update(-1., *this->rhs_, 1.);
-        /* if (!this->sourceTerm_.is_null()) */
-        /*   this->residualVec_->update(-1., *this->sourceTerm_, 1.); */
+        this->bcFactory_->setVectorMinusBC(this->residualVec_, this->solution_,
+                                           time);
     } else if (!type.compare("reverse")) {
-        this->residualVec_->update(1., *this->rhs_,
-                                   -1.); // this = -1*this + 1*rhs
-                                         /* if (!this->sourceTerm_.is_null()) */
-        /*   this->residualVec_->update(1., *this->sourceTerm_, 1.); */
+        // this = -1*this + 1*rhs
+        /* std::cout << "Solution !!!!!!!!!!!!!!!!!!!!!!\n"; */
+        /* this->solution_->getBlock(0)->print(); */
+
+        this->residualVec_->update(1., *this->rhs_, -1.);
+        /* std::cout << "Before !!!!!!!!!!!!!!!!!!!!!!\n"; */
+        /* this->residualVec_->getBlock(0)->print(); */
+
+        // Sets the residualVec_ at the boundary = boundary condition - solution
+        // Necessary since reAssemble("Rhs") only assembles the residual on
+        // internal nodes
+        this->bcFactory_->setBCMinusVector(this->residualVec_, this->solution_,
+                                           time);
+        /* std::cout << "After !!!!!!!!!!!!!!!!!!!!!!\n"; */
+        /* this->residualVec_->getBlock(0)->print(); */
     } else {
         TEUCHOS_TEST_FOR_EXCEPTION(true, std::runtime_error,
                                    "Unknown type for residual computation.");
     }
-    // this might be set again by the TimeProblem after adding of M*u
-    this->bcFactory_->setBCMinusVector(this->residualVec_, this->solution_,
-                                       time);
 }
 } // namespace FEDD
 #endif

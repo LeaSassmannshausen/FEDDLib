@@ -46,7 +46,6 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assembleJacobian() {
     assemblyNonLinLaplacian(elementMatrix);
 
     this->jacobian_ = elementMatrix;
-    // elementMatrix->print();
 }
 
 /*!
@@ -90,15 +89,15 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assemblyNonLinLaplacian(
 
     // Build vector of current solution at quadrature nodes
     // quadrature nodes
-    /* for (int w = 0; w < phi->size(); w++) { */
-    /*     // each basis function at the current quadrature node */
-    /*     for (int i = 0; i < phi->at(0).size(); i++) { */
-    /*         uLoc[w] += (*this->solution_)[i] * phi->at(w).at(i); */
-    /*         for (int d = 0; d < dim; d++) { */
-    /*             duLoc[w][d] += (*this->solution_)[i] * dPhiTrans[w][i][d]; */
-    /*         } */
-    /*     } */
-    /* } */
+    for (int w = 0; w < phi->size(); w++) {
+        // each basis function at the current quadrature node
+        for (int i = 0; i < phi->at(0).size(); i++) {
+            uLoc[w] += (*this->solution_)[i] * phi->at(w).at(i);
+            for (int d = 0; d < dim; d++) {
+                duLoc[w][d] += (*this->solution_)[i] * dPhiTrans[w][i][d];
+            }
+        }
+    }
 
     // Build local stiffness matrix
     auto value = Teuchos::ScalarTraits<SC>::zero();
@@ -130,8 +129,8 @@ template <class SC, class LO, class GO, class NO>
 void AssembleFENonLinLaplace<SC, LO, GO, NO>::assembleRHS() {
 
     int dim = this->getDim();
-    int Grad = 2; // Needs to be fixed
-    UN deg = Helper::determineDegree(dim, this->FEType_, Grad);
+    UN deg = Helper::determineDegree2(dim, this->FEType_, this->FEType_,
+                                      Helper::Grad, Helper::Grad);
 
     vec3D_dbl_ptr_Type dPhi;
     vec2D_dbl_ptr_Type phi;
@@ -161,12 +160,12 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assembleRHS() {
     // this->rhsFunc_(&x, &valueFunc[0], paras);
 
     // Build vector of current solution at quadrature nodes
-    /* for (int w = 0; w < phi->size(); w++) { // quadrature nodes */
-    /*     for (int i = 0; i < phi->at(0).size(); */
-    /*          i++) { // each basis function at the current quadrature node */
-    /*         uLoc[w] += (*this->solution_)[i] * phi->at(w).at(i); */
-    /*     } */
-    /* } */
+    for (int w = 0; w < phi->size(); w++) { // quadrature nodes
+        for (int i = 0; i < phi->at(0).size();
+             i++) { // each basis function at the current quadrature node
+            uLoc[w] += (*this->solution_)[i] * phi->at(w).at(i);
+        }
+    }
 
     this->rhsVec_.reset(new vec_dbl_Type(this->dofsElement_, 0.));
     // $fv$ term
@@ -175,33 +174,30 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assembleRHS() {
     auto valueTwo = Teuchos::ScalarTraits<SC>::zero();
     // for storing matrix_column \cdot current_solution reduction operation
     auto reductionValue = Teuchos::ScalarTraits<SC>::zero();
-    // TODO error could still be here!!
     //  Build local stiffness matrx
     for (UN i = 0; i < this->numNodes_; i++) {
-        /* reductionValue = 0.; */
-        /* // Iterate test functions (rows) */
-        /* for (UN j = 0; j < this->numNodes_; j++) { */
-        /*     valueTwo = 0.; */
-        /*     // Iterate quadrature nodes */
-        /*     for (UN w = 0; w < dPhiTrans.size(); w++) { */
-        /*         for (UN d = 0; d < dim; d++) { */
-        /*             valueTwo += weights->at(w) * (1 + uLoc[w] * uLoc[w]) *
-         */
-        /*                            dPhiTrans[w][i][d] * dPhiTrans[w][j][d];
-         */
-        /*         } */
-        /*     } */
-        /*     // Perform reduction of current valueTwo and solution */
-        /*     reductionValue += valueTwo * (*this->solution_)[j]; */
-        /* } */
-        /* reductionValue *= absDetB; */
+        reductionValue = 0.;
+        // Iterate test functions (rows)
+        for (UN j = 0; j < this->numNodes_; j++) {
+            valueTwo = 0.;
+            // Iterate quadrature nodes
+            for (UN w = 0; w < dPhiTrans.size(); w++) {
+                for (UN d = 0; d < dim; d++) {
+                    valueTwo += weights->at(w) * (1 + uLoc[w] * uLoc[w]) *
+                                dPhiTrans[w][i][d] * dPhiTrans[w][j][d];
+                }
+            }
+            // Perform reduction of current valueTwo and solution
+            reductionValue += valueTwo * (*this->solution_)[j];
+        }
+        reductionValue *= absDetB;
         valueOne = 0.;
         for (UN w = 0; w < dPhiTrans.size(); w++) {
             // Note that phi does not require transformation. absDetB suffices.
             valueOne += weights->at(w) * phi->at(w).at(i);
         }
-        valueOne *= absDetB;            // constant rhs of one (* valueFunc[0];)
-        (*this->rhsVec_)[i] = valueOne; // - reductionValue;
+        valueOne *= absDetB; // constant rhs of one (* valueFunc[0];)
+        (*this->rhsVec_)[i] = -(valueOne - reductionValue);
     }
 }
 /*!

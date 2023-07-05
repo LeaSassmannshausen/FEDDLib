@@ -906,17 +906,19 @@ void FE<SC, LO, GO, NO>::assemblyNavierStokes(
     problemDisk->push_back(pres);
 
     if (assemblyFEElements_.size() == 0) {
-        if (params->sublist("Parameter").get("Newtonian", true) == false)
+        if (params->sublist("Parameter").get("Newtonian", true) == false) {
             initAssembleFEElements("NavierStokesNonNewtonian", problemDisk,
                                    elements, params,
                                    pointsRep); // In cas of non Newtonian Fluid
-        else
+        } else {
             initAssembleFEElements("NavierStokes", problemDisk, elements,
                                    params, pointsRep);
-    } else if (assemblyFEElements_.size() != elements->numberElements())
+        }
+    } else if (assemblyFEElements_.size() != elements->numberElements()) {
         TEUCHOS_TEST_FOR_EXCEPTION(
             true, std::logic_error,
             "Number Elements not the same as number assembleFE elements.");
+    }
 
     // SmallMatrixPtr_Type elementMatrix =Teuchos::rcp( new SmallMatrix_Type(
     // dofsElement));
@@ -2426,19 +2428,19 @@ function
 
 template <class SC, class LO, class GO, class NO>
 void FE<SC, LO, GO, NO>::assemblyNonlinearLaplace(
-    int dim, std::string FEType, int degree, MultiVectorPtr_Type u,
+    int dim, std::string FEType, int degree, MultiVectorPtr_Type u_rep,
     BlockMatrixPtr_Type &A, BlockMultiVectorPtr_Type &resVec,
     ParameterListPtr_Type params, string assembleMode, bool callFillComplete,
     int FELocExternal) {
 
-    ElementsPtr_Type elements = domainVec_.at(0)->getElementsC();
+    ElementsPtr_Type elements = this->domainVec_.at(0)->getElementsC();
 
     // int dofsElement = elements->getElement(0).getVectorNodeList().size();
     int dofs = 1;
 
-    vec2D_dbl_ptr_Type pointsRep = domainVec_.at(0)->getPointsRepeated();
+    vec2D_dbl_ptr_Type pointsRep = this->domainVec_.at(0)->getPointsRepeated();
 
-    MapConstPtr_Type map = domainVec_.at(0)->getMapRepeated();
+    MapConstPtr_Type map = this->domainVec_.at(0)->getMapRepeated();
 
     vec_dbl_Type solution_u;
 
@@ -2473,19 +2475,28 @@ void FE<SC, LO, GO, NO>::assemblyNonlinearLaplace(
             "Number Elements not the same as number assembleFE elements.");
     }
 
-    /* MultiVectorPtr_Type resVec_u = Teuchos::rcp( */
-    /*     new MultiVector_Type(domainVec_.at(0)->getMapVecFieldRepeated(), 1));
-     */
-    /**/
-    /* BlockMultiVectorPtr_Type resVecRep = */
-    /*     Teuchos::rcp(new BlockMultiVector_Type(1)); */
-    /* resVecRep->addBlock(resVec_u, 0); */
+    // add new or overwrite existing block (0,0) of system matrix
+    // This is done in specific problem class for most other problems
+    // Placing it here instead as more fitting
+    MatrixPtr_Type A_block_zero_zero(
+        new Matrix_Type(this->domainVec_.at(0)->getMapUnique(),
+                        this->domainVec_.at(0)->getApproxEntriesPerRow()));
+
+    A->addBlock(A_block_zero_zero, 0, 0);
+
+    // Repeat for the residual vector
+    MultiVectorPtr_Type resVec_u = Teuchos::rcp(
+        new MultiVector_Type(this->domainVec_.at(0)->getMapRepeated(), 1));
+
+    BlockMultiVectorPtr_Type resVecRep =
+        Teuchos::rcp(new BlockMultiVector_Type(1));
+    resVecRep->addBlock(resVec_u, 0);
 
     for (UN T = 0; T < assemblyFEElements_.size(); T++) {
         vec_dbl_Type solution(0);
 
-        solution_u =
-            getSolution(elements->getElement(T).getVectorNodeList(), u, dofs);
+        solution_u = getSolution(elements->getElement(T).getVectorNodeList(),
+                                 u_rep, dofs);
 
         solution.insert(solution.end(), solution_u.begin(), solution_u.end());
 
@@ -2506,22 +2517,23 @@ void FE<SC, LO, GO, NO>::assemblyNonlinearLaplace(
         if (assembleMode == "Rhs") {
             assemblyFEElements_[T]->assembleRHS();
             rhsVec = assemblyFEElements_[T]->getRHS();
-            addFeBlockMv(resVec, rhsVec, elements->getElement(T), dofs);
+            // Name RHS comes from solving linear systems
+            // For nonlinear systems RHS synonymous to residual
+            addFeBlockMv(resVecRep, rhsVec, elements->getElement(T), dofs);
         }
     }
-    // TODO might need to differentiate between reAssemble
     if (callFillComplete && assembleMode != "Rhs") {
         A->getBlock(0, 0)->fillComplete(domainVec_.at(0)->getMapUnique(),
                                         domainVec_.at(0)->getMapUnique());
     }
-    /* if (assembleMode == "Rhs") { */
-    /*     MultiVectorPtr_Type resVecUnique = Teuchos::rcp( */
-    /*         new MultiVector_Type(domainVec_.at(0)->getMapVecFieldUnique(),
-     * 1)); */
-    /*     resVecUnique->putScalar(0.); */
-    /*     resVecUnique->exportFromVector(resVec, true, "Add"); */
-    /*     resVec->addBlock(resVecUnique, 0); */
-    /* } */
+    if (assembleMode == "Rhs") {
+        // TODO is this really necessary? why can't we use resVec directly?
+        MultiVectorPtr_Type resVecUnique = Teuchos::rcp(
+            new MultiVector_Type(domainVec_.at(0)->getMapUnique(), 1));
+        resVecUnique->putScalar(0.);
+        resVecUnique->exportFromVector(resVec_u, true, "Add");
+        resVec->addBlock(resVecUnique, 0);
+    }
 }
 
 template <class SC, class LO, class GO, class NO>

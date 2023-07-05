@@ -9,3 +9,5 @@
 .idea/
 *.yaml
 misc/
+.clang-format
+compile_commands.json
