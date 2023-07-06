@@ -5,9 +5,13 @@
 #include "feddlib/core/FEDDCore.hpp"
 #include <Teuchos_Array.hpp>
 #include <Teuchos_ScalarTraitsDecl.hpp>
+#include <cmath>
 
 namespace FEDD {
 // TODO extract construction of (1+u^2)\nabla u to a separate function
+void rhsFunc(double *x, double *res, double *parameters) {
+    res[0] = 100; // x[0] * sin(x[1]);
+}
 
 /*!
 
@@ -29,6 +33,9 @@ AssembleFENonLinLaplace<SC, LO, GO, NO>::AssembleFENonLinLaplace(
     // Same as this->getNodesRefConfig().size();
     this->numNodes_ = std::get<3>(this->diskTuple_->at(0));
     this->dofsElement_ = this->numNodes_ * this->dofs_;
+    // Specifying rhs func here for now
+    // Should be done in main when possible
+    this->rhsFunc_ = rhsFunc;
 }
 
 /*!
@@ -147,17 +154,13 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assembleRHS() {
     detB = B.computeInverse(Binv);
     absDetB = std::fabs(detB);
     vec3D_dbl_Type dPhiTrans(
-        dPhi->size(),
+        weights->size(),
         vec2D_dbl_Type(dPhi->at(0).size(), vec_dbl_Type(dim, 0.)));
     applyBTinv(dPhi, dPhiTrans, Binv);
     vec_dbl_Type uLoc(weights->size(), 0.);
-
-    // for now just const!
-    // double x;
-    // std::vector<double> paras0(1);
-    // std::vector<double> valueFunc(dim);
-    // SC *paras = &(paras0[0]);
-    // this->rhsFunc_(&x, &valueFunc[0], paras);
+    vec_dbl_ptr_Type funcValues;
+    Helper::getFuncAtQuadNodes(funcValues, this->rhsFunc_, dim, this->FEType_,
+                               deg);
 
     // Build vector of current solution at quadrature nodes
     for (int w = 0; w < phi->size(); w++) { // quadrature nodes
@@ -194,9 +197,9 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assembleRHS() {
         valueOne = 0.;
         for (UN w = 0; w < dPhiTrans.size(); w++) {
             // Note that phi does not require transformation. absDetB suffices.
-            valueOne += weights->at(w) * phi->at(w).at(i);
+            valueOne += weights->at(w) * funcValues->at(w) * phi->at(w).at(i);
         }
-        valueOne *= absDetB; // constant rhs of one (* valueFunc[0];)
+        valueOne *= absDetB;
         (*this->rhsVec_)[i] = -(valueOne - reductionValue);
     }
 }
