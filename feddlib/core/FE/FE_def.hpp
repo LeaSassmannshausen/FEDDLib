@@ -2420,10 +2420,15 @@ void FE<SC, LO, GO, NO>::assemblyLaplaceVecFieldV2(int dim, std::string FEType,
 @param[in] dim Dimension
 @param[in] FEType FE Discretization
 @param[in] degree Degree of basis function
+@param[in] u_rep The current solution
 @param[in] A Resulting matrix
-@param[in] callFillComplete If Matrix A should be completely filled at end of
-function
-@param[in] FELocExternal
+@param[in] resVec Resulting residual
+@param[in] params Params needed by the problem. Placeholder for now.
+@param[in] assembleMode What should be assembled i.e. Rhs (residual) or the
+Jacobian
+@param[in] callFillComplete If Matrix A should be redistributed across MPI procs
+at end of function
+@param[in] FELocExternal ?
 */
 
 template <class SC, class LO, class GO, class NO>
@@ -2435,21 +2440,15 @@ void FE<SC, LO, GO, NO>::assemblyNonlinearLaplace(
 
     ElementsPtr_Type elements = this->domainVec_.at(0)->getElementsC();
 
-    // int dofsElement = elements->getElement(0).getVectorNodeList().size();
+    // Only scalar laplace
     int dofs = 1;
 
     vec2D_dbl_ptr_Type pointsRep = this->domainVec_.at(0)->getPointsRepeated();
-
     MapConstPtr_Type map = this->domainVec_.at(0)->getMapRepeated();
 
     vec_dbl_Type solution_u;
-
     vec_dbl_ptr_Type rhsVec;
 
-    /// Tupel construction follows follwing pattern:
-    /// string: Physical Entity (i.e. Velocity) , string: Discretisation (i.e.
-    /// "P2"), int: Degrees of Freedom per Node, int: Number of Nodes per
-    /// element)
     int numNodes = 3;
     if (FEType == "P2") {
         numNodes = 6;
@@ -2460,11 +2459,17 @@ void FE<SC, LO, GO, NO>::assemblyNonlinearLaplace(
             numNodes = 10;
         }
     }
+
+    // Tupel construction follows follwing pattern:
+    // string: Physical Entity (i.e. Velocity) , string: Discretisation (i.e.
+    // "P2"), int: Degrees of Freedom per Node, int: Number of Nodes per
+    // element)
     tuple_disk_vec_ptr_Type problemDisk =
         Teuchos::rcp(new tuple_disk_vec_Type(0));
     tuple_ssii_Type temp("Solution", FEType, dofs, numNodes);
     problemDisk->push_back(temp);
 
+    // Construct an assembler for each element if not already done
     if (assemblyFEElements_.size() == 0) {
         initAssembleFEElements("NonLinearLaplace", problemDisk, elements,
                                params,
@@ -2492,22 +2497,22 @@ void FE<SC, LO, GO, NO>::assemblyNonlinearLaplace(
         Teuchos::rcp(new BlockMultiVector_Type(1));
     resVecRep->addBlock(resVec_u, 0);
 
+    // Call assembly routines on each element
     for (UN T = 0; T < assemblyFEElements_.size(); T++) {
         vec_dbl_Type solution(0);
 
+        // Update solution on the element
         solution_u = getSolution(elements->getElement(T).getVectorNodeList(),
                                  u_rep, dofs);
-
         solution.insert(solution.end(), solution_u.begin(), solution_u.end());
-
         assemblyFEElements_[T]->updateSolution(solution);
 
-        SmallMatrixPtr_Type elementMatrix;
         if (assembleMode == "Jacobian") {
+            SmallMatrixPtr_Type elementMatrix;
             assemblyFEElements_[T]->assembleJacobian();
-
             elementMatrix = assemblyFEElements_[T]->getJacobian();
-
+            // Insert (additive) the local element Jacobian into the global
+            // matrix
             assemblyFEElements_[T]
                 ->advanceNewtonStep(); // n genereal non linear solver step
             addFeBlock(A, elementMatrix, elements->getElement(T), map, 0, 0,
@@ -2519,15 +2524,20 @@ void FE<SC, LO, GO, NO>::assemblyNonlinearLaplace(
             rhsVec = assemblyFEElements_[T]->getRHS();
             // Name RHS comes from solving linear systems
             // For nonlinear systems RHS synonymous to residual
+            // Insert (additive) the updated residual into the global residual
+            // vector
             addFeBlockMv(resVecRep, rhsVec, elements->getElement(T), dofs);
         }
     }
     if (callFillComplete && assembleMode != "Rhs") {
+        // Signal that editing A has finished. This causes the entries of A to
+        // be redistributed across the MPI ranks
         A->getBlock(0, 0)->fillComplete(domainVec_.at(0)->getMapUnique(),
                                         domainVec_.at(0)->getMapUnique());
     }
     if (assembleMode == "Rhs") {
-        // TODO is this really necessary? why can't we use resVec directly?
+        // Pass the fully constructed global residual being held in temporary
+        // block vector resVecRep, back to the problems residual vector resVec
         MultiVectorPtr_Type resVecUnique = Teuchos::rcp(
             new MultiVector_Type(domainVec_.at(0)->getMapUnique(), 1));
         resVecUnique->putScalar(0.);

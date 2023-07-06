@@ -58,12 +58,12 @@ int main(int argc, char *argv[]) {
     Teuchos::RCP<const Teuchos::Comm<int>> comm =
         Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
 
-    // Command Line Parameters
+    // ########################
+    // Set default values for command line parameters
+    // ########################
     Teuchos::CommandLineProcessor myCLP;
     string ulib_str = "Tpetra";
     myCLP.setOption("ulib", &ulib_str, "Underlying lib");
-    // int dim = 2;
-    // myCLP.setOption("dim",&dim,"dim");
     string xmlProblemFile = "parametersProblem.xml";
     myCLP.setOption("problemfile", &xmlProblemFile,
                     ".xml file with Inputparameters.");
@@ -140,7 +140,9 @@ int main(int argc, char *argv[]) {
         minNumberSubdomains = (int)2 * length + 1;
     }
 
+    // ########################
     // Build mesh
+    // ########################
     DomainPtr_Type domain;
     if (!meshType.compare("structured")) {
         TEUCHOS_TEST_FOR_EXCEPTION(
@@ -214,7 +216,7 @@ int main(int argc, char *argv[]) {
     }
 
     // ########################
-    // Flags setzen
+    // Set flags for the boundary conditions
     // ########################
 
     Teuchos::RCP<BCBuilder<SC, LO, GO, NO>> bcFactory(
@@ -223,7 +225,6 @@ int main(int argc, char *argv[]) {
     bcFactory->addBC(zeroDirichlet, 2, 0, domain, "Dirichlet", 1);
     bcFactory->addBC(zeroDirichlet, 3, 0, domain, "Dirichlet", 1);
 
-    // Declare nonlinlaplace object
     NonLinLaplace<SC, LO, GO, NO> NonLinLaplace(domain, FEType,
                                                 parameterListAll);
 
@@ -247,6 +248,10 @@ int main(int argc, char *argv[]) {
     NonLinearSolver<SC, LO, GO, NO> nlSolverAssFE(nlSolverType);
     nlSolverAssFE.solve(NonLinLaplace);
     comm->barrier();
+
+    // ########################
+    // Export solution
+    // ########################
 
     bool boolExportSolution = true;
     if (boolExportSolution) {

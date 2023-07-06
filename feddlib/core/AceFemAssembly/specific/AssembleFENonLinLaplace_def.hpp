@@ -8,19 +8,18 @@
 #include <cmath>
 
 namespace FEDD {
-// TODO extract construction of (1+u^2)\nabla u to a separate function
+
 void rhsFunc(double *x, double *res, double *parameters) {
     res[0] = 100; // x[0] * sin(x[1]);
 }
 
 /*!
-
  \brief Constructor for AssembleFENonLinLaplace
 
 @param[in] flag Flag of element
 @param[in] nodesRefConfig Nodes of element in reference configuration
 @param[in] params Parameterlist for current problem
-
+@param[in] tuple Information on the discretization
 */
 template <class SC, class LO, class GO, class NO>
 AssembleFENonLinLaplace<SC, LO, GO, NO>::AssembleFENonLinLaplace(
@@ -39,10 +38,8 @@ AssembleFENonLinLaplace<SC, LO, GO, NO>::AssembleFENonLinLaplace(
 }
 
 /*!
-
  \brief Assemble Jacobian as per Gateaux derivative of the laplacian
 @param[in] &elementMatrix
-
 */
 
 template <class SC, class LO, class GO, class NO>
@@ -56,11 +53,10 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assembleJacobian() {
 }
 
 /*!
-
- \brief Assembly function for \f$ \int_T \nabla v \cdot \nabla u ~dx\f$
+ \brief Assembly function for the Jacobian of the nonlinear Laplacian
+ \int((1+u_0^2)\nabla\delta u+2u_0\delta u\nabla u_0)\nabla vdx
 
 @param[in] &elementMatrix
-
 */
 template <class SC, class LO, class GO, class NO>
 void AssembleFENonLinLaplace<SC, LO, GO, NO>::assemblyNonLinLaplacian(
@@ -74,9 +70,12 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assemblyNonLinLaplacian(
     vec2D_dbl_ptr_Type phi;
     vec_dbl_ptr_Type weights = Teuchos::rcp(new vec_dbl_Type(0));
 
+    // Get values of nodal basis at the quadrature nodes
     Helper::getDPhi(dPhi, weights, dim, this->FEType_, deg);
     Helper::getPhi(phi, weights, dim, this->FEType_, deg);
 
+    // Built affine transformation from the reference element to the current
+    // element
     SC detB;
     SC absDetB;
     SmallMatrix<SC> B(dim);
@@ -87,6 +86,7 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assemblyNonLinLaplacian(
     vec3D_dbl_Type dPhiTrans(
         dPhi->size(),
         vec2D_dbl_Type(dPhi->at(0).size(), vec_dbl_Type(dim, 0.)));
+    // Apple transformation to gradients of basis functions
     applyBTinv(dPhi, dPhiTrans, Binv);
 
     vec_dbl_Type uLoc(weights->size(), 0.);
@@ -95,9 +95,9 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assemblyNonLinLaplacian(
     vec2D_dbl_Type duLoc(weights->size(), vec_dbl_Type(dim, 0));
 
     // Build vector of current solution at quadrature nodes
-    // quadrature nodes
+    // Iterate over quadrature nodes
     for (int w = 0; w < phi->size(); w++) {
-        // each basis function at the current quadrature node
+        // Iterate over each basis function at the current quadrature node
         for (int i = 0; i < phi->at(0).size(); i++) {
             uLoc[w] += (*this->solution_)[i] * phi->at(w).at(i);
             for (int d = 0; d < dim; d++) {
@@ -126,11 +126,10 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assemblyNonLinLaplacian(
 }
 
 /*!
-
- \brief Assembly function for \f$ \int_T f ~ v ~dx \f$, we need to
+ \brief Assembly function for the residual of the nonlinear Laplacian
+ \int fv - (1+u_0^2)\nabla u_0\nabla v dx
 
 @param[in] &elementVector
-
 */
 template <class SC, class LO, class GO, class NO>
 void AssembleFENonLinLaplace<SC, LO, GO, NO>::assembleRHS() {
@@ -204,11 +203,9 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::assembleRHS() {
     }
 }
 /*!
-
  \brief Building Transformation
-
-@param[in] &B
-
+TODO This function could be outsourced to helper?
+@param[in] &B The transformation matrix to be constructed
 */
 
 template <class SC, class LO, class GO, class NO>
@@ -230,6 +227,12 @@ void AssembleFENonLinLaplace<SC, LO, GO, NO>::buildTransformation(
     }
 }
 
+/*!
+ \brief performs matrix multiplication of two small matrices Binv * dPhiIn
+TODO This function could be outsourced to helper? Does not need to be in each
+assemble class
+ @param[in] dPhiIn
+ */
 template <class SC, class LO, class GO, class NO>
 void AssembleFENonLinLaplace<SC, LO, GO, NO>::applyBTinv(
     vec3D_dbl_ptr_Type &dPhiIn, vec3D_dbl_Type &dPhiOut,

@@ -35,6 +35,10 @@ void NonLinLaplace<SC, LO, GO, NO>::info() {
     this->infoNonlinProblem();
 }
 
+/*
+ * General assemble function that is called whenever assembly of any kind is
+ * required type specifies whether the residual or the Jacobian is needed
+ */
 template <class SC, class LO, class GO, class NO>
 void NonLinLaplace<SC, LO, GO, NO>::assemble(std::string type) const {
     if (type == "") {
@@ -50,6 +54,9 @@ void NonLinLaplace<SC, LO, GO, NO>::assemble(std::string type) const {
     }
 }
 
+/*
+ * Initial assembly of the system matrix (Jacobian)
+ */
 template <class SC, class LO, class GO, class NO>
 void NonLinLaplace<SC, LO, GO, NO>::initAssemble() const {
 
@@ -75,15 +82,18 @@ void NonLinLaplace<SC, LO, GO, NO>::initAssemble() const {
     }
 }
 
+/*
+ * Reassembly of the residual or Jacobian
+ * Required by the nonlinear solver
+ */
 template <class SC, class LO, class GO, class NO>
 void NonLinLaplace<SC, LO, GO, NO>::reAssemble(std::string type) const {
 
     if (this->verbose_)
         std::cout << "-- Reassembly nonlinear laplace"
                   << " (" << type << ") ... " << std::flush;
-
+    // Update the locally stored solution to the problem
     MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
-
     this->u_rep_->importFromVector(u, true);
 
     if (type == "Rhs") {
@@ -109,9 +119,13 @@ void NonLinLaplace<SC, LO, GO, NO>::reAssembleExtrapolation(
 
     TEUCHOS_TEST_FOR_EXCEPTION(
         true, std::logic_error,
-        "Only Newton/NOX implemented for nonlinear material models!");
+        "Only Newton/NOX implemented for nonlinear Laplace!");
 }
 
+/*
+ * Evaluation routine required by NOX
+ * Not tested for nonlinear Laplace
+ */
 template <class SC, class LO, class GO, class NO>
 void NonLinLaplace<SC, LO, GO, NO>::evalModelImpl(
     const Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
@@ -235,6 +249,10 @@ void NonLinLaplace<SC, LO, GO, NO>::evalModelImpl(
     }
 }
 
+/*
+ * Required by NOX
+ * Not tested for nonlinear Laplace
+ */
 template <class SC, class LO, class GO, class NO>
 Teuchos::RCP<Thyra::LinearOpBase<SC>>
 NonLinLaplace<SC, LO, GO, NO>::create_W_op() const {
@@ -246,6 +264,10 @@ NonLinLaplace<SC, LO, GO, NO>::create_W_op() const {
     return W_op;
 }
 
+/*
+ * Required by NOX
+ * Not tested for nonlinear Laplace
+ */
 template <class SC, class LO, class GO, class NO>
 Teuchos::RCP<Thyra::PreconditionerBase<SC>>
 NonLinLaplace<SC, LO, GO, NO>::create_W_prec() const {
@@ -260,6 +282,9 @@ NonLinLaplace<SC, LO, GO, NO>::create_W_prec() const {
     return thyraPrecNonConst;
 }
 
+/*
+ * Updates the residual vector by reassembling and applying boundary conditions
+ */
 template <class SC, class LO, class GO, class NO>
 void NonLinLaplace<SC, LO, GO, NO>::calculateNonLinResidualVec(
     std::string type, double time) const {
