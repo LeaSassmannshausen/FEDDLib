@@ -116,12 +116,7 @@ public:
     */
     
     void initializeFEData();
-    
-    /*!
-         \brief Returns flags of elements as vector of type int
-         \return elementFlags
-    */
-    vec_int_ptr_Type getElementsFlag() const;
+
 
     /*!
          \brief Information about the domain
@@ -520,6 +515,22 @@ public:
          
     */
     MultiVectorPtr_Type getNodeListMV() const;
+
+     /// @brief Setting physic property of domain 
+     /// @param physic physics property of unterlying component of problem i.e. velocity for Navier-Stokes
+     void setPhysicProperty(string physic);
+
+     /// @brief 
+     /// @param dofs 
+     void setDofs(int dofs);
+
+     /// @brief 
+     /// @return 
+     int getDofs();
+
+     /// @brief Returning the physics property of domain
+     /// @return physics property of unterlying component of problem i.e. velocity for Navier-Stokes
+     string getPhysicProperty();
 /* ----------------------------------------------------------------------------------------*/
 
 private:
@@ -527,6 +538,8 @@ private:
     CommConstPtr_Type 		comm_; // underlying comm
     MeshPtr_Type 			mesh_; // underlying mesh as base class mesh type. usually underlying mesh is either structured or unstructured
     int                     dim_; // dimension
+    int                     dofs_=1; // dimension
+
     vec_dbl_Type            coorRec; 
     double 					length;
     double		 			height;
@@ -534,6 +547,7 @@ private:
     int 					n_;
     int 					m_;
     std::string				FEType_; // Finite element discretization
+    std::string               physics_ = "None"; // Physics component - only useful for multiphysics problems to identify blocks
     mutable MapPtr_Type mapVecFieldUnique_;
     mutable  MapPtr_Type mapVecFieldRepeated_;
     

@@ -258,8 +258,11 @@ void NavierStokesAssFE<SC,LO,GO,NO>::reAssemble(std::string type) const {
 	else if(type=="Newton"){ 
         
         this->system_->addBlock(ANW,0,0);
-		this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_,this->residualVec_, this->coeff_,this->parameterList_, true,"Jacobian", true);
-
+       	BlockMultiVectorPtr_Type blockSol = Teuchos::rcp( new BlockMultiVector_Type(2) );
+        blockSol->addBlock(u_rep_,0);
+        blockSol->addBlock(p_rep_,1);
+		//this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_,this->residualVec_, this->coeff_,this->parameterList_, true,"Jacobian", true);
+        this->feFactory_->globalAssembly("Navier-Stokes", this->dim_, 0, blockSol, this->system_, this->rhs_,this->getParameterList(),"Jacobian");
     }
 	
     this->system_->addBlock(ANW,0,0);

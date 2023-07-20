@@ -107,13 +107,6 @@ ParameterListConstPtr_Type Mesh<SC,LO,GO,NO>::getParameterList( ) const{
 }
     
 template <class SC, class LO, class GO, class NO>
-vec_int_ptr_Type Mesh<SC,LO,GO,NO>::getElementsFlag() const{
-    TEUCHOS_TEST_FOR_EXCEPTION( true, std::runtime_error, "we are not using the correct flags here. use the flags of elementC_." );
-    vec_int_ptr_Type tmp;
-    return tmp;
-}
-
-template <class SC, class LO, class GO, class NO>
 typename Mesh<SC,LO,GO,NO>::MapConstPtr_Type Mesh<SC,LO,GO,NO>::getMapUnique() const{
 
     return mapUnique_;

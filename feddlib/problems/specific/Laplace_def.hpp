@@ -40,13 +40,19 @@ void Laplace<SC,LO,GO,NO>::assemble( std::string type ) const{
 
     MatrixPtr_Type A;
     vec_dbl_Type funcParameter(1,0.);
+
+    MultiVectorPtr_Type sol = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapRepeated(), 1 ) ); 
+	BlockMultiVectorPtr_Type blockSol = Teuchos::rcp( new BlockMultiVector_Type(1) );
+    blockSol->addBlock(sol,0);
+
     if (vectorLaplace_){
         A = Teuchos::rcp(new Matrix_Type( this->domainPtr_vec_.at(0)->getMapVecFieldUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
         this->feFactory_->assemblyLaplaceVecField(this->dim_, this->domain_FEType_vec_.at(0), 2, A );
     }
     else{
         A = Teuchos::rcp(new Matrix_Type( this->domainPtr_vec_.at(0)->getMapUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
-        this->feFactory_->assemblyLaplace(this->dim_, this->domain_FEType_vec_.at(0), 2, A );
+        this->system_->addBlock(A,0,0);
+        this->feFactory_->globalAssembly("Laplace", this->dim_, 0, blockSol, this->system_, this->rhs_,this->getParameterList(),"Jacobian");
     }
     
     this->system_->addBlock(A,0,0);

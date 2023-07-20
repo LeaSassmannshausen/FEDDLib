@@ -102,6 +102,9 @@ class FE {
     DomainConstPtr_vec_Type	domainVec_;
     Teuchos::RCP<ElementSpec> es_;
 
+    typedef FiniteElement FiniteElement_Type;
+    typedef std::vector<FiniteElement_Type> FiniteElement_vec;
+
     /* ###################################################################### */
 
     FE(bool saveAssembly=false);
@@ -568,18 +571,32 @@ class FE {
                                     bool callFillComplete = true,
                                     int FELocExternal=-1);
 
-
+    void globalAssembly(string ProblemType,
+                        int dim,                    
+                        int degree,                       
+                        BlockMultiVectorPtr_Type sol_rep,
+                        BlockMatrixPtr_Type &A,
+                        BlockMultiVectorPtr_Type &resVec,
+                        ParameterListPtr_Type params,
+                        string assembleMode,
+                        bool callFillComplete=true,
+                        int FELocExternal=-1);
 /* ----------------------------------------------------------------------------------------*/
 private:
-	void addFeBlockMatrix(BlockMatrixPtr_Type &A, SmallMatrixPtr_Type elementMatrix, FiniteElement element, MapConstPtr_Type mapFirstColumn,MapConstPtr_Type mapSecondColumn, tuple_disk_vec_ptr_Type problemDisk);
 
-	void addFeBlock(BlockMatrixPtr_Type &A, SmallMatrixPtr_Type elementMatrix, FiniteElement element, MapConstPtr_Type mapFirstRow, int row, int column, tuple_disk_vec_ptr_Type problemDisk);
+    void addFeBlockMatrix(BlockMatrixPtr_Type &A, SmallMatrixPtr_Type elementMatrix, FiniteElement_vec element, tuple_disk_vec_ptr_Type problemDisk);
+
+	//void addFeBlockMatrix(BlockMatrixPtr_Type &A, SmallMatrixPtr_Type elementMatrix, FiniteElement element, MapConstPtr_Type mapFirstColumn,MapConstPtr_Type mapSecondColumn, tuple_disk_vec_ptr_Type problemDisk);
+
+	//void addFeBlock(BlockMatrixPtr_Type &A, SmallMatrixPtr_Type elementMatrix, FiniteElement element, MapConstPtr_Type mapFirstRow, int row, int column, tuple_disk_vec_ptr_Type problemDisk);
 
     void initAssembleFEElements(string elementType, tuple_disk_vec_ptr_Type problemDisk, ElementsPtr_Type elements, ParameterListPtr_Type params, vec2D_dbl_ptr_Type pointsRep, MapConstPtr_Type elementMap);
 
-    void addFeBlockMv(BlockMultiVectorPtr_Type &res, vec_dbl_ptr_Type rhsVec, FiniteElement elementBlock1,FiniteElement elementBlock2, int dofs1, int dofs2 );
+    void addFeBlockMv(BlockMultiVectorPtr_Type &res, vec_dbl_ptr_Type rhsVec,tuple_disk_vec_ptr_Type problemDisk, FiniteElement_vec element);
 
-    void addFeBlockMv(BlockMultiVectorPtr_Type &res, vec_dbl_ptr_Type rhsVec, FiniteElement elementBlock, int dofs);
+    // void addFeBlockMv(BlockMultiVectorPtr_Type &res, vec_dbl_ptr_Type rhsVec, FiniteElement elementBlock1,FiniteElement elementBlock2, int dofs1, int dofs2 );
+
+    // void addFeBlockMv(BlockMultiVectorPtr_Type &res, vec_dbl_ptr_Type rhsVec, FiniteElement elementBlock, int dofs);
 		
 	AssembleFEPtr_vec_Type assemblyFEElements_;
 

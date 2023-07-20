@@ -1,7 +1,7 @@
 SET(problems_specific_HEADERS
-    #specific/Elasticity_decl.hpp
-    #specific/Elasticity_def.hpp
-    #specific/Elasticity.hpp
+    specific/AssembleDomain_decl.hpp
+    specific/AssembleDomain_def.hpp
+    specific/AssembleDomain.hpp
     specific/Geometry_decl.hpp
     specific/Geometry_def.hpp
     specific/Geometry.hpp
@@ -53,7 +53,7 @@ SET(problems_specific_HEADERS
 CACHE INTERNAL "")
 
 SET(problems_specific_SOURCES
-	#specific/Elasticity.cpp
+	specific/AssembleDomain.cpp
     specific/Geometry.cpp
 	specific/Laplace.cpp
 	specific/LaplaceBlocks.cpp

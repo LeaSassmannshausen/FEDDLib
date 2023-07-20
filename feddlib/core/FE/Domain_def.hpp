@@ -133,8 +133,6 @@ partialGlobalInterfaceVecFieldMap_()
     geometries3DVec_->push_back("Square"); // for 3D this is synonymous to Cube with 6-Element subcube structure
     geometries3DVec_->push_back("BFS"); // Backward-facing step geometry
     geometries3DVec_->push_back("Square5Element"); // this is a cube with different 5-Element per subcube structure
-
-
 }
 
 template <class SC, class LO, class GO, class NO>
@@ -155,6 +153,7 @@ void Domain<SC,LO,GO,NO>::info() const{
         std::cout << "\t### Subdomains: "<< n_ << std::endl;
         std::cout << "\t### H/h: "<< m_ << std::endl;
         std::cout << "\t### FE type: "<< FEType_ << std::endl;
+        std::cout << "\t### Physics: "<< physics_ << std::endl;
         std::cout << "\t### Number Nodes: "<< mesh_->getMapUnique()->getMaxAllGlobalIndex()+1 << std::endl;
         std::cout << "\t### Minimum number of nodes: "<< minNumberNodes << "  Maximum number of nodes: " << maxNumberNodes << std::endl;
         std::cout << "\t### Empty ranks for coarse solves: "<< numProcsCoarseSolve_ << std::endl;
@@ -168,16 +167,33 @@ void Domain<SC,LO,GO,NO>::initializeFEData(){
 }
 
 template <class SC, class LO, class GO, class NO>
+void Domain<SC,LO,GO,NO>::setPhysicProperty(string physic){
+    physics_ = physic;
+}
+
+template <class SC, class LO, class GO, class NO>
+void Domain<SC, LO, GO, NO>::setDofs(int dofs)
+{
+    dofs_ = dofs;
+}
+
+template <class SC, class LO, class GO, class NO>
+int Domain<SC, LO, GO, NO>::getDofs()
+{
+    return dofs_;
+}
+
+
+template <class SC, class LO, class GO, class NO>
+string Domain<SC,LO,GO,NO>::getPhysicProperty(){
+    return physics_;
+}
+
+template <class SC, class LO, class GO, class NO>
 void Domain<SC,LO,GO,NO>::setMeshParameterList( ParameterListPtr_Type& pl ){
     TEUCHOS_TEST_FOR_EXCEPTION( mesh_.is_null(), std::runtime_error, "Mesh is null." );
     mesh_->setParameterList( pl );
 }
-    
-template <class SC, class LO, class GO, class NO>
-vec_int_ptr_Type Domain<SC,LO,GO,NO>::getElementsFlag() const{
-    return mesh_->getElementsFlag();
-}
-
 
 template <class SC, class LO, class GO, class NO>
 LO Domain<SC,LO,GO,NO>::getApproxEntriesPerRow() const{
