@@ -223,7 +223,6 @@ int main(int argc, char *argv[])
 
             // LinElas Objekt erstellen
             LinElas<SC,LO,GO,NO> LinElas( domain, FEType, parameterListAll );
-
             {
                 Teuchos::TimeMonitor solveTimeMonitor(*solveTime);
 

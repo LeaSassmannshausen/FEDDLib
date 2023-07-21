@@ -19,8 +19,8 @@ sol_rep_()
 {
     this->nonLinearTolerance_ = this->parameterList_->sublist("Parameter").get("relNonLinTol",1.0e-6);
     this->initNOXParameters();
-    this->addVariable( domain , FEType , "u" , domain->getDimension());
-    domain->setDofs(1);
+    this->addVariable( domain , FEType , "u" , domain->getDofs());
+
     this->dim_ = this->getDomain(0)->getDimension();
        
     problemType_=problemType;   
@@ -28,8 +28,16 @@ sol_rep_()
     problemSize_=1;
 
     sol_rep_ = Teuchos::rcp( new BlockMultiVector_Type(1));
-    MultiVectorPtr_Type u_rep = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapRepeated() ) );
-    sol_rep_->addBlock(u_rep,0);
+    for(int probRow = 0; probRow <  problemSize_; probRow++){
+        MapConstPtr_Type rowMap;
+        if(domainVec_.at(probRow)->getDofs() == 1)
+            rowMap = domainVec_.at(probRow)->getMapRepeated();
+        else
+            rowMap = domainVec_.at(probRow)->getMapVecFieldRepeated();
+
+        MultiVectorPtr_Type sol_rep = Teuchos::rcp( new MultiVector_Type( rowMap ) );
+        sol_rep_->addBlock(sol_rep,probRow);
+    }
 
     loadStepping_ =    !(parameterList->sublist("Timestepping Parameter").get("Class","Singlestep")).compare("Loadstepping");
     externalForce_ =   parameterList->sublist("Parameter").get("External Force",false);
@@ -55,7 +63,12 @@ void AssembleDomain<SC,LO,GO,NO>::assemble(std::string type) const{
     
     if (type == ""){
         if (this->verbose_)
-            std::cout << "-- Assembly Domain ... " << std::flush;
+            std::cout << "-- Assembly Domain ... " << std::flush;     
+        
+        if (this->verbose_)
+            std::cout << "done -- " << std::endl;
+        
+        this->reAssemble("Newton");
 
         this->assembleSourceTerm(0.);
 
@@ -65,13 +78,6 @@ void AssembleDomain<SC,LO,GO,NO>::assemble(std::string type) const{
         this->addToRhs( this->sourceTerm_ );
         
         this->setBoundariesRHS();
-                
-        
-        
-        if (this->verbose_)
-            std::cout << "done -- " << std::endl;
-        
-        this->reAssemble("Newton");
     }
     else if(type == "UpdateTime")
     {
@@ -98,7 +104,6 @@ void AssembleDomain<SC,LO,GO,NO>::reAssemble(std::string type) const {
     if (this->verbose_)
         std::cout << "-- Reassembly " << problemType_ << " " << std::flush;
     
-
     for(int probRow = 0; probRow <  problemSize_; probRow++){
         for(int probCol = 0; probCol <  problemSize_; probCol++){
             MapConstPtr_Type rowMap;
@@ -111,6 +116,7 @@ void AssembleDomain<SC,LO,GO,NO>::reAssemble(std::string type) const {
             MatrixPtr_Type A = Teuchos::rcp(new Matrix_Type( rowMap, domainVec_[probRow]->getDimension() * domainVec_[probRow]->getApproxEntriesPerRow() ) );
 
             this->system_->addBlock(A,probRow,probCol);
+
         }
 	}
 
@@ -127,10 +133,10 @@ void AssembleDomain<SC,LO,GO,NO>::reAssemble(std::string type) const {
 
         MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
         sol_rep_->getBlock(probRow)->importFromVector(u, true);
-    }
 
+    }
+   
     this->feFactory_->globalAssembly(problemType_, this->dim_, 0, sol_rep_, this->system_, this->residualVec_,this->getParameterList(),"Jacobian");
-    this->system_->print();
   
     if (this->verbose_)
         std::cout << "done -- " << std::endl;

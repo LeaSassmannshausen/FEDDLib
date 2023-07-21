@@ -1,5 +1,5 @@
-#ifndef ASSEMBLEFENAVIERSTOKES_DECL_hpp
-#define ASSEMBLEFENAVIERSTOKES_DECL_hpp
+#ifndef ASSEMBLEFESTOKES_DECL_hpp
+#define ASSEMBLEFESTOKES_DECL_hpp
 
 #include "feddlib/core/AceFemAssembly/AssembleFE.hpp"
 #include "feddlib/core/AceFemAssembly/Helper.hpp"
@@ -10,7 +10,7 @@
 namespace FEDD {
 
 template <class SC = default_sc, class LO = default_lo, class GO = default_go, class NO = default_no>
-class AssembleFENavierStokes : public AssembleFE<SC,LO,GO,NO> {
+class AssembleFEStokes : public AssembleFE<SC,LO,GO,NO> {
   public:
 
     typedef Matrix<SC,LO,GO,NO> Matrix_Type;
@@ -49,14 +49,14 @@ class AssembleFENavierStokes : public AssembleFE<SC,LO,GO,NO> {
 
 	/*!
 
-	 \brief Constructor for AssembleFEAceNavierStokes
+	 \brief Constructor for AssembleFEAceStokes
 
 	@param[in] flag Flag of element
 	@param[in] nodesRefConfig Nodes of element in reference configuration
 	@param[in] params Parameterlist for current problem
 	@param[in] tuple vector of element information tuples. 
 	*/
-	AssembleFENavierStokes(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type parameters,tuple_disk_vec_ptr_Type tuple); 
+	AssembleFEStokes(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type parameters,tuple_disk_vec_ptr_Type tuple); 
 
 	/*!
 
@@ -66,7 +66,6 @@ class AssembleFENavierStokes : public AssembleFE<SC,LO,GO,NO> {
 	*/
 	void assemblyLaplacian(SmallMatrixPtr_Type &elementMatrix);
 
-
 	/*!
 
 	 \brief Assembly function for viscous stress tensor with strain-rate tensor \f$ \int_T \nabla \cdot (2 \mu  0.5(\nabla u + (\nabla u)^T )) ~dx\f$ 
@@ -74,22 +73,6 @@ class AssembleFENavierStokes : public AssembleFE<SC,LO,GO,NO> {
 
 	*/
 	void assemblyStress_Divergence(SmallMatrixPtr_Type &elementMatrix);
-
-
-	/*!
-
-	 \brief Assembly advection vector field \f$ \int_T \nabla v \cdot u(\nabla u) ~dx\f$ 
-	@param[in] &elementMatrix
-
-	*/
-	void assemblyAdvection(SmallMatrixPtr_Type &elementMatrix);
-	
-	/*!
-	 \brief Assembly advection vector field in u  
-	@param[in] &elementMatrix
-
-	*/
-	void assemblyAdvectionInU(SmallMatrixPtr_Type &elementMatrix); 
 
 	/*!
 

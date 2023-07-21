@@ -137,7 +137,7 @@ void FE<SC,LO,GO,NO>::globalAssembly(string ProblemType,
     for(int i=0; i< problemSize; i++){
         int numNodes = domainVec_.at(i)->getElementsC()->getElement(0).getVectorNodeList().size();
 
-        tuple_ssii_Type infoTuple (domainVec_.at(i)->getPhysicProperty(),domainVec_.at(i)->getFEType(),domainVec_.at(i)->getDofs(),numNodes);
+        tuple_ssiii_Type infoTuple (domainVec_.at(i)->getPhysicProperty(),domainVec_.at(i)->getFEType(),domainVec_.at(i)->getDofs(),numNodes,dim);
         problemDisk->push_back(infoTuple);
 
         MultiVectorPtr_Type resVec;
@@ -1129,14 +1129,14 @@ vec2D_dbl_Type FE<SC,LO,GO,NO>::getCoordinates(vec_LO_Type localIDs, vec2D_dbl_p
 */
 
 template <class SC, class LO, class GO, class NO>
-vec_dbl_Type FE<SC,LO,GO,NO>::getSolution(vec_LO_Type localIDs, MultiVectorPtr_Type u_rep, int dofsVelocity){
+vec_dbl_Type FE<SC,LO,GO,NO>::getSolution(vec_LO_Type localIDs, MultiVectorPtr_Type u_rep, int dofs){
 
     Teuchos::ArrayRCP<SC>  uArray = u_rep->getDataNonConst(0);
 	
 	vec_dbl_Type solution(0);
 	for(int i=0; i < localIDs.size() ; i++){
-		for(int d=0; d<dofsVelocity; d++)
-			solution.push_back(uArray[localIDs[i]*dofsVelocity+d]);
+		for(int d=0; d<dofs; d++)
+			solution.push_back(uArray[localIDs[i]*dofs+d]);
 	}
 
     return solution;

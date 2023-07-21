@@ -52,7 +52,7 @@ class FE {
     typedef Domain<SC,LO,GO,NO> Domain_Type;
     typedef Teuchos::RCP<Domain_Type> DomainPtr_Type;
     typedef Teuchos::RCP<const Domain_Type> DomainConstPtr_Type;
-    typedef std::vector<DomainConstPtr_Type> DomainConstPtr_vec_Type;
+    typedef std::vector<DomainPtr_Type> DomainPtr_vec_Type;
 
     typedef Teuchos::RCP<Mesh<SC,LO,GO,NO> > MeshPtr_Type;
     typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
@@ -99,7 +99,7 @@ class FE {
 	typedef SmallMatrix<SC> SmallMatrix_Type;
     typedef Teuchos::RCP<SmallMatrix_Type> SmallMatrixPtr_Type;
 
-    DomainConstPtr_vec_Type	domainVec_;
+    DomainPtr_vec_Type	domainVec_;
     Teuchos::RCP<ElementSpec> es_;
 
     typedef FiniteElement FiniteElement_Type;
@@ -456,56 +456,6 @@ class FE {
     void fillMatrixArray(SmallMatrix<double> &matIn, double* matArrayOut, std::string order, int offset=0);
 
     void epsilonTensor(vec_dbl_Type &basisValues, SmallMatrix<SC> &epsilonValues, int activeDof);
-
-    void assemblyNavierStokes(int dim,
-								string FETypeVelocity,
-								string FETypePressure,
-								int degree,
-								int dofsVelocity,
-								int dofsPressure,
-								MultiVectorPtr_Type u_rep,
-								MultiVectorPtr_Type p_rep,
-								BlockMatrixPtr_Type &A,
-								BlockMultiVectorPtr_Type &resVec,
-								SmallMatrix_Type coeff,
-								ParameterListPtr_Type params,
-								bool reAssemble,
-							    string assembleMode,
-								bool callFillComplete = true,
-								int FELocExternal=-1);
-
-    void assemblyAceDeformDiffu(int dim,
-								string FETypeChem,
-								string FETypeSolid,
-								int degree,
-								int dofsChem,
-								int dofsSolid,
-								MultiVectorPtr_Type c_rep,
-								MultiVectorPtr_Type d_rep,
-								BlockMatrixPtr_Type &A,
-								BlockMultiVectorPtr_Type &resVec,
-								ParameterListPtr_Type params,
-							    string assembleMode,
-								bool callFillComplete = true,
-								int FELocExternal=-1);
-
-    void assemblyAceDeformDiffuBlock(int dim,
-                                string FETypeChem,
-                                string FETypeSolid,
-                                int degree,
-                                int dofsChem,
-                                int dofsSolid,
-                                MultiVectorPtr_Type c_rep,
-                                MultiVectorPtr_Type d_rep,
-                                BlockMatrixPtr_Type &A,
-                                int blockRow,
-                                int blockCol,
-                                BlockMultiVectorPtr_Type &resVec,
-                                int block,
-                                ParameterListPtr_Type params,
-                                string assembleMode,
-                                bool callFillComplete = true,
-                                int FELocExternal=-1);
 
     void advanceInTimeAssemblyFEElements(double dt ,MultiVectorPtr_Type d_rep , MultiVectorPtr_Type c_rep) 
     {

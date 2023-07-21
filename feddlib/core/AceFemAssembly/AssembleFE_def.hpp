@@ -23,7 +23,7 @@ solution_(0)
 	params_=params;
 
 	// Reading through parameterlist
-	dim_= params_->sublist("Parameter").get("Dimension",-1);
+	dim_= std::get<4>(tuple->at(0)); // dimension at last position in Disk tupel. Generally all physics have the same dimension
 
 	timeIncrement_= params_->sublist("Timestepping Parameter").get("dt",0.1);
 

@@ -52,8 +52,8 @@ public:
 
     typedef Domain<SC,LO,GO,NO> Domain_Type;
     typedef Teuchos::RCP<Domain_Type> DomainPtr_Type;
-    typedef std::vector<DomainConstPtr_Type> DomainConstPtr_vec_Type;
-    DomainConstPtr_vec_Type	domainVec_;
+    typedef std::vector<DomainPtr_Type> DomainPtr_vec_Type;
+    DomainPtr_vec_Type	domainVec_;
 
     
     //@}

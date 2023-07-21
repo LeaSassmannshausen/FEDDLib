@@ -1,5 +1,5 @@
-#ifndef ASSEMBLEFE_LAPLACE_DECL_hpp
-#define ASSEMBLEFE_LAPLACE_DECL_hpp
+#ifndef ASSEMBLEFE_LINELAS_ORIGINAL_DECL_hpp
+#define ASSEMBLEFE_LINELAS_ORIGINAL_DECL_hpp
 
 #include "feddlib/core/AceFemAssembly/AssembleFE.hpp"
 #include "feddlib/core/AceFemAssembly/Helper.hpp"
@@ -7,18 +7,10 @@
 #include "feddlib/core/LinearAlgebra/Matrix.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 
-/*!
-\class AssembleFELaplace
-	Coupled deformation diffusion problem with smooth-muscle model with active response, growth and reorientation
-	Derived from AssembleFE base class
-	Active response with MLCK and MLCP
-*/
-
 namespace FEDD {
 
-
 template <class SC = default_sc, class LO = default_lo, class GO = default_go, class NO = default_no>
-class AssembleFE_Laplace : public AssembleFE<SC,LO,GO,NO> {
+class AssembleFE_LinElas_original : public AssembleFE<SC,LO,GO,NO> {
   public:
    
     typedef Matrix<SC,LO,GO,NO> Matrix_Type;
@@ -37,30 +29,42 @@ class AssembleFE_Laplace : public AssembleFE<SC,LO,GO,NO> {
 	 \brief Assemble the element Jacobian matrix.
 	 \return the element Jacobian matrix
 	*/
-	virtual void assembleJacobian();
+	virtual void assembleJacobian() ;
 
 	/*!
 	 \brief Assemble the element right hand side vector.
 	 \return the element right hand side vector
 	*/
-	virtual void assembleRHS();	
+	virtual void assembleRHS() {};	
 
 	/*!
-		\brief Assemble the element Jacobian matrix.
-		@param[in] block ID i
+	\brief Assemble the element Jacobian matrix.
+	@param[in] block ID i
 	*/
 	virtual void assembleJacobianBlock(LO i) {};
 
    protected:
-	AssembleFE_Laplace(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type parameters,   tuple_disk_vec_ptr_Type tuple); /// \todo Tupel for Disk Anzahl Knoten, Anzahl Freiheitsgrade
-
+	AssembleFE_LinElas_original(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type parameters,   tuple_disk_vec_ptr_Type tuple); 
    private:
 
-	void assemblyLaplacian(SmallMatrixPtr_Type &elementMatrix);
+	void assemblyLinElas_original(SmallMatrixPtr_Type &elementMatrix);
+	void epsilonTensor(vec_dbl_Type &basisValues, SmallMatrix<SC> &epsilonValues, int activeDof);
 
     friend class AssembleFEFactory<SC,LO,GO,NO>; // Must have for specfic classes
 
 	
+	double E_ ; 
+   	double lambda_;
+	double poissonRatio_;
+	double mu_;
+	string FEType_ ; // FEType of Disk
+
+	int dofs_ ; // Degrees of freedom per node
+
+	int numNodes_ ; // Number of nodes of element
+
+	int dofsElement_; // "Dimension of return matrix"
+
  };
 
 }

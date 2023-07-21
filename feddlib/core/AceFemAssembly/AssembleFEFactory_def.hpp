@@ -24,6 +24,10 @@ typename AssembleFEFactory<SC,LO,GO,NO>::AssembleFEPtr_Type AssembleFEFactory<SC
 		Teuchos::RCP<AssembleFE_Laplace<SC,LO,GO,NO>> assembleFESpecific(new AssembleFE_Laplace<SC,LO,GO,NO>(flag,nodesRefConfig, params,tuple) );
 		assembleFE = assembleFESpecific;
 	}
+	else if(problemType == "Stokes"){
+		Teuchos::RCP<AssembleFEStokes<SC,LO,GO,NO>> assembleFESpecific(new AssembleFEStokes<SC,LO,GO,NO>(flag,nodesRefConfig, params,tuple) );
+		assembleFE = assembleFESpecific;
+	}
 	else if(problemType == "NavierStokes"){
 		Teuchos::RCP<AssembleFENavierStokes<SC,LO,GO,NO>> assembleFESpecific(new AssembleFENavierStokes<SC,LO,GO,NO>(flag,nodesRefConfig, params,tuple) );
 		assembleFE = assembleFESpecific;
@@ -32,8 +36,12 @@ typename AssembleFEFactory<SC,LO,GO,NO>::AssembleFEPtr_Type AssembleFEFactory<SC
 		Teuchos::RCP<AssembleFENavierStokesNonNewtonian<SC,LO,GO,NO>> assembleFESpecific(new AssembleFENavierStokesNonNewtonian<SC,LO,GO,NO>(flag,nodesRefConfig, params,tuple) );
 		assembleFE = assembleFESpecific;
 	}
-	else if(problemType == "LinearElasticity"){
+	else if(problemType == "LinearElasticityAceGen"){
 		Teuchos::RCP<AssembleFE_LinElas<SC,LO,GO,NO>> assembleFESpecific(new AssembleFE_LinElas<SC,LO,GO,NO>(flag,nodesRefConfig, params,tuple) );
+		assembleFE = assembleFESpecific;
+	}
+	else if(problemType == "LinearElasticity"){
+		Teuchos::RCP<AssembleFE_LinElas_original<SC,LO,GO,NO>> assembleFESpecific(new AssembleFE_LinElas_original<SC,LO,GO,NO>(flag,nodesRefConfig, params,tuple) );
 		assembleFE = assembleFESpecific;
 	}
 	else if(problemType == "NonLinearElasticity"){

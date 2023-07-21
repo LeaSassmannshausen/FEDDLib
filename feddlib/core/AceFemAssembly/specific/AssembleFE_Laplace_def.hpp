@@ -13,7 +13,6 @@ namespace FEDD {
 @param[in] flag Flag of element
 @param[in] nodesRefConfig Nodes of element in reference configuration
 @param[in] params Parameterlist for current problem
-
 */
 template <class SC, class LO, class GO, class NO>
 AssembleFE_Laplace<SC,LO,GO,NO>::AssembleFE_Laplace(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type params,tuple_disk_vec_ptr_Type tuple):
@@ -25,9 +24,8 @@ AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params,tuple)
 /*!
 
  \brief Assembly Jacobian is simply assemblyLaplacian for Laplace Problem
-
+ for scalar-valued function (dim=1) and also for vector-valued function (dim > 1)
 @param[in] &elementMatrix
-
 */ 
 
 template <class SC, class LO, class GO, class NO>
@@ -39,16 +37,12 @@ void AssembleFE_Laplace<SC,LO,GO,NO>::assembleJacobian() {
 	SmallMatrixPtr_Type elementMatrix =Teuchos::rcp( new SmallMatrix_Type( dofsElement));
 
 	assemblyLaplacian(elementMatrix);
-
 	this->jacobian_ = elementMatrix ;
 }
 
 /*!
-
  \brief Assembly function for \f$ \int_T \nabla v \cdot \nabla u ~dx\f$ 
-
 @param[in] &elementMatrix
-
 */
 template <class SC, class LO, class GO, class NO>
 void AssembleFE_Laplace<SC,LO,GO,NO>::assemblyLaplacian(SmallMatrixPtr_Type &elementMatrix) {
@@ -70,12 +64,12 @@ void AssembleFE_Laplace<SC,LO,GO,NO>::assemblyLaplacian(SmallMatrixPtr_Type &ele
     SmallMatrix<SC> B(dim);
     SmallMatrix<SC> Binv(dim);
   
-    buildTransformation(B);
+    Helper::buildTransformation(B, this->nodesRefConfig_);
     detB = B.computeInverse(Binv);
     absDetB = std::fabs(detB);
 
     vec3D_dbl_Type dPhiTrans( dPhi->size(), vec2D_dbl_Type( dPhi->at(0).size(), vec_dbl_Type(dim,0.) ) );
-    applyBTinv( dPhi, dPhiTrans, Binv );
+    Helper::applyBTinv( dPhi, dPhiTrans, Binv );
     for (UN i=0; i < numNodes; i++) {
         Teuchos::Array<SC> value( dPhiTrans[0].size(), 0. );
         for (UN j=0; j < numNodes; j++) {
@@ -97,15 +91,11 @@ void AssembleFE_Laplace<SC,LO,GO,NO>::assemblyLaplacian(SmallMatrixPtr_Type &ele
 
 /*!
 
- \brief Assembly function for \f$ \int_T f ~ v ~dx \f$, we need to 
-
-@param[in] &elementVector
+ \brief  
 
 */
 template <class SC, class LO, class GO, class NO>
 void AssembleFE_Laplace<SC,LO,GO,NO>::assembleRHS() {
-
-
 	int dim = this->getDim();
 	int Grad =1; // Needs to be fixed	
 	int numNodes= std::get<3>(this->diskTuple_->at(0));//this->getNodesRefConfig().size();
@@ -123,14 +113,13 @@ void AssembleFE_Laplace<SC,LO,GO,NO>::assembleRHS() {
     SmallMatrix<SC> B(dim);
     SmallMatrix<SC> Binv(dim);
   
-    this->buildTransformation(B);
+    Helper::buildTransformation(B, this->nodesRefConfig_);
     detB = B.computeInverse(Binv);
     absDetB = std::fabs(detB);
 
     std::vector<double> paras0(1);
 
     double x;
-
     SC value;
 
     //for now just const!
@@ -151,52 +140,7 @@ void AssembleFE_Laplace<SC,LO,GO,NO>::assembleRHS() {
 	(*this->rhsVec_) = elementVector;
 }
 
-/*!
 
- \brief Building Transformation
-
-@param[in] &B
-
-*/
-
-template <class SC, class LO, class GO, class NO>
-void AssembleFE_Laplace<SC,LO,GO,NO>::buildTransformation(SmallMatrix<SC>& B){
-
-    TEUCHOS_TEST_FOR_EXCEPTION( (B.size()<2 || B.size()>3), std::logic_error, "Initialize SmallMatrix for transformation.");
-    UN index;
-    UN index0 = 0;
-    for (UN j=0; j<B.size(); j++) {
-        index = j+1;
-        for (UN i=0; i<B.size(); i++) {
-            B[i][j] = this->nodesRefConfig_.at(index).at(i) - this->nodesRefConfig_.at(index0).at(i);
-        }
-    }
-
-}
-
-/*!
-
- \brief Assembly function for \f$ \int_T f ~ v ~dx \f$, we need to 
-
-@param[in] &elementVector
-
-*/
-
-template <class SC, class LO, class GO, class NO>
-void AssembleFE_Laplace<SC,LO,GO,NO>::applyBTinv( vec3D_dbl_ptr_Type& dPhiIn,
-                                    vec3D_dbl_Type& dPhiOut,
-                                    SmallMatrix<SC>& Binv){
-    UN dim = Binv.size();
-    for (UN w=0; w<dPhiIn->size(); w++){
-        for (UN i=0; i < dPhiIn->at(w).size(); i++) {
-            for (UN d1=0; d1<dim; d1++) {
-                for (UN d2=0; d2<dim; d2++) {
-                    dPhiOut[w][i][d1] += dPhiIn->at(w).at(i).at(d2) * Binv[d2][d1];
-                }
-            }
-        }
-    }
-}
 
 }
 #endif

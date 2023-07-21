@@ -1,11 +1,11 @@
 SET(AceFemAssemblyTestFE_HEADERS
-	AceFemAssembly/TestFE/FE_Test_decl.hpp
-	AceFemAssembly/TestFE/FE_Test_def.hpp
-	AceFemAssembly/TestFE/FE_Test.hpp
+	#AceFemAssembly/TestFE/FE_Test_decl.hpp
+	#AceFemAssembly/TestFE/FE_Test_def.hpp
+	#AceFemAssembly/TestFE/FE_Test.hpp
 CACHE INTERNAL "")
 
 SET(AceFemAssemblyTestFE_SOURCES
-	AceFemAssembly/TestFE/FE_Test.cpp
+	#AceFemAssembly/TestFE/FE_Test.cpp
 CACHE INTERNAL "")
 
 

@@ -70,7 +70,7 @@ void LinElas<SC,LO,GO,NO>::assemble( std::string type ) const
     double density = this->parameterList_->sublist("Parameter").get("Density",1000.);
     
     double poissonRatio = this->parameterList_->sublist("Parameter").get("Poisson Ratio",0.4);
-    double mu = this->parameterList_->sublist("Parameter").get("Mu",2.0e+6);
+    double mu = this->parameterList_->sublist("Parameter").get("Mu",384.6153846153146);
 
     // Berechne daraus nun E (Youngsches Modul) und die erste Lamé-Konstanten \lambda
     double youngModulus = mu*2.*(1 + poissonRatio);

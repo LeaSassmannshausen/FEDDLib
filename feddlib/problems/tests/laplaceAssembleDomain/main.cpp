@@ -79,6 +79,28 @@ int main(int argc, char *argv[]) {
     double length = 4.;
     myCLP.setOption("length",&length,"length of domain.");
 
+    ParameterListPtr_Type parameterListProblem = Teuchos::getParametersFromXmlFile(xmlProblemFile);
+    ParameterListPtr_Type parameterListPrec = Teuchos::getParametersFromXmlFile(xmlPrecFile);
+    ParameterListPtr_Type parameterListSolver = Teuchos::getParametersFromXmlFile(xmlSolverFile);
+
+    ParameterListPtr_Type parameterListAll(new Teuchos::ParameterList(*parameterListProblem)) ;
+    parameterListAll->setParameters(*parameterListPrec);
+    parameterListAll->setParameters(*parameterListSolver);
+
+    // Mesh
+    std::string meshType = parameterListProblem->sublist("Parameter").get("Mesh Type","structured");
+    std::string meshName = parameterListProblem->sublist("Parameter").get("Mesh Name","");
+    std::string meshDelimiter = parameterListProblem->sublist("Parameter").get("Mesh Delimiter"," ");
+
+    int dim = parameterListProblem->sublist("Parameter").get("Dimension",2);
+    myCLP.setOption("DIM",&dim,"Dimension of problem");
+    parameterListProblem->sublist("Parameter").set("Dimension",dim);
+    int m = parameterListProblem->sublist("Parameter").get("H/h",4);
+    myCLP.setOption("M",&m,"H/h");
+
+    std::string FEType = parameterListProblem->sublist("Parameter").get("Discretization","P1");
+    myCLP.setOption("FEType",&FEType,"Finite Element Discretization");
+
     myCLP.recogniseAllOptions(true);
     myCLP.throwExceptions(false);
     Teuchos::CommandLineProcessor::EParseCommandLineReturn parseReturn = myCLP.parse(argc,argv);
@@ -98,9 +120,6 @@ int main(int argc, char *argv[]) {
         parameterListAll->setParameters(*parameterListSolver);
 
         // Mesh
-        int dim = parameterListProblem->sublist("Parameter").get("Dimension",2);
-        int m = parameterListProblem->sublist("Parameter").get("H/h",5);
-        std::string FEType = parameterListProblem->sublist("Parameter").get("Discretization","P1");
         std::string meshType = parameterListProblem->sublist("Parameter").get("Mesh Type","structured");
         std::string meshName = parameterListProblem->sublist("Parameter").get("Mesh Name","");
         std::string meshDelimiter = parameterListProblem->sublist("Parameter").get("Mesh Delimiter"," ");
@@ -175,7 +194,7 @@ int main(int argc, char *argv[]) {
                 domain = domainP1;
         }
 
-
+        domain->setDofs(1);
 
         // ####################
         Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactory(new BCBuilder<SC,LO,GO,NO>( ));
@@ -197,7 +216,7 @@ int main(int argc, char *argv[]) {
             bcFactory->addBC(zeroBC, 3, 0, domain, "Dirichlet", 1);
         }
 
-        AssembleDomain<SC,LO,GO,NO> laplace(domain,FEType,parameterListAll,"Laplace");
+        Laplace<SC,LO,GO,NO> laplace(domain,FEType,parameterListAll,vL);
         {
             laplace.addRhsFunction(oneFunc);
             laplace.addBoundaries(bcFactory);
@@ -208,11 +227,57 @@ int main(int argc, char *argv[]) {
             laplace.solve();
         }
 
+        AssembleDomain<SC,LO,GO,NO> laplaceAssembleDomain(domain,FEType,parameterListAll,"Laplace");
+        {
+            laplaceAssembleDomain.addRhsFunction(oneFunc);
+            laplaceAssembleDomain.addBoundaries(bcFactory);
+            
+            laplaceAssembleDomain.initializeProblem();
+            laplaceAssembleDomain.assemble();
+            laplaceAssembleDomain.setBoundaries();
+            laplaceAssembleDomain.solve();
+        }
+
+       
+
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolution = laplace.getSolution()->getBlock(0);
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionAssDom = laplaceAssembleDomain.getSolution()->getBlock(0);
+
+        // Calculating the error per node
+        Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValues = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( laplace.getSolution()->getBlock(0)->getMap() ) ); 
+        //this = alpha*A + beta*B + gamma*this
+        errorValues->update( 1., exportSolution, -1. ,exportSolutionAssDom, 0.);
+
+        // Taking abs norm
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbs = errorValues;
+        errorValues->abs(errorValuesAbs);
+
+        Teuchos::Array<SC> norm(1); 
+        errorValues->normInf(norm);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
+        double res = norm[0];
+        if(comm->getRank() ==0){
+            cout << " ##################################### " << endl;
+            cout << " Inf Norm of Error of Solutions " << res << endl;
+        }
+        double twoNormError = res;
+        TEUCHOS_TEST_FOR_EXCEPTION( res>1.e-12, std::logic_error, "Inf norm between solutions greater than 1e-12. Please check assembly routines.");
+
+        laplace.getSolution()->normInf(norm);
+        res = norm[0];
+        if(comm->getRank() ==0){
+            cout << " Inf relative Norm of solution laplace " << twoNormError/res << endl;
+            cout << " ##################################### " << endl;
+
+        }
+
+        TEUCHOS_TEST_FOR_EXCEPTION( twoNormError/res>1.e-12, std::logic_error, "Relative Inf norm between solutions greater than 1e-12. Please check assembly routines.");
+
+
         bool boolExportSolution = true;
         if (boolExportSolution) {
             Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
 
-            Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolution = laplace.getSolution()->getBlock(0);
+            Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolution = laplaceAssembleDomain.getSolution()->getBlock(0);
 
             exPara->setup("solutionLaplace", domain->getMesh(), FEType);
             
