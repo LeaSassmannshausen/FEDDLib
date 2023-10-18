@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
 	            if (discVelocity=="P2")
 	                domainVelocity->buildP2ofP1Domain( domainPressure );
 	            else
-	                domainVelocity = domainPressure;
+	                domainVelocity->initWithDomain(domainPressure);
 	        }
         
 
@@ -367,6 +367,11 @@ int main(int argc, char *argv[]) {
         cout << "##################### Start NEW ASSEMBLY ROUTINE ####################" <<endl;
         cout << "###############################################################" <<endl;
          }
+
+            domainVelocity->setPhysicProperty("Velocity");
+            domainVelocity->setDofs(dim);
+            domainPressure->setPhysicProperty("Pressure");
+            domainPressure->setDofs(1);
 
            NavierStokesAssFE<SC,LO,GO,NO> navierStokesAssFE( domainVelocity, discVelocity, domainPressure, discPressure, parameterListAll );
 

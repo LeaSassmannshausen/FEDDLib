@@ -92,32 +92,32 @@ void AssembleFEStokes<SC,LO,GO,NO>::assembleJacobian() {
 
     // As Stokes is linear we do not have to divide between first and following Newton-Steps because the matrices stay constant
 	//if(this->newtonStep_ ==0){
-		SmallMatrixPtr_Type elementMatrixA =Teuchos::rcp( new SmallMatrix_Type( dofsElementVelocity_+numNodesPressure_));
-		SmallMatrixPtr_Type elementMatrixB =Teuchos::rcp( new SmallMatrix_Type( dofsElementVelocity_+numNodesPressure_));
+    SmallMatrixPtr_Type elementMatrixA =Teuchos::rcp( new SmallMatrix_Type( dofsElementVelocity_+numNodesPressure_));
+    SmallMatrixPtr_Type elementMatrixB =Teuchos::rcp( new SmallMatrix_Type( dofsElementVelocity_+numNodesPressure_));
 
-		constantMatrix_.reset(new SmallMatrix_Type( dofsElementVelocity_+numNodesPressure_));
+    constantMatrix_.reset(new SmallMatrix_Type( dofsElementVelocity_+numNodesPressure_));
 
 
 
-        if ( this->params_->sublist("Parameter").get("Symmetric gradient",false) )
-        {
+    if ( this->params_->sublist("Parameter").get("Symmetric gradient",false) )
+    {
         assemblyStress_Divergence(elementMatrixA); // 2 \mu  \nabla \cdot ( 0.5(\nabla u + (\nabla u)^T ))
-        }
-        else
-		{
+    }
+    else
+    {
         assemblyLaplacian(elementMatrixA); // \mu \Delta u
-        }
+    }
 
-		elementMatrixA->scale(viscosity_); // KINEMATIC VISCOSITY THEREFORE WE HAVE TO MULTIPLY WITH DENSITY
-		elementMatrixA->scale(density_);
+    elementMatrixA->scale(viscosity_); // KINEMATIC VISCOSITY THEREFORE WE HAVE TO MULTIPLY WITH DENSITY
+    elementMatrixA->scale(density_);
 
-		constantMatrix_->add( (*elementMatrixA),(*constantMatrix_));
+    constantMatrix_->add( (*elementMatrixA),(*constantMatrix_));
 
-		assemblyDivAndDivT(elementMatrixB); // For Matrix B
-		elementMatrixB->scale(-1.);
+    assemblyDivAndDivT(elementMatrixB); // For Matrix B
+    elementMatrixB->scale(-1.);
 
-		constantMatrix_->add( (*elementMatrixB),(*constantMatrix_));
-    //}
+    constantMatrix_->add( (*elementMatrixB),(*constantMatrix_));
+    
 
 	ANB_.reset(new SmallMatrix_Type( dofsElementVelocity_+numNodesPressure_)); // A + B + N
 	ANB_->add( (*constantMatrix_),(*ANB_));

@@ -3,30 +3,16 @@ TRIBITS_ADD_EXECUTABLE(
 	SOURCES main.cpp
 )
 
-
-TRIBITS_ADD_TEST(
-	steadyLinElasAssembleDomain
-    NAME steadyLinElasAssembleDomain_DIM_2_P1
-    ARGS "--DIM=2 --FEType=P1 --MeshName=square.mesh"
-    NUM_MPI_PROCS 4
-)
-TRIBITS_ADD_TEST(
-	steadyLinElasAssembleDomain
-    NAME steadyLinElasAssembleDomain_DIM_2_P2
-    ARGS "--DIM=2 --FEType=P2 --MeshName=square.mesh"
-    NUM_MPI_PROCS 4
-)
-
 TRIBITS_ADD_TEST(
 	steadyLinElasAssembleDomain
     NAME steadyLinElasAssembleDomain_DIM_3_P1
-    ARGS "--DIM=3 --FEType=P1 --MeshName=cube_h_1.mesh"
+    ARGS "--DIM=3 --FEType=P1"
     NUM_MPI_PROCS 4
 )
 TRIBITS_ADD_TEST(
 	steadyLinElasAssembleDomain
     NAME steadyLinElasAssembleDomain_DIM_3_P2
-    ARGS "--DIM=3 --FEType=P2 --MeshName=cube_h_1.mesh"
+    ARGS "--DIM=3 --FEType=P2"
     NUM_MPI_PROCS 4
 )
 

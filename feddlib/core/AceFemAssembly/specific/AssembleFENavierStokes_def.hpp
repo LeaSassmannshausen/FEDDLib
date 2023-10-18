@@ -19,7 +19,7 @@ AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params,tuple)
 		locVelocity=1;
 		locPressure=0;
 	}
-	else
+    else
     	TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error, "No discretisation Information for Velocity in Navier Stokes Element." );
 		
 
@@ -28,8 +28,8 @@ AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params,tuple)
 	FETypeVelocity_ = std::get<1>(this->diskTuple_->at(locVelocity));
 	FETypePressure_ =std::get<1>(this->diskTuple_->at(locPressure));
 
-	dofsVelocity_ = std::get<2>(this->diskTuple_->at(locVelocity));
-	dofsPressure_ =std::get<2>(this->diskTuple_->at(locPressure));
+	dofsVelocity_ = 2; //std::get<2>(this->diskTuple_->at(locVelocity));
+	dofsPressure_ =1; //std::get<2>(this->diskTuple_->at(locPressure));
 
 	numNodesVelocity_ = std::get<3>(this->diskTuple_->at(locVelocity));
 	numNodesPressure_=std::get<3>(this->diskTuple_->at(locPressure));
@@ -51,6 +51,8 @@ AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params,tuple)
 	coeff_ = coeff;
 
     linearization_ = this->params_->sublist("General").get("Linearization","FixedPoint"); // Information to assemble Jacobian accordingly
+
+    this->newtonStep_=0;
 }
 
 template <class SC, class LO, class GO, class NO>

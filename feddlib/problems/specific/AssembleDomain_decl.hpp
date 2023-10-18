@@ -60,7 +60,7 @@ public:
     
     //! @name Constructor/Destructor
     //@{
-    AssembleDomain( const DomainConstPtr_Type  &domain, std::string FEType, ParameterListPtr_Type parameterList, string problemType_ );
+    AssembleDomain( DomainPtr_vec_Type	&domainVec, ParameterListPtr_Type parameterList, string problemType_ );
     //@}
     ~AssembleDomain();
 

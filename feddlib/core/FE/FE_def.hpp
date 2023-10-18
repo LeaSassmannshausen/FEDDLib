@@ -150,7 +150,6 @@ void FE<SC,LO,GO,NO>::globalAssembly(string ProblemType,
 
 
     }
-	
 	if(assemblyFEElements_.size()== 0){
        	initAssembleFEElements(ProblemType,problemDisk,domainVec_.at(0)->getElementsC(), params,domainVec_.at(0)->getPointsRepeated(),domainVec_.at(0)->getElementMap());
     }
@@ -177,7 +176,6 @@ void FE<SC,LO,GO,NO>::globalAssembly(string ProblemType,
 			assemblyFEElements_[T]->assembleJacobian();
 
             elementMatrix = assemblyFEElements_[T]->getJacobian(); 
-            //elementMatrix->print();
 			assemblyFEElements_[T]->advanceNewtonStep(); // n genereal non linear solver step
 			
 			addFeBlockMatrix(A, elementMatrix, elementsDisc, problemDisk);
@@ -249,11 +247,12 @@ void FE<SC,LO,GO,NO>::addFeBlockMatrix(BlockMatrixPtr_Type &A, SmallMatrixPtr_Ty
 
     for(int probRow = 0; probRow < numDisk; probRow++){
         for(int probCol = 0; probCol < numDisk; probCol++){
+            //cout << " ProbRow: " << probRow << " probCol: " << probCol << endl;
             int dofs1 = std::get<2>(problemDisk->at(probRow));
             int dofs2 = std::get<2>(problemDisk->at(probCol));
 
             int numNodes1 = std::get<3>(problemDisk->at(probRow));
-            int numNodes2=std::get<3>(problemDisk->at(probCol));
+            int numNodes2=  std::get<3>(problemDisk->at(probCol));
 
             int offsetRow= numNodes1*dofs1*probRow;
             int offsetCol= numNodes1*dofs1*probCol;
@@ -303,7 +302,7 @@ void FE<SC,LO,GO,NO>::addFeBlockMv(BlockMultiVectorPtr_Type &res, vec_dbl_ptr_Ty
         int dofs = std::get<2>(problemDisk->at(probRow));
         int numNodes = std::get<3>(problemDisk->at(probRow));
 
-        int offset = numNodes*dofs; 
+        int offset = numNodes*dofs*probRow; 
         for(int i=0; i< nodeList_block.size() ; i++){
             for(int d=0; d<dofs; d++){
                 resArray_block[nodeList_block[i]*dofs+d] += (*rhsVec)[i*dofs+d+offset];

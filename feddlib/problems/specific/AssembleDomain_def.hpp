@@ -13,20 +13,23 @@
 
 namespace FEDD {
 template<class SC,class LO,class GO,class NO>
-AssembleDomain<SC,LO,GO,NO>::AssembleDomain(const DomainConstPtr_Type  &domain, std::string FEType, ParameterListPtr_Type parameterList, string problemType):
-NonLinearProblem<SC,LO,GO,NO>( parameterList, domain->getComm() ),
+AssembleDomain<SC,LO,GO,NO>::AssembleDomain(DomainPtr_vec_Type	&domainVec, ParameterListPtr_Type parameterList, string problemType):
+NonLinearProblem<SC,LO,GO,NO>( parameterList, domainVec.at(0)->getComm() ),
 sol_rep_()
 {
     this->nonLinearTolerance_ = this->parameterList_->sublist("Parameter").get("relNonLinTol",1.0e-6);
     this->initNOXParameters();
-    this->addVariable( domain , FEType , "u" , domain->getDofs());
 
-    this->dim_ = this->getDomain(0)->getDimension();
+    this->dim_ = domainVec.at(0)->getDimension(); // We assume that all subproblems have same dimension
        
-    problemType_=problemType;   
-    domainVec_.push_back(domain);
-    problemSize_=1;
+    problemType_=problemType; 
 
+    problemSize_ = domainVec.size();
+    for(int i=0; i<problemSize_; i++){
+        domainVec_.push_back(domainVec.at(i));
+        this->addVariable( domainVec_.at(i) , domainVec_.at(i)->getFEType(), domainVec_.at(i)->getPhysicProperty() , domainVec_.at(i)->getDofs());
+    }
+    
     sol_rep_ = Teuchos::rcp( new BlockMultiVector_Type(1));
     for(int probRow = 0; probRow <  problemSize_; probRow++){
         MapConstPtr_Type rowMap;

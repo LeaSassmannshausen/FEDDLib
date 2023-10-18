@@ -29,9 +29,9 @@ SET(problems_specific_HEADERS
     specific/NavierStokes_decl.hpp
 	specific/NavierStokes_def.hpp
 	specific/NavierStokes.hpp
-	#specific/NavierStokesAssFE_decl.hpp
-	#specific/NavierStokesAssFE_def.hpp
-	#specific/NavierStokesAssFE.hpp
+	specific/NavierStokesAssFE_decl.hpp
+	specific/NavierStokesAssFE_def.hpp
+	specific/NavierStokesAssFE.hpp
     specific/NonLinElasticity_decl.hpp
     specific/NonLinElasticity_def.hpp
     specific/NonLinElasticity.hpp
@@ -63,7 +63,7 @@ SET(problems_specific_SOURCES
 #    specific/LinElasFirstOrder.cpp
 	specific/DiffusionReaction.cpp
 	specific/NavierStokes.cpp
-	#specific/NavierStokesAssFE.cpp
+	specific/NavierStokesAssFE.cpp
     specific/NonLinElasticity.cpp
     #specific/NonLinElasAssFE.cpp
     specific/NonLinTPM.cpp

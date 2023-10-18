@@ -151,11 +151,8 @@ int main(int argc, char *argv[])
     // int dim = 2;
     // myCLP.setOption("dim",&dim,"dim");
     string xmlProblemFile = "parametersProblem.xml";
-    myCLP.setOption("problemfile",&xmlProblemFile,".xml file with Inputparameters.");
     string xmlPrecFile = "parametersPrec.xml";
-    myCLP.setOption("precfile",&xmlPrecFile,".xml file with Inputparameters.");
     string xmlSolverFile = "parametersSolver.xml";
-    myCLP.setOption("solverfile",&xmlSolverFile,".xml file with Inputparameters.");
 
     ParameterListPtr_Type parameterListProblem = Teuchos::getParametersFromXmlFile(xmlProblemFile);
     ParameterListPtr_Type parameterListPrec = Teuchos::getParametersFromXmlFile(xmlPrecFile);
@@ -167,9 +164,6 @@ int main(int argc, char *argv[])
 
     int dim= parameterListProblem->sublist("Parameter").get("Dimension",3);
     myCLP.setOption("DIM",&dim,"Dimension of problem");
-
-    string		meshName    	= parameterListProblem->sublist("Parameter").get("Mesh Name","cube_h_1.mesh");
-    myCLP.setOption("MeshName",&meshName,"Name of Mesh");
 
     std::string FEType = parameterListProblem->sublist("Parameter").get("Discretization","P1");
     myCLP.setOption("FEType",&FEType,"Finite Element Discretization");
@@ -261,8 +255,7 @@ int main(int argc, char *argv[])
 
 		}
             
-        domain->setDofs(dim);
-        // LinElas Objekt erstellen
+    // LinElas Objekt erstellen
         
         LinElas<SC,LO,GO,NO> LinElas( domain, FEType, parameterListAll );
         int its;
@@ -287,7 +280,12 @@ int main(int argc, char *argv[])
             its = LinElas.solve();
         }
 
-        AssembleDomain<SC,LO,GO,NO> LinElasAssembleDomain(domain,FEType,parameterListAll,"LinearElasticity");
+
+        MeshPartitioner_Type::DomainPtrArray_Type domainArray(1);
+        domain->setDofs(dim);
+        domainArray[0] = domain;    
+
+        AssembleDomain<SC,LO,GO,NO> LinElasAssembleDomain(domainArray,parameterListAll,"LinearElasticity");
         int itsAssFE;
         {
             // LinElas Objekt erstellen

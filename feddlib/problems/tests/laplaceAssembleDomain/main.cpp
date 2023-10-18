@@ -227,7 +227,11 @@ int main(int argc, char *argv[]) {
             laplace.solve();
         }
 
-        AssembleDomain<SC,LO,GO,NO> laplaceAssembleDomain(domain,FEType,parameterListAll,"Laplace");
+        MeshPartitioner_Type::DomainPtrArray_Type domainArray(1);
+        domain->setDofs(1);
+        domainArray[0] = domain;
+
+        AssembleDomain<SC,LO,GO,NO> laplaceAssembleDomain(domainArray,parameterListAll,"Laplace");
         {
             laplaceAssembleDomain.addRhsFunction(oneFunc);
             laplaceAssembleDomain.addBoundaries(bcFactory);

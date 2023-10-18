@@ -547,7 +547,7 @@ private:
     int 					n_;
     int 					m_;
     std::string				FEType_; // Finite element discretization
-    std::string               physics_ = "None"; // Physics component - only useful for multiphysics problems to identify blocks
+    std::string               physics_ = "u"; // Physics component - only useful for multiphysics problems to identify blocks
     mutable MapPtr_Type mapVecFieldUnique_;
     mutable  MapPtr_Type mapVecFieldRepeated_;
     

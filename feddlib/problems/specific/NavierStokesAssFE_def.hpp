@@ -55,6 +55,7 @@ p_rep_()
     this->addVariable( domainPressure , FETypePressure , "p" , 1);
     this->dim_ = this->getDomain(0)->getDimension();
 
+
     u_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ) );
 
     p_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(1)->getMapRepeated() ) );
@@ -156,7 +157,7 @@ void NavierStokesAssFE<SC,LO,GO,NO>::assembleConstantMatrices() const{
     
     MatrixPtr_Type B(new Matrix_Type( pressureMap, this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
     MatrixPtr_Type BT(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow() ) );
-    MatrixPtr_Type C(new Matrix_Type( pressureMap,1));
+    MatrixPtr_Type C(new Matrix_Type( pressureMap,this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow()));
 
 
 	this->system_->addBlock(A_,0,0);
@@ -164,7 +165,11 @@ void NavierStokesAssFE<SC,LO,GO,NO>::assembleConstantMatrices() const{
 	this->system_->addBlock(B,1,0);
 	this->system_->addBlock(C,1,1);
 
-	this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_,this->residualVec_,this->coeff_, this->parameterList_,false, "Jacobian", true/*call fillComplete*/);
+    BlockMultiVectorPtr_Type blockSol = Teuchos::rcp( new BlockMultiVector_Type(2) );
+    blockSol->addBlock(u_rep_,0);
+    blockSol->addBlock(p_rep_,1);
+
+    this->feFactory_->globalAssembly("NavierStokes", this->dim_, 0, blockSol, this->system_, this->residualVec_,this->getParameterList(),"Jacobian");
 
     if ( !this->getFEType(0).compare("P1") ) {
         C.reset(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow() ) );
@@ -243,29 +248,46 @@ void NavierStokesAssFE<SC,LO,GO,NO>::reAssemble(std::string type) const {
         u_rep_->importFromVector(u, true);
         MultiVectorConstPtr_Type p = this->solution_->getBlock(1);
         p_rep_->importFromVector(p, true);  
-       
+        BlockMultiVectorPtr_Type blockSol = Teuchos::rcp( new BlockMultiVector_Type(2) );
+        blockSol->addBlock(u_rep_,0);
+        blockSol->addBlock(p_rep_,1);
    		this->system_->addBlock(ANW,0,0);
 
-        this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_, this->residualVec_,this->coeff_,this->parameterList_, true, "FixedPoint",  true);        
- 		this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_, this->residualVec_,this->coeff_,this->parameterList_, true, "Rhs",  true);
+        this->feFactory_->globalAssembly("NavierStokes",this->dim_, 2, blockSol,this->system_, this->residualVec_,this->parameterList_, "Rhs",  true);        
 
     }
     else if (type=="FixedPoint" ) {
-
+ 	    BlockMultiVectorPtr_Type blockSol = Teuchos::rcp( new BlockMultiVector_Type(2) );
+        blockSol->addBlock(u_rep_,0);
+        blockSol->addBlock(p_rep_,1);
    		this->system_->addBlock(ANW,0,0);
-		this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_, this->residualVec_,this->coeff_,this->parameterList_, true, "FixedPoint",  true);
+        this->feFactory_->globalAssembly("NavierStokes",this->dim_, 2, blockSol,this->system_, this->residualVec_,this->parameterList_, "Jacobian",  true);        
     }
 	else if(type=="Newton"){ 
-        
+        MapConstPtr_Type pressureMap;
+        if ( this->getDomain(1)->getFEType() == "P0" )
+            pressureMap = this->getDomain(1)->getElementMap();
+        else
+            pressureMap = this->getDomain(1)->getMapUnique();
+         MatrixPtr_Type B(new Matrix_Type( pressureMap, this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+        MatrixPtr_Type BT(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow() ) );
+
+
+	    this->system_->addBlock(BT,0,1);
+	    this->system_->addBlock(B,1,0);
+	    MatrixPtr_Type C(new Matrix_Type( pressureMap,this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow()));
+	    this->system_->addBlock(C,1,1);
+
         this->system_->addBlock(ANW,0,0);
+
        	BlockMultiVectorPtr_Type blockSol = Teuchos::rcp( new BlockMultiVector_Type(2) );
         blockSol->addBlock(u_rep_,0);
         blockSol->addBlock(p_rep_,1);
 		//this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_,this->residualVec_, this->coeff_,this->parameterList_, true,"Jacobian", true);
-        this->feFactory_->globalAssembly("Navier-Stokes", this->dim_, 0, blockSol, this->system_, this->rhs_,this->getParameterList(),"Jacobian");
+        this->feFactory_->globalAssembly("NavierStokes", this->dim_, 2, blockSol, this->system_, this->residualVec_,this->parameterList_,"Jacobian",true);
     }
 	
-    this->system_->addBlock(ANW,0,0);
+    //this->system_->addBlock(ANW,0,0);
 
     if (this->verbose_)
         std::cout << "done -- " << std::endl;
@@ -279,7 +301,6 @@ void NavierStokesAssFE<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type
     
 	//this->reAssemble("FixedPoint");
     this->reAssemble("Rhs");
-
     // We need to account for different parameters of time discretizations here
     // This is ok for bdf with 1.0 scaling of the system. Would be wrong for Crank-Nicolson - might be ok now for CN
 

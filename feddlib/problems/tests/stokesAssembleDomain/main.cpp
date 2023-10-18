@@ -14,7 +14,9 @@
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 
 #include "feddlib/problems/Solver/NonLinearSolver.hpp"
-#include "feddlib/problems/specific/NavierStokesAssFE.hpp"
+#include "feddlib/problems/specific/AssembleDomain.hpp"
+#include "feddlib/problems/specific/Stokes.hpp"
+
 
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Xpetra_DefaultPlatform.hpp>
@@ -230,116 +232,107 @@ int main(int argc, char *argv[]) {
         int numProcsCoarseSolve = parameterListProblem->sublist("General").get("Mpi Ranks Coarse",0);
         int size = comm->getSize() - numProcsCoarseSolve;
 
+    
+           DomainPtr_Type domainPressure;
+        DomainPtr_Type domainVelocity;
         {
-            DomainPtr_Type domainPressure;
-            DomainPtr_Type domainVelocity;
-                              
-           if (!meshType.compare("structured_bfs")) {
-                TEUCHOS_TEST_FOR_EXCEPTION( size%minNumberSubdomains != 0 , std::logic_error, "Wrong number of processors for structured BFS mesh.");
-                if (dim == 2) {
-                    n = (int) (std::pow( size/minNumberSubdomains ,1/2.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
-                    std::vector<double> x(2);
-                    x[0]=-1.0;    x[1]=-1.0;
-                    domainPressure.reset(new Domain<SC,LO,GO,NO>( x, length+1., 2., comm ) );
-                    domainVelocity.reset(new Domain<SC,LO,GO,NO>( x, length+1., 2., comm ) );
+            {
+                if (verbose) {
+                    cout << "-- Building Mesh ..." << flush;
                 }
-                else if (dim == 3){
-                    n = (int) (std::pow( size/minNumberSubdomains ,1/3.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
-                    std::vector<double> x(3);
-                    x[0]=-1.0;    x[1]=0.0;    x[2]=-1.0;
-                    domainPressure.reset(new Domain<SC,LO,GO,NO>( x, length+1., 1., 2., comm));
-                    domainVelocity.reset(new Domain<SC,LO,GO,NO>( x, length+1., 1., 2., comm));
+                
+                if (!meshType.compare("structured")) {
+                    TEUCHOS_TEST_FOR_EXCEPTION( size%minNumberSubdomains != 0 , std::logic_error, "Wrong number of processors for structured mesh.");
+                    if (dim == 2) {
+                        n = (int) (std::pow( size/minNumberSubdomains ,1/2.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
+                        std::vector<double> x(2);
+                        x[0]=0.0;    x[1]=0.0;
+                        domainPressure.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., comm ) );
+                        domainVelocity.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., comm ) );
+                    }
+                    else if (dim == 3){
+                        n = (int) (std::pow( size/minNumberSubdomains, 1/3.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
+                        std::vector<double> x(3);
+                        x[0]=0.0;    x[1]=0.0;	x[2]=0.0;
+                        domainPressure.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., 1., comm));
+                        domainVelocity.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., 1., comm));
+                    }
+                    domainPressure->buildMesh( 1,"Square", dim, discPressure, n, m, numProcsCoarseSolve);
+                    domainVelocity->buildMesh( 1,"Square", dim, discVelocity, n, m, numProcsCoarseSolve);
                 }
-                domainPressure->buildMesh( 2,"BFS", dim, discPressure, n, m, numProcsCoarseSolve);
-                domainVelocity->buildMesh( 2,"BFS", dim, discVelocity, n, m, numProcsCoarseSolve);
-            }
-	        else if (!meshType.compare("unstructured")) {
-	        
-	            domainPressure.reset( new Domain<SC,LO,GO,NO>( comm, dim ) );
-	            domainVelocity.reset( new Domain<SC,LO,GO,NO>( comm, dim ) );
-	            
-	            MeshPartitioner_Type::DomainPtrArray_Type domainP1Array(1);
-	            domainP1Array[0] = domainPressure;
-	            
-	            ParameterListPtr_Type pListPartitioner = sublist( parameterListProblem, "Mesh Partitioner" );
-	            MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
-	            
-	            partitionerP1.readAndPartition();
-
-	            if (discVelocity=="P2")
-	                domainVelocity->buildP2ofP1Domain( domainPressure );
-	            else
-	                domainVelocity = domainPressure;
-	        }
-        
-
-      
-            std::vector<double> parameter_vec(1, parameterListProblem->sublist("Parameter").get("MaxVelocity",1.));
-
-            // ####################
-            Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactory( new BCBuilder<SC,LO,GO,NO>( ) );
-			if (!bcType.compare("parabolic"))
-                parameter_vec.push_back(1.);//height of inflow region
-            else if(!bcType.compare("parabolic_benchmark") || !bcType.compare("partialCFD"))
-                parameter_vec.push_back(.41);//height of inflow region
-            else if(!bcType.compare("Richter3D"))
-                parameter_vec.push_back(.4);
-            else
-                TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Select a valid boundary condition.");
-
-
-            if ( !bcType.compare("parabolic") || !bcType.compare("parabolic_benchmark") ) {//flag of obstacle
-                if (dim==2){
-                    bcFactory->addBC(zeroDirichlet2D, 1, 0, domainVelocity, "Dirichlet", dim);
-                    bcFactory->addBC(inflowParabolic2D, 2, 0, domainVelocity, "Dirichlet", dim, parameter_vec);
-//                        bcFactory->addBC(dummyFunc, 3, 0, domainVelocity, "Neumann", dim);
-//                        bcFactory->addBC(dummyFunc, 666, 1, domainPressure, "Neumann", 1);
-                    bcFactory->addBC(zeroDirichlet2D, 4, 0, domainVelocity, "Dirichlet", dim);
+                if (!meshType.compare("structured_bfs")) {
+                    TEUCHOS_TEST_FOR_EXCEPTION( size%minNumberSubdomains != 0 , std::logic_error, "Wrong number of processors for structured BFS mesh.");
+                    if (dim == 2) {
+                        n = (int) (std::pow( size/minNumberSubdomains ,1/2.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
+                        std::vector<double> x(2);
+                        x[0]=-1.0;    x[1]=-1.0;
+                        domainPressure.reset(new Domain<SC,LO,GO,NO>( x, length+1., 2., comm ) );
+                        domainVelocity.reset(new Domain<SC,LO,GO,NO>( x, length+1., 2., comm ) );
+                    }
+                    else if (dim == 3){
+                        n = (int) (std::pow( size/minNumberSubdomains ,1/3.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
+                        std::vector<double> x(3);
+                        x[0]=-1.0;    x[1]=0.0;    x[2]=-1.0;
+                        domainPressure.reset(new Domain<SC,LO,GO,NO>( x, length+1., 1., 2., comm));
+                        domainVelocity.reset(new Domain<SC,LO,GO,NO>( x, length+1., 1., 2., comm));
+                    }
+                    domainPressure->buildMesh( 2,"BFS", dim, discPressure, n, m, numProcsCoarseSolve);
+                    domainVelocity->buildMesh( 2,"BFS", dim, discVelocity, n, m, numProcsCoarseSolve);
                 }
-                else if (dim==3){
-                    bcFactory->addBC(zeroDirichlet3D, 1, 0, domainVelocity, "Dirichlet", dim);
-                    bcFactory->addBC(inflowParabolic3D, 2, 0, domainVelocity, "Dirichlet", dim, parameter_vec);
-//                        bcFactory->addBC(dummyFunc, 3, 0, domainVelocity, "Neumann", dim);
-//                        bcFactory->addBC(dummyFunc, 666, 1, domainPressure, "Neumann", 1);
-                    bcFactory->addBC(zeroDirichlet3D, 4, 0, domainVelocity, "Dirichlet", dim);
+                else if (!meshType.compare("unstructured")) {
+                    domainPressure.reset( new Domain<SC,LO,GO,NO>( comm, dim ) );
+                    domainVelocity.reset( new Domain<SC,LO,GO,NO>( comm, dim ) );
                     
+                    MeshPartitioner_Type::DomainPtrArray_Type domainP1Array(1);
+                    domainP1Array[0] = domainPressure;
+                    
+                    ParameterListPtr_Type pListPartitioner = sublist( parameterListAll, "Mesh Partitioner" );
+                    MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
+                    
+                    partitionerP1.readAndPartition();
+                    
+                    domainVelocity->buildP2ofP1Domain( domainPressure );
+                    
+                    if (discVelocity=="P2")
+                        domainVelocity->buildP2ofP1Domain( domainPressure );
+                    else
+                        domainVelocity = domainPressure;
+
                 }
-            }
-            else if (!bcType.compare("partialCFD")) {
-                bcFactory->addBC(zeroDirichlet2D, 1, 0, domainVelocity, "Dirichlet", dim); // wall
-                bcFactory->addBC(inflowParabolic2D, 2, 0, domainVelocity, "Dirichlet", dim, parameter_vec); // inflow
-                bcFactory->addBC(zeroDirichlet2D, 4, 0, domainVelocity, "Dirichlet", dim);
-                bcFactory->addBC(zeroDirichlet2D, 5, 0, domainVelocity, "Dirichlet", dim);
             }
             
-            else if (!bcType.compare("Richter3D")) {
-                bcFactory->addBC(zeroDirichlet3D, 1, 0, domainVelocity, "Dirichlet", dim); // wall
-                bcFactory->addBC(inflow3DRichter, 2, 0, domainVelocity, "Dirichlet", dim, parameter_vec); // inflow
-                bcFactory->addBC(zeroDirichlet3D, 3, 0, domainVelocity, "Dirichlet_Z", dim);
-                bcFactory->addBC(zeroDirichlet3D, 5, 0, domainVelocity, "Dirichlet", dim);
+            std::vector<double> parameter_vec(1, parameterListProblem->sublist("Parameter").get("MaxVelocity",1.));
+            
+            // ####################
+            Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactory( new BCBuilder<SC,LO,GO,NO>( ) );
+            
+            if (!bcType.compare("parabolic"))
+                parameter_vec.push_back(1.);//height of inflow region
+            else if(!bcType.compare("parabolic_benchmark"))
+                parameter_vec.push_back(.41);//height of inflow region
+            else
+                TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Select a valid boundary condition.");
+            
+            if (dim==2) {
+                bcFactory->addBC(zeroDirichlet2D, 1, 0, domainVelocity, "Dirichlet", dim);
+                bcFactory->addBC(inflowParabolic2D, 2, 0, domainVelocity, "Dirichlet", dim, parameter_vec);
+//                bcFactory->addBC(dummyFunc, 3, 0, domainVelocity, "Neumann", dim);
+//                bcFactory->addBC(dummyFunc, 666, 1, domainPressure, "Neumann", 1);
             }
-         
-             // Flag Check
-            Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
+            else if(dim==3){
+                bcFactory->addBC(zeroDirichlet3D, 1, 0, domainVelocity, "Dirichlet", dim);
+                bcFactory->addBC(inflowParabolic3D, 2, 0, domainVelocity, "Dirichlet", dim, parameter_vec);
+//                bcFactory->addBC(dummyFunc, 3, 0, domainVelocity, "Neumann", dim);
+//                bcFactory->addBC(dummyFunc, 666, 1, domainPressure, "Neumann", 1);
+            }
+            if (!bcType.compare("parabolic_benchmark")) {//flag of obstacle
+                if (dim==2)
+                    bcFactory->addBC(zeroDirichlet2D, 4, 0, domainVelocity, "Dirichlet", dim);
+                else if (dim==3)
+                    bcFactory->addBC(zeroDirichlet3D, 4, 0, domainVelocity, "Dirichlet", dim);
+            }
 
-			Teuchos::RCP<MultiVector<SC,LO,GO,NO> > exportSolution(new MultiVector<SC,LO,GO,NO>(domainVelocity->getMapUnique()));
-			vec_int_ptr_Type BCFlags = domainVelocity->getBCFlagUnique();
 
-			Teuchos::ArrayRCP< SC > entries  = exportSolution->getDataNonConst(0);
-			for(int i=0; i< entries.size(); i++){
-				entries[i] = BCFlags->at(i);
-			}
-
-			Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionConst = exportSolution;
-
-			exPara->setup("FlagsFluid",domainVelocity->getMesh(), discVelocity);
-
-			exPara->addVariable(exportSolutionConst, "Flags", "Scalar", 1,domainVelocity->getMapUnique(), domainVelocity->getMapUniqueP2());
-
-			exPara->save(0.0);
-			// ---------------------
-			// Old Assembly Rouine
-        
           	Stokes<SC,LO,GO,NO> stokes( domainVelocity, discVelocity, domainPressure, discPressure, parameterListAll );
 
             {
@@ -348,11 +341,11 @@ int main(int argc, char *argv[]) {
                 stokes.initializeProblem();
                 stokes.assemble();
 
-                stokes.setBoundariesRHS();
+                stokes.setBoundaries();
 
                 stokes.solve();
                 
-				MAIN_TIMER_STOP(NavierStokes);	
+				MAIN_TIMER_STOP(Stokes);	
                 comm->barrier();
             }
 
@@ -367,8 +360,17 @@ int main(int argc, char *argv[]) {
         cout << "###############################################################" <<endl;
          }
 
+			// Old Assembly Rouine
+            MeshPartitioner_Type::DomainPtrArray_Type domainArray(2);
+            domainVelocity->setPhysicProperty("Velocity");
+            domainVelocity->setDofs(dim);
 
-            AssembleDomain<SC,LO,GO,NO> stokesAssembleDomain(domain,FEType,parameterListAll,"Stokes");
+            domainPressure->setPhysicProperty("Pressure");
+            domainPressure->setDofs(1);
+
+            domainArray[0] = domainVelocity;
+            domainArray[1] = domainPressure;
+            AssembleDomain<SC,LO,GO,NO> stokesAssembleDomain(domainArray,parameterListAll,"Stokes");
             {
                 MAIN_TIMER_START(StokesAssembleDomain," AssembleDomain: Assemble System and solve");
 
@@ -379,7 +381,7 @@ int main(int argc, char *argv[]) {
                 stokesAssembleDomain.setBoundaries();
                 stokesAssembleDomain.solve();
 
-	            MAIN_TIMER_STOP(NavierStokesAssFE);	
+	            MAIN_TIMER_STOP(StokesAssembleDomain);	
                 comm->barrier();
             }
             
@@ -414,6 +416,8 @@ int main(int argc, char *argv[]) {
 			if(comm->getRank() ==0)
 				cout << " Inf Norm of Error of Solutions " << res << endl;
 			double twoNormError = res;
+
+            double infNormError = res;
 
 			stokes.getSolution()->norm2(norm);
 			res = norm[0];
@@ -453,6 +457,10 @@ int main(int argc, char *argv[]) {
 			stokes.getSystem()->getBlock(1,0)->addMatrix(1, Sum1, 1);
 			stokesAssembleDomain.getSystem()->getBlock(1,0)->addMatrix(-1, Sum1, 1);
 
+            stokes.getSystem()->getBlock(1,0)->print();
+
+            stokesAssembleDomain.getSystem()->getBlock(1,0)->print();
+            
 			res=0.;
 			for (UN i=0; i < domainPressure->getMapUnique()->getMaxLocalIndex()+1 ; i++) {
 				GO row = domainPressure->getMapUnique()->getGlobalElement( i );
@@ -468,9 +476,6 @@ int main(int argc, char *argv[]) {
 		
 			if(comm->getRank() == 0)
 				cout << " Norm of Difference between Block B: " << res << endl;
-
-
-		  			
 
             DomainPtr_Type dom = domainVelocity;
 
