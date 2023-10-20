@@ -114,7 +114,7 @@ public:
     Teuchos::RCP<Thyra::PreconditionerBase<SC> > create_W_prec() const;
 
 private:
-
+  int newtonIter_=0;
     virtual void evalModelImpl(
                        const ::Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
                        const ::Thyra::ModelEvaluatorBase::OutArgs<SC> &outArgs

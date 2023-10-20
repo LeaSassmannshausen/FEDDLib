@@ -199,7 +199,7 @@ LO Domain<SC,LO,GO,NO>::getApproxEntriesPerRow() const{
             return 160;
             }
         else {
-            return 100;
+            return 400;
         }
     }
 }

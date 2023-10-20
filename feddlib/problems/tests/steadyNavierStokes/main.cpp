@@ -431,8 +431,26 @@ int main(int argc, char *argv[]) {
 
                 }
             }
-        }
+	}
+    if(verbose){
+      cout << " ####################################################### " << endl;
+      cout << " Discretization Velocity: " << discVelocity << " || Discretization Pressure: " << discPressure << endl;
+      cout << " Preconditioner Method: " <<  parameterListProblem->sublist("General").get("Preconditioner Method","Monolithic") << endl;
+      string            precMethod      = parameterListProblem->sublist("General").get("Preconditioner Method","Monolithic");
+      if (!precMethod.compare("Monolithic"))
+	{
+          cout << " Coarse Operator " << parameterListPrec->sublist("ThyraPreconditioner").sublist("Preconditioner Types").sublist("FROSch").get("CoarseOperator Type","NONE") << endl;
+	  cout << " Coarse Space Block 1 " << parameterListPrec->sublist("ThyraPreconditioner").sublist("Preconditioner Types").sublist("FROSch").sublist("IPOUHarmonicCoarseOperator").sublist("Blocks").s\
+ublist("1").sublist("InterfacePartitionOfUnity").get("Type","None") << endl;
+          cout << " Coarse Space Block 2 " << parameterListPrec->sublist("ThyraPreconditioner").sublist("Preconditioner Types").sublist("FROSch").sublist("IPOUHarmonicCoarseOperator").sublist("Blocks").s\
+ublist("2").sublist("InterfacePartitionOfUnity").get("Type","None") << endl;
+
+      }
+      cout << " ####################################################### " << endl;
     }
+    
+    }
+
 
     Teuchos::TimeMonitor::report(cout);
     stackedTimer->stop("Steady Navier-Stokes");

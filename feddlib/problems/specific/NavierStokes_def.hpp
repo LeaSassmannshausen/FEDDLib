@@ -182,7 +182,7 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
         Mpressure->scale(-1./kinVisco);
         this->getPreconditionerConst()->setPressureMassMatrix( Mpressure );
     }
-    
+ 
     
     if (this->verbose_)
         std::cout << "done -- " << std::endl;
@@ -311,11 +311,26 @@ void NavierStokes<SC,LO,GO,NO>::reAssemble(std::string type) const {
         W->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
         this->system_->getBlock( 0, 0 )->addMatrix(1.,ANW,0.);
         W->addMatrix(1.,ANW,1.);
+	newtonIter_++;
     }
     ANW->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique() );
     
     this->system_->addBlock( ANW, 0, 0 );
-    
+
+    /*  if(!this->getFEType(0).compare("P2") ){
+      cout << " --------- Newton Iter " << newtonIter_ << endl;
+      if(this->parameterList_->sublist("General").get("Calculate M Coarse Matrix",true)){
+        MatrixPtr_Type Kpressure(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow() ) );
+        this->feFactory_->assemblyLaplace( this->dim_, this->domain_FEType_vec_.at(1), 2, Kpressure, true );
+	if(newtonIter_ != 6 ){
+	  Kpressure->resumeFill();
+	  Kpressure->scale(0.);
+	  Kpressure->fillComplete();
+	}
+        this->system_->addBlock(Kpressure,1,1);
+      }
+      }*/
+
     if (this->verbose_)
         std::cout << "done -- " << std::endl;
 }

@@ -130,7 +130,20 @@ void Stokes<SC,LO,GO,NO>::assemble( std::string type ) const{
         Mpressure->fillComplete( pressureMap, pressureMap );
         this->getPreconditionerConst()->setPressureMassMatrix( Mpressure );
     }
-
+    if(this->parameterList_->sublist("General").get("Write M",true)){
+        MatrixPtr_Type Kpressure(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow() ) );
+        this->feFactory_->assemblyLaplace( this->dim_, this->domain_FEType_vec_.at(1), 2, Kpressure, true );
+        Kpressure->writeMM("M_p");
+    }
+      
+    if(!this->getFEType(0).compare("P2")){
+      if(this->parameterList_->sublist("General").get("Calculate M Coarse Matrix",true)){
+	MatrixPtr_Type Kpressure(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow() ) );
+	this->feFactory_->assemblyLaplace( this->dim_, this->domain_FEType_vec_.at(1), 2, Kpressure, true );
+	this->system_->addBlock(Kpressure,1,1);
+      }
+    }
+	
     this->assembleSourceTerm( 0. );
     this->addToRhs( this->sourceTerm_ );
 
