@@ -13,6 +13,9 @@
  */
 
 using namespace std;
+using Teuchos::reduceAll;
+using Teuchos::REDUCE_SUM;
+using Teuchos::outArg;
 
 namespace FEDD {
 
@@ -201,7 +204,7 @@ void MeshUnstructured<SC,LO,GO,NO>::buildP2ofP1MeshEdge( MeshUnstrPtr_Type meshP
         vec_int_Type feNodeList = elements->getElement( i ).getVectorNodeListNonConst(); // get a copy
         for (int j=0; j<newElementNodes[i].size(); j++)
             feNodeList.push_back( newElementNodes[i][j] + numberLocalP1Nodes );
-        FiniteElement feP2( feNodeList );
+        FiniteElement feP2( feNodeList,elements->getElement( i ).getFlag() );
         this->elementsC_->addElement(feP2);
     }
     
@@ -1567,7 +1570,632 @@ void MeshUnstructured<SC,LO,GO,NO>::readLines(){
     if (verbose)
         cout << "done." << endl;
 }
+template <class SC, class LO, class GO, class NO>
+void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapConstPtr_Type mapRep, bool exportEdges, bool exportSurface, string meshName){
 
+    
+    ofstream myFile;
+    FILE * pFile;
+    myFile.open (meshName);
+
+    // ################ Vertices #################
+    int numberNodes = mapUnique->getGlobalNumElements();
+
+
+    // ##########################################
+    // Import missing nodes
+    vec_GO_Type globalImportIDsNodes(0);
+    for(int i = 0; i < this->mapUnique_->getGlobalNumElements(); i++)
+    {
+        if(this->mapUnique_->getLocalElement(i) == -1){
+            globalImportIDsNodes.push_back(i);
+        }
+    }
+	Teuchos::ArrayView<GO> globalNodesArrayImp = Teuchos::arrayViewFromVector( globalImportIDsNodes);
+    // Map of global IDs with missing Elements
+	MapPtr_Type mapNodesImport =
+		Teuchos::rcp( new Map_Type( this->mapUnique_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalNodesArrayImp, 0, this->getComm()) );
+
+    MultiVectorPtr_Type nodesImp = Teuchos::rcp( new MultiVector_Type( mapNodesImport, 1 ) );	
+	Teuchos::ArrayRCP< SC > entriesNodesImp  = nodesImp->getDataNonConst(0);
+
+    MultiVectorPtr_Type nodesExport = Teuchos::rcp( new MultiVector_Type( this->mapUnique_, 1 ) );	
+	Teuchos::ArrayRCP< SC > entriesNodesExport  = nodesExport->getDataNonConst(0);
+
+    vec2D_dbl_Type missingNodes(entriesNodesImp.size(),vec_dbl_Type(this->dim_+1));
+
+    for(int j= 0; j < this->dim_; j++)
+    {
+        for(int i=0; i< entriesNodesExport.size(); i++)
+            entriesNodesExport[i] =  this->getPointsUnique()->at(i).at(j);
+
+        nodesImp->importFromVector(nodesExport, false, "Insert");
+        for(int i=0; i< entriesNodesImp.size(); i++)
+            missingNodes[i][j] =  entriesNodesImp[i];
+
+
+    }
+
+    // Lastly import flags
+    for(int i=0; i< entriesNodesExport.size(); i++)
+        entriesNodesExport[i] =  this->bcFlagUni_->at(i);
+
+    nodesImp->importFromVector(nodesExport, false, "Insert");
+    for(int i=0; i< entriesNodesImp.size(); i++)
+        missingNodes[i][this->dim_] =  entriesNodesImp[i];
+
+    // #############################################
+
+    if(this->comm_->getRank() == 0){
+        std::cout << "Write Nodes ..." << '\n';
+
+        myFile << "MeshVersionFormatted 1" << endl;
+        myFile << endl;
+        myFile << "Dimension" << " " << this->dim_ << endl;
+        myFile << endl;
+        myFile << "Vertices";
+        myFile << endl;
+        myFile << numberNodes;
+        myFile << endl;
+        for(int i = 0; i < mapUnique->getGlobalNumElements(); i++)
+        {
+
+            if(mapUnique->getLocalElement(i) != -1){
+                LO id = mapUnique->getLocalElement(i);
+                for(int j= 0; j < this->getPointsUnique()->at(id).size(); j++)
+                {
+                    myFile << this->getPointsUnique()->at(id).at(j);
+                    myFile << " ";
+                }
+                if(dim_ == 2){
+                    myFile << 0.0;
+                    myFile << " ";
+                }
+                myFile << this->bcFlagUni_->at(id);
+                myFile << endl;
+            }
+            else{
+                LO id = mapNodesImport->getLocalElement(i);
+                for(int j= 0; j < this->dim_; j++)
+                {
+                    myFile << missingNodes[id][j];
+                    myFile << " ";
+                }
+                if(dim_ == 2){
+                    myFile << 0.0;
+                    myFile << " ";
+                }
+                myFile << missingNodes[id][this->dim_]; 
+                myFile << endl;
+            }
+
+
+
+        }
+        myFile << endl;
+        std::cout << "... done" << '\n';
+
+    }
+
+    // ################ Edges #################
+    if(exportEdges){
+        std::cout << "Write Edges ..." << '\n';
+        int dofsEdges=2;
+        if(this->FEType_ == "P2")
+            dofsEdges=3;
+        // Assumption in 2D no edge is subelement of two elements, as they are only subelement if they are part of the surface
+        if(this->dim_ == 2)
+        {
+            vec2D_GO_Type edgesSubelements(0,vec_GO_Type(dofsEdges+1)); // nodes + 
+            ElementsPtr_Type elements = this->getElementsC();
+            for(int T=0; T< elements->numberElements() ; T++){
+                FiniteElement fe = elements->getElement( T );
+                ElementsPtr_Type subEl = fe.getSubElements(); // might be null
+                for (int surface=0; surface<fe.numSubElements(); surface++) {
+                    FiniteElement feSub = subEl->getElement( surface  );
+                    vec_GO_Type edgeTmp;
+                    edgeTmp = {feSub.getVectorNodeList().at(0),feSub.getVectorNodeList().at(1),feSub.getFlag()};
+                    if(this->FEType_=="P2")
+                        edgeTmp = {feSub.getVectorNodeList().at(0),feSub.getVectorNodeList().at(1),feSub.getVectorNodeList().at(2),feSub.getFlag()};
+
+                    edgesSubelements.push_back(edgeTmp);
+                }
+            }
+            // Local number of subelement edges:
+            int numSubEl = edgesSubelements.size();
+           
+		    int maxRank = std::get<1>(this->rankRange_);
+            vec_GO_Type globalProcs(0);
+            for (int i=0; i<= maxRank; i++)
+                globalProcs.push_back(i);
+
+            Teuchos::ArrayView<GO> globalProcArray = Teuchos::arrayViewFromVector( globalProcs);
+
+            vec_GO_Type localProc(0);
+            localProc.push_back(this->comm_->getRank());
+            Teuchos::ArrayView<GO> localProcArray = Teuchos::arrayViewFromVector( localProc);
+
+            MapPtr_Type mapGlobalProc =
+                Teuchos::rcp( new Map_Type( this->getEdgeMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalProcArray, 0, this->comm_) );
+
+            MapPtr_Type mapProc =
+                Teuchos::rcp( new Map_Type( this->getEdgeMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), localProcArray, 0, this->comm_) );
+            
+            MultiVectorLOPtr_Type exportLocalEntry = Teuchos::rcp( new MultiVectorLO_Type( mapProc, 1 ) );
+            exportLocalEntry->putScalar( (LO) numSubEl );
+
+            // map equal to the original edgeMap with zero entries
+            MultiVectorLOPtr_Type numEdgesProc= Teuchos::rcp( new MultiVectorLO_Type( mapGlobalProc, 1 ) );
+            numEdgesProc->putScalar( (LO) 0 ); 
+            numEdgesProc->importFromVector( exportLocalEntry, false, "Insert");
+
+            // number of new elements per Processor
+            Teuchos::ArrayRCP< const LO > edgesRanks = numEdgesProc->getData(0);
+		    vec_GO_Type vecGlobalIDsElements(0);
+
+            GO procOffsetElements=0;
+            int myRank = this->comm_->getRank();
+            for(int i=0; i< myRank; i++)
+                procOffsetElements = procOffsetElements + edgesRanks[i];
+
+            for (int i=0; i<numSubEl; i++){
+                vecGlobalIDsElements.push_back( i +  procOffsetElements);
+            }
+
+            Teuchos::RCP<std::vector<GO> > edgesGlobMapping = Teuchos::rcp( new vector<GO>( vecGlobalIDsElements ) );
+            Teuchos::ArrayView<GO> edgesGlobMappingArray = Teuchos::arrayViewFromVector( *edgesGlobMapping);
+            MapPtr_Type mapEdgesExport =
+                Teuchos::rcp( new Map_Type( this->mapUnique_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), edgesGlobMappingArray, 0, this->getComm()) );
+
+            mapEdgesExport->print();
+
+            vec_GO_Type vecGlobalIDsEdgesImport(0);
+            int maxIndex = mapEdgesExport->getMaxAllGlobalIndex();
+            if(this->comm_->getRank() == 0){
+                for(int i=numSubEl; i<maxIndex+1 ; i++)
+                    vecGlobalIDsEdgesImport.push_back(i);
+            }
+            Teuchos::RCP<std::vector<GO> > edgesGlobMappingImport = Teuchos::rcp( new vector<GO>( vecGlobalIDsEdgesImport ) );
+            Teuchos::ArrayView<GO> edgesGlobMappingImportArray = Teuchos::arrayViewFromVector( *edgesGlobMappingImport);
+            MapPtr_Type mapEdgesImport =
+                Teuchos::rcp( new Map_Type( this->mapUnique_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), edgesGlobMappingImportArray, 0, this->getComm()) );
+
+            int numberEdges = maxIndex+1;
+
+            MultiVectorPtr_Type edgesImp = Teuchos::rcp( new MultiVector_Type( mapEdgesImport, 1 ) );	
+            Teuchos::ArrayRCP< SC > entriesEdgesImp  = edgesImp->getDataNonConst(0);
+
+            MultiVectorPtr_Type edgesExport = Teuchos::rcp( new MultiVector_Type( mapEdgesExport , 1 ) );	
+            Teuchos::ArrayRCP< SC > entriesEdgesExport  = edgesExport->getDataNonConst(0);
+
+
+            vec2D_dbl_Type missingEdges(entriesEdgesImp.size(),vec_dbl_Type(dofsEdges+1));
+
+            for(int j= 0; j < dofsEdges+1; j++)
+            {
+                for(int i=0; i< entriesEdgesExport.size(); i++)
+                    entriesEdgesExport[i] =  edgesSubelements[i][j];
+                
+
+                edgesImp->importFromVector(edgesExport, false, "Insert");
+                for(int i=0; i< entriesEdgesImp.size(); i++)
+                    missingEdges[i][j] =  entriesEdgesImp[i];
+
+            }
+            if(this->comm_->getRank() == 0){
+
+                myFile << "Edges";
+                myFile << endl;
+                myFile << numberEdges;
+                myFile << endl;
+                for(int i = 0; i < mapEdgesExport->getGlobalNumElements(); i++)
+                {
+                    if(mapEdgesExport->getLocalElement(i) != -1){
+                        LO id = this->edgeMap_->getLocalElement(i);
+
+                        for(int j= 0; j < dofsEdges; j++)
+                        {
+                            myFile << mapRep->getGlobalElement(edgesSubelements[i][j])+1;
+                            myFile << " ";
+                        }
+                        
+
+                        myFile << edgesSubelements[i][dofsEdges];
+                        myFile << endl;
+                        
+                        
+                    }
+                    else{
+                        LO id = mapEdgesImport->getLocalElement(i);
+                        for(int j= 0; j < dofsEdges; j++)
+                        {
+                            myFile << missingEdges[id][j]+1;
+                            myFile << " ";
+                        }
+                        myFile << missingEdges[id][dofsEdges]; 
+                        myFile << endl;
+                        
+                    }
+
+                }
+            myFile << endl;
+            }
+
+
+            std::cout << "... done" << '\n';
+
+        }
+        else if(this->dim_ == 3){
+            int numberEdges = this->getSurfaceEdgeElements()->numberElements();
+           
+
+            if(this->FEType_ != "P2") // In case of P2 this function was already called!s
+                this->assignEdgeFlags();
+                
+            vec_GO_Type globalImportIDsEdges(0);
+
+            MapConstPtr_Type edgeMapUnique =  this->edgeMap_->buildUniqueMap( this->rankRange_ );
+
+            vec2D_int_Type edgesUnique(edgeMapUnique->getNodeNumElements(),vec_int_Type(2,0));
+		    for (int i=0; i < edgeMapUnique->getNodeNumElements(); i++) {
+                GO gid = edgeMapUnique->getGlobalElement( i );
+                LO id = this->edgeMap_->getLocalElement( gid );
+                edgesUnique[i] = this->edgeElements_->getElement(id).getVectorNodeListNonConst();
+
+            }
+            if(this->comm_->getRank() == 0){
+                for(int i = 0; i < edgeMapUnique->getGlobalNumElements(); i++)
+                {
+                    if(edgeMapUnique->getLocalElement(i) == -1){
+                        globalImportIDsEdges.push_back(i);
+                    }
+                }
+            }
+            Teuchos::ArrayView<GO> globalEdgesArrayImp = Teuchos::arrayViewFromVector( globalImportIDsEdges);
+            // Map of global IDs with missing Elements
+            MapPtr_Type mapEdgesImport =
+                Teuchos::rcp( new Map_Type( this->mapUnique_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalEdgesArrayImp, 0, this->getComm()) );
+
+            MultiVectorPtr_Type edgesImp = Teuchos::rcp( new MultiVector_Type( mapEdgesImport, 1 ) );	
+            Teuchos::ArrayRCP< SC > entriesEdgesImp  = edgesImp->getDataNonConst(0);
+
+            MultiVectorPtr_Type edgesExport = Teuchos::rcp( new MultiVector_Type( edgeMapUnique, 1 ) );	
+            Teuchos::ArrayRCP< SC > entriesEdgesExport  = edgesExport->getDataNonConst(0);
+
+        
+
+            vec2D_dbl_Type missingEdges(entriesEdgesImp.size(),vec_dbl_Type(dofsEdges+1));
+
+            for(int j= 0; j < 2; j++)
+            {
+                for(int i=0; i< entriesEdgesExport.size(); i++)
+                    entriesEdgesExport[i] =  mapRep->getGlobalElement(edgesUnique[i][j])+1;
+
+                edgesImp->importFromVector(edgesExport, false, "Insert");
+                for(int i=0; i< entriesEdgesImp.size(); i++)
+                    missingEdges[i][j] =  entriesEdgesImp[i];
+
+            }
+            if(this->FEType_ == "P2"){
+                for(int i=0; i< entriesEdgesExport.size(); i++){
+                    GO gid = edgeMapUnique->getGlobalElement( i );
+                    LO id = this->edgeMap_->getLocalElement( gid );
+                    entriesEdgesExport[i] =  mapRep->getGlobalElement(this->edgeElements_->getMidpoint(id));
+                }
+
+                edgesImp->importFromVector(edgesExport, false, "Insert");
+                for(int i=0; i< entriesEdgesImp.size(); i++)
+                    missingEdges[i][2] =  entriesEdgesImp[i];
+
+            }
+            // Lastly import flags
+            for(int i=0; i< entriesEdgesExport.size(); i++){
+                GO gid = edgeMapUnique->getGlobalElement( i );
+                LO id = this->edgeMap_->getLocalElement( gid);
+                entriesEdgesExport[i] =  this->edgeElements_->getElement(id).getFlag();
+            }
+
+            edgesImp->importFromVector(edgesExport, false, "Insert");
+            for(int i=0; i< entriesEdgesImp.size(); i++)
+                missingEdges[i][dofsEdges] =  entriesEdgesImp[i];
+
+             // ########## Writing #######################
+            if(this->comm_->getRank() == 0){
+                myFile << "Edges";
+                myFile << endl;
+                myFile << numberEdges;
+                myFile << endl;
+
+                int counter =0;
+                for(int i = 0; i < edgeMapUnique->getGlobalNumElements(); i++)
+                {
+                    if(edgeMapUnique->getLocalElement(i) != -1){
+                        LO id = this->edgeMap_->getLocalElement(i);
+                        if(this->edgeElements_->getElement(id).getFlag() != volumeID_){
+
+                            for(int j= 0; j < 2; j++)
+                            {
+                                myFile << mapRep->getGlobalElement(this->edgeElements_->getElement(id).getVectorNodeList().at(j))+1;
+                                myFile << " ";
+                            }
+                            if(this->FEType_ == "P2")
+                                myFile << mapRep->getGlobalElement(this->edgeElements_->getMidpoint(id))+1 << " ";
+
+                            myFile << this->edgeElements_->getElement(id).getFlag();
+                            myFile << endl;
+                            counter ++;
+                        }
+                        
+                    }
+                    else{
+                        LO id = mapEdgesImport->getLocalElement(i);
+                        if(missingEdges[id][dofsEdges] != volumeID_){
+                            for(int j= 0; j < dofsEdges; j++)
+                            {
+                                myFile << missingEdges[id][j];
+                                myFile << " ";
+                            }
+                            myFile << missingEdges[id][dofsEdges]; 
+                            myFile << endl;
+                            counter ++;
+                        }
+                    }
+
+                }
+                cout << " Counter edges " << counter << endl;
+
+            }
+            myFile << endl;
+        }
+        std::cout << "... done" << '\n';
+
+    }
+    this->comm_->barrier();
+      // ################ Surfaces #################
+    if(exportSurface){
+        std::cout << "Write Surfaces ..." << '\n';
+        int dofsSurfaces=3;
+        if(this->FEType_ == "P2")
+            dofsSurfaces=6;
+        // Assumption in 2D no edge is subelement of two elements, as they are only subelement if they are part of the surface
+        if(this->dim_ == 3)
+        {
+            vec2D_GO_Type surfacesSubelements(0,vec_GO_Type(dofsSurfaces+1)); // nodes + 
+            ElementsPtr_Type elements = this->getElementsC();
+            for(int T=0; T< elements->numberElements() ; T++){
+                FiniteElement fe = elements->getElement( T );
+                for (int surface=0; surface<fe.numSubElements(); surface++) {
+                    ElementsPtr_Type subEl = fe.getSubElements(); // might be null
+                    if(subEl->getDimension() == this->dim_-1 ){
+                        FiniteElement feSub = subEl->getElement( surface  );
+                        vec_GO_Type surfaceTmp;
+                        surfaceTmp = {feSub.getVectorNodeList().at(0),feSub.getVectorNodeList().at(1),feSub.getVectorNodeList().at(2),feSub.getFlag()};
+                        if(this->FEType_=="P2")
+                            surfaceTmp = {feSub.getVectorNodeList().at(0),feSub.getVectorNodeList().at(1),feSub.getVectorNodeList().at(2),feSub.getVectorNodeList().at(3),feSub.getVectorNodeList().at(4),feSub.getVectorNodeList().at(5),feSub.getFlag()};
+
+                        surfacesSubelements.push_back(surfaceTmp);
+                    }
+                }
+            }
+            // Local number of subelement edges:
+            int numSubEl = surfacesSubelements.size();
+           
+		    int maxRank = std::get<1>(this->rankRange_);
+            vec_GO_Type globalProcs(0);
+            for (int i=0; i<= maxRank; i++)
+                globalProcs.push_back(i);
+
+            Teuchos::ArrayView<GO> globalProcArray = Teuchos::arrayViewFromVector( globalProcs);
+
+            vec_GO_Type localProc(0);
+            localProc.push_back(this->comm_->getRank());
+            Teuchos::ArrayView<GO> localProcArray = Teuchos::arrayViewFromVector( localProc);
+
+            MapPtr_Type mapGlobalProc =
+                Teuchos::rcp( new Map_Type( this->getEdgeMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalProcArray, 0, this->comm_) );
+
+            MapPtr_Type mapProc =
+                Teuchos::rcp( new Map_Type( this->getEdgeMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), localProcArray, 0, this->comm_) );
+            
+            MultiVectorLOPtr_Type exportLocalEntry = Teuchos::rcp( new MultiVectorLO_Type( mapProc, 1 ) );
+            exportLocalEntry->putScalar( (LO) numSubEl );
+            // map equal to the original edgeMap with zero entries
+            MultiVectorLOPtr_Type numSurfacesProc= Teuchos::rcp( new MultiVectorLO_Type( mapGlobalProc, 1 ) );
+            numSurfacesProc->putScalar( (LO) 0 ); 
+            numSurfacesProc->importFromVector( exportLocalEntry, false, "Insert");
+            // number of new elements per Processor
+            Teuchos::ArrayRCP< const LO > surfacesRanks = numSurfacesProc->getData(0);
+		    vec_GO_Type vecGlobalIDsElements(0);
+
+            GO procOffsetElements=0;
+            int myRank = this->comm_->getRank();
+            for(int i=0; i< myRank; i++)
+                procOffsetElements = procOffsetElements + surfacesRanks[i];
+
+            for (int i=0; i<numSubEl; i++){
+                vecGlobalIDsElements.push_back( i +  procOffsetElements);
+            }
+
+            Teuchos::RCP<std::vector<GO> > surfacesGlobMapping = Teuchos::rcp( new vector<GO>( vecGlobalIDsElements ) );
+            Teuchos::ArrayView<GO> surfacesGlobMappingArray = Teuchos::arrayViewFromVector( *surfacesGlobMapping);
+            MapPtr_Type mapSurfacesExport =
+                Teuchos::rcp( new Map_Type( this->mapUnique_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), surfacesGlobMappingArray, 0, this->getComm()) );
+
+
+            vec_GO_Type vecGlobalIDsSurfacesImport(0);
+            int maxIndex = mapSurfacesExport->getMaxAllGlobalIndex();
+            if(this->comm_->getRank() == 0){
+                for(int i=numSubEl; i<maxIndex+1 ; i++)
+                    vecGlobalIDsSurfacesImport.push_back(i);
+            }
+            Teuchos::RCP<std::vector<GO> > surfacesGlobMappingImport = Teuchos::rcp( new vector<GO>( vecGlobalIDsSurfacesImport ) );
+            Teuchos::ArrayView<GO> surfacesGlobMappingImportArray = Teuchos::arrayViewFromVector( *surfacesGlobMappingImport);
+            MapPtr_Type mapSurfacesImport =
+                Teuchos::rcp( new Map_Type( this->mapUnique_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), surfacesGlobMappingImportArray, 0, this->getComm()) );
+
+            int numberSurfaces = maxIndex+1;
+
+            MultiVectorPtr_Type surfacesImp = Teuchos::rcp( new MultiVector_Type( mapSurfacesImport, 1 ) );	
+            Teuchos::ArrayRCP< SC > entriesSurfacesImp  = surfacesImp->getDataNonConst(0);
+
+            MultiVectorPtr_Type surfacesExport = Teuchos::rcp( new MultiVector_Type( mapSurfacesExport , 1 ) );	
+            Teuchos::ArrayRCP< SC > entriesSurfacesExport  = surfacesExport->getDataNonConst(0);
+
+
+            vec2D_dbl_Type missingSurfaces(entriesSurfacesImp.size(),vec_dbl_Type(dofsSurfaces+1));
+
+            for(int j= 0; j < dofsSurfaces+1; j++)
+            {
+                for(int i=0; i< entriesSurfacesExport.size(); i++)
+                    entriesSurfacesExport[i] =  surfacesSubelements[i][j];
+                
+
+                surfacesImp->importFromVector(surfacesExport, false, "Insert");
+                for(int i=0; i< entriesSurfacesImp.size(); i++)
+                    missingSurfaces[i][j] =  entriesSurfacesImp[i];
+
+            }
+            if(this->comm_->getRank() == 0){
+
+                myFile << "Triangles";
+                myFile << endl;
+                myFile << numberSurfaces;
+                myFile << endl;
+                for(int i = 0; i < mapSurfacesExport->getGlobalNumElements(); i++)
+                {
+                    if(mapSurfacesExport->getLocalElement(i) != -1){
+
+                        for(int j= 0; j < dofsSurfaces; j++)
+                        {
+                            myFile << mapRep->getGlobalElement(surfacesSubelements[i][j])+1;
+                            myFile << " ";
+                        }
+                        
+
+                        myFile << surfacesSubelements[i][dofsSurfaces];
+                        myFile << endl;
+                        
+                        
+                    }
+                    else{
+                        LO id = mapSurfacesImport->getLocalElement(i);
+                        for(int j= 0; j < dofsSurfaces; j++)
+                        {
+                            myFile << missingSurfaces[id][j]+1;
+                            myFile << " ";
+                        }
+                        myFile << missingSurfaces[id][dofsSurfaces]; 
+                        myFile << endl;
+                        
+                    }
+
+                }
+                myFile << endl;
+            }
+
+         
+        }
+        std::cout << "... done" << '\n';
+
+    }
+
+
+    // ################ Elements #################
+    std::cout << "Write Elements ..." << '\n';
+
+    // ###########################################
+    // 1. Import missing Elements
+    vec_GO_Type globalImportIDs(0);
+    for(int i = 0; i < this->elementMap_->getGlobalNumElements(); i++)
+    {
+        if(this->elementMap_->getLocalElement(i) == -1){
+            globalImportIDs.push_back(i);
+        }
+    }
+	Teuchos::ArrayView<GO> globalElementArrayImp = Teuchos::arrayViewFromVector( globalImportIDs);
+    // Map of global IDs with missing Elements
+	MapPtr_Type mapElementImport =
+		Teuchos::rcp( new Map_Type( this->elementMap_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalElementArrayImp, 0, this->getComm()) );
+
+   
+    MultiVectorPtr_Type idsElement = Teuchos::rcp( new MultiVector_Type( mapElementImport, 1 ) );	
+	Teuchos::ArrayRCP< SC > entriesElement  = idsElement->getDataNonConst(0);
+
+    MultiVectorPtr_Type idsElementExport = Teuchos::rcp( new MultiVector_Type( this->elementMap_, 1 ) );	
+	Teuchos::ArrayRCP< SC > entriesElementExport  = idsElementExport->getDataNonConst(0);
+
+    int dofsElement = this->getElements()->at(0).size();
+    vec2D_GO_Type missingElements(entriesElement.size(),vec_GO_Type(dofsElement));
+
+    for(int j= 0; j < this->getElements()->at(0).size(); j++)
+    {
+        for(int i=0; i< entriesElementExport.size(); i++)
+            entriesElementExport[i] =  mapRep->getGlobalElement(this->getElements()->at(i).at(j))+1;
+
+        idsElement->importFromVector(idsElementExport, false, "Insert");
+        for(int i=0; i< entriesElement.size(); i++)
+            missingElements[i][j] =  entriesElement[i];
+
+
+    }
+    for(int i=0; i< entriesElementExport.size(); i++)
+        entriesElementExport[i] =  this->getElementsC()->getElement(i).getFlag();
+
+    idsElement->importFromVector(idsElementExport, false, "Insert");
+    for(int i=0; i< entriesElement.size(); i++)
+        missingElements[i][dofsElement] =  entriesElement[i];
+    // --------------------------------------
+
+
+    
+
+    if(this->comm_->getRank() == 0){
+
+        if(this->dim_ == 2)
+            myFile << "Triangles";
+        else if(this->dim_ ==3)
+            myFile << "Tetrahedra";
+
+        myFile << endl;
+
+        int numberElements = this->elementMap_->getGlobalNumElements();
+
+        myFile << numberElements;
+        myFile << endl;
+
+        for(int i = 0; i < this->elementMap_->getGlobalNumElements(); i++)
+        {
+            if(this->elementMap_->getLocalElement(i) != -1){
+                LO id = this->elementMap_->getLocalElement(i);
+
+                for(int j= 0; j < this->getElements()->at(id).size(); j++)
+                {
+                    myFile << mapRep->getGlobalElement(this->getElements()->at(id).at(j))+1;
+                    myFile << " ";
+                }
+                myFile << this->getElementsC()->getElement(id).getFlag(); 
+                myFile << endl;
+                
+            }
+            else{
+                LO id = mapElementImport->getLocalElement(i);
+                for(int j= 0; j < dofsElement; j++)
+                {
+                    myFile << missingElements[id][j];
+                    myFile << " ";
+                }
+                myFile << missingElements[id][dofsElement]; 
+                myFile << endl;
+            }
+
+        }
+        std::cout << "... done" << '\n';
+
+    }
+    myFile.close();
+
+
+}
 
 }
 #endif

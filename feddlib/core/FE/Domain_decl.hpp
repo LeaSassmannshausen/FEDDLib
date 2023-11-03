@@ -520,6 +520,14 @@ public:
          
     */
     MultiVectorPtr_Type getNodeListMV() const;
+
+    /*!
+         \brief Exporting Mesh
+         
+    */
+   void exportMesh(bool exportEdges = false, bool exportSurfaces=false);
+
+
 /* ----------------------------------------------------------------------------------------*/
 
 private:

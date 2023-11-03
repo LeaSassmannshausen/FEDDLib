@@ -234,6 +234,15 @@ public:
 	*/
 	void buildEdgeMap();
 
+	/*! 
+		\brief Exporting Mesh as .mesh file. For most detailed export we also write surfaces and edges. This can be useful/necessary
+		@param[in] meshName for export
+		@param[in] exportEdges wether to export edges or not
+		@param[in] exportSurfaces whether to export surfaces or not
+
+	*/
+	void exportMesh(MapConstPtr_Type mapUnique, MapConstPtr_Type mapRep, bool exportEdges=false, bool exportSurface=false ,string meshName="export.mesh");
+
     /* ###################################################################### */
     
     MeshInterfacePtr_Type meshInterface_;

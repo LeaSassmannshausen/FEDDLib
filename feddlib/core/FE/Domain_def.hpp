@@ -398,6 +398,14 @@ void Domain<SC,LO,GO,NO>::setMesh(MeshUnstrPtr_Type meshUnstr){
 }
 
 template <class SC, class LO, class GO, class NO>
+void Domain<SC,LO,GO,NO>::exportMesh(bool exportEdges, bool exportSurfaces){ 
+
+    MeshUnstrPtr_Type meshUnstructured = Teuchos::rcp_dynamic_cast<MeshUnstr_Type>( mesh_ );
+
+    meshUnstructured->exportMesh(this->getMapUnique() , this->getMapRepeated(), exportEdges, exportSurfaces);
+}
+
+template <class SC, class LO, class GO, class NO>
 UN Domain<SC,LO,GO,NO>::getDimension() const{
 
     return dim_;
