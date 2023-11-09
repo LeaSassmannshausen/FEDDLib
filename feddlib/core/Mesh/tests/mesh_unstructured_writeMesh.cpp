@@ -24,7 +24,6 @@
 using namespace std;
 using namespace Teuchos;
 
-typedef unsigned UN;
 typedef double SC;
 typedef int LO;
 typedef default_go GO;
@@ -49,15 +48,21 @@ int main(int argc, char *argv[]) {
     Teuchos::CommandLineProcessor myCLP;
     string ulib_str = "Tpetra"; //this does nothing atm
     myCLP.setOption("ulib",&ulib_str,"Underlying lib");
-    string filename = "cube_h_1.mesh";
+    string filename = "square.mesh";
     myCLP.setOption("file",&filename,"Mesh filename");
-    int dim = 3;
+    string exportfilename = "export.mesh";
+    myCLP.setOption("fileExport",&exportfilename,"Export Mesh filename");
+    int dim = 2;
     myCLP.setOption("dim",&dim,"Dimension");
     string delimiter = " ";
     myCLP.setOption("delimiter",&delimiter,"Delimiter in mesh-file");
-    string FEType="P2";
+    string FEType="P1";
     myCLP.setOption("FEType",&FEType,"FEType");
-    
+   /* bool exportEdges= true;
+    myCLP.setOption("exportEdges",&exportEdges,"Exporting Edges");
+    bool exportSurfaces= true;
+    myCLP.setOption("exportSurfaces",&exportSurfaces,"Exporting Surfaces");
+    */
     myCLP.recogniseAllOptions(true);
     myCLP.throwExceptions(false);
     Teuchos::CommandLineProcessor::EParseCommandLineReturn parseReturn = myCLP.parse(argc,argv);
@@ -71,7 +76,7 @@ int main(int argc, char *argv[]) {
     int numProcsCoarseSolve = 0;
     bool boolExportMesh = true;
     bool boolExportSubdomains = false;
-    int volumeID = 10;
+    int volumeID = 16;
     if (filename=="some_tetrahedron.mesh")
         volumeID = 12;
 
@@ -89,7 +94,7 @@ int main(int argc, char *argv[]) {
 
     MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
     
-    partitionerP1.readAndPartition();
+    partitionerP1.readAndPartition(volumeID);
 
     if (FEType == "P2") {
         domainP2->buildP2ofP1Domain( domainP1 );
@@ -98,40 +103,84 @@ int main(int argc, char *argv[]) {
     else
         domain = domainP1;
 
-    
-    Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactory( new BCBuilder<SC,LO,GO,NO>( ) );
-
-    domain->exportMesh(true,true);
-
-    /*if (boolExportMesh) {
-        Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
-        std::string filename = "unstructuredMesh";
+    domain->exportMesh(true,true,exportfilename);
+    comm->barrier();
+    if(FEType == "P1"){
+        ParameterListPtr_Type pListPartitionerTest = Teuchos::rcp( new ParameterList("Mesh Partitioner") );
+        pListPartitionerTest->set( "Mesh 1 Name", exportfilename );
         
-        exPara->setup(filename, domain->getMesh(), FEType);
+        DomainPtr_Type domainP1Test;
+        DomainPtr_Type domainTest;
 
-        MultiVectorConstPtr_Type valuesConst = valuesBlock->getBlock( 0 );
-        exPara->addVariable( valuesConst, "values", "Scalar", 1, domain->getMapUnique() );
+        domainP1Test.reset( new Domain_Type( comm, dim ) );
+        MeshPartitioner_Type::DomainPtrArray_Type domainP1ArrayTest(1);
+        domainP1ArrayTest[0] = domainP1Test;
 
-        exPara->save(0.0);
-        exPara->closeExporter();
+        MeshPartitioner<SC,LO,GO,NO> partitionerP1Test ( domainP1ArrayTest, pListPartitionerTest, "P1", dim );
+        comm->barrier();
 
-    }
+        partitionerP1Test.readAndPartition(volumeID);
 
-    if (boolExportSubdomains) {
+        domainTest = domainP1Test;
 
-        MultiVectorPtr_Type vecDecomposition = rcp(new MultiVector_Type( domainP1->getElementMap() ) );
+        if(comm->getRank() == 0){
+            cout << " ------------------------------------------------------------------- " << endl;
+            cout << " Comparing nodes between originally read mesh and exported mesh ..." << endl;
+        }
+        vec2D_dbl_ptr_Type points1 = domain->getPointsUnique();
+        vec_int_ptr_Type bc1 = domain->getBCFlagUnique();
+
+        vec2D_dbl_ptr_Type points2 = domainTest->getPointsUnique();
+        vec_int_ptr_Type bc2 = domainTest->getBCFlagUnique();
+
+        if(points1->size() != points2->size())
+            cout << " ERROR !! the meshes seemed to have been partitioned differently " << endl;
+
+        double error=0.;
+        for(int i=0; i< points1->size() ; i++){
+            if(bc1->at(i) != bc2->at(i))
+                TEUCHOS_TEST_FOR_EXCEPTION( true, std::runtime_error ,"Different Flag for two points..");
+
+            for (int j=0; j< dim; j++){
+                double errorTmp = abs(points1->at(i).at(j) - points2->at(i).at(j));
+                if(errorTmp > error){
+                    error = errorTmp/abs(points1->at(i).at(j));
+                }
+            }
+        }
+        reduceAll<int, double> (*comm, REDUCE_MAX, error, outArg (error));
+           
+        if(comm->getRank() == 0){
+            cout << " Maximal relative difference between nodes: " << error << endl;
+            cout << " ------------------------------------------------------------------- " << endl;
+            TEUCHOS_TEST_FOR_EXCEPTION( error > 1.e-5, std::runtime_error ,"Error between nodes to great. Either read or write went wrong.");
+
+        }
+        MultiVectorPtr_Type vecDecomposition =  rcp(new MultiVector_Type( domain->getMapUnique() ) );
         MultiVectorConstPtr_Type vecDecompositionConst = vecDecomposition;
         vecDecomposition->putScalar(comm->getRank()+1.);
 
+        MultiVectorPtr_Type vecDecompositionTest = rcp(new MultiVector_Type( domainTest->getMapUnique() ) );
+        MultiVectorConstPtr_Type vecDecompositionConstTest = vecDecompositionTest;
+        vecDecompositionTest->putScalar(comm->getRank()+1.);
+
+
         Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
 
-        exPara->setup( "subdomains", domainP1->getMesh(), "P0" );
+        exPara->setup( "Mesh_Export_Test_Compare", domainTest->getMesh(), "P1" );
 
-        exPara->addVariable( vecDecompositionConst, "subdomain", "Scalar", 1, domainP1->getElementMap());
+        exPara->addVariable( vecDecompositionConst, "orignal", "Scalar", 1, domain->getMapUnique());
+        exPara->addVariable( vecDecompositionConstTest, "exportMesh", "Scalar", 1, domainTest->getMapUnique());
 
         exPara->save(0.0);
         exPara->closeExporter();
-    }*/
+    }
+    
+   
+
+    
+
+    
 
 
     return(EXIT_SUCCESS);

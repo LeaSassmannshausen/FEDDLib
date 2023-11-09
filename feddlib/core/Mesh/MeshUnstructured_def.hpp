@@ -1575,9 +1575,16 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
 
     
     ofstream myFile;
-    FILE * pFile;
-    myFile.open (meshName);
+    if(this->comm_->getRank() ==0)
+        myFile.open (meshName);
 
+    bool verbose = (this->comm_->getRank() == 0);
+    if(verbose){
+        cout << " --------------------------------------" << endl;
+        cout << " ------------ Exporting Mesh ----------" << endl;
+        cout << " --------------------------------------" << endl;
+
+    }
     // ################ Vertices #################
     int numberNodes = mapUnique->getGlobalNumElements();
 
@@ -1627,10 +1634,10 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
     // #############################################
 
     if(this->comm_->getRank() == 0){
-        std::cout << "Write Nodes ..." << '\n';
+        if(verbose)
+            std::cout << " ----- Write Nodes .....";
 
-        myFile << "MeshVersionFormatted 1" << endl;
-        myFile << endl;
+        myFile << "MeshVersionFormatted 2" << endl;
         myFile << "Dimension" << " " << this->dim_ << endl;
         myFile << endl;
         myFile << "Vertices";
@@ -1673,13 +1680,15 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
 
         }
         myFile << endl;
-        std::cout << "... done" << '\n';
+        if(verbose)
+            std::cout << ".... done ----- " << '\n';
 
     }
 
     // ################ Edges #################
     if(exportEdges){
-        std::cout << "Write Edges ..." << '\n';
+        if(verbose)
+            std::cout << " ----- Write Edges .....";
         int dofsEdges=2;
         if(this->FEType_ == "P2")
             dofsEdges=3;
@@ -1700,10 +1709,11 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
 
                     edgesSubelements.push_back(edgeTmp);
                 }
+            
             }
             // Local number of subelement edges:
             int numSubEl = edgesSubelements.size();
-           
+            
 		    int maxRank = std::get<1>(this->rankRange_);
             vec_GO_Type globalProcs(0);
             for (int i=0; i<= maxRank; i++)
@@ -1747,8 +1757,6 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
             MapPtr_Type mapEdgesExport =
                 Teuchos::rcp( new Map_Type( this->mapUnique_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), edgesGlobMappingArray, 0, this->getComm()) );
 
-            mapEdgesExport->print();
-
             vec_GO_Type vecGlobalIDsEdgesImport(0);
             int maxIndex = mapEdgesExport->getMaxAllGlobalIndex();
             if(this->comm_->getRank() == 0){
@@ -1773,8 +1781,12 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
 
             for(int j= 0; j < dofsEdges+1; j++)
             {
-                for(int i=0; i< entriesEdgesExport.size(); i++)
-                    entriesEdgesExport[i] =  edgesSubelements[i][j];
+                for(int i=0; i< entriesEdgesExport.size(); i++){
+                    if(j<dofsEdges)
+                        entriesEdgesExport[i] =  mapRep->getGlobalElement(edgesSubelements[i][j]);
+                    else
+                        entriesEdgesExport[i] =  edgesSubelements[i][j];
+                }
                 
 
                 edgesImp->importFromVector(edgesExport, false, "Insert");
@@ -1799,8 +1811,7 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
                             myFile << " ";
                         }
                         
-
-                        myFile << edgesSubelements[i][dofsEdges];
+                        myFile << edgesSubelements[i][dofsEdges]; // Flag
                         myFile << endl;
                         
                         
@@ -1812,22 +1823,20 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
                             myFile << missingEdges[id][j]+1;
                             myFile << " ";
                         }
-                        myFile << missingEdges[id][dofsEdges]; 
+                        myFile << missingEdges[id][dofsEdges]; // Flag
                         myFile << endl;
                         
                     }
 
                 }
-            myFile << endl;
+                myFile << endl;
             }
 
-
-            std::cout << "... done" << '\n';
+            if(verbose)
+                std::cout << ".... done ---- " << '\n';
 
         }
-        else if(this->dim_ == 3){
-            int numberEdges = this->getSurfaceEdgeElements()->numberElements();
-           
+        else if(this->dim_ == 3){         
 
             if(this->FEType_ != "P2") // In case of P2 this function was already called!s
                 this->assignEdgeFlags();
@@ -1851,6 +1860,8 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
                     }
                 }
             }
+            int numberEdges = edgeMapUnique->getGlobalNumElements();
+
             Teuchos::ArrayView<GO> globalEdgesArrayImp = Teuchos::arrayViewFromVector( globalImportIDsEdges);
             // Map of global IDs with missing Elements
             MapPtr_Type mapEdgesImport =
@@ -1861,8 +1872,6 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
 
             MultiVectorPtr_Type edgesExport = Teuchos::rcp( new MultiVector_Type( edgeMapUnique, 1 ) );	
             Teuchos::ArrayRCP< SC > entriesEdgesExport  = edgesExport->getDataNonConst(0);
-
-        
 
             vec2D_dbl_Type missingEdges(entriesEdgesImp.size(),vec_dbl_Type(dofsEdges+1));
 
@@ -1880,7 +1889,7 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
                 for(int i=0; i< entriesEdgesExport.size(); i++){
                     GO gid = edgeMapUnique->getGlobalElement( i );
                     LO id = this->edgeMap_->getLocalElement( gid );
-                    entriesEdgesExport[i] =  mapRep->getGlobalElement(this->edgeElements_->getMidpoint(id));
+                    entriesEdgesExport[i] =  mapRep->getGlobalElement(this->edgeElements_->getMidpoint(id))+1;
                 }
 
                 edgesImp->importFromVector(edgesExport, false, "Insert");
@@ -1911,49 +1920,47 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
                 {
                     if(edgeMapUnique->getLocalElement(i) != -1){
                         LO id = this->edgeMap_->getLocalElement(i);
-                        if(this->edgeElements_->getElement(id).getFlag() != volumeID_){
 
-                            for(int j= 0; j < 2; j++)
-                            {
-                                myFile << mapRep->getGlobalElement(this->edgeElements_->getElement(id).getVectorNodeList().at(j))+1;
-                                myFile << " ";
-                            }
-                            if(this->FEType_ == "P2")
-                                myFile << mapRep->getGlobalElement(this->edgeElements_->getMidpoint(id))+1 << " ";
-
-                            myFile << this->edgeElements_->getElement(id).getFlag();
-                            myFile << endl;
-                            counter ++;
+                        for(int j= 0; j < 2; j++)
+                        {
+                            myFile << mapRep->getGlobalElement(this->edgeElements_->getElement(id).getVectorNodeList().at(j))+1;
+                            myFile << " ";
                         }
+                        if(this->FEType_ == "P2")
+                            myFile << mapRep->getGlobalElement(this->edgeElements_->getMidpoint(id))+1 << " ";
+
+                        myFile << this->edgeElements_->getElement(id).getFlag();
+                        myFile << endl;
+                        
                         
                     }
                     else{
                         LO id = mapEdgesImport->getLocalElement(i);
-                        if(missingEdges[id][dofsEdges] != volumeID_){
-                            for(int j= 0; j < dofsEdges; j++)
-                            {
-                                myFile << missingEdges[id][j];
-                                myFile << " ";
-                            }
-                            myFile << missingEdges[id][dofsEdges]; 
-                            myFile << endl;
-                            counter ++;
+                        for(int j= 0; j < dofsEdges; j++)
+                        {
+                            myFile << missingEdges[id][j];
+                            myFile << " ";
                         }
+                        myFile << missingEdges[id][dofsEdges]; 
+                        myFile << endl;
+                    
                     }
 
                 }
-                cout << " Counter edges " << counter << endl;
 
             }
             myFile << endl;
+            if(verbose)
+                std::cout << ".... done ----- " << '\n';    
         }
-        std::cout << "... done" << '\n';
+        
 
     }
     this->comm_->barrier();
       // ################ Surfaces #################
-    if(exportSurface){
-        std::cout << "Write Surfaces ..." << '\n';
+    if(exportSurface && this->dim_ >2){
+        if(verbose)
+            std::cout << " ----- Write Surfaces ...";
         int dofsSurfaces=3;
         if(this->FEType_ == "P2")
             dofsSurfaces=6;
@@ -2046,10 +2053,13 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
 
             for(int j= 0; j < dofsSurfaces+1; j++)
             {
-                for(int i=0; i< entriesSurfacesExport.size(); i++)
-                    entriesSurfacesExport[i] =  surfacesSubelements[i][j];
-                
-
+                for(int i=0; i< entriesSurfacesExport.size(); i++){
+                    if(j<dofsSurfaces)
+                        entriesSurfacesExport[i] =  mapRep->getGlobalElement(surfacesSubelements[i][j]);
+                    else{
+                        entriesSurfacesExport[i] =  surfacesSubelements[i][j]; // FLAG!
+                    }
+                }
                 surfacesImp->importFromVector(surfacesExport, false, "Insert");
                 for(int i=0; i< entriesSurfacesImp.size(); i++)
                     missingSurfaces[i][j] =  entriesSurfacesImp[i];
@@ -2095,13 +2105,17 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
 
          
         }
-        std::cout << "... done" << '\n';
+        if(verbose)
+            std::cout << "... done -----" << '\n';
 
     }
 
 
     // ################ Elements #################
-    std::cout << "Write Elements ..." << '\n';
+    this->comm_->barrier();
+
+    if(verbose)
+        std::cout << " ----- Write Elements ...";
 
     // ###########################################
     // 1. Import missing Elements
@@ -2116,7 +2130,6 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
     // Map of global IDs with missing Elements
 	MapPtr_Type mapElementImport =
 		Teuchos::rcp( new Map_Type( this->elementMap_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalElementArrayImp, 0, this->getComm()) );
-
    
     MultiVectorPtr_Type idsElement = Teuchos::rcp( new MultiVector_Type( mapElementImport, 1 ) );	
 	Teuchos::ArrayRCP< SC > entriesElement  = idsElement->getDataNonConst(0);
@@ -2125,7 +2138,7 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
 	Teuchos::ArrayRCP< SC > entriesElementExport  = idsElementExport->getDataNonConst(0);
 
     int dofsElement = this->getElements()->at(0).size();
-    vec2D_GO_Type missingElements(entriesElement.size(),vec_GO_Type(dofsElement));
+    vec2D_GO_Type missingElements(entriesElement.size(),vec_GO_Type(dofsElement+1));
 
     for(int j= 0; j < this->getElements()->at(0).size(); j++)
     {
@@ -2135,8 +2148,6 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
         idsElement->importFromVector(idsElementExport, false, "Insert");
         for(int i=0; i< entriesElement.size(); i++)
             missingElements[i][j] =  entriesElement[i];
-
-
     }
     for(int i=0; i< entriesElementExport.size(); i++)
         entriesElementExport[i] =  this->getElementsC()->getElement(i).getFlag();
@@ -2145,10 +2156,6 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
     for(int i=0; i< entriesElement.size(); i++)
         missingElements[i][dofsElement] =  entriesElement[i];
     // --------------------------------------
-
-
-    
-
     if(this->comm_->getRank() == 0){
 
         if(this->dim_ == 2)
@@ -2189,10 +2196,23 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
             }
 
         }
-        std::cout << "... done" << '\n';
+        if(verbose)
+            std::cout << "... done ----- " << '\n';
 
     }
-    myFile.close();
+    if(this->comm_->getRank() ==0)
+       myFile.close();
+    if(verbose){
+        cout << " --------------------------------------" << endl;
+        cout << " ------- Finished exporting Mesh ------" << endl;
+        cout << " ------- File Name: " << meshName << " -------" << endl;
+        if(this->dim_ == 3)
+             cout << " - Info: In 3D all edges are exported -" << endl;
+
+        cout << " --------------------------------------" << endl;
+
+    }
+    this->comm_->barrier();
 
 
 }

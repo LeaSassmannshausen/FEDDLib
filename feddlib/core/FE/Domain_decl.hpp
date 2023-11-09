@@ -525,7 +525,7 @@ public:
          \brief Exporting Mesh
          
     */
-   void exportMesh(bool exportEdges = false, bool exportSurfaces=false);
+   void exportMesh(bool exportEdges = false, bool exportSurfaces=false, string exportMesh="export.mesh");
 
 
 /* ----------------------------------------------------------------------------------------*/
