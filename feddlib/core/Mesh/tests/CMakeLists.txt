@@ -159,6 +159,27 @@ DEST_FILES cube_tetr6_struct_h=0_2.mesh
 EXEDEPS mesh_surfaceOrientation
 )
 
+## mesh_unstructured_meshOrientation
+TRIBITS_ADD_EXECUTABLE(
+mesh_unstructured_meshOrientation
+SOURCES mesh_unstructured_meshOrientation.cpp
+)
+
+TRIBITS_ADD_TEST(
+mesh_unstructured_meshOrientation
+NAME mesh_unstructured_meshOrientation
+ARGS
+NUM_MPI_PROCS 4
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_mesh_unstructured_meshOrientation
+SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
+SOURCE_FILES fluidBenchmark2.mesh
+DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+DEST_FILES fluidBenchmark2.mesh
+EXEDEPS mesh_unstructured_meshOrientation
+)
+
 ### mesh_unstructured
 TRIBITS_ADD_EXECUTABLE(
 mesh_unstructured

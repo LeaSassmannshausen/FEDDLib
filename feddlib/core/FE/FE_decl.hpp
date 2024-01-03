@@ -567,6 +567,8 @@ class FE {
                                     MultiVectorPtr_Type eModVec,
                                     bool callFillComplete = true,
                                     int FELocExternal=-1);
+                                    
+    void checkMeshOrientation(int dim,string FEType);
 
 
 /* ----------------------------------------------------------------------------------------*/
@@ -581,6 +583,9 @@ private:
 
     void addFeBlockMv(BlockMultiVectorPtr_Type &res, vec_dbl_ptr_Type rhsVec, FiniteElement elementBlock, int dofs);
 		
+    void computeSurfaceNormal(int dim,vec2D_dbl_ptr_Type pointsRep,vec_int_Type nodeList,vec_dbl_Type &v_E, double &norm_v_E);
+
+
 	AssembleFEPtr_vec_Type assemblyFEElements_;
 
 	vec2D_dbl_Type getCoordinates(vec_LO_Type localIDs, vec2D_dbl_ptr_Type points);
