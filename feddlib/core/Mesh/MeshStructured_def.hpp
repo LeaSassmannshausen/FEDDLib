@@ -101,9 +101,9 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2DMiniTPM(std::string FEType,
     }
 
     this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(2,0.0)));
-    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
+    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
     this->pointsUni_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(2,0.0)));
-    this->bcFlagUni_.reset(new std::vector<int> (nmbPoints,0));
+    this->bcFlagUni_.reset(new std::vector<int> (nmbPoints,10));
 
     Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
     for (int i=0; i<nmbPoints; i++) {
@@ -354,7 +354,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2D(std::string FEType,
         }
 
         this->pointsRep_.reset(new vec2D_dbl_Type(nmbPoints,std::vector<double>(2,0.0)));
-        this->bcFlagRep_.reset(new vec_int_Type (nmbPoints,0));
+        this->bcFlagRep_.reset(new vec_int_Type (nmbPoints,10));
         elementsVec = Teuchos::rcp(new vec2D_int_Type(nmbElements,std::vector<int>(3,-1)));
         Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
 
@@ -403,7 +403,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2D(std::string FEType,
         }
 
         this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(),std::vector<double>(2,0.0)));
-        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
         LO index;
         for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
 
@@ -474,7 +474,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2D(std::string FEType,
         }
 
         this->pointsRep_.reset(new vec2D_dbl_Type(nmbPoints, vec_dbl_Type(2,0.0)));
-        this->bcFlagRep_.reset(new vec_int_Type (nmbPoints,0));
+        this->bcFlagRep_.reset(new vec_int_Type (nmbPoints,10));
         elementsVec = Teuchos::rcp(new vec2D_int_Type(nmbElements, vec_int_Type(6,-1)));
         Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
 
@@ -531,7 +531,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2D(std::string FEType,
         }
 
         this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(),std::vector<double>(2,0.0)));
-        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
 
         LO index;
         for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
@@ -703,7 +703,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3D(std::string FEType,
     if (FEType == "P1") {
 
         this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(3,0.0)));
-        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
+        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
         elementsVec = Teuchos::rcp(new vec2D_int_Type( nmbElements, vec_int_Type(4, -1) ));
         elementFlag = Teuchos::rcp(new vec_int_Type( elementsVec->size(),0 ) );
         Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
@@ -753,7 +753,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3D(std::string FEType,
         this->mapUnique_ = this->mapRepeated_->buildUniqueMap( numProcsCoarseSolve );
 
         this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(),std::vector<double>(3,0.0)));
-        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
         LO index;
         for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
 
@@ -808,7 +808,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3D(std::string FEType,
     else if(FEType == "P2"){
 
         this->pointsRep_.reset(new vec2D_dbl_Type(nmbPoints, vec_dbl_Type(3, 0.0)));
-        this->bcFlagRep_.reset(new vec_int_Type (nmbPoints, 0));
+        this->bcFlagRep_.reset(new vec_int_Type (nmbPoints, 10));
         elementsVec = Teuchos::rcp(new vec2D_int_Type(nmbElements, vec_int_Type(10, -1)));
         elementFlag = Teuchos::rcp(new vec_int_Type( elementsVec->size(),0 ) );
         Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
@@ -866,7 +866,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3D(std::string FEType,
         this->mapUnique_ = this->mapRepeated_->buildUniqueMap( numProcsCoarseSolve );
 
         this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(),std::vector<double>(3,0.0)));
-        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
 
         for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
             (*this->pointsUni_)[i][0] = (this->mapUnique_->getGlobalElement(i) % nmbPoints_oneDir) * h/2;
@@ -1070,8 +1070,8 @@ void MeshStructured<SC,LO,GO,NO>::buildP1_Disc_Q2_3DCube(int N,
 
     this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(3,0.0)));
     this->pointsUni_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(3,0.0)));
-    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
-    this->bcFlagUni_.reset(new std::vector<int> (nmbPoints,0));
+    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
+    this->bcFlagUni_.reset(new std::vector<int> (nmbPoints,10));
     Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
 
 
@@ -1234,7 +1234,7 @@ void MeshStructured<SC,LO,GO,NO>::build3DQ1Cube(int N,
     }
 
     this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(3,0.0)));
-    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
+    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
     vec2D_int_ptr_Type elementsVec = Teuchos::rcp(new std::vector<std::vector<int> >(nmbElements, std::vector<int>(8, -1)));
     Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
 
@@ -1275,7 +1275,7 @@ void MeshStructured<SC,LO,GO,NO>::build3DQ1Cube(int N,
     this->mapUnique_ = this->mapRepeated_->buildUniqueMap( numProcsCoarseSolve );
 
     this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(),std::vector<double>(3,0.0)));
-    this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+    this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
 
     for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
 
@@ -1358,7 +1358,7 @@ void MeshStructured<SC,LO,GO,NO>::build3DQ2Cube(int N,
     }
 
     this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(3,0.0)));
-    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
+    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
     vec2D_int_ptr_Type elementsVec = Teuchos::rcp(new std::vector<std::vector<int> >(nmbElements,std::vector<int>(27,-1)));
     Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
 
@@ -1415,7 +1415,7 @@ void MeshStructured<SC,LO,GO,NO>::build3DQ2Cube(int N,
     this->mapUnique_ = this->mapRepeated_->buildUniqueMap( numProcsCoarseSolve );
 
     this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(),std::vector<double>(3,0.0)));
-    this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+    this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
 
     for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
         (*this->pointsUni_)[i][0] = (this->mapUnique_->getGlobalElement(i) % nmbPoints_oneDir) * h/2;
@@ -1611,7 +1611,7 @@ void MeshStructured<SC,LO,GO,NO>::build3DQ2_20Cube(int N,
                         p[2] > (coorRec[2]+height-eps) || p[2] < (coorRec[2]+eps) )
                         this->bcFlagRep_->push_back(1);
                     else
-                        this->bcFlagRep_->push_back(0);
+                        this->bcFlagRep_->push_back(10);
                     counter++;
                 }
             }
@@ -1623,7 +1623,7 @@ void MeshStructured<SC,LO,GO,NO>::build3DQ2_20Cube(int N,
     this->mapUnique_ = this->mapRepeated_->buildUniqueMap( numProcsCoarseSolve );
 
     this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(),std::vector<double>(3,0.0)));
-    this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+    this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
 
     for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
 
@@ -1721,7 +1721,7 @@ void MeshStructured<SC,LO,GO,NO>::build3DQ2BFS(int N,
     }
 
     this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(3,0.0)));
-    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
+    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
     vec2D_int_ptr_Type elementsVec = Teuchos::rcp(new std::vector<std::vector<int> >(nmbElements, std::vector<int>(27,-1)));
     Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
 
@@ -1806,7 +1806,7 @@ void MeshStructured<SC,LO,GO,NO>::build3DQ2BFS(int N,
         cout << "-- Building Q2 Unique Points ... " << flush;
 
     this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(),std::vector<double>(3,0.0)));
-    this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+    this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
 
     LO index;
     for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
@@ -1952,7 +1952,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2DBFS(std::string FEType,
             cout << "-- Building P0 Points Repeated ... " << endl;
 
         this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(2,0.0)));
-        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
+        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
         elementsVec = Teuchos::rcp(new std::vector<std::vector<int> >(nmbElements, std::vector<int>(3,-1)));
 
         Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
@@ -2017,7 +2017,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2DBFS(std::string FEType,
         }
 
         this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(), std::vector<double>(2,0.0)));
-        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
         LO index;
         for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
 
@@ -2066,7 +2066,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2DBFS(std::string FEType,
         }
 
         this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(2,0.0)));
-        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
+        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
         elementsVec = Teuchos::rcp(new std::vector<std::vector<int> >(nmbElements,std::vector<int>(3,-1)));
 
         Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
@@ -2133,7 +2133,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2DBFS(std::string FEType,
         }
 
         this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(), std::vector<double>(2,0.0)));
-        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
         LO index;
         for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
 
@@ -2182,7 +2182,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2DBFS(std::string FEType,
         }
 
         this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(2,0.0)));
-        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
+        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
         elementsVec = Teuchos::rcp(new std::vector<std::vector<int> >(nmbElements,std::vector<int>(6,-1)));
         Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
 
@@ -2262,7 +2262,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2DBFS(std::string FEType,
         }
 
         this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(),std::vector<double>(2,0.0)));
-        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
 
         LO index;
         for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
@@ -2414,7 +2414,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3DBFS(std::string FEType,
     if (FEType == "P1") {
 
         this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(3,0.0)));
-        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
+        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
         vec2D_int_ptr_Type elementsVec = Teuchos::rcp(new std::vector<std::vector<int> >(nmbElements,std::vector<int>(4,-1)));
 
         Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
@@ -2498,7 +2498,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3DBFS(std::string FEType,
         }
 
         this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(), std::vector<double>(3,0.0)));
-        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
         LO index;
 
         for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
@@ -2564,7 +2564,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3DBFS(std::string FEType,
     else if(FEType == "P2"){
 
         this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(3,0.0)));
-        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
+        this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
         vec2D_int_ptr_Type elementsVec = Teuchos::rcp(new std::vector<std::vector<int> >(nmbElements,std::vector<int>(10,-1)));
         Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
 
@@ -2660,7 +2660,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3DBFS(std::string FEType,
         }
 
         this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(),std::vector<double>(3,0.0)));
-        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
+        this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),10));
 
         LO index;
         for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
@@ -2854,8 +2854,8 @@ void MeshStructured<SC,LO,GO,NO>::buildP1_Disc_Q2_3DBFS(int N,
 
     this->pointsRep_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(3,0.0)));
     this->pointsUni_.reset(new std::vector<std::vector<double> >(nmbPoints,std::vector<double>(3,0.0)));
-    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,0));
-    this->bcFlagUni_.reset(new std::vector<int> (nmbPoints,0));
+    this->bcFlagRep_.reset(new std::vector<int> (nmbPoints,10));
+    this->bcFlagUni_.reset(new std::vector<int> (nmbPoints,10));
     Teuchos::Array<GO> pointsRepGlobMapping(nmbPoints);
 
     if (verbose)
@@ -3127,8 +3127,49 @@ void MeshStructured<SC,LO,GO,NO>::setStructuredMeshFlags(int flagsOption,string 
                         this->bcFlagRep_->at(5) = 1;
                     }
                     break;
+                case 5: // LDC
+                    for (int i=0; i<this->pointsUni_->size(); i++) {
+
+                       
+                        if (this->pointsUni_->at(i).at(0) > (coorRec[0] - tol) && this->pointsUni_->at(i).at(1) < (coorRec[1] + tol) ) {
+                            this->bcFlagUni_->at(i) = 1;
+                        }
+                        if (this->pointsUni_->at(i).at(0) > (coorRec[0]+length - tol) && this->pointsUni_->at(i).at(1) > (coorRec[1] + tol) && this->pointsUni_->at(i).at(1) < (coorRec[1] + height + tol)) {
+                            this->bcFlagUni_->at(i) = 1; // Wall
+                        }
+                        if (this->pointsUni_->at(i).at(0) < (coorRec[0] +tol)) {
+                            this->bcFlagUni_->at(i) = 1; // Wall
+                        }
+                        if (this->pointsUni_->at(i).at(0) < (coorRec[0] +tol) && this->pointsUni_->at(i).at(1) < (coorRec[1] +tol)) {
+                            this->bcFlagUni_->at(i) = 0; // pressure point
+                        }
+                        if (this->pointsUni_->at(i).at(0) > (coorRec[0] - tol) && this->pointsUni_->at(i).at(1) > (coorRec[1] + height - tol) ) {
+                            this->bcFlagUni_->at(i) = 4; // TOP LID
+                        }
+                    }
+                    for (int i=0; i<this->pointsRep_->size(); i++) {
+                        if (this->pointsRep_->at(i).at(0) > (coorRec[0] - tol) && this->pointsRep_->at(i).at(1) < (coorRec[1] + tol) ) {
+                            this->bcFlagRep_->at(i) = 1;
+                        }
+                        if (this->pointsRep_->at(i).at(0) > (coorRec[0]+length - tol) && this->pointsRep_->at(i).at(1) > (coorRec[1] + tol) && this->pointsRep_->at(i).at(1) < (coorRec[1] + height + tol)) {
+                            this->bcFlagRep_->at(i) = 1;
+                        }
+                        if (this->pointsRep_->at(i).at(0) < (coorRec[0] +tol)) {
+                            this->bcFlagRep_->at(i) = 1;
+                        }
+                        if (this->pointsRep_->at(i).at(0) < (coorRec[0] +tol) && this->pointsRep_->at(i).at(1) < (coorRec[1] +tol)) {
+                            this->bcFlagRep_->at(i) = 0; // pressure point
+                        }
+                        if (this->pointsRep_->at(i).at(0) > (coorRec[0] - tol) && this->pointsRep_->at(i).at(1) > (coorRec[1] + height - tol) ) {
+                            this->bcFlagRep_->at(i) = 4; // TOP LID
+                        }
+                    }
+                    break;
+                
                 default:
                     break;
+
+                
             }
             break;
         case 3:
@@ -3360,6 +3401,97 @@ void MeshStructured<SC,LO,GO,NO>::setStructuredMeshFlags(int flagsOption,string 
                             this->pointsRep_->at(i).at(1) < (coorRec[1] + tol)  &&
                             this->pointsRep_->at(i).at(2) < (coorRec[2] + tol)  )
                             this->bcFlagRep_->at(i) = 0;
+
+                    }
+                    break;
+                case 5: // LDC
+                    for (int i=0; i<this->pointsUni_->size(); i++) {
+
+
+                        if (this->pointsUni_->at(i).at(0) < (coorRec[0] + tol) ) {
+                            this->bcFlagUni_->at(i) = 1;
+                        }
+                        //bottom
+                        if (this->pointsUni_->at(i).at(0) > (coorRec[0] + tol) &&
+                            this->pointsUni_->at(i).at(2) < (coorRec[2] + tol) ) {
+                            this->bcFlagUni_->at(i) = 1;
+                        }
+                         // Lid edge with y=1, z=1 
+                        if (this->pointsUni_->at(i).at(1) > (coorRec[1] +width - tol) &&
+                            this->pointsUni_->at(i).at(2) > (coorRec[2] +height- tol) ) {
+                            this->bcFlagUni_->at(i) = 1;
+                        }
+                        //front
+                        if (this->pointsUni_->at(i).at(0) > (coorRec[0] + tol) &&
+                            this->pointsUni_->at(i).at(1) < (coorRec[1] + tol) ) {
+                            this->bcFlagUni_->at(i) = 1;
+                        }
+                        //back
+                        if (this->pointsUni_->at(i).at(0) > (coorRec[0] + tol) &&
+                            this->pointsUni_->at(i).at(1) > (coorRec[1] + width - tol) ) {
+                            this->bcFlagUni_->at(i) = 1;
+                        }
+                        //right
+                        if (this->pointsUni_->at(i).at(0) > (coorRec[0] + length - tol) &&
+                            this->pointsUni_->at(i).at(1) > (coorRec[1] + tol) &&
+                            this->pointsUni_->at(i).at(1) < (coorRec[1] + width - tol)&&
+                            this->pointsUni_->at(i).at(2) > (coorRec[2] + tol) &&
+                            this->pointsUni_->at(i).at(2) < (coorRec[2] + height - tol)) {
+                            this->bcFlagUni_->at(i) = 1;
+                        }
+                        //top LID
+                        if (this->pointsUni_->at(i).at(0) > (coorRec[0] - tol) &&
+                            this->pointsUni_->at(i).at(2) > (coorRec[2] + height - tol) ) {
+                            this->bcFlagUni_->at(i) = 4;
+                        }
+                        // pressure point
+                        if (this->pointsUni_->at(i).at(0) < (coorRec[0] + tol) && this->pointsUni_->at(i).at(1) < (coorRec[1] + tol) && this->pointsUni_->at(i).at(2) < (coorRec[2] + tol)  ) {
+                            this->bcFlagUni_->at(i) = 0;
+                        }
+                    }
+                    for (int i=0; i<this->pointsUni_->size(); i++) {
+
+                           
+                        if (this->pointsRep_->at(i).at(0) < (coorRec[0] + tol) ) {
+                            this->bcFlagRep_->at(i) = 1;
+                        }
+                        //bottom
+                        if (this->pointsRep_->at(i).at(0) > (coorRec[0] + tol) &&
+                            this->pointsRep_->at(i).at(2) < (coorRec[2] + tol) ) {
+                            this->bcFlagRep_->at(i) = 1;
+                        }
+                        //front
+                        if (this->pointsRep_->at(i).at(0) > (coorRec[0] + tol) &&
+                            this->pointsRep_->at(i).at(1) < (coorRec[1] + tol) ) {
+                            this->bcFlagRep_->at(i) = 1;
+                        }
+                        // Lid edge with y=1, z=1 
+                        /*if (this->pointsRep_->at(i).at(1) > (coorRec[1] +width - tol) &&
+                            this->pointsRep_->at(i).at(2) > (coorRec[2] +height- tol) ) {
+                            this->bcFlagRep_->at(i) = 4;
+                        }*/
+                        //back
+                        if (this->pointsRep_->at(i).at(0) > (coorRec[0] + tol) &&
+                            this->pointsRep_->at(i).at(1) > (coorRec[1] + width - tol) ) {
+                            this->bcFlagRep_->at(i) = 1;
+                        }
+                        //right
+                        if (this->pointsRep_->at(i).at(0) > (coorRec[0] + length - tol) &&
+                            this->pointsRep_->at(i).at(1) > (coorRec[1] + tol) &&
+                            this->pointsRep_->at(i).at(1) < (coorRec[1] + width - tol)&&
+                            this->pointsRep_->at(i).at(2) > (coorRec[2] + tol) &&
+                            this->pointsRep_->at(i).at(2) < (coorRec[2] + height - tol)) {
+                            this->bcFlagRep_->at(i) = 1;
+                        }
+                          //top LID
+                        if (this->pointsRep_->at(i).at(0) > (coorRec[0] - tol) &&
+                            this->pointsRep_->at(i).at(2) > (coorRec[2] + height - tol) ) {
+                            this->bcFlagRep_->at(i) = 4;
+                        } 
+                        // pressure point
+                        if (this->pointsRep_->at(i).at(0) < (coorRec[0] + tol) && this->pointsRep_->at(i).at(1) < (coorRec[1] + tol) && this->pointsRep_->at(i).at(2) < (coorRec[2] + tol) ) {
+                            this->bcFlagRep_->at(i) = 0;
+                        }
 
                     }
                     break;

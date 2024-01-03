@@ -238,6 +238,14 @@ void NavierStokes<SC,LO,GO,NO>::assembleDivAndStab() const{
                
         //this->system_->addBlock( C, 1, 1 );
 
+    if(!this->getFEType(0).compare("P2")){
+      if(this->parameterList_->sublist("General").get("Calculate M Coarse Matrix",true)){
+	    MatrixPtr_Type Kpressure(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow() ) );
+	    this->feFactory_->assemblyLaplace( this->dim_, this->domain_FEType_vec_.at(1), 2, Kpressure, true );
+	    this->system_->addBlock(Kpressure,1,1);
+      }
+    }
+
 };
 
 template<class SC,class LO,class GO,class NO>
