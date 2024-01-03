@@ -446,7 +446,7 @@ ublist("1").sublist("InterfacePartitionOfUnity").get("Type","None") << endl;
           cout << " Coarse Space Block 2 " << parameterListPrec->sublist("ThyraPreconditioner").sublist("Preconditioner Types").sublist("FROSch").sublist("IPOUHarmonicCoarseOperator").sublist("Blocks").s\
 ublist("2").sublist("InterfacePartitionOfUnity").get("Type","None") << endl;
 
-      }
+	}
       cout << " ####################################################### " << endl;
     }
     

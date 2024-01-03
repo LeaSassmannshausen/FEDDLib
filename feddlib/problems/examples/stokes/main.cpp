@@ -9,6 +9,7 @@
 #include "feddlib/problems/specific/Stokes.hpp"
 
 #include <Teuchos_TestForException.hpp>
+#include <Teuchos_StackedTimer.hpp>
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Xpetra_DefaultPlatform.hpp>
 
@@ -141,6 +142,11 @@ int main(int argc, char *argv[]) {
         MPI_Finalize();
         return 0;
     }
+
+        Teuchos::RCP<Teuchos::StackedTimer> stackedTimer = rcp(new Teuchos::StackedTimer("Stokes",true));
+        Teuchos::TimeMonitor::setStackedTimer(stackedTimer);
+
+
     {
         ParameterListPtr_Type parameterListProblem = Teuchos::getParametersFromXmlFile(xmlProblemFile);
 
@@ -191,6 +197,9 @@ int main(int argc, char *argv[]) {
         size -= numProcsCoarseSolve;
         int numProcsProblem = size;
 
+
+
+	
         Teuchos::RCP<Teuchos::Time> totalTime(Teuchos::TimeMonitor::getNewCounter("main: Total Time"));
         Teuchos::RCP<Teuchos::Time> buildMesh(Teuchos::TimeMonitor::getNewCounter("main: Build Mesh"));
         Teuchos::RCP<Teuchos::Time> solveTime(Teuchos::TimeMonitor::getNewCounter("main: Solve problem time"));
@@ -346,8 +355,30 @@ int main(int argc, char *argv[]) {
                 
             }
         }
+	if(verbose){
+	  cout << " ####################################################### " << endl;
+	  cout << " Discretization Velocity: " << discVelocity << " || Discretization Pressure: " << discPressure << endl;
+	  cout << " Preconditioner Method: " <<  parameterListProblem->sublist("General").get("Preconditioner Method","Monolithic") << endl;
+	  string            precMethod      = parameterListProblem->sublist("General").get("Preconditioner Method","Monolithic");
+	  if (!precMethod.compare("Monolithic"))
+	    {
+	      cout << " Coarse Operator " << parameterListPrec->sublist("ThyraPreconditioner").sublist("Preconditioner Types").sublist("FROSch").get("CoarseOperator Type","NONE") << endl;
+	      cout << " Coarse Space Block 1 " << parameterListPrec->sublist("ThyraPreconditioner").sublist("Preconditioner Types").sublist("FROSch").sublist("IPOUHarmonicCoarseOperator").sublist("Blocks").sublist("1").sublist("InterfacePartitionOfUnity").get("Type","None") << endl;
+	      cout << " Coarse Space Block 2 " << parameterListPrec->sublist("ThyraPreconditioner").sublist("Preconditioner Types").sublist("FROSch").sublist("IPOUHarmonicCoarseOperator").sublist("Blocks").sublist("2").sublist("InterfacePartitionOfUnity").get("Type","None") << endl;
+	      
+	    }
+	  cout << " ####################################################### " << endl;
+	}
+	
+	
     }
+    
     Teuchos::TimeMonitor::report(cout);
+    stackedTimer->stop("Stokes");
+        Teuchos::StackedTimer::OutputOptions options;
+        options.output_fraction =  options.output_minmax = true; //options.output_histogram =                                                                                                               
+	stackedTimer->report((std::cout),comm,options);
+
 
     return(EXIT_SUCCESS);
 }
