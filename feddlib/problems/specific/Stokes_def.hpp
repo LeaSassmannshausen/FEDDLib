@@ -145,7 +145,7 @@ void Stokes<SC,LO,GO,NO>::assemble( std::string type ) const{
     }
       
     if(!this->getFEType(0).compare("P2")){
-      if(this->parameterList_->sublist("General").get("Calculate M Coarse Matrix",true)){
+      if(this->parameterList_->sublist("General").get("Calculate M Coarse Matrix",false)){
 	    MatrixPtr_Type Kpressure(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow() ) );
 	    this->feFactory_->assemblyLaplace( this->dim_, this->domain_FEType_vec_.at(1), 2, Kpressure, true );
 	    this->system_->addBlock(Kpressure,1,1);
