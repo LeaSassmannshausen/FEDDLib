@@ -575,6 +575,7 @@ void ErrorEstimation<SC,LO,GO,NO>::tagArea( MeshUnstrPtr_Type inputMeshP1,vec2D_
 @param[in] inputMeshP1 The P1 Mesh that is used for later refinement.
 @param[in] area  Area that is suppose to be refined. If is a vector defining the area as follows: row1:[x_0,x_1] x-limits, row2: [y_0,y_1] y-limits, row3: [z_0,z_1] z-limits .
 */
+
 template <class SC, class LO, class GO, class NO>
 void ErrorEstimation<SC,LO,GO,NO>::tagAll( MeshUnstrPtr_Type inputMeshP1){
 
@@ -595,6 +596,53 @@ void ErrorEstimation<SC,LO,GO,NO>::tagAll( MeshUnstrPtr_Type inputMeshP1){
 	for(int i=0; i<numberEl; i++){
 		elements->getElement(i).tagForRefinement();
 		taggedElements++;						
+	}
+		
+	reduceAll<int, int> (*inputMesh_->getComm(), REDUCE_MAX, taggedElements, outArg (taggedElements));
+
+	if(inputMesh_->getComm()->getRank()==0){
+		cout << "	__________________________________________________________________________________________________________ " << endl;
+		cout << " " << endl;
+		cout << "	With tag all:' " << taggedElements << " Elements were tagged for Refinement " << endl;
+		cout << "	__________________________________________________________________________________________________________ " << endl;
+	}
+
+}
+
+// Tagging all elements adjacent to the flag.
+template <class SC, class LO, class GO, class NO>
+void ErrorEstimation<SC,LO,GO,NO>::tagFlag( MeshUnstrPtr_Type inputMeshP1,int flag){
+
+	inputMesh_ = inputMeshP1;
+
+	ElementsPtr_Type elements = inputMesh_->getElementsC();
+   	EdgeElementsPtr_Type edgeElements = inputMesh_->getEdgeElements();
+	MapConstPtr_Type elementMap = inputMesh_->getElementMap();
+	int myRank = inputMesh_->comm_->getRank();
+
+	int numberEl = elements->numberElements();
+	int numberPoints =dim_+1;
+
+	vec2D_dbl_ptr_Type vecPoints= inputMesh_->getPointsRepeated();
+
+	int taggedElements=0;
+
+	for(int i=0; i<numberEl; i++){
+		FiniteElement fe = elements->getElement( i );
+		if(fe.getFlag() == flag){
+			elements->getElement(i).tagForRefinement();
+			taggedElements++;						
+		}
+		else{
+			ElementsPtr_Type subEl = fe.getSubElements(); // might be null
+			for (int surface=0; surface<fe.numSubElements(); surface++) {
+				FiniteElement feSub = subEl->getElement( surface  );
+				if(feSub.getFlag() == flag){
+					elements->getElement(i).tagForRefinement();
+					taggedElements++;						
+				}				
+			}
+		}
 	}
 		
 	reduceAll<int, int> (*inputMesh_->getComm(), REDUCE_MAX, taggedElements, outArg (taggedElements));

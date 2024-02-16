@@ -67,7 +67,7 @@ template <class SC, class LO, class GO, class NO>
 RefinementFactory<SC,LO,GO,NO>::RefinementFactory(CommConstPtr_Type comm, int volumeID, ParameterListPtr_Type parameterListAll):
 MeshUnstructured<SC,LO,GO,NO>(comm,volumeID)
 {
-    this->volumeID_ = volumeID;
+    volumeID = volumeID;
 	this->dim_ = parameterListAll->sublist("Parameter").get("Dimension",2);
 	if(this->dim_ == 2){
 		refinementRestriction_ = parameterListAll->sublist("Mesh Refinement").get("Refinement Restriction","Bisection");
@@ -540,14 +540,14 @@ template <class SC, class LO, class GO, class NO>
 vec_bool_Type RefinementFactory<SC,LO,GO,NO>::checkInterfaceSurface( EdgeElementsPtr_Type edgeElements,vec_int_Type originFlag, vec_int_Type edgeNumbers, int indexElement){
 
 		vec_bool_Type interfaceSurface(4);
-		
-		if(edgeElements->getElement(edgeNumbers[0]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[1]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[3]).isInterfaceElement() && (originFlag[0] == this->volumeID_))
+
+		if(edgeElements->getElement(edgeNumbers[0]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[1]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[3]).isInterfaceElement() && (originFlag[0] >= this->volumeID_))
 					interfaceSurface[0] = true;
-		if(edgeElements->getElement(edgeNumbers[0]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[2]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[4]).isInterfaceElement() && (originFlag[1] == this->volumeID_ ))
+		if(edgeElements->getElement(edgeNumbers[0]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[2]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[4]).isInterfaceElement() && (originFlag[1] >= this->volumeID_ ))
 					interfaceSurface[1] = true;
-		if(edgeElements->getElement(edgeNumbers[1]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[2]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[5]).isInterfaceElement() && (originFlag[2] == this->volumeID_))
+		if(edgeElements->getElement(edgeNumbers[1]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[2]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[5]).isInterfaceElement() && (originFlag[2] >= this->volumeID_))
 					interfaceSurface[2] = true;
-		if(edgeElements->getElement(edgeNumbers[3]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[4]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[5]).isInterfaceElement() && (originFlag[3] == this->volumeID_ ))
+		if(edgeElements->getElement(edgeNumbers[3]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[4]).isInterfaceElement() && edgeElements->getElement(edgeNumbers[5]).isInterfaceElement() && (originFlag[3] >= this->volumeID_ ))
 					interfaceSurface[3] = true;
 
 		vec2D_LO_Type elementsOfEdgeLocal = edgeElements->getElementsOfEdgeLocal();
@@ -888,6 +888,7 @@ void RefinementFactory<SC,LO,GO,NO>::buildSurfaceTriangleElements(ElementsPtr_Ty
 		// Tri_3 = [x_1,x_2,x_3] -> Edge 3,4,5
 
 		// We check if one or more of these triangles are part of the boundary surface and determine there flag
+		int volumeID = elements->getElement(T).getFlag();
 
 		vec2D_int_Type originTriangles(4,vec_int_Type(3));
 		originTriangles[0] = {nodeInd[0],nodeInd[1],nodeInd[2]};
@@ -896,7 +897,7 @@ void RefinementFactory<SC,LO,GO,NO>::buildSurfaceTriangleElements(ElementsPtr_Ty
 		originTriangles[3] = {nodeInd[1],nodeInd[2],nodeInd[3]};
 		
 		
-		vec_int_Type originFlag(4,this->volumeID_); // Triangle Flag
+		vec_int_Type originFlag(4,volumeID); // Triangle Flag
 		int numberSubElSurf=0;
 		vec_LO_Type triTmp(3);
 		vec_int_Type originTriangleTmp(3);
@@ -1952,6 +1953,8 @@ int RefinementFactory<SC,LO,GO,NO>::determineLongestEdge( EdgeElementsPtr_Type e
 */
 template <class SC, class LO, class GO, class NO>
 void RefinementFactory<SC,LO,GO,NO>::refineBlue(EdgeElementsPtr_Type edgeElements, ElementsPtr_Type elements, int indexElement){
+	int volumeID = elements->getElement(indexElement).getFlag();
+
 	if(this->dim_ == 2){
 		// The necessary Point was already added to the nodelist
 		// now we have to figure out, which node it is -> check the tagged edge for midpoint
@@ -2055,7 +2058,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineBlue(EdgeElementsPtr_Type edgeElement
 
 		vec_bool_Type isInterfaceEdge(9);
 		vec_GO_Type predecessorElement(9);;
-		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =this->volumeID_)
+		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =volumeID)
 
 		// Element 1
 		(newElements)[0]={oppositeNodeIndL,midPointInd[edgeIndexL],midPointInd[edgeIndexS]};
@@ -2064,9 +2067,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineBlue(EdgeElementsPtr_Type edgeElement
 		(newEdges)[1] = {oppositeNodeIndL,midPointInd[edgeIndexS]}; 
 		(newEdges)[2] = {midPointInd[edgeIndexL] ,midPointInd[edgeIndexS]}; 
 
-		edgeFlags[0]=this->volumeID_;
+		edgeFlags[0]=volumeID;
 		edgeFlags[1]=this->bcFlagRep_->at(midPointInd[edgeIndexS]);
-		edgeFlags[2]=this->volumeID_;
+		edgeFlags[2]=volumeID;
 
 		isInterfaceEdge[0] = false;
 		isInterfaceEdge[1] = edgeElements->getElement(taggedEdge[edgeIndexS]).isInterfaceElement();
@@ -2085,7 +2088,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineBlue(EdgeElementsPtr_Type edgeElement
 		(newEdges)[5] = {midPointInd[edgeIndexL] ,oppositeNodeIndS}; 
 
 
-		edgeFlags[3]=this->volumeID_;
+		edgeFlags[3]=volumeID;
 		edgeFlags[4]=edgeElements->getElement(untaggedEdge[0]).getFlag();
 		edgeFlags[5]=this->bcFlagRep_->at(midPointInd[edgeIndexL]);
 
@@ -2105,7 +2108,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineBlue(EdgeElementsPtr_Type edgeElement
 		(newEdges)[7] = {midPointInd[edgeIndexL] ,mutalNode}; 
 		(newEdges)[8] = {midPointInd[edgeIndexS] ,mutalNode}; 
 
-		edgeFlags[6]=this->volumeID_;
+		edgeFlags[6]=volumeID;
 		edgeFlags[7]=this->bcFlagRep_->at(midPointInd[edgeIndexL]);
 		edgeFlags[8]=this->bcFlagRep_->at(midPointInd[edgeIndexS]);
 
@@ -2123,7 +2126,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineBlue(EdgeElementsPtr_Type edgeElement
 
 		for( int i=0;i<3; i++){
 			sort( newElements.at(i).begin(), newElements.at(i).end() );
-			FiniteElement feNew(newElements.at(i),this->volumeID_);
+			FiniteElement feNew(newElements.at(i),volumeID);
 			feNew.setFiniteElementRefinementType("blue");
 			feNew.setPredecessorElement(indexElement);
 			if(i<2)
@@ -2140,7 +2143,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineBlue(EdgeElementsPtr_Type edgeElement
 			feNew.setPredecessorElement(predecessorElement[i]);
 			if(i<6){
 				this->edgeElements_->addEdge(feNew,i/3+offsetElements);
-				if(edgeFlags[i]!=0 && edgeFlags[i]!=this->volumeID_){
+				if(edgeFlags[i]!=0 && edgeFlags[i]!=volumeID){
 					if ( !this->elementsC_->getElement(i/3+offsetElements).subElementsInitialized() )
 						this->elementsC_->getElement(i/3+offsetElements).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(i/3+offsetElements).addSubElement(feNew);	
@@ -2149,7 +2152,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineBlue(EdgeElementsPtr_Type edgeElement
 				}
 			else{
 				this->edgeElements_->addEdge(feNew,indexElement);
-				if(edgeFlags[i]!=0 && edgeFlags[i]!=this->volumeID_){
+				if(edgeFlags[i]!=0 && edgeFlags[i]!=volumeID){
 					if ( !this->elementsC_->getElement(indexElement).subElementsInitialized() )
 						this->elementsC_->getElement(indexElement).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(indexElement).addSubElement(feNew);	}
@@ -2178,6 +2181,8 @@ void RefinementFactory<SC,LO,GO,NO>::refineBlue(EdgeElementsPtr_Type edgeElement
 
 template <class SC, class LO, class GO, class NO>
 void RefinementFactory<SC,LO,GO,NO>::refineGreen(EdgeElementsPtr_Type edgeElements, ElementsPtr_Type elements, int indexElement){
+
+	int volumeID = elements->getElement(indexElement).getFlag();
 
 	if(this->dim_ == 2){
 		// The necessary Point was already added to the nodelist
@@ -2231,7 +2236,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineGreen(EdgeElementsPtr_Type edgeElemen
 		// adding Elements and Edges
 		vec2D_int_Type newElements(2, vec_int_Type( 0 )); // vector for the new elements
 		vec2D_int_Type newEdges(6,vec_int_Type(0)); // vector for the new edges
-		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =this->volumeID_)
+		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =volumeID)
 		vec_int_Type edgeFlags(6); // vector for the new flags
         vec2D_LO_Type markedPoints(0);
 
@@ -2246,7 +2251,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineGreen(EdgeElementsPtr_Type edgeElemen
 		(newEdges)[2] = {edgeElements->getElement(sortedEdges[1]).getNode(0) ,edgeElements->getElement(sortedEdges[1]).getNode(1) }; 
 
 		if(oppositeNodeInd == edgeElements->getElement(sortedEdges[1]).getNode(0)){
-			edgeFlags[0]=this->volumeID_;
+			edgeFlags[0]=volumeID;
 			isInterfaceEdge[0] = false;
 			predecessorElement[0] = -1;
 			}
@@ -2257,7 +2262,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineGreen(EdgeElementsPtr_Type edgeElemen
 		}
 	
 	    if(oppositeNodeInd == edgeElements->getElement(sortedEdges[1]).getNode(1)){
-			edgeFlags[1]=this->volumeID_;
+			edgeFlags[1]=volumeID;
 			isInterfaceEdge[1] = false;
 			predecessorElement[1] = -1;
 		}
@@ -2281,7 +2286,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineGreen(EdgeElementsPtr_Type edgeElemen
 		(newEdges)[5] = {edgeElements->getElement(sortedEdges[2]).getNode(0) ,edgeElements->getElement(sortedEdges[2]).getNode(1) }; 
 
 		if(oppositeNodeInd == edgeElements->getElement(sortedEdges[2]).getNode(0)){
-			edgeFlags[3]=this->volumeID_;
+			edgeFlags[3]=volumeID;
 			isInterfaceEdge[3] = false;
 			predecessorElement[3] = -1;
 
@@ -2293,7 +2298,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineGreen(EdgeElementsPtr_Type edgeElemen
 		}
 	
 	    if(oppositeNodeInd == edgeElements->getElement(sortedEdges[2]).getNode(1)){
-			edgeFlags[4]=this->volumeID_;
+			edgeFlags[4]=volumeID;
 			isInterfaceEdge[4] = false;
 			predecessorElement[4] =-1;
 		}
@@ -2315,7 +2320,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineGreen(EdgeElementsPtr_Type edgeElemen
 
 		for( int i=0;i<2; i++){
 			sort( newElements.at(i).begin(), newElements.at(i).end() );
-			FiniteElement feNew(newElements.at(i),this->volumeID_);
+			FiniteElement feNew(newElements.at(i),volumeID);
 			feNew.setFiniteElementRefinementType("green"); // setting green refinement type in order to check in following refinement stages
 			feNew.setPredecessorElement(indexElement);
 			if(i==0)
@@ -2332,7 +2337,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineGreen(EdgeElementsPtr_Type edgeElemen
 			feNew.setPredecessorElement(predecessorElement[i]);
 			if(i<3){
 				this->edgeElements_->addEdge(feNew,offsetElements);
-				if(edgeFlags[i]!=0 && edgeFlags[i]!=this->volumeID_){
+				if(edgeFlags[i]!=0 && edgeFlags[i]!=volumeID){
 					if ( !this->elementsC_->getElement(offsetElements).subElementsInitialized() )
 						this->elementsC_->getElement(offsetElements).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(offsetElements).addSubElement(feNew);		
@@ -2340,7 +2345,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineGreen(EdgeElementsPtr_Type edgeElemen
 				}
 			else{
 				this->edgeElements_->addEdge(feNew,indexElement);
-				if(edgeFlags[i]!=0 && edgeFlags[i]!=this->volumeID_){
+				if(edgeFlags[i]!=0 && edgeFlags[i]!=volumeID){
 					if ( !this->elementsC_->getElement(indexElement).subElementsInitialized() )
 						this->elementsC_->getElement(indexElement).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(indexElement).addSubElement(feNew);	
@@ -2368,6 +2373,8 @@ void RefinementFactory<SC,LO,GO,NO>::refineGreen(EdgeElementsPtr_Type edgeElemen
 
 template <class SC, class LO, class GO, class NO>
 void RefinementFactory<SC,LO,GO,NO>::refineRed(EdgeElementsPtr_Type edgeElements, ElementsPtr_Type elements, int indexElement){
+
+	int volumeID = elements->getElement(indexElement).getFlag();
 
 	if(this->dim_ == 2){
 		
@@ -2411,7 +2418,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRed(EdgeElementsPtr_Type edgeElements
 		vec_int_Type edgeFlags(12); // vector for the new flags
 		vec_bool_Type isInterfaceEdge(12); // bool vectot for interfaceEdges
 		vec_GO_Type predecessorElement(12);
-		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =this->volumeID_)
+		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =volumeID)
 
 		// Element 1
 		(newElements)[0]={mutualNode[0],midPointInd[0],midPointInd[1]};
@@ -2422,7 +2429,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRed(EdgeElementsPtr_Type edgeElements
 
 		edgeFlags[0]=this->bcFlagRep_->at(midPointInd[0]);
 		edgeFlags[1]=this->bcFlagRep_->at(midPointInd[1]);
-		edgeFlags[2]=this->volumeID_;
+		edgeFlags[2]=volumeID;
 
 		isInterfaceEdge[0] = edgeElements->getElement(edgeNumbers[0]).isInterfaceElement();
 		isInterfaceEdge[1] = edgeElements->getElement(edgeNumbers[1]).isInterfaceElement();
@@ -2441,7 +2448,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRed(EdgeElementsPtr_Type edgeElements
 
 		edgeFlags[3]=this->bcFlagRep_->at(midPointInd[0]);
 		edgeFlags[4]=this->bcFlagRep_->at(midPointInd[2]);
-		edgeFlags[5]=this->volumeID_;
+		edgeFlags[5]=volumeID;
 
 		isInterfaceEdge[3] = edgeElements->getElement(edgeNumbers[0]).isInterfaceElement();
 		isInterfaceEdge[4] = edgeElements->getElement(edgeNumbers[2]).isInterfaceElement();
@@ -2460,7 +2467,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRed(EdgeElementsPtr_Type edgeElements
 
 		edgeFlags[6]=this->bcFlagRep_->at(midPointInd[1]);
 		edgeFlags[7]=this->bcFlagRep_->at(midPointInd[2]);
-		edgeFlags[8]=this->volumeID_;
+		edgeFlags[8]=volumeID;
 
 		isInterfaceEdge[6] = edgeElements->getElement(edgeNumbers[1]).isInterfaceElement();
 		isInterfaceEdge[7] = edgeElements->getElement(edgeNumbers[2]).isInterfaceElement();
@@ -2476,9 +2483,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineRed(EdgeElementsPtr_Type edgeElements
 		(newEdges)[10] = {midPointInd[1] ,midPointInd[2]}; 
 		(newEdges)[11] = {midPointInd[2] ,midPointInd[0]}; 
 
-		edgeFlags[9]=this->volumeID_;
-		edgeFlags[10]=this->volumeID_;
-		edgeFlags[11]=this->volumeID_;
+		edgeFlags[9]=volumeID;
+		edgeFlags[10]=volumeID;
+		edgeFlags[11]=volumeID;
 
 		isInterfaceEdge[9] = false;
 		isInterfaceEdge[10] = false;
@@ -2508,7 +2515,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRed(EdgeElementsPtr_Type edgeElements
 			feNew.setPredecessorElement(predecessorElement[i]);
 			if(i<9){
 				this->edgeElements_->addEdge(feNew,i/3+offsetElements);
-				if(edgeFlags[i]!=0 && edgeFlags[i]!=this->volumeID_){
+				if(edgeFlags[i]!=0 && edgeFlags[i]!=volumeID){
 					if ( !this->elementsC_->getElement(i/3+offsetElements).subElementsInitialized() )
 						this->elementsC_->getElement(i/3+offsetElements).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(i/3+offsetElements).addSubElement(feNew);	
@@ -2540,6 +2547,8 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 
 // Implementation of Type (4) Refinement Type
 // We use this Refinement Type 
+	int volumeID = elements->getElement(indexElement).getFlag();
+	cout << " Refinement type 4" << endl;
 	if(this->dim_ == 3){ 
 
 		// The way we refine the Tetrahedron is defined by how we order the nodes of the tetrahedron
@@ -2624,7 +2633,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 		originTriangles[2] = {nodeInd[0], nodeInd[2], nodeInd[3] };
 		originTriangles[3] = {nodeInd[1], nodeInd[2], nodeInd[3] };
 	
-		vec_int_Type originFlag(4,this->volumeID_); // Triangle Flag
+		vec_int_Type originFlag(4,volumeID); // Triangle Flag
 
 		vec_bool_Type interfaceSurface(4);
 		vec_LO_Type triTmp(3);
@@ -2674,13 +2683,13 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 		vec2D_LO_Type newTriangleEdgeIDs(4,vec_LO_Type(12));
 
 		// How are Flags determined?
-		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =this->volumeID_)
+		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =volumeID)
 		// If an edges emerges on a triangle, the flag is determined by the triangle flag. Opposite to the 2D case, edges that connect midpoints are not automatically interior edges, but are
 		// determined by the triangle/surface they are on
 
 
 		// Element 1: (x_0,x_2,x_01,x_23)
-		(newElements)[0]={nodeInd[0],nodeInd[2], midPointInd[0],midPointInd[1]};
+		(newElements)[0]={nodeInd[0], midPointInd[0],nodeInd[2],midPointInd[1]};
 
 		(newEdges)[0] = {nodeInd[0] ,nodeInd[2]}; 
 		(newEdges)[1] = {nodeInd[0] ,midPointInd[0]}; 
@@ -2694,7 +2703,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 		edgeFlags[2]=originFlag[2];
 		edgeFlags[3]=originFlag[0];
 		edgeFlags[4]=this->bcFlagRep_->at(midPointInd[1]);
-		edgeFlags[5]=this->volumeID_;
+		edgeFlags[5]=volumeID;
 
 		isInterfaceEdge[0] = edgeElements->getElement(edgeNumbers[1]).isInterfaceElement();
 		isInterfaceEdge[1] = edgeElements->getElement(edgeNumbers[0]).isInterfaceElement();
@@ -2718,8 +2727,8 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 
 		newTrianglesFlag[0]= originFlag[0]; 
 		newTrianglesFlag[1]= originFlag[2]; 
-		newTrianglesFlag[2]= this->volumeID_; 
-		newTrianglesFlag[3]= this->volumeID_;
+		newTrianglesFlag[2]= volumeID; 
+		newTrianglesFlag[3]= volumeID;
 
 		isInterfaceSurface[0]= interfaceSurface[0];
 		isInterfaceSurface[1]= interfaceSurface[2];
@@ -2743,7 +2752,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 		edgeFlags[8]=originFlag[3];
 		edgeFlags[9]=originFlag[0];
 		edgeFlags[10]=this->bcFlagRep_->at(midPointInd[1]);
-		edgeFlags[11]=this->volumeID_;
+		edgeFlags[11]=volumeID;
 
 		isInterfaceEdge[6] = edgeElements->getElement(edgeNumbers[3]).isInterfaceElement();
 		isInterfaceEdge[7] = edgeElements->getElement(edgeNumbers[0]).isInterfaceElement();
@@ -2767,8 +2776,8 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 
 		newTrianglesFlag[4]= originFlag[0]; 
 		newTrianglesFlag[5]= originFlag[3]; 
-		newTrianglesFlag[6]= this->volumeID_; 
-		newTrianglesFlag[7]= this->volumeID_;
+		newTrianglesFlag[6]= volumeID; 
+		newTrianglesFlag[7]= volumeID;
 
 		isInterfaceSurface[4]= interfaceSurface[0];
 		isInterfaceSurface[5]= interfaceSurface[3];
@@ -2778,7 +2787,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 		newTriangleEdgeIDs[1]={6,7,9,6,8,10,7,8,11,9,10,11};
 
 		// Element 3: (x_0,x_3,x_01,x_23) 
-		(newElements)[2]={nodeInd[0],nodeInd[3],midPointInd[0],midPointInd[1]};
+		(newElements)[2]={nodeInd[0],midPointInd[0],midPointInd[1],nodeInd[3]};
 
 		(newEdges)[12] = {nodeInd[0] ,nodeInd[3]}; 
 		(newEdges)[13] = {nodeInd[0] ,midPointInd[0]}; 
@@ -2792,7 +2801,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 		edgeFlags[14]=originFlag[2];
 		edgeFlags[15]=originFlag[1];
 		edgeFlags[16]=edgeElements->getElement(edgeNumbers[5]).getFlag();;
-		edgeFlags[17]=this->volumeID_;
+		edgeFlags[17]=volumeID;
 
 		isInterfaceEdge[12] = edgeElements->getElement(edgeNumbers[2]).isInterfaceElement();
 		isInterfaceEdge[13] = edgeElements->getElement(edgeNumbers[0]).isInterfaceElement();
@@ -2816,8 +2825,8 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 
 		newTrianglesFlag[8]= originFlag[1]; 
 		newTrianglesFlag[9]= originFlag[2]; 
-		newTrianglesFlag[10]= this->volumeID_; 
-		newTrianglesFlag[11]= this->volumeID_;
+		newTrianglesFlag[10]= volumeID; 
+		newTrianglesFlag[11]= volumeID;
 
 		isInterfaceSurface[8]= interfaceSurface[1];
 		isInterfaceSurface[9]= interfaceSurface[2];
@@ -2828,7 +2837,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 
 
 		// Element 4: (x_1,x_3,x_01,x_23)
-		(newElements)[3]={nodeInd[1],nodeInd[3],midPointInd[0],midPointInd[1]};
+		(newElements)[3]={nodeInd[1],midPointInd[1],midPointInd[0],nodeInd[3]};
 
 		(newEdges)[18] = {nodeInd[1] ,nodeInd[3]}; 
 		(newEdges)[19] = {nodeInd[1] ,midPointInd[0]}; 
@@ -2842,7 +2851,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 		edgeFlags[20]=originFlag[3];
 		edgeFlags[21]=originFlag[1];
 		edgeFlags[22]=edgeElements->getElement(edgeNumbers[5]).getFlag();;
-		edgeFlags[23]=this->volumeID_;
+		edgeFlags[23]=volumeID;
 
 		isInterfaceEdge[18] = edgeElements->getElement(edgeNumbers[4]).isInterfaceElement();
 		isInterfaceEdge[19] = edgeElements->getElement(edgeNumbers[0]).isInterfaceElement();
@@ -2866,8 +2875,8 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 
 		newTrianglesFlag[12]= originFlag[1]; 
 		newTrianglesFlag[13]= originFlag[3]; 
-		newTrianglesFlag[14]= this->volumeID_; 
-		newTrianglesFlag[15]= this->volumeID_;
+		newTrianglesFlag[14]= volumeID; 
+		newTrianglesFlag[15]= volumeID;
 
 		isInterfaceSurface[12]= interfaceSurface[1];
 		isInterfaceSurface[13]= interfaceSurface[3];
@@ -2883,7 +2892,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 		int offsetEdges = this->edgeElements_->numberElements(); 
 		for( int i=0;i<4; i++){
 			sort( newElements.at(i).begin(), newElements.at(i).end() );
-			FiniteElement feNew(newElements.at(i),this->volumeID_);
+			FiniteElement feNew(newElements.at(i),volumeID);
 			feNew.setFiniteElementRefinementType("irregular");	
 			feNew.setPredecessorElement(indexElement);
 			if(i<3)
@@ -2912,7 +2921,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 			FiniteElement feNew(newTriangles[i],newTrianglesFlag[i]);
 			feNew.setInterfaceElement(isInterfaceSurface[i]);
 			if(i<12){
-				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=this->volumeID_){
+				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=volumeID){
 				 	if ( !this->elementsC_->getElement(i/4+offsetElements).subElementsInitialized() )
 						this->elementsC_->getElement(i/4+offsetElements).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(i/4+offsetElements).addSubElement(feNew);					
@@ -2920,7 +2929,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 				this->surfaceTriangleElements_->addSurface(feNew, i/4+offsetElements);
 			}
 			else{
-				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=this->volumeID_){
+				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=volumeID){
 					if ( !this->elementsC_->getElement(indexElement).subElementsInitialized() )
 						this->elementsC_->getElement(indexElement).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(indexElement).addSubElement(feNew);	
@@ -2938,7 +2947,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 			bool init=false;
 			for(int j=0; j<24 ; j++){
 				FiniteElement feEdge = this->edgeElements_->getElement(j+offsetEdges);
-				if(feEdge.getFlag() != this->volumeID_){
+				if(feEdge.getFlag() != volumeID){
 					if(init == true)
 						element.addSubElement( feEdge );
 					else if ( !element.subElementsInitialized() ){
@@ -2975,6 +2984,8 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 template <class SC, class LO, class GO, class NO>
 void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElements, ElementsPtr_Type elements, int indexElement, SurfaceElementsPtr_Type surfaceTriangleElements){
 
+	int volumeID = elements->getElement(indexElement).getFlag();
+	cout << " Refinement type 3 " << endl;
 
 // Implementation of Type (3) Refinement Type
 // We use this Refinement Type 
@@ -3104,7 +3115,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElemen
 		
 		
 	
-		vec_int_Type originFlag(4,this->volumeID_); // Triangle Flag
+		vec_int_Type originFlag(4,volumeID); // Triangle Flag
 
 		vec_bool_Type interfaceSurface(4);
 		vec_LO_Type triTmp(3);
@@ -3153,13 +3164,13 @@ void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElemen
 		vec2D_LO_Type newTriangleEdgeIDs(3,vec_LO_Type(12));
 
 		// How are Flags determined?
-		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =this->volumeID_)
+		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =volumeID)
 		// If an edges emerges on a triangle, the flag is determined by the triangle flag. Opposite to the 2D case, edges that connect midpoints are not automatically interior edges, but are
 		// determined by the triangle/surface they are on
 
 
 		// Element 1: (x_0,x_3,x_01,x_02)
-		(newElements)[0]={nodeInd[0],nodeInd[3], midPointInd[0],midPointInd[1]};
+		(newElements)[0]={nodeInd[0], midPointInd[0],midPointInd[1],nodeInd[3]};
 
 		(newEdges)[0] = {nodeInd[0] ,nodeInd[3]}; 
 		(newEdges)[1] = {nodeInd[0] ,midPointInd[0]}; 
@@ -3198,7 +3209,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElemen
 		newTrianglesFlag[0]= originFlag[1]; 
 		newTrianglesFlag[1]= originFlag[2]; 
 		newTrianglesFlag[2]= originFlag[0]; 
-		newTrianglesFlag[3]= this->volumeID_;
+		newTrianglesFlag[3]= volumeID;
 
 		isInterfaceSurface[0]= interfaceSurface[1];
 		isInterfaceSurface[1]= interfaceSurface[2];
@@ -3208,7 +3219,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElemen
 		newTriangleEdgeIDs[0]={0,1,3,0,2,4,1,2,5,3,4,5};
 
 		// Element 2: (x_1,x_2,x_3,x_01)
-		(newElements)[1]={nodeInd[1],nodeInd[2],nodeInd[3],midPointInd[0]};
+		(newElements)[1]={nodeInd[1],nodeInd[2],midPointInd[0],nodeInd[3]};
 
 		(newEdges)[6] = {nodeInd[1] ,nodeInd[2]}; 
 		(newEdges)[7] = {nodeInd[1] ,nodeInd[3]}; 
@@ -3247,7 +3258,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElemen
 		newTrianglesFlag[4]= originFlag[3]; 
 		newTrianglesFlag[5]= originFlag[0]; 
 		newTrianglesFlag[6]= originFlag[1]; 
-		newTrianglesFlag[7]= this->volumeID_;
+		newTrianglesFlag[7]= volumeID;
 
 		isInterfaceSurface[4]= interfaceSurface[3];
 		isInterfaceSurface[5]= interfaceSurface[0];
@@ -3255,8 +3266,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElemen
 		isInterfaceSurface[7]= false;
 
 		newTriangleEdgeIDs[1]={6,7,9,6,8,10,7,8,11,9,10,11};
+
 		// Element 3: (x_2,x_3,x_01,x_02)
-		(newElements)[2]={nodeInd[2],nodeInd[3],midPointInd[0],midPointInd[1]};
+		(newElements)[2]={nodeInd[2],midPointInd[1],midPointInd[0],nodeInd[3]};
 
 		(newEdges)[12] = {nodeInd[2] ,nodeInd[3]}; 
 		(newEdges)[13] = {nodeInd[2] ,midPointInd[0]}; 
@@ -3292,10 +3304,10 @@ void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElemen
 		newTriangles[10]= {nodeInd[2],midPointInd[0],midPointInd[1]};
 		newTriangles[11]= {nodeInd[3],midPointInd[0],midPointInd[1]};
 
-		newTrianglesFlag[8]=this->volumeID_; 
+		newTrianglesFlag[8]=volumeID; 
 		newTrianglesFlag[9]= originFlag[2]; 
 		newTrianglesFlag[10]= originFlag[0]; 
-		newTrianglesFlag[11]= this->volumeID_;
+		newTrianglesFlag[11]= volumeID;
 
 		isInterfaceSurface[8]= false;
 		isInterfaceSurface[9]= interfaceSurface[2];
@@ -3313,7 +3325,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElemen
 		int offsetEdges = this->edgeElements_->numberElements(); 
 		for( int i=0;i<3; i++){
 			sort( newElements.at(i).begin(), newElements.at(i).end() );
-			FiniteElement feNew(newElements.at(i),this->volumeID_);
+			FiniteElement feNew(newElements.at(i),volumeID);
 			feNew.setFiniteElementRefinementType("irregular");	
 			feNew.setPredecessorElement(indexElement);
 			if(i<2)
@@ -3342,7 +3354,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElemen
 			FiniteElement feNew(newTriangles[i],newTrianglesFlag[i]);
 			feNew.setInterfaceElement(isInterfaceSurface[i]);
 			if(i<8){
-				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=this->volumeID_){
+				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=volumeID){
 				 	if ( !this->elementsC_->getElement(i/4+offsetElements).subElementsInitialized() )
 						this->elementsC_->getElement(i/4+offsetElements).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(i/4+offsetElements).addSubElement(feNew);					
@@ -3350,7 +3362,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElemen
 				this->surfaceTriangleElements_->addSurface(feNew, i/4+offsetElements);
 			}
 			else{
-				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=this->volumeID_){
+				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=volumeID){
 					if ( !this->elementsC_->getElement(indexElement).subElementsInitialized() )
 						this->elementsC_->getElement(indexElement).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(indexElement).addSubElement(feNew);	
@@ -3368,7 +3380,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElemen
 			bool init=false;
 			for(int j=0; j<18 ; j++){
 				FiniteElement feEdge = this->edgeElements_->getElement(j+offsetEdges);
-				if(feEdge.getFlag() != this->volumeID_){
+				if(feEdge.getFlag() != volumeID){
 					if(init == true)
 						element.addSubElement( feEdge );
 					else if ( !element.subElementsInitialized() ){
@@ -3409,6 +3421,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineType2(EdgeElementsPtr_Type edgeElemen
 
 // Implementation of Type (2) Refinement Type
 // We use this Refinement Type 
+	int volumeID = elements->getElement(indexElement).getFlag();
+	cout << " Refinement type 2" << endl;
+
 	if(this->dim_ == 3){ 
 
 		// The way we refine the Tetrahedron is defined by how we order the nodes of the tetrahedron
@@ -3506,7 +3521,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType2(EdgeElementsPtr_Type edgeElemen
 		
 		
 	
-		vec_int_Type originFlag(4,this->volumeID_); // Triangle Flag
+		vec_int_Type originFlag(4,volumeID); // Triangle Flag
 
 		vec_bool_Type interfaceSurface(4);
 		vec_LO_Type triTmp(3);
@@ -3555,13 +3570,13 @@ void RefinementFactory<SC,LO,GO,NO>::refineType2(EdgeElementsPtr_Type edgeElemen
 		vec2D_LO_Type newTriangleEdgeIDs(2,vec_LO_Type(12));
 
 		// How are Flags determined?
-		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =this->volumeID_)
+		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =volumeID)
 		// If an edges emerges on a triangle, the flag is determined by the triangle flag. Opposite to the 2D case, edges that connect midpoints are not automatically interior edges, but are
 		// determined by the triangle/surface they are on
 
 
 		// Element 1: (x_0,x_2,x_3,x_01)
-		(newElements)[0]={nodeInd[0],nodeInd[2],nodeInd[3],midPointInd[0]};
+		(newElements)[0]={nodeInd[0],midPointInd[0],nodeInd[2],nodeInd[3]};
 
 		(newEdges)[0] = {nodeInd[0] ,nodeInd[2]}; 
 		(newEdges)[1] = {nodeInd[0] ,nodeInd[3]}; 
@@ -3600,7 +3615,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType2(EdgeElementsPtr_Type edgeElemen
 		newTrianglesFlag[0]= originFlag[2]; 
 		newTrianglesFlag[1]= originFlag[0]; 
 		newTrianglesFlag[2]= originFlag[1]; 
-		newTrianglesFlag[3]= this->volumeID_;
+		newTrianglesFlag[3]= volumeID;
 
 		isInterfaceSurface[0] = interfaceSurface[2];
 		isInterfaceSurface[1] = interfaceSurface[0];
@@ -3610,7 +3625,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType2(EdgeElementsPtr_Type edgeElemen
 		newTriangleEdgeIDs[0]={0,1,3,0,2,4,1,2,5,3,4,5};
 
 		// Element 2: (x_1,x_2,x_3,x_01)
-		(newElements)[1]={nodeInd[1],nodeInd[2],nodeInd[3],midPointInd[0]};
+		(newElements)[1]={midPointInd[0],nodeInd[1],nodeInd[2],nodeInd[3]};
 
 		(newEdges)[6] = {nodeInd[1] ,nodeInd[2]}; 
 		(newEdges)[7] = {nodeInd[1] ,nodeInd[3]}; 
@@ -3649,7 +3664,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType2(EdgeElementsPtr_Type edgeElemen
 		newTrianglesFlag[4]= originFlag[3]; 
 		newTrianglesFlag[5]= originFlag[0]; 
 		newTrianglesFlag[6]= originFlag[1]; 
-		newTrianglesFlag[7]= this->volumeID_;
+		newTrianglesFlag[7]= volumeID;
 
 		isInterfaceSurface[4] = interfaceSurface[3];
 		isInterfaceSurface[5] = interfaceSurface[0];
@@ -3665,7 +3680,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType2(EdgeElementsPtr_Type edgeElemen
 		int offsetEdges = this->edgeElements_->numberElements(); 
 		for( int i=0;i<2; i++){
 			sort( newElements.at(i).begin(), newElements.at(i).end() );
-			FiniteElement feNew(newElements.at(i),this->volumeID_);
+			FiniteElement feNew(newElements.at(i),volumeID);
 			feNew.setFiniteElementRefinementType("irregular");
 			if(refinementMode_ == "Bisection")
 				feNew.setFiniteElementRefinementType("regular");
@@ -3696,7 +3711,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType2(EdgeElementsPtr_Type edgeElemen
 			FiniteElement feNew(newTriangles[i],newTrianglesFlag[i]);
 			feNew.setInterfaceElement(isInterfaceSurface[i]);
 			if(i<4){
-				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=this->volumeID_){
+				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=volumeID){
 				 	if ( !this->elementsC_->getElement(i/4+offsetElements).subElementsInitialized() )
 						this->elementsC_->getElement(i/4+offsetElements).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(i/4+offsetElements).addSubElement(feNew);					
@@ -3704,7 +3719,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType2(EdgeElementsPtr_Type edgeElemen
 				this->surfaceTriangleElements_->addSurface(feNew, i/4+offsetElements);	
 			}			
 			else{
-				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=this->volumeID_){
+				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=volumeID){
 					if ( !this->elementsC_->getElement(indexElement).subElementsInitialized() )
 						this->elementsC_->getElement(indexElement).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(indexElement).addSubElement(feNew);	
@@ -3723,7 +3738,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType2(EdgeElementsPtr_Type edgeElemen
 			bool init=false;
 			for(int j=0; j<12 ; j++){
 				FiniteElement feEdge = this->edgeElements_->getElement(j+offsetEdges);
-				if(feEdge.getFlag() != this->volumeID_){
+				if(feEdge.getFlag() != volumeID){
 					if(init == true)
 						element.addSubElement( feEdge );
 					else if ( !element.subElementsInitialized() ){
@@ -3762,6 +3777,10 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 
 // Implementation of Type (1) Refinement Type
 // We use this Refinement Type 
+	cout << " Refinement type 1" << endl;
+
+	int volumeID = elements->getElement(indexElement).getFlag();
+
 	if(this->dim_ == 3){ 
 
 		// The way we refine the Tetrahedron is defined by how we order the nodes of the tetrahedron
@@ -3847,7 +3866,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 		originTriangles[2] = {nodeInd[0], nodeInd[2], nodeInd[3] };
 		originTriangles[3] = {nodeInd[1], nodeInd[2], nodeInd[3] };
 		
-		vec_int_Type originFlag(4,this->volumeID_); // Triangle Flag
+		vec_int_Type originFlag(4,volumeID); // Triangle Flag
 
 		vec_bool_Type interfaceSurface(4);
 		vec_LO_Type triTmp(3);
@@ -3893,7 +3912,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 		vec2D_LO_Type newTriangleEdgeIDs(4,vec_LO_Type(12));
 		
 		// How are Flags determined?
-		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =this->volumeID_)
+		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =volumeID)
 		// If an edges emerges on a triangle, the flag is determined by the triangle flag. Opposite to the 2D case, edges that connect midpoints are not automatically interior edges, but are
 		// determined by the triangle/surface they are on
 
@@ -3939,7 +3958,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 		newTrianglesFlag[0]= originFlag[0]; 
 		newTrianglesFlag[1]= originFlag[1]; 
 		newTrianglesFlag[2]= originFlag[2]; 
-		newTrianglesFlag[3]= this->volumeID_;
+		newTrianglesFlag[3]= volumeID;
 
 		isInterfaceSurface[0] = interfaceSurface[0];
 		isInterfaceSurface[1] = interfaceSurface[1];
@@ -3949,7 +3968,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 		newTriangleEdgeIDs[0]={0,1,3,0,2,4,1,2,5,3,4,5};
 
 		// Element 2: (x_1,x_01,x_12,x_13)
-		(newElements)[1]={nodeInd[1],midPointInd[0],midPointInd[2],nodeInd[3]};
+		(newElements)[1]={midPointInd[0],nodeInd[1],midPointInd[2],nodeInd[3]};
 
 		(newEdges)[6] = {nodeInd[1] ,midPointInd[0]}; 
 		(newEdges)[7] = {nodeInd[1] ,midPointInd[2]}; 
@@ -3988,7 +4007,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 		newTrianglesFlag[4]= originFlag[0]; 
 		newTrianglesFlag[5]= originFlag[1]; 
 		newTrianglesFlag[6]= originFlag[3]; 
-		newTrianglesFlag[7]= this->volumeID_;
+		newTrianglesFlag[7]= volumeID;
 
 		isInterfaceSurface[4] = interfaceSurface[0];
 		isInterfaceSurface[5] = interfaceSurface[1];
@@ -3998,7 +4017,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 		newTriangleEdgeIDs[1]={6,7,9,6,8,10,7,8,11,9,10,11};
 
 
-		// Element 3: (x_2,x_02,x_12,x_23)
+		// Element 3: (x_2,x_02,x_12,x_23) !!!
 		(newElements)[2]={nodeInd[2],midPointInd[1],midPointInd[2],nodeInd[3]};
 
 		(newEdges)[12] = {nodeInd[2] ,midPointInd[1]}; 
@@ -4038,7 +4057,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 		newTrianglesFlag[8]= originFlag[0]; 
 		newTrianglesFlag[9]= originFlag[2]; 
 		newTrianglesFlag[10]= originFlag[3]; 
-		newTrianglesFlag[11]= this->volumeID_;
+		newTrianglesFlag[11]= volumeID;
 
 		isInterfaceSurface[8] = interfaceSurface[0];
 		isInterfaceSurface[9] = interfaceSurface[2];
@@ -4048,7 +4067,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 		newTriangleEdgeIDs[2]={12,13,15,12,14,16,13,14,17,15,16,17};
 
 
-		// Element 4: (x_3,x_03,x_13,x_23)
+		// Element 4: (x_3,x_03,x_13,x_23) !!!
 		(newElements)[3]={nodeInd[3],midPointInd[0],midPointInd[1],midPointInd[2]};
 
 		(newEdges)[18] = {nodeInd[3] ,midPointInd[0]}; 
@@ -4086,9 +4105,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 		newTriangles[14]= {nodeInd[3],midPointInd[1],midPointInd[2]};
 		newTriangles[15]= {midPointInd[0],midPointInd[1],midPointInd[2]};
 
-		newTrianglesFlag[12]= this->volumeID_; 
-		newTrianglesFlag[13]= this->volumeID_; 
-		newTrianglesFlag[14]= this->volumeID_; 
+		newTrianglesFlag[12]= volumeID; 
+		newTrianglesFlag[13]= volumeID; 
+		newTrianglesFlag[14]= volumeID; 
 		newTrianglesFlag[15]= originFlag[0];
 
 		isInterfaceSurface[12] = false;
@@ -4105,7 +4124,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 		int offsetEdges = this->edgeElements_->numberElements(); 
 		for( int i=0;i<4; i++){
 			sort( newElements.at(i).begin(), newElements.at(i).end() );
-			FiniteElement feNew(newElements.at(i),this->volumeID_);
+			FiniteElement feNew(newElements.at(i),volumeID);
 			feNew.setFiniteElementRefinementType("irregular");	
 			feNew.setPredecessorElement(indexElement);
 			if(i<3)
@@ -4134,7 +4153,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 			FiniteElement feNew(newTriangles[i],newTrianglesFlag[i]);
 			feNew.setInterfaceElement(isInterfaceSurface[i]);
 			if(i<12){
-				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=this->volumeID_){
+				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=volumeID){
 				 	if ( !this->elementsC_->getElement(i/4+offsetElements).subElementsInitialized() )
 						this->elementsC_->getElement(i/4+offsetElements).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(i/4+offsetElements).addSubElement(feNew);	
@@ -4142,7 +4161,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 				this->surfaceTriangleElements_->addSurface(feNew, i/4+offsetElements);				
 			}
 			else{
-				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=this->volumeID_){
+				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=volumeID){
 					if ( !this->elementsC_->getElement(indexElement).subElementsInitialized() )
 						this->elementsC_->getElement(indexElement).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(indexElement).addSubElement(feNew);	
@@ -4161,7 +4180,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 			bool init=false;
 			for(int j=0; j<24 ; j++){
 				FiniteElement feEdge = this->edgeElements_->getElement(j+offsetEdges);
-				if(feEdge.getFlag() != this->volumeID_){
+				if(feEdge.getFlag() != volumeID){
 					if(init == true)
 						element.addSubElement( feEdge );
 					else if ( !element.subElementsInitialized() ){
@@ -4198,6 +4217,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 */
 template <class SC, class LO, class GO, class NO>
 void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElements, ElementsPtr_Type elements, int indexElement, SurfaceElementsPtr_Type surfaceTriangleElements){
+
+
+	int volumeID = elements->getElement(indexElement).getFlag();
 
 	if(this->dim_ == 2){
         vec_int_Type midPointInd( 3 ); // indices of midpoints of edges of soon to be refined element
@@ -4236,7 +4258,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 
 		vec_bool_Type isInterfaceEdge(12); // bool vector for interfaceEdges
 		vec_GO_Type predecessorElement(12);
-		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =this->volumeID_)
+		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =volumeID)
 
 		// Element 1
 		(newElements)[0]={mutualNode[0],midPointInd[0],midPointInd[1]};
@@ -4247,7 +4269,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 
 		edgeFlags[0]=this->bcFlagRep_->at(midPointInd[0]);
 		edgeFlags[1]=this->bcFlagRep_->at(midPointInd[1]);
-		edgeFlags[2]=this->volumeID_;
+		edgeFlags[2]=volumeID;
 
 		isInterfaceEdge[0] = edgeElements->getElement(edgeNumbers[0]).isInterfaceElement();
 		isInterfaceEdge[1] = edgeElements->getElement(edgeNumbers[1]).isInterfaceElement();
@@ -4267,7 +4289,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 
 		edgeFlags[3]=this->bcFlagRep_->at(midPointInd[0]);
 		edgeFlags[4]=this->bcFlagRep_->at(midPointInd[2]);
-		edgeFlags[5]=this->volumeID_;
+		edgeFlags[5]=volumeID;
 
 		isInterfaceEdge[3] = edgeElements->getElement(edgeNumbers[0]).isInterfaceElement();
 		isInterfaceEdge[4] = edgeElements->getElement(edgeNumbers[2]).isInterfaceElement();
@@ -4286,7 +4308,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 
 		edgeFlags[6]=this->bcFlagRep_->at(midPointInd[1]);
 		edgeFlags[7]=this->bcFlagRep_->at(midPointInd[2]);
-		edgeFlags[8]=this->volumeID_;
+		edgeFlags[8]=volumeID;
 
 		isInterfaceEdge[6] = edgeElements->getElement(edgeNumbers[1]).isInterfaceElement();
 		isInterfaceEdge[7] = edgeElements->getElement(edgeNumbers[2]).isInterfaceElement();
@@ -4304,9 +4326,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 		(newEdges)[10] = {midPointInd[1] ,midPointInd[2]}; 
 		(newEdges)[11] = {midPointInd[2] ,midPointInd[0]}; 
 
-		edgeFlags[9]=this->volumeID_;
-		edgeFlags[10]=this->volumeID_;
-		edgeFlags[11]=this->volumeID_;
+		edgeFlags[9]=volumeID;
+		edgeFlags[10]=volumeID;
+		edgeFlags[11]=volumeID;
 
 		isInterfaceEdge[9] = false;
 		isInterfaceEdge[10] = false;
@@ -4321,7 +4343,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 		int offsetEdges = this->edgeElements_->numberElements(); 
 		for( int i=0;i<4; i++){
 			sort( newElements.at(i).begin(), newElements.at(i).end() );
-			FiniteElement feNew(newElements.at(i),this->volumeID_);
+			FiniteElement feNew(newElements.at(i),volumeID);
 			feNew.setFiniteElementRefinementType("regular");	
 			feNew.setPredecessorElement(indexElement);
 			if(i<3)
@@ -4337,7 +4359,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			feNew.setPredecessorElement(predecessorElement[i]);
 			if(i<9){
 				this->edgeElements_->addEdge(feNew,i/3+offsetElements);
-				if(edgeFlags[i]!=0 && edgeFlags[i]!=this->volumeID_){
+				if(edgeFlags[i]!=0 && edgeFlags[i]!=volumeID){
 				 	if ( !this->elementsC_->getElement(i/3+offsetElements).subElementsInitialized() )
 						this->elementsC_->getElement(i/3+offsetElements).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(i/3+offsetElements).addSubElement(feNew);		
@@ -4446,7 +4468,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 		
 		
 	
-		vec_int_Type originFlag(4,this->volumeID_); // Triangle Flag
+		vec_int_Type originFlag(4,volumeID); // Triangle Flag
 
 		vec_bool_Type interfaceSurface(4);
 		vec_LO_Type triTmp(3);
@@ -4512,7 +4534,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 		vec2D_LO_Type newTriangleEdgeIDs(8,vec_LO_Type(12));
 
 		// How are Flags determined?
-		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =this->volumeID_)
+		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =volumeID)
 		// If an edges emerges on a triangle, the flag is determined by the triangle flag. Opposite to the 2D case, edges that connect midpoints are not automatically interior edges, but are
 		// determined by the triangle/surface they are on
 
@@ -4557,7 +4579,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 		newTrianglesFlag[0]= originFlag[0]; 
 		newTrianglesFlag[1]= originFlag[1]; 
 		newTrianglesFlag[2]= originFlag[2]; 
-		newTrianglesFlag[3]= this->volumeID_;
+		newTrianglesFlag[3]= volumeID;
 
 		isInterfaceSurface[0] = interfaceSurface[0];
 		isInterfaceSurface[1] = interfaceSurface[1];
@@ -4605,7 +4627,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 		newTrianglesFlag[4]= originFlag[0]; 
 		newTrianglesFlag[5]= originFlag[1]; 
 		newTrianglesFlag[6]= originFlag[3]; 
-		newTrianglesFlag[7]= this->volumeID_;
+		newTrianglesFlag[7]= volumeID;
 
 		isInterfaceSurface[4] = interfaceSurface[0];
 		isInterfaceSurface[5] = interfaceSurface[1];
@@ -4653,7 +4675,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 		newTrianglesFlag[8]= originFlag[0]; 
 		newTrianglesFlag[9]= originFlag[2]; 
 		newTrianglesFlag[10]= originFlag[3]; 
-		newTrianglesFlag[11]= this->volumeID_;
+		newTrianglesFlag[11]= volumeID;
 
 		isInterfaceSurface[8] = interfaceSurface[0];
 		isInterfaceSurface[9] = interfaceSurface[2];
@@ -4703,7 +4725,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 		newTrianglesFlag[12]= originFlag[1]; 
 		newTrianglesFlag[13]= originFlag[2]; 
 		newTrianglesFlag[14]= originFlag[3]; 
-		newTrianglesFlag[15]= this->volumeID_;
+		newTrianglesFlag[15]= volumeID;
 
 		isInterfaceSurface[12] = interfaceSurface[1];
 		isInterfaceSurface[13] = interfaceSurface[2];
@@ -4761,7 +4783,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			edgeFlags[25]=originFlag[1];
 			edgeFlags[26]=originFlag[1];
 			edgeFlags[27]=originFlag[2];
-			edgeFlags[28]=this->volumeID_;
+			edgeFlags[28]=volumeID;
 			edgeFlags[29]=originFlag[1];
 
 			isInterfaceEdge[24] = interfaceSurface[0];
@@ -4786,10 +4808,10 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[19]= {midPointInd[1],midPointInd[2],midPointInd[4]};
 
 
-			newTrianglesFlag[16]= this->volumeID_; 
-			newTrianglesFlag[17]= this->volumeID_; 
+			newTrianglesFlag[16]= volumeID; 
+			newTrianglesFlag[17]= volumeID; 
 			newTrianglesFlag[18]= originFlag[1]; 
-			newTrianglesFlag[19]= this->volumeID_;
+			newTrianglesFlag[19]= volumeID;
 
 			isInterfaceSurface[16] = false;
 			isInterfaceSurface[17] = false;
@@ -4812,7 +4834,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			edgeFlags[31]=originFlag[0];
 			edgeFlags[32]=originFlag[1];
 			edgeFlags[33]=originFlag[0];
-			edgeFlags[34]=this->volumeID_;
+			edgeFlags[34]=volumeID;
 			edgeFlags[35]=originFlag[3];
 
 			isInterfaceEdge[30] = interfaceSurface[0];
@@ -4837,9 +4859,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[23]= {midPointInd[1],midPointInd[3],midPointInd[4]};
 
 			newTrianglesFlag[20]= originFlag[0]; 
-			newTrianglesFlag[21]= this->volumeID_; 
-			newTrianglesFlag[22]= this->volumeID_; 
-			newTrianglesFlag[23]= this->volumeID_;
+			newTrianglesFlag[21]= volumeID; 
+			newTrianglesFlag[22]= volumeID; 
+			newTrianglesFlag[23]= volumeID;
 
 			isInterfaceSurface[20] = interfaceSurface[0];
 			isInterfaceSurface[21] = false;
@@ -4858,7 +4880,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			(newEdges)[41] = {midPointInd[4] ,midPointInd[5]}; 
 
 			edgeFlags[36]=originFlag[2];
-			edgeFlags[37]=this->volumeID_;
+			edgeFlags[37]=volumeID;
 			edgeFlags[38]=originFlag[2];
 			edgeFlags[39]=originFlag[1];
 			edgeFlags[40]=originFlag[2];
@@ -4884,10 +4906,10 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[26]= {midPointInd[1],midPointInd[4],midPointInd[5]};
 			newTriangles[27]= {midPointInd[2],midPointInd[4],midPointInd[5]};
 
-			newTrianglesFlag[24]= this->volumeID_; 
+			newTrianglesFlag[24]= volumeID; 
 			newTrianglesFlag[25]= originFlag[2]; 
-			newTrianglesFlag[26]= this->volumeID_; 
-			newTrianglesFlag[27]= this->volumeID_;
+			newTrianglesFlag[26]= volumeID; 
+			newTrianglesFlag[27]= volumeID;
 
 			isInterfaceSurface[24] = false;
 			isInterfaceSurface[25] = interfaceSurface[2];
@@ -4907,7 +4929,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			(newEdges)[47] = {midPointInd[4] ,midPointInd[5]}; 
 
 			edgeFlags[42]=originFlag[0];
-			edgeFlags[43]=this->volumeID_;
+			edgeFlags[43]=volumeID;
 			edgeFlags[44]=originFlag[2];
 			edgeFlags[45]=originFlag[3];
 			edgeFlags[46]=originFlag[3];
@@ -4933,9 +4955,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[30]= {midPointInd[1],midPointInd[4],midPointInd[5]};
 			newTriangles[31]= {midPointInd[3],midPointInd[5],midPointInd[4]};
 
-			newTrianglesFlag[28]= this->volumeID_; 
-			newTrianglesFlag[29]= this->volumeID_; 
-			newTrianglesFlag[30]= this->volumeID_; 
+			newTrianglesFlag[28]= volumeID; 
+			newTrianglesFlag[29]= volumeID; 
+			newTrianglesFlag[30]= volumeID; 
 			newTrianglesFlag[31]= originFlag[3];
 
 			isInterfaceSurface[28] = false;
@@ -4959,7 +4981,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 
 			edgeFlags[24]=originFlag[0];
 			edgeFlags[25]=originFlag[1];
-			edgeFlags[26]=this->volumeID_;
+			edgeFlags[26]=volumeID;
 			edgeFlags[27]=originFlag[2];
 			edgeFlags[28]=originFlag[2];
 			edgeFlags[29]=originFlag[2];
@@ -4986,9 +5008,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[19]= {midPointInd[1],midPointInd[2],midPointInd[5]};
 
 
-			newTrianglesFlag[16]= this->volumeID_; 
-			newTrianglesFlag[17]= this->volumeID_; 
-			newTrianglesFlag[18]= this->volumeID_; 
+			newTrianglesFlag[16]= volumeID; 
+			newTrianglesFlag[17]= volumeID; 
+			newTrianglesFlag[18]= volumeID; 
 			newTrianglesFlag[19]= originFlag[2];
 
 			isInterfaceSurface[16] = false;
@@ -5010,7 +5032,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 
 			edgeFlags[30]=originFlag[0];
 			edgeFlags[31]=originFlag[1];
-			edgeFlags[32]=this->volumeID_;
+			edgeFlags[32]=volumeID;
 			edgeFlags[33]=originFlag[3];
 			edgeFlags[34]=originFlag[3];
 			edgeFlags[35]=originFlag[3];
@@ -5036,9 +5058,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[22]= {midPointInd[0],midPointInd[4],midPointInd[5]};
 			newTriangles[23]= {midPointInd[3],midPointInd[4],midPointInd[5]};
 
-			newTrianglesFlag[20]= this->volumeID_; 
-			newTrianglesFlag[21]= this->volumeID_; 
-			newTrianglesFlag[22]= this->volumeID_; 
+			newTrianglesFlag[20]= volumeID; 
+			newTrianglesFlag[21]= volumeID; 
+			newTrianglesFlag[22]= volumeID; 
 			newTrianglesFlag[23]= originFlag[3];
 
 			isInterfaceSurface[20] = false;
@@ -5060,7 +5082,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 
 			edgeFlags[36]=originFlag[0];
 			edgeFlags[37]=originFlag[0];
-			edgeFlags[38]=this->volumeID_;
+			edgeFlags[38]=volumeID;
 			edgeFlags[39]=originFlag[0];
 			edgeFlags[40]=originFlag[2];
 			edgeFlags[41]=originFlag[3];
@@ -5086,9 +5108,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[27]= {midPointInd[1],midPointInd[3],midPointInd[5]};
 
 			newTrianglesFlag[24]= originFlag[0]; 
-			newTrianglesFlag[25]= this->volumeID_; 
-			newTrianglesFlag[26]= this->volumeID_; 
-			newTrianglesFlag[27]= this->volumeID_;
+			newTrianglesFlag[25]= volumeID; 
+			newTrianglesFlag[26]= volumeID; 
+			newTrianglesFlag[27]= volumeID;
 
 			isInterfaceSurface[24] = interfaceSurface[0];
 			isInterfaceSurface[25] = false;
@@ -5109,7 +5131,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 
 			edgeFlags[42]=originFlag[1];
 			edgeFlags[43]=originFlag[1];
-			edgeFlags[44]=this->volumeID_;
+			edgeFlags[44]=volumeID;
 			edgeFlags[45]=originFlag[1];
 			edgeFlags[46]=originFlag[2];
 			edgeFlags[47]=originFlag[3];
@@ -5135,9 +5157,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[31]= {midPointInd[2],midPointInd[4],midPointInd[5]};
 
 			newTrianglesFlag[28]= originFlag[1]; 
-			newTrianglesFlag[29]= this->volumeID_; 
-			newTrianglesFlag[30]= this->volumeID_; 
-			newTrianglesFlag[31]= this->volumeID_;
+			newTrianglesFlag[29]= volumeID; 
+			newTrianglesFlag[30]= volumeID; 
+			newTrianglesFlag[31]= volumeID;
 
 			isInterfaceSurface[28] = interfaceSurface[1];
 			isInterfaceSurface[29] = false;
@@ -5162,7 +5184,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			edgeFlags[26]=originFlag[0];
 			edgeFlags[27]=originFlag[2];
 			edgeFlags[28]=originFlag[0];
-			edgeFlags[29]=this->volumeID_;
+			edgeFlags[29]=volumeID;
 
 			isInterfaceEdge[24] = interfaceSurface[0];
 			isInterfaceEdge[25] = interfaceSurface[1];
@@ -5186,10 +5208,10 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[19]= {midPointInd[1],midPointInd[2],midPointInd[3]};
 
 
-			newTrianglesFlag[16]= this->volumeID_; 
+			newTrianglesFlag[16]= volumeID; 
 			newTrianglesFlag[17]= originFlag[0]; 
-			newTrianglesFlag[18]= this->volumeID_; 
-			newTrianglesFlag[19]= this->volumeID_;
+			newTrianglesFlag[18]= volumeID; 
+			newTrianglesFlag[19]= volumeID;
 
 			isInterfaceSurface[16] = false;
 			isInterfaceSurface[17] = interfaceSurface[0];
@@ -5211,7 +5233,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			edgeFlags[30]=originFlag[1];
 			edgeFlags[31]=originFlag[0];
 			edgeFlags[32]=originFlag[1];
-			edgeFlags[33]=this->volumeID_;
+			edgeFlags[33]=volumeID;
 			edgeFlags[34]=originFlag[1];
 			edgeFlags[35]=originFlag[3];
 
@@ -5236,10 +5258,10 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[22]= {midPointInd[0],midPointInd[3],midPointInd[4]};
 			newTriangles[23]= {midPointInd[2],midPointInd[3],midPointInd[4]};
 
-			newTrianglesFlag[20]= this->volumeID_;
+			newTrianglesFlag[20]= volumeID;
 			newTrianglesFlag[21]= originFlag[1]; 
-			newTrianglesFlag[22]= this->volumeID_; 
-			newTrianglesFlag[23]= this->volumeID_;
+			newTrianglesFlag[22]= volumeID; 
+			newTrianglesFlag[23]= volumeID;
 
 			isInterfaceSurface[20] = false;
 			isInterfaceSurface[21] = interfaceSurface[1];
@@ -5260,7 +5282,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			edgeFlags[36]=originFlag[2];
 			edgeFlags[37]=originFlag[0];
 			edgeFlags[38]=originFlag[2];
-			edgeFlags[39]=this->volumeID_;
+			edgeFlags[39]=volumeID;
 			edgeFlags[40]=originFlag[2];
 			edgeFlags[41]=originFlag[3];
 
@@ -5284,10 +5306,10 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[26]= {midPointInd[1],midPointInd[3],midPointInd[5]};
 			newTriangles[27]= {midPointInd[2],midPointInd[3],midPointInd[5]};
 
-			newTrianglesFlag[24]= this->volumeID_; 
+			newTrianglesFlag[24]= volumeID; 
 			newTrianglesFlag[25]= originFlag[2]; 
-			newTrianglesFlag[26]= this->volumeID_; 
-			newTrianglesFlag[27]= this->volumeID_;
+			newTrianglesFlag[26]= volumeID; 
+			newTrianglesFlag[27]= volumeID;
 
 			isInterfaceSurface[24] = false;
 			isInterfaceSurface[25] = interfaceSurface[2];
@@ -5306,7 +5328,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			(newEdges)[46] = {midPointInd[3] ,midPointInd[5]}; 
 			(newEdges)[47] = {midPointInd[4] ,midPointInd[5]}; 
 
-			edgeFlags[42]=this->volumeID_;
+			edgeFlags[42]=volumeID;
 			edgeFlags[43]=originFlag[1];
 			edgeFlags[44]=originFlag[2];
 			edgeFlags[45]=originFlag[3];
@@ -5333,9 +5355,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			newTriangles[30]= {midPointInd[2],midPointInd[4],midPointInd[5]};
 			newTriangles[31]= {midPointInd[3],midPointInd[4],midPointInd[5]};
 
-			newTrianglesFlag[28]= this->volumeID_; 
-			newTrianglesFlag[29]= this->volumeID_; 
-			newTrianglesFlag[30]= this->volumeID_; 
+			newTrianglesFlag[28]= volumeID; 
+			newTrianglesFlag[29]= volumeID; 
+			newTrianglesFlag[30]= volumeID; 
 			newTrianglesFlag[31]= originFlag[3];
 
 			isInterfaceSurface[28] = false;
@@ -5355,7 +5377,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 		int offsetEdges = this->edgeElements_->numberElements(); 
 		for( int i=0;i<8; i++){
 			//sort( newElements.at(i).begin(), newElements.at(i).end() );
-			FiniteElement feNew(newElements.at(i),this->volumeID_);
+			FiniteElement feNew(newElements.at(i),volumeID);
 			feNew.setFiniteElementRefinementType("regular");	
 			feNew.setPredecessorElement(indexElement);
 			if(elements->getElement(indexElement).getFiniteElementRefinementType() == "irregular" || elements->getElement(indexElement).getFiniteElementRefinementType() == "irregularRegular" )
@@ -5388,7 +5410,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			FiniteElement feNew(newTriangles[i],newTrianglesFlag[i]);
 			feNew.setInterfaceElement(isInterfaceSurface[i]);
 			if(i<28){
-				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=this->volumeID_){
+				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=volumeID){
 					 if ( !this->elementsC_->getElement(i/4+offsetElements).subElementsInitialized() )
 							this->elementsC_->getElement(i/4+offsetElements).initializeSubElements( this->FEType_, this->dim_ -1) ;
 						this->elementsC_->getElement(i/4+offsetElements).addSubElement(feNew);	
@@ -5397,7 +5419,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 
 			}
 			else{
-				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=this->volumeID_){
+				if(newTrianglesFlag[i]!=0 && newTrianglesFlag[i]!=volumeID){
 					if ( !this->elementsC_->getElement(indexElement).subElementsInitialized() )
 						this->elementsC_->getElement(indexElement).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(indexElement).addSubElement(feNew);	
@@ -5425,7 +5447,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 			bool init=false;
 			for(int j=0; j<48 ; j++){
 				FiniteElement feEdge = this->edgeElements_->getElement(j+offsetEdges);
-				if(feEdge.getFlag() != this->volumeID_){
+				if(feEdge.getFlag() != volumeID){
 					if(init == true)
 						element.addSubElement( feEdge );
 					else if ( !element.subElementsInitialized() ){
@@ -5466,6 +5488,8 @@ void RefinementFactory<SC,LO,GO,NO>::refineRegular(EdgeElementsPtr_Type edgeElem
 template <class SC, class LO, class GO, class NO>
 void RefinementFactory<SC,LO,GO,NO>::bisectEdges(EdgeElementsPtr_Type edgeElements, ElementsPtr_Type elements, int indexElement, SurfaceElementsPtr_Type surfaceTriangleElements, string mode){
 	
+	int volumeID = elements->getElement(indexElement).getFlag();
+
 	if(refinementMode_ == "Bisection"){
 
 		if(this->dim_ == 2){
@@ -5520,6 +5544,8 @@ void RefinementFactory<SC,LO,GO,NO>::bisectEdges(EdgeElementsPtr_Type edgeElemen
 template <class SC, class LO, class GO, class NO>
 void RefinementFactory<SC,LO,GO,NO>::bisectElement3(EdgeElementsPtr_Type edgeElements, ElementsPtr_Type elements, int indexElement){
 
+	int volumeID = elements->getElement(indexElement).getFlag();
+
 	if(this->dim_ == 2){
 		
         // The necessary Point was already added to the nodelist
@@ -5568,7 +5594,7 @@ void RefinementFactory<SC,LO,GO,NO>::bisectElement3(EdgeElementsPtr_Type edgeEle
 		vec_int_Type edgeFlags(12); // vector for the new flags
 		vec_bool_Type isInterfaceEdge(12); // bool vectot for interfaceEdges
 		vec_GO_Type predecessorElement(12);
-		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =this->volumeID_)
+		// Edgeflags are determined by the midpoints flag or by the fact, that they are inside a triangle, which consequently makes them interior edges (flag =volumeID)
 
 		// Element 1
 		(newElements)[0]={mutualNode[0],midPointInd[0],midPointInd[1]};
@@ -5579,7 +5605,7 @@ void RefinementFactory<SC,LO,GO,NO>::bisectElement3(EdgeElementsPtr_Type edgeEle
 
 		edgeFlags[0]=this->bcFlagRep_->at(midPointInd[0]);
 		edgeFlags[1]=this->bcFlagRep_->at(midPointInd[1]);
-		edgeFlags[2]=this->volumeID_;
+		edgeFlags[2]=volumeID;
 
 		isInterfaceEdge[0] = edgeElements->getElement(edgeNumbers[0]).isInterfaceElement();
 		isInterfaceEdge[1] = edgeElements->getElement(edgeNumbers[1]).isInterfaceElement();
@@ -5596,9 +5622,9 @@ void RefinementFactory<SC,LO,GO,NO>::bisectElement3(EdgeElementsPtr_Type edgeEle
 		(newEdges)[4] = {mutualNode[1] ,midPointInd[1]}; 
 		(newEdges)[5] = {midPointInd[0] ,midPointInd[1]}; 
 
-		edgeFlags[3]=this->volumeID_;
+		edgeFlags[3]=volumeID;
 		edgeFlags[4]=this->bcFlagRep_->at(midPointInd[1]);
-		edgeFlags[5]=this->volumeID_;
+		edgeFlags[5]=volumeID;
 
 		isInterfaceEdge[3] = false;
 		isInterfaceEdge[4] = edgeElements->getElement(edgeNumbers[1]).isInterfaceElement();
@@ -5615,9 +5641,9 @@ void RefinementFactory<SC,LO,GO,NO>::bisectElement3(EdgeElementsPtr_Type edgeEle
 		(newEdges)[7] = {mutualNode[1] ,midPointInd[2]}; 
 		(newEdges)[8] = {midPointInd[0] ,midPointInd[2]}; 
 
-		edgeFlags[6]=this->volumeID_;
+		edgeFlags[6]=volumeID;
 		edgeFlags[7]=this->bcFlagRep_->at(midPointInd[2]);
-		edgeFlags[8]=this->volumeID_;
+		edgeFlags[8]=volumeID;
 
 		isInterfaceEdge[6] = false;
 		isInterfaceEdge[7] = edgeElements->getElement(edgeNumbers[2]).isInterfaceElement();
@@ -5634,7 +5660,7 @@ void RefinementFactory<SC,LO,GO,NO>::bisectElement3(EdgeElementsPtr_Type edgeEle
 		(newEdges)[10] = {midPointInd[0] ,mutualNode[2]}; 
 		(newEdges)[11] = {midPointInd[2] ,mutualNode[2]}; 
 
-		edgeFlags[9]=this->volumeID_;
+		edgeFlags[9]=volumeID;
 		edgeFlags[10]=this->bcFlagRep_->at(midPointInd[0]);;
 		edgeFlags[11]=this->bcFlagRep_->at(midPointInd[2]);;
 
@@ -5650,7 +5676,7 @@ void RefinementFactory<SC,LO,GO,NO>::bisectElement3(EdgeElementsPtr_Type edgeEle
 		int offsetEdges = this->edgeElements_->numberElements(); 
 		for( int i=0;i<4; i++){
 			sort( newElements.at(i).begin(), newElements.at(i).end() );
-			FiniteElement feNew(newElements.at(i),this->volumeID_);
+			FiniteElement feNew(newElements.at(i),volumeID);
 			feNew.setFiniteElementRefinementType("regular");
 			feNew.setPredecessorElement(indexElement);
 			if(i<3)
@@ -5666,7 +5692,7 @@ void RefinementFactory<SC,LO,GO,NO>::bisectElement3(EdgeElementsPtr_Type edgeEle
 			feNew.setPredecessorElement(predecessorElement[i]);
 			if(i<9){
 				this->edgeElements_->addEdge(feNew,i/3+offsetElements);
-				if(edgeFlags[i]!=0 && edgeFlags[i]!=this->volumeID_){
+				if(edgeFlags[i]!=0 && edgeFlags[i]!=volumeID){
 					if ( !this->elementsC_->getElement(i/3+offsetElements).subElementsInitialized() )
 						this->elementsC_->getElement(i/3+offsetElements).initializeSubElements( this->FEType_, this->dim_ -1) ;
 					this->elementsC_->getElement(i/3+offsetElements).addSubElement(feNew);	

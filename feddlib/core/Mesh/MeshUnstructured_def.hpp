@@ -1920,31 +1920,35 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
                 {
                     if(edgeMapUnique->getLocalElement(i) != -1){
                         LO id = this->edgeMap_->getLocalElement(i);
-
-                        for(int j= 0; j < 2; j++)
+                        if(this->edgeElements_->getElement(id).getFlag() == 9 || this->edgeElements_->getElement(id).getFlag() == 10 ||  this->edgeElements_->getElement(id).getFlag() == 6 )//< this->volumeID_ && ){
                         {
-                            myFile << mapRep->getGlobalElement(this->edgeElements_->getElement(id).getVectorNodeList().at(j))+1;
-                            myFile << " ";
-                        }
-                        if(this->FEType_ == "P2")
-                            myFile << mapRep->getGlobalElement(this->edgeElements_->getMidpoint(id))+1 << " ";
+                            for(int j= 0; j < 2; j++)
+                            {
+                                myFile << mapRep->getGlobalElement(this->edgeElements_->getElement(id).getVectorNodeList().at(j))+1;
+                                myFile << " ";
+                            }
+                            if(this->FEType_ == "P2")
+                                myFile << mapRep->getGlobalElement(this->edgeElements_->getMidpoint(id))+1 << " ";
 
-                        myFile << this->edgeElements_->getElement(id).getFlag();
-                        myFile << endl;
-                        
+                            myFile << this->edgeElements_->getElement(id).getFlag();
+                            myFile << endl;
+                        }
                         
                     }
                     else{
                         LO id = mapEdgesImport->getLocalElement(i);
-                        for(int j= 0; j < dofsEdges; j++)
-                        {
-                            myFile << missingEdges[id][j];
-                            myFile << " ";
+                        if(missingEdges[id][dofsEdges] == 9 || missingEdges[id][dofsEdges] == 10 || missingEdges[id][dofsEdges] == 6 ){ // < this->volumeID_){
+
+                            for(int j= 0; j < dofsEdges; j++)
+                            {
+                                myFile << missingEdges[id][j];
+                                myFile << " ";
+                            }
+                            myFile << missingEdges[id][dofsEdges]; 
+                            myFile << endl;
                         }
-                        myFile << missingEdges[id][dofsEdges]; 
-                        myFile << endl;
-                    
                     }
+                    
 
                 }
 
