@@ -107,6 +107,8 @@ namespace FEDD
 		vec_dbl_Type historyUpdated_;
 		vec_dbl_Type history_;
 
+		vec_dbl_Type positions_;
+
 		vec_dbl_Type solutionC_n_;
 		vec_dbl_Type solutionC_n1_;
 
@@ -119,7 +121,9 @@ namespace FEDD
 		std::vector<std::string> postDataNames_;
 
 #ifdef FEDD_HAVE_ACEGENINTERFACE
-		AceGenInterface::DeformationDiffusionSmoothMuscleActiveGrowthReorientationTetrahedra3D10 element_;
+		typedef AceGenInterface::DeformationDiffusionSmoothMuscleActiveGrowthReorientationTetrahedra3D10 AceGenElement_Type;
+		typedef Teuchos::RCP<AceGenElement_Type> AceGenElementPtr_Type;
+		AceGenElementPtr_Type element_;
 #endif
 
 		/*

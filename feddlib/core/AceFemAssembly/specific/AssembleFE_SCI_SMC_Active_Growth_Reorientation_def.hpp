@@ -26,13 +26,14 @@ namespace FEDD
 #ifdef FEDD_HAVE_ACEGENINTERFACE
 
 
-		this->element_ = AceGenInterface::DeformationDiffusionSmoothMuscleActiveGrowthReorientationTetrahedra3D10(this->iCode_);
-		this->historyLength_ = this->element_.getHistoryLength();
-		this->numberOfIntegrationPoints_ = this->element_.getNumberOfGaussPoints();
-		this->postDataLength_ = this->element_.getNumberOfPostData();
-		this->domainDataLength_ = this->element_.getNumberOfDomainData();
-		char** domainDataNames = this->element_.getDomainDataNames();
-		char** postDataNames = this->element_.getPostDataNames();
+		this->element_ = Teuchos::rcp(new AceGenElement_Type(this->iCode_));
+
+		this->historyLength_ = this->element_->getHistoryLength();
+		this->numberOfIntegrationPoints_ = this->element_->getNumberOfGaussPoints();
+		this->postDataLength_ = this->element_->getNumberOfPostData();
+		this->domainDataLength_ = this->element_->getNumberOfDomainData();
+		char** domainDataNames = this->element_->getDomainDataNames();
+		char** postDataNames = this->element_->getPostDataNames();
 
 		std::vector<std::string> subString(this->domainDataLength_);
 
@@ -90,30 +91,30 @@ namespace FEDD
 #ifdef FEDD_HAVE_ACEGENINTERFACE
 
 		// Element ID
-		this->element_.setElementID(this->getGlobalElementID());
+		this->element_->setElementID(this->getGlobalElementID());
 
 		// Nodal Positions in Reference Coordinates
-		double positions[30];
+		positions_.resize(30);
 		int count = 0;
 		for (int i = 0; i < 10; i++)
 		{
 			for (int j = 0; j < 3; j++)
 			{
-				positions[count] = this->getNodesRefConfig()[i][j];
+				positions_[count] = this->getNodesRefConfig()[i][j];
 				count++;
 			}
 		}
-		this->element_.setPositions(positions);
+		this->element_->setPositions(this->positions_.data());
 
 		// Domain Data
-		this->element_.setDomainData(this->domainData_.data());
+		this->element_->setDomainData(this->domainData_.data());
 
 		// History Variables - initial values
-		this->element_.setHistoryVector(this->history_.data());
+		this->element_->setHistoryVector(this->history_.data());
 
-		this->element_.setSubIterationTolerance(this->subiterationTolerance_);
+		this->element_->setSubIterationTolerance(this->subiterationTolerance_);
 
-		this->element_.setComputeCompleted(false);
+		this->element_->setComputeCompleted(false);
 #endif
 
 	}
@@ -127,11 +128,11 @@ namespace FEDD
 
 		assemble_SCI_SMC_Active_Growth_Reorientation(); // Use this if nothing works!
 
-		double **stiffnessMatrixKuu = this->element_.getStiffnessMatrixKuu();
-		double **stiffnessMatrixKuc = this->element_.getStiffnessMatrixKuc();
-		double **stiffnessMatrixKcu = this->element_.getStiffnessMatrixKcu();
-		double **stiffnessMatrixKcc = this->element_.getStiffnessMatrixKcc();
-		double **massMatrixMc = this->element_.getMassMatrixMc();
+		double **stiffnessMatrixKuu = this->element_->getStiffnessMatrixKuu();
+		double **stiffnessMatrixKuc = this->element_->getStiffnessMatrixKuc();
+		double **stiffnessMatrixKcu = this->element_->getStiffnessMatrixKcu();
+		double **stiffnessMatrixKcc = this->element_->getStiffnessMatrixKcc();
+		double **massMatrixMc = this->element_->getMassMatrixMc();
 
 		for (int i = 0; i < 30; i++)
 			for (int j = 0; j < 30; j++)
@@ -188,7 +189,7 @@ namespace FEDD
 		for (int i = 0; i < 10; i++)
 			this->solutionC_n_[i] = (*this->solution_)[i + 30]; // this is the LAST solution of newton iterations
 #ifdef FEDD_HAVE_ACEGENINTERFACE
-		this->element_.setComputeCompleted(false);
+		this->element_->setComputeCompleted(false);
 #endif
 
 	}
@@ -203,14 +204,14 @@ namespace FEDD
 
 		assemble_SCI_SMC_Active_Growth_Reorientation();
 
-		double *residuumRint = this->element_.getResiduumVectorRint();
+		double *residuumRint = this->element_->getResiduumVectorRint();
 
-		double *residuumRDyn = this->element_.getResiduumVectorRdyn();
+		double *residuumRDyn = this->element_->getResiduumVectorRdyn();
 
 		for (int i = 0; i < 30; i++)
 			(*this->rhsVec_)[i] = residuumRint[i]; //+residuumRDyn[i];
 
-		double *residuumRc = this->element_.getResiduumVectorRc();
+		double *residuumRc = this->element_->getResiduumVectorRc();
 
 		for (int i = 0; i < 10; i++)
 			(*this->rhsVec_)[i + 30] = residuumRc[i];
@@ -223,15 +224,15 @@ namespace FEDD
 #ifdef FEDD_HAVE_ACEGENINTERFACE
 
 		double deltaT = this->getTimeIncrement();
-		this->element_.setTimeIncrement(deltaT);
+		this->element_->setTimeIncrement(deltaT);
 
 		double time = this->getTimeStep() + deltaT;
-		this->element_.setTime(time);
+		this->element_->setTime(time);
 
 		double displacements[30];
 		for (int i = 0; i < 30; i++)
 			displacements[i] = (*this->solution_)[i];
-		this->element_.setDisplacements(displacements);
+		this->element_->setDisplacements(displacements);
 
 		double concentrations[10];
 		for (int i = 0; i < 10; i++)
@@ -239,24 +240,24 @@ namespace FEDD
 			concentrations[i] = (*this->solution_)[i + 30];
 			solutionC_n1_[i] = (*this->solution_)[i + 30]; // in each newtonstep solution for n+1 is updated.
 		}
-		this->element_.setConcentrations(concentrations);
+		this->element_->setConcentrations(concentrations);
 
 		double accelerations[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-		this->element_.setAccelerations(accelerations);
+		this->element_->setAccelerations(accelerations);
 
 		double rates[10];
 		for (int i = 0; i < 10; i++)
 			rates[i] = (this->solutionC_n1_[i] - this->solutionC_n_[i]) / deltaT;
-		this->element_.setRates(rates);
+		this->element_->setRates(rates);
 
-		this->element_.setHistoryVector(this->history_.data());
+		this->element_->setHistoryVector(this->history_.data());
 
 		// AceGenInterface::DeformationDiffusionSmoothMuscleActiveGrowthReorientationTetrahedra3D10 elem(positions, displacements, concentrations, accelerations, rates, &this->domainData_[0], &this->history[0], subIterationTolerance, deltaT, time, this->iCode_, this->getGlobalElementID());
-		int errorCode = this->element_.compute();
+		int errorCode = this->element_->compute();
 
-		this->element_.setComputeCompleted(true);
+		this->element_->setComputeCompleted(true);
 
-		double *historyUpdated = this->element_.getHistoryUpdated();
+		double *historyUpdated = this->element_->getHistoryUpdated();
 		for (int i = 0; i < this->historyLength_; i++)
 			this->historyUpdated_[i] = historyUpdated[i];
 #endif
@@ -285,7 +286,7 @@ namespace FEDD
 		for (int i = 0; i < 10; i++)
 			rates[i] = (this->solutionC_n1_[i] - this->solutionC_n_[i]) / this->getTimeIncrement();
 
-		double **postProcessingResults = this->element_.postProcess(&displacements[0], &concentrations[0], this->historyUpdated_.data(), &rates[0], &accelerations[0]);
+		double **postProcessingResults = this->element_->postProcess(&displacements[0], &concentrations[0], this->historyUpdated_.data(), &rates[0], &accelerations[0]);
 
 		for (int i = 0; i < 10; i++){
 			cout << " Node " << i << " " ;
@@ -313,7 +314,7 @@ namespace FEDD
 	{
 #ifdef FEDD_HAVE_ACEGENINTERFACE
 
-		std::vector<double> historyNew = this->element_.initializeGrowthOrientationVectors();
+		std::vector<double> historyNew = this->element_->initializeGrowthOrientationVectors();
 		for (int i = 0; i < this->historyLength_; i++)
 			this->history_[i] = historyNew[i];
 #endif
@@ -325,7 +326,7 @@ namespace FEDD
 	{
 #ifdef FEDD_HAVE_ACEGENINTERFACE
 
-		std::vector<double> stretches = this->element_.getGaussPointStretches();
+		std::vector<double> stretches = this->element_->getGaussPointStretches();
 		int historyPerGP = (int)this->historyLength_ / this->numberOfIntegrationPoints_;
 		for (int i = 0; i < this->numberOfIntegrationPoints_; i++)
 		{
@@ -344,7 +345,7 @@ namespace FEDD
 		
 #ifdef FEDD_HAVE_ACEGENINTERFACE
 
-		this->element_.setDomainData(this->domainData_.data());
+		this->element_->setDomainData(this->domainData_.data());
 #endif
 
 	}
