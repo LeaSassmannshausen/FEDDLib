@@ -3,8 +3,8 @@
 
 #include "feddlib/core/AceFemAssembly/AssembleFE.hpp"
 #include "feddlib/core/AceFemAssembly/specific/AssembleFENavierStokes.hpp"
-#include "feddlib/core/AceFemAssembly/Helper.hpp"
 #include "feddlib/core/FEDDCore.hpp"
+#include "feddlib/core/FE/Helper.hpp"
 #include "feddlib/core/LinearAlgebra/Matrix.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 

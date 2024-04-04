@@ -68,10 +68,6 @@ ADD_SUBDIRECTORY(AceFemAssembly/specific)
 SET(HEADERS ${HEADERS} ${AceFemAssemblySpecific_HEADERS})
 SET(SOURCES ${SOURCES} ${AceFemAssemblySpecific_SOURCES})
 
-ADD_SUBDIRECTORY(AceFemAssembly/TestFE)
-SET(HEADERS ${HEADERS} ${AceFemAssemblyTestFE_HEADERS})
-SET(SOURCES ${SOURCES} ${AceFemAssemblyTestFE_SOURCES})
-
 ADD_SUBDIRECTORY(AceFemAssembly/AceInterface)
 SET(HEADERS ${HEADERS} ${AceFemAssemblyAceInterface_HEADERS})
 SET(SOURCES ${SOURCES} ${AceFemAssemblyAceInterface_SOURCES})

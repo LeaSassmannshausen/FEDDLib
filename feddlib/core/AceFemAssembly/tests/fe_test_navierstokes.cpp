@@ -9,10 +9,8 @@
 
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
-
 #include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/core/FE/FE.hpp"
-#include "feddlib/core/AceFemAssembly/TestFE/FE_Test.hpp"
 #include "feddlib/core/General/ExporterParaView.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 #include <Teuchos_GlobalMPISession.hpp>
@@ -168,7 +166,7 @@ int main(int argc, char *argv[]) {
 	// ANW is first block 
 	// --------------------------------------------------------------
 	MAIN_TIMER_START(FE_test," FE_test: Assemble System");
- 	FE_Test<SC,LO,GO,NO> fe_test;
+ 	FE<SC,LO,GO,NO> fe_test;
     fe_test.addFE(domain);
     fe_test.addFE(domainP1);
     BlockMatrixPtr_Type systemFETest= Teuchos::rcp(new BlockMatrix_Type(2 ) );  

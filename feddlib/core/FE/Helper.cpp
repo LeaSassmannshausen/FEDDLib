@@ -23,7 +23,36 @@ UN Helper::determineDegree(UN dim, std::string FEType, UN degFunc){
     return deg;
 }
 
-UN Helper::determineDegree2(UN dim, std::string FEType1, std::string FEType2, VarType type1,VarType type2, UN extraDeg){
+UN Helper::determineDegree(UN dim, std::string FEType, int type){
+    UN deg;
+    if (!FEType.compare("P0")) {
+        deg = 0;
+    }
+    else if (!FEType.compare("P1")) {
+        if (type==Std)
+            deg = 1;
+        else if (type==Grad)
+            deg = 0;
+    }
+    else if (!FEType.compare("P2")) {
+        if (type==Std)
+            deg = 2;
+        else if (type==Grad)
+            deg = 1;
+    }
+    else if (!FEType.compare("Q2")) {
+        if (type==Std)
+            deg = 2;
+        else if (type==Grad)
+            deg = 2;
+    }
+    
+    if (deg==0)
+        deg = 1;
+    return deg;
+}
+
+UN Helper::determineDegree(UN dim, std::string FEType1, std::string FEType2, int type1,int type2, UN extraDeg){
 
     TEUCHOS_TEST_FOR_EXCEPTION( dim==2 && ( FEType1=="P2-CR" || FEType2=="P2-CR"), std::runtime_error, "P2-CR should be only available in 3D.");
     UN deg1, deg2;
@@ -102,7 +131,126 @@ UN Helper::determineDegree2(UN dim, std::string FEType1, std::string FEType2, Va
         deg = 1;
     
     return deg;
-} 
+}
+void Helper::buildTransformationSurface(const vec_int_Type& element,
+                                                 vec2D_dbl_ptr_Type pointsRep,
+                                                 SmallMatrix<SC>& B,
+                                                 vec_dbl_Type& b,
+                                                 std::string FEType){
+    // small matrix always square
+    TEUCHOS_TEST_FOR_EXCEPTION( (B.size()<2 || B.size()>3), std::logic_error, "Initialize SmallMatrix for transformation.");
+    UN index;
+    UN index0 = element.at(0);
+    if (FEType[0]=='P') {
+        for (UN j=0; j<B.size()-1; j++) {
+            index = element.at(j+1);
+            for (UN i=0; i<B.size(); i++) { // dimension
+                B[i][j] = pointsRep->at(index).at(i) - pointsRep->at(index0).at(i);
+            }
+        }
+        for (UN i=0; i<B.size(); i++)
+            b[i] = pointsRep->at(index0).at(i);
+    }
+    else if (FEType[0]=='Q'){
+        TEUCHOS_TEST_FOR_EXCEPTION( B.size()!=3, std::logic_error, "No Transformation for surface integrals.");
+    }
+}
+
+void Helper::computeSurfaceNormal(int dim,
+                                   vec2D_dbl_ptr_Type pointsRep,
+                                   vec_int_Type nodeList,
+                                   vec_dbl_Type &v_E,
+                                   double &norm_v_E)
+{
+
+    vec_dbl_Type p1(dim),p2(dim);
+
+    if(dim==2){
+        v_E[0] = pointsRep->at(nodeList[0]).at(1) - pointsRep->at(nodeList[1]).at(1);
+        v_E[1] = -(pointsRep->at(nodeList[0]).at(0) - pointsRep->at(nodeList[1]).at(0));
+        norm_v_E = sqrt(pow(v_E[0],2)+pow(v_E[1],2));
+
+    }
+    else if(dim==3){
+
+        p1[0] = pointsRep->at(nodeList[0]).at(0) - pointsRep->at(nodeList[1]).at(0);
+        p1[1] = pointsRep->at(nodeList[0]).at(1) - pointsRep->at(nodeList[1]).at(1);
+        p1[2] = pointsRep->at(nodeList[0]).at(2) - pointsRep->at(nodeList[1]).at(2);
+
+        p2[0] = pointsRep->at(nodeList[0]).at(0) - pointsRep->at(nodeList[2]).at(0);
+        p2[1] = pointsRep->at(nodeList[0]).at(1) - pointsRep->at(nodeList[2]).at(1);
+        p2[2] = pointsRep->at(nodeList[0]).at(2) - pointsRep->at(nodeList[2]).at(2);
+
+        v_E[0] = p1[1]*p2[2] - p1[2]*p2[1];
+        v_E[1] = p1[2]*p2[0] - p1[0]*p2[2];
+        v_E[2] = p1[0]*p2[1] - p1[1]*p2[0];
+
+        norm_v_E = sqrt(pow(v_E[0],2)+pow(v_E[1],2)+pow(v_E[2],2));
+
+    }
+
+}
+
+void Helper::buildTransformation(const vec_int_Type& element,
+                                          vec2D_dbl_ptr_Type pointsRep,
+                                          SmallMatrix<SC>& B,
+                                          std::string FEType){
+
+    TEUCHOS_TEST_FOR_EXCEPTION( (B.size()<2 || B.size()>3), std::logic_error, "Initialize SmallMatrix for transformation.");
+    UN index;
+    UN index0 = element.at(0);
+    if (FEType[0]=='P') {
+        for (UN j=0; j<B.size(); j++) {
+            index = element.at(j+1);
+            for (UN i=0; i<B.size(); i++) {
+                B[i][j] = pointsRep->at(index).at(i) - pointsRep->at(index0).at(i);
+            }
+        }
+    }
+    else if (FEType[0]=='Q'){
+        TEUCHOS_TEST_FOR_EXCEPTION( B.size()!=3, std::logic_error, "Transformation for quadrilateral elements only in 3D.");
+        std::vector<int> indexVec(3);
+        indexVec[0] = element[1]; indexVec[1] = element[3]; indexVec[2] = element[4];
+        for (UN j=0; j<B.size(); j++) {
+            for (UN i=0; i<B.size(); i++) {
+                B[i][j] = ( pointsRep->at( indexVec[j] ).at(i) - pointsRep->at( index0 ).at(i) ) / 2.;
+            }
+        }
+    }
+}
+void Helper::buildTransformation(const vec_int_Type& element,
+                                          vec2D_dbl_ptr_Type pointsRep,
+                                          SmallMatrix<SC>& B,
+                                          vec_dbl_Type& b,
+                                          std::string FEType){
+
+    TEUCHOS_TEST_FOR_EXCEPTION( (B.size()<2 || B.size()>3), std::logic_error, "Initialize SmallMatrix for transformation.");
+    UN index;
+    UN index0 = element.at(0);
+    if (FEType[0]=='P') {
+        for (UN j=0; j<B.size(); j++) {
+            index = element.at(j+1);
+            for (UN i=0; i<B.size(); i++) {
+                B[i][j] = pointsRep->at(index).at(i) - pointsRep->at(index0).at(i);
+            }
+        }
+        for (UN i=0; i<B.size(); i++)
+            b[i] = pointsRep->at(index0).at(i);
+    }
+    else if (FEType[0]=='Q'){
+        TEUCHOS_TEST_FOR_EXCEPTION( B.size()!=3, std::logic_error, "Transformation for quadrilateral elements only in 3D.");
+        std::vector<int> indexVec(3);
+        indexVec[0] = element[1]; indexVec[1] = element[3]; indexVec[2] = element[4];
+        for (UN j=0; j<B.size(); j++) {
+            for (UN i=0; i<B.size(); i++) {
+                B[i][j] = ( pointsRep->at( indexVec[j] ).at(i) - pointsRep->at( index0 ).at(i) ) / 2.;
+            }
+        }
+        for (UN i=0; i<B.size(); i++)
+            b[i] = pointsRep->at(index0).at(i);
+
+    }
+}
 
 int Helper::getDPhi(vec3D_dbl_ptr_Type &DPhi,
                      vec_dbl_ptr_Type &weightsDPhi,

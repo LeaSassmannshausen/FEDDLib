@@ -2221,5 +2221,29 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
 
 }
 
+/*template <class SC, class LO, class GO, class NO>
+ void MeshUnstructured<SC, LO, GO, NO>::exportNodeFlags()
+{
+        Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
+
+        Teuchos::RCP<MultiVector<SC,LO,GO,NO> > exportSolution(new MultiVector<SC,LO,GO,NO>(this->getMapUnique()));
+        vec_int_ptr_Type BCFlags = this->getBCFlagUnique();
+
+        Teuchos::ArrayRCP< SC > entries  = exportSolution->getDataNonConst(0);
+        for(int i=0; i< entries.size(); i++){
+            entries[i] = BCFlags->at(i);
+        }
+
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionConst = exportSolution;
+
+        MeshPtr_Type mesh = Teuchos::rcp_dynamic_cast<Mesh_Type>(this);
+
+        exPara->setup("Mesh_Node_Flags",mesh, this->FEType_);
+
+        exPara->addVariable(exportSolutionConst, "Flags", "Scalar", 1,this->getMapUnique(), this->getMapUnique());
+
+        exPara->save(0.0);
+
+}*/
 }
 #endif

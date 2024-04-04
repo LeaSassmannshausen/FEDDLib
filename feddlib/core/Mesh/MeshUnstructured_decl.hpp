@@ -8,7 +8,7 @@
 #include "feddlib/core/FE/EdgeElements.hpp"
 #include "feddlib/core/LinearAlgebra/BlockMatrix.hpp"
 #include "feddlib/core/FE/TriangleElements.hpp"
-
+#include "feddlib/core/General/ExporterParaView.hpp"
 /*!
  Declaration of MeshUnstructured
  
@@ -33,6 +33,7 @@ class MeshUnstructured : public Mesh<SC,LO,GO,NO> {
 public:
     typedef Mesh<SC,LO,GO,NO> Mesh_Type;
     typedef Teuchos::RCP<MeshUnstructured<SC,LO,GO,NO> > MeshUnstrPtr_Type;
+    typedef Teuchos::RCP<Mesh_Type> MeshPtr_Type;
 
     typedef std::vector<MeshUnstrPtr_Type> MeshUnstrPtrArray_Type;
 
@@ -242,6 +243,22 @@ public:
 
 	*/
 	void exportMesh(MapConstPtr_Type mapUnique, MapConstPtr_Type mapRep, bool exportEdges=false, bool exportSurface=false ,string meshName="export.mesh");
+
+	/*!
+	
+	
+	
+	
+	*/
+	void exportNodeFlags();
+	
+	/*!
+	
+	
+	
+	
+	*/
+	void exportElementFlags();
 
     /* ###################################################################### */
     
