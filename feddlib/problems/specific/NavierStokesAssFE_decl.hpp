@@ -1,7 +1,6 @@
 #ifndef NAVIERSTOKESASSFE_decl_hpp
 #define NAVIERSTOKESASSFE_decl_hpp
 #include "feddlib/problems/abstract/NonLinearProblem.hpp"
-#include "feddlib/core/AceFemAssembly/TestFE/FE_Test.hpp"
 #include "Xpetra_ThyraUtils.hpp"
 #include "Xpetra_CrsMatrixWrap.hpp"
 #include <Thyra_ProductVectorBase.hpp>

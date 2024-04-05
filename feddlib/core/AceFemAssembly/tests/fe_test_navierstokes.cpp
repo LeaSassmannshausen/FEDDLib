@@ -47,6 +47,11 @@ int main(int argc, char *argv[]) {
     typedef RCP<MultiVector_Type> MultiVectorPtr_Type;
     typedef RCP<const MultiVector_Type> MultiVectorConstPtr_Type;
 
+  
+ 	typedef BlockMultiVector<SC,LO,GO,NO> BlockMultiVector_Type;
+    typedef RCP<BlockMultiVector_Type> BlockMultiVectorPtr_Type;
+
+
     typedef BlockMatrix<SC,LO,GO,NO> BlockMatrix_Type ;
     typedef RCP<BlockMatrix_Type> BlockMatrixPtr_Type;
 
@@ -112,12 +117,15 @@ int main(int argc, char *argv[]) {
 	// Here we check the different blocks of the NavierStokes system.
 
     FE<SC,LO,GO,NO> fe;
+ 	FE<SC,LO,GO,NO> fe_test;
     fe.addFE(domain);
     fe.addFE(domainP1);
 	fe.doSetZeros(pow(10,-13));
 	// Solution
 	MultiVectorPtr_Type u_rep = Teuchos::rcp(new MultiVector_Type(domain->getMapVecFieldRepeated(),1));
+	MultiVectorPtr_Type p_rep = Teuchos::rcp(new MultiVector_Type(domain->getMapRepeated(),1));
 	u_rep->putScalar(100.);
+	p_rep->putScalar(0.);
 
 	// Checking first Block:
 
@@ -162,11 +170,11 @@ int main(int argc, char *argv[]) {
 	BT->fillComplete();
 
 	MAIN_TIMER_STOP(FE);	
-	cout << " Done for FE " << endl;
+	cout << " Done for FE routine " << endl;
 	// ANW is first block 
 	// --------------------------------------------------------------
 	MAIN_TIMER_START(FE_test," FE_test: Assemble System");
- 	FE<SC,LO,GO,NO> fe_test;
+
     fe_test.addFE(domain);
     fe_test.addFE(domainP1);
     BlockMatrixPtr_Type systemFETest= Teuchos::rcp(new BlockMatrix_Type(2 ) );  
@@ -182,7 +190,20 @@ int main(int argc, char *argv[]) {
 	systemFETest->addBlock(B_test,1,0);
 	systemFETest->addBlock(dummy,1,1);
 
-    fe_test.assemblyNavierStokes(dim, FETypeV, FETypeP, 2,dofsV,dofsP,u_rep,systemFETest, true/*call fillComplete*/);
+	BlockMultiVectorPtr_Type resVec = Teuchos::rcp( new BlockMultiVector_Type( 2 ) ); // RHS vector
+    MultiVectorPtr_Type u_res = Teuchos::rcp( new MultiVector_Type( domain->getMapVecFieldUnique(), 1 ) ); // d_vec
+    MultiVectorPtr_Type p_res = Teuchos::rcp( new MultiVector_Type( domainP1->getMapUnique(), 1 ) ); // d_vec
+    resVec->addBlock(u_res,0);
+    resVec->addBlock(p_res,1);
+    
+    SmallMatrix<SC> defTS(2);
+    defTS[0][0] = 1;
+    defTS[0][1] = 1;
+    defTS[1][0] = 0;
+    defTS[1][1] = 0;
+
+
+    fe_test.assemblyNavierStokes(dim, FETypeV, FETypeP, 2,dofsV,dofsP,u_rep, p_rep, systemFETest, resVec, defTS, params, true, "Jacobian", true/*call fillComplete*/);
     
 	//B->print();
 	//B_test->print();

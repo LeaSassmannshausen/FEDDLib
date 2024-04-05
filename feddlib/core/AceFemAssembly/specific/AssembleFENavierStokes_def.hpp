@@ -70,6 +70,7 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::assembleJacobian() {
 	SmallMatrixPtr_Type elementMatrixW =Teuchos::rcp( new SmallMatrix_Type( dofsElementVelocity_+numNodesPressure_));
 
 	if(this->newtonStep_ ==0){
+
 		SmallMatrixPtr_Type elementMatrixA =Teuchos::rcp( new SmallMatrix_Type( dofsElementVelocity_+numNodesPressure_));
 		SmallMatrixPtr_Type elementMatrixB =Teuchos::rcp( new SmallMatrix_Type( dofsElementVelocity_+numNodesPressure_));
 
@@ -150,7 +151,7 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::assemblyLaplacian(SmallMatrixPtr_Type 
 
 	int dim = this->getDim();
 	int numNodes= numNodesVelocity_;
-	int Grad =2; // Needs to be fixed	
+	UN Grad =2; // Needs to be fixed	
 	string FEType = FETypeVelocity_;
 	int dofs = dofsVelocity_;
 
@@ -158,6 +159,7 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::assemblyLaplacian(SmallMatrixPtr_Type 
     vec_dbl_ptr_Type weights = Teuchos::rcp(new vec_dbl_Type(0));
     
     UN deg = Helper::determineDegree(dim,FEType,Grad);
+    //cout << " Degree " << deg << " Grad " << Grad << " FeType " << FEType << endl;
     Helper::getDPhi(dPhi, weights, dim, FEType, deg);
     
     SC detB;
@@ -171,7 +173,7 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::assemblyLaplacian(SmallMatrixPtr_Type 
     absDetB = std::fabs(detB);
 
     vec3D_dbl_Type dPhiTrans( dPhi->size(), vec2D_dbl_Type( dPhi->at(0).size(), vec_dbl_Type(dim,0.) ) );
-    applyBTinv( dPhi, dPhiTrans, Binv );
+    Helper::applyBTinv( dPhi, dPhiTrans, Binv );
   	
     for (UN i=0; i < numNodes; i++) {
         Teuchos::Array<SC> value( dPhiTrans[0].size(), 0. );
@@ -227,7 +229,7 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::assemblyAdvection(SmallMatrixPtr_Type 
 
 	int dim = this->getDim();
 	int numNodes= numNodesVelocity_;
-	int Grad =2; // Needs to be fixed	
+	UN Grad =2; // Needs to be fixed	
 	string FEType = FETypeVelocity_;
 	int dofs = dofsVelocity_;
 
@@ -236,7 +238,7 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::assemblyAdvection(SmallMatrixPtr_Type 
     vec2D_dbl_ptr_Type  phi;
 	vec_dbl_ptr_Type weights = Teuchos::rcp(new vec_dbl_Type(0));
 
-	UN deg = 5; //Helper::determineDegree(dim,FEType,Grad); // Not complete
+	UN deg = Helper::determineDegree(dim,FEType,Grad); // Not complete
 	//UN extraDeg = determineDegree( dim, FEType, Std); //Elementwise assembly of grad u
     //UN deg = determineDegree( dim, FEType, FEType, Grad, Std, extraDeg);
 
@@ -255,7 +257,7 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::assemblyAdvection(SmallMatrixPtr_Type 
     absDetB = std::fabs(detB);
 
     vec3D_dbl_Type dPhiTrans( dPhi->size(), vec2D_dbl_Type( dPhi->at(0).size(), vec_dbl_Type(dim,0.) ) );
-    applyBTinv( dPhi, dPhiTrans, Binv );
+    Helper::applyBTinv( dPhi, dPhiTrans, Binv );
 
     for (int w=0; w<phi->size(); w++){ //quads points
         for (int d=0; d<dim; d++) {
@@ -301,7 +303,7 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::assemblyAdvectionInU(SmallMatrixPtr_Ty
 
 	int dim = this->getDim();
 	int numNodes= numNodesVelocity_;
-	int Grad =2; // Needs to be fixed	
+	UN Grad =2; // Needs to be fixed	
 	string FEType = FETypeVelocity_;
 	int dofs = dofsVelocity_;
 
@@ -310,7 +312,7 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::assemblyAdvectionInU(SmallMatrixPtr_Ty
     vec2D_dbl_ptr_Type  phi;
 	vec_dbl_ptr_Type weights = Teuchos::rcp(new vec_dbl_Type(0));
 
-	UN deg = 5 ;// Helper::determineDegree(dim,FEType,Grad); // Not complete
+	UN deg = Helper::determineDegree(dim,FEType,Grad); // Not complete
 	//UN extraDeg = determineDegree( dim, FEType, Std); //Elementwise assembly of grad u
     //UN deg = determineDegree( dim, FEType, FEType, Grad, Std, extraDeg);
 
@@ -329,7 +331,7 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::assemblyAdvectionInU(SmallMatrixPtr_Ty
     absDetB = std::fabs(detB);
 
     vec3D_dbl_Type dPhiTrans( dPhi->size(), vec2D_dbl_Type( dPhi->at(0).size(), vec_dbl_Type(dim,0.) ) );
-    applyBTinv( dPhi, dPhiTrans, Binv );
+    Helper::applyBTinv( dPhi, dPhiTrans, Binv );
     //UN FEloc = checkFE(dim,FEType);
 
 
@@ -398,7 +400,7 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::assemblyDivAndDivT(SmallMatrixPtr_Type
     absDetB = std::fabs(detB);
 
     vec3D_dbl_Type dPhiTrans( dPhi->size(), vec2D_dbl_Type( dPhi->at(0).size(), vec_dbl_Type(dim,0.) ) );
-    applyBTinv( dPhi, dPhiTrans, Binv );
+    Helper::applyBTinv( dPhi, dPhiTrans, Binv );
 
     Teuchos::Array<GO> rowIndex( 1, 0 );
     Teuchos::Array<SC> value(1, 0.);
@@ -480,22 +482,6 @@ void AssembleFENavierStokes<SC,LO,GO,NO>::buildTransformation(SmallMatrix<SC>& B
         }
     }
 
-}
-
-template <class SC, class LO, class GO, class NO>
-void AssembleFENavierStokes<SC,LO,GO,NO>::applyBTinv( vec3D_dbl_ptr_Type& dPhiIn,
-                                    vec3D_dbl_Type& dPhiOut,
-                                    SmallMatrix<SC>& Binv){
-    UN dim = Binv.size();
-    for (UN w=0; w<dPhiIn->size(); w++){
-        for (UN i=0; i < dPhiIn->at(w).size(); i++) {
-            for (UN d1=0; d1<dim; d1++) {
-                for (UN d2=0; d2<dim; d2++) {
-                    dPhiOut[w][i][d1] += dPhiIn->at(w).at(i).at(d2) * Binv[d2][d1];
-                }
-            }
-        }
-    }
 }
 
 }

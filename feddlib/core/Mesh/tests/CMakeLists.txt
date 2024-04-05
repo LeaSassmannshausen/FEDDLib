@@ -298,6 +298,19 @@ ARGS
 NUM_MPI_PROCS 2
 )
 
+### Exporting mesh flags
+TRIBITS_ADD_EXECUTABLE(
+mesh_flag_write
+SOURCES mesh_flag_write.cpp
+)
+
+TRIBITS_ADD_TEST(
+mesh_flag_write
+NAME mesh_flag_write
+ARGS
+NUM_MPI_PROCS 2
+)
+
 TRIBITS_COPY_FILES_TO_BINARY_DIR(data_meshes_custom_partition
 SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
 SOURCE_FILES meshes_custom_partition.xml

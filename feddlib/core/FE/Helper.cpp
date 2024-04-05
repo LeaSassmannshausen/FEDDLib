@@ -20,6 +20,7 @@ UN Helper::determineDegree(UN dim, std::string FEType, UN degFunc){
 
     if (deg==0)
         deg = 1;
+
     return deg;
 }
 
@@ -49,6 +50,7 @@ UN Helper::determineDegree(UN dim, std::string FEType, int type){
     
     if (deg==0)
         deg = 1;
+
     return deg;
 }
 
@@ -249,6 +251,22 @@ void Helper::buildTransformation(const vec_int_Type& element,
         for (UN i=0; i<B.size(); i++)
             b[i] = pointsRep->at(index0).at(i);
 
+    }
+}
+
+
+void Helper::applyBTinv( vec3D_dbl_ptr_Type& dPhiIn,
+                                    vec3D_dbl_Type& dPhiOut,
+                                    const SmallMatrix<SC>& Binv){
+    UN dim = Binv.size();
+    for (UN w=0; w<dPhiIn->size(); w++){
+        for (UN i=0; i < dPhiIn->at(w).size(); i++) {
+            for (UN d1=0; d1<dim; d1++) {
+                for (UN d2=0; d2<dim; d2++) {
+                    dPhiOut[w][i][d1] += dPhiIn->at(w).at(i).at(d2) * Binv[d2][d1];
+                }
+            }
+        }
     }
 }
 

@@ -528,6 +528,15 @@ public:
    void exportMesh(bool exportEdges = false, bool exportSurfaces=false, string exportMesh="export.mesh");
 
 
+    /// @brief Exporting Paraview file displaying element flags of the underlying mesh
+    /// @param name 
+    void exportElementFlags(string name = "default");
+
+
+    /// @brief Exporting Paraview file displaying node flags of the underlying mesh
+    /// @param name export suffix to identify flags
+    void exportNodeFlags(string name = "default");
+
 /* ----------------------------------------------------------------------------------------*/
 
 private:
@@ -554,9 +563,9 @@ private:
     MapPtr_Type             interfaceMapVecFieldUnique_; // dofs
 
     // Unique Fluid/Struktur-Interface-Maps als nodes und als dofs in der globalen Nummerierung
-    MapPtr_Type             globalInterfaceMapUnique_;
-    MapPtr_Type             globalInterfaceMapVecFieldUnique_;
-    MapPtr_Type             partialGlobalInterfaceVecFieldMap_;
+    MapPtr_Type  globalInterfaceMapUnique_;
+    MapPtr_Type globalInterfaceMapVecFieldUnique_;
+    MapPtr_Type partialGlobalInterfaceVecFieldMap_;
     MapPtr_Type otherGlobalInterfaceMapUnique_;
     MapPtr_Type otherGlobalInterfaceMapVecFieldUnique_;
     MapPtr_Type otherPartialGlobalInterfaceVecFieldMap_;

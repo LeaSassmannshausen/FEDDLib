@@ -123,13 +123,13 @@ int main(int argc, char *argv[]) {
     MatrixPtr_Type A_test= Teuchos::rcp(new Matrix_Type( domain->getMapUnique(),domain->getDimension() * domain->getApproxEntriesPerRow()   ) );
     BlockMatrixPtr_Type system = Teuchos::rcp( new BlockMatrix_Type( 2 ) ); // 
     
-	system->addBlock(A_test,0,0);
 	if(dofs == dim)
 		A_test.reset(new Matrix_Type( domain->getMapVecFieldUnique(), 30  ) );
+		
+	system->addBlock(A_test,0,0);
     {
-        fe_test.assemblyLaplace(dim, FEType, 2,dofs, A_test, true/*call fillComplete*/);
+        fe_test.assemblyLaplaceAssFE(dim, FEType, 2,dofs, system, true/*call fillComplete*/);
     }
-
    
 	MatrixPtr_Type Sum= Teuchos::rcp(new Matrix_Type(domain->getMapUnique(), 30  ) ); // with approx entries per row
 	if(dofs == dim)

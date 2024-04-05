@@ -114,7 +114,14 @@ public:
                     std::string FEType,
                     int Degree);
 
-    
+
+    /// @brief Applying the transformation matriX B to the gradient of phi, as is done in when transforming the gradient of phi to the reference element
+    /// @param dPhiIn 
+    /// @param dPhiOut 
+    /// @param Binv 
+    static void applyBTinv( vec3D_dbl_ptr_Type& dPhiIn,
+                    vec3D_dbl_Type& dPhiOut,
+                    const SmallMatrix<SC>& Binv);
 
 	static UN determineDegree(UN dim, 
 								std::string FEType1, 		

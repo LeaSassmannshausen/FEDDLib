@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
     myCLP.setOption("dim",&dim,"Dimension");
     string delimiter = " ";
     myCLP.setOption("delimiter",&delimiter,"Delimiter in mesh-file");
-    string FEType="P1";
+    string FEType="P2";
     myCLP.setOption("FEType",&FEType,"FEType");
    /* bool exportEdges= true;
     myCLP.setOption("exportEdges",&exportEdges,"Exporting Edges");
@@ -73,14 +73,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Mesh
-    
-    int numProcsCoarseSolve = 0;
-    bool boolExportMesh = true;
-    bool boolExportSubdomains = false;
     int volumeID = 10;
-    if (filename=="some_tetrahedron.mesh")
-        volumeID = 12;
-
+    
     DomainPtr_Type domainP1;
     DomainPtr_Type domainP2;
     DomainPtr_Type domain;
@@ -103,38 +97,13 @@ int main(int argc, char *argv[]) {
     }
     else
         domain = domainP1;
-
-    domain->exportMesh(true,true,exportfilename);
     
- 	FE<SC,LO,GO,NO> fe_1;
-    fe_1.addFE(domain);
-    fe_1.checkMeshOrientation(dim,FEType);
-    
-    comm->barrier();
-    
-    if(FEType =="P1"){
-		ParameterListPtr_Type pListPartitionerTest = Teuchos::rcp( new ParameterList("Mesh Partitioner") );
-		pListPartitionerTest->set( "Mesh 1 Name", exportfilename );
-		
-		DomainPtr_Type domainP1Test;
-		DomainPtr_Type domainTest;
-
-		domainP1Test.reset( new Domain_Type( comm, dim ) );
-		MeshPartitioner_Type::DomainPtrArray_Type domainP1ArrayTest(1);
-		domainP1ArrayTest[0] = domainP1Test;
-
-		MeshPartitioner<SC,LO,GO,NO> partitionerP1Test ( domainP1ArrayTest, pListPartitionerTest, "P1", dim );
-		comm->barrier();
-
-		partitionerP1Test.readAndPartition(volumeID);
-
-		domainTest = domainP1Test;
-	   
-		FE<SC,LO,GO,NO> fe_2;
-		fe_2.addFE(domainTest);
-		fe_2.checkMeshOrientation(dim,FEType);
-   	}
-    
+    // Exporting element flags of mesh with suffix 'test'
+    domain->exportElementFlags("test");
+    // Exporting node flags (corresponding to disc. type) with suffix 'test'
+    domain->exportNodeFlags("test");
+ 	
+  
 
     
 
