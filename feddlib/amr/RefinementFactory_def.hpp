@@ -2548,7 +2548,6 @@ void RefinementFactory<SC,LO,GO,NO>::refineType4(EdgeElementsPtr_Type edgeElemen
 // Implementation of Type (4) Refinement Type
 // We use this Refinement Type 
 	int volumeID = elements->getElement(indexElement).getFlag();
-	cout << " Refinement type 4" << endl;
 	if(this->dim_ == 3){ 
 
 		// The way we refine the Tetrahedron is defined by how we order the nodes of the tetrahedron
@@ -2985,7 +2984,6 @@ template <class SC, class LO, class GO, class NO>
 void RefinementFactory<SC,LO,GO,NO>::refineType3(EdgeElementsPtr_Type edgeElements, ElementsPtr_Type elements, int indexElement, SurfaceElementsPtr_Type surfaceTriangleElements){
 
 	int volumeID = elements->getElement(indexElement).getFlag();
-	cout << " Refinement type 3 " << endl;
 
 // Implementation of Type (3) Refinement Type
 // We use this Refinement Type 
@@ -3422,7 +3420,6 @@ void RefinementFactory<SC,LO,GO,NO>::refineType2(EdgeElementsPtr_Type edgeElemen
 // Implementation of Type (2) Refinement Type
 // We use this Refinement Type 
 	int volumeID = elements->getElement(indexElement).getFlag();
-	cout << " Refinement type 2" << endl;
 
 	if(this->dim_ == 3){ 
 
@@ -3777,7 +3774,6 @@ void RefinementFactory<SC,LO,GO,NO>::refineType1(EdgeElementsPtr_Type edgeElemen
 
 // Implementation of Type (1) Refinement Type
 // We use this Refinement Type 
-	cout << " Refinement type 1" << endl;
 
 	int volumeID = elements->getElement(indexElement).getFlag();
 

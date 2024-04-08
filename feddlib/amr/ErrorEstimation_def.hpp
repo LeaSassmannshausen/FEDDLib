@@ -186,7 +186,6 @@ typename ErrorEstimation<SC,LO,GO,NO>::MultiVectorPtr_Type ErrorEstimation<SC,LO
 	// - New Surface Set
 	// - 
 	MESH_TIMER_START(errorEstimation," Error Estimation ");
-
  
 	edgeElements->matchEdgesToElements(elementMap);
 
@@ -303,7 +302,7 @@ typename ErrorEstimation<SC,LO,GO,NO>::MultiVectorPtr_Type ErrorEstimation<SC,LO
 		vec_int_Type surfaceNumbers(4);
 		// tmp values u_1,u_2 of gradient u of two elements corresponing with surface 
 		vec_dbl_Type u1(3),u2(3);
-		
+
 		// gradient of u elementwise 
 		vec_dbl_Type u_Jump = calculateJump();
 
@@ -336,7 +335,6 @@ typename ErrorEstimation<SC,LO,GO,NO>::MultiVectorPtr_Type ErrorEstimation<SC,LO
 		double divUElement=0;
 		double resElement=0;
 	
-
 		// Then we determine the jump over the edges, if the element we need for this is not on our proc, we import the solution u
 		for(int k=0; k< elements->numberElements();k++){
 			surfaceNumbers = surfaceElements->getSurfacesOfElement(k); // surfaces of Element k
@@ -685,7 +683,7 @@ vec_dbl_Type ErrorEstimation<SC,LO,GO,NO>::calculateJump(){
 
 	// We calculate the Gradient for all edges or surfaces in direction of N. This is done for the gradient of the velocity u or the pressure p.
 	vec3D_dbl_Type u_El = calcNPhi("Gradient",  dofs_, FEType2_);
-	
+
 	// We generally do not need to calculate this part of the jump as the pressure is steady over the edges resulting in a zero pressure Jump.
 	vec3D_dbl_Type p_El;
 	//if(calculatePressure_ == true)
@@ -765,7 +763,7 @@ vec_dbl_Type ErrorEstimation<SC,LO,GO,NO>::calculateJump(){
 
 			surfaceElementsError[k] = h_Tri[k]*jumpQuad*quadWeightConst; 
 		}
-						
+			
 	}
 	return surfaceElementsError;
 
@@ -803,7 +801,7 @@ vec3D_dbl_Type ErrorEstimation<SC,LO,GO,NO>::calcNPhi(string phiDerivative, int 
 		numberSurfaceElements = surfaceTriangleElements->numberElements();
 		surfaceMap= this->surfaceTriangleMap_;
 	}
-	
+
 	// the int-version of the fe discretisation
 	int intFE = 1;
 	int numNodes= dim_+1;
@@ -840,7 +838,6 @@ vec3D_dbl_Type ErrorEstimation<SC,LO,GO,NO>::calcNPhi(string phiDerivative, int 
     SmallMatrix<SC> B1(dim_);
     SmallMatrix<SC> Binv1(dim_);  
 	int index0,index;
-
 
 	edgeElements->matchEdgesToElements(elementMap);
 
@@ -903,7 +900,7 @@ vec3D_dbl_Type ErrorEstimation<SC,LO,GO,NO>::calcNPhi(string phiDerivative, int 
 
 				norm_v_E = sqrt(pow(v_E[0],2)+pow(v_E[1],2)+pow(v_E[2],2));	  
 			}
-					
+	
 			vec_LO_Type elementsIDs(0);
 			// Case that both necessary element are on the same Proc
 			if(elementsOfSurfaceLocal.at(k).at(0) != -1){
@@ -1025,23 +1022,27 @@ vec3D_dbl_Type ErrorEstimation<SC,LO,GO,NO>::calcNPhi(string phiDerivative, int 
 			}	
 		}
 	}
+	inputMesh_->getComm()->barrier();
+
 	
 	// We construct map from the previously extracted elementImportIDs
 	sort(elementImportIDs.begin(),elementImportIDs.end());
 
 	vec_GO_Type::iterator ip = unique( elementImportIDs.begin(), elementImportIDs.end());
+
 	elementImportIDs.resize(distance(elementImportIDs.begin(), ip)); 
 	Teuchos::ArrayView<GO> globalElementArrayImp = Teuchos::arrayViewFromVector( elementImportIDs);
-
 
 	// Map which represents the surface ids that need to import element information
 	MapPtr_Type mapElementImport =
 		Teuchos::rcp( new Map_Type( elementMap->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalElementArrayImp, 0, inputMesh_->getComm()) );
 
+
 	int maxRank = std::get<1>(inputMesh_->rankRange_);
 	MapPtr_Type mapElementsUnique = mapElementImport;
 
-	if(maxRank>0)
+
+	if(maxRank>0 && mapElementsUnique->getMaxAllGlobalIndex() > 0)
 		mapElementsUnique = mapElementImport->buildUniqueMap( inputMesh_->rankRange_ );
 
 	// In case of a vector values solution we need to import/export dofs-many entries and all of those entries for each of the quadpoints
@@ -1071,7 +1072,6 @@ vec3D_dbl_Type ErrorEstimation<SC,LO,GO,NO>::calcNPhi(string phiDerivative, int 
 	Teuchos::ArrayRCP< SC > entriesU_x_impF  = valuesU_x_impF->getDataNonConst(0);
 	Teuchos::ArrayRCP< SC > entriesU_y_impF  = valuesU_y_impF->getDataNonConst(0);
 	Teuchos::ArrayRCP< SC > entriesU_z_impF  = valuesU_z_impF->getDataNonConst(0);
-
 
 	// We exchange values per quad point
 	for(int i=0; i<quadPSize; i++){
@@ -1107,7 +1107,6 @@ vec3D_dbl_Type ErrorEstimation<SC,LO,GO,NO>::calcNPhi(string phiDerivative, int 
 				vec_El2[surfaceMap->getLocalElement(elementImportIDs[j])][i][2] = entriesU_z_impF[j];
 		}	
 	}
-	
 	for(int i=0; i< numberSurfaceElements ; i++){
 		for(int j=0; j<quadPSize; j++){
 			for(int k=0; k< dofsSol ; k++){
