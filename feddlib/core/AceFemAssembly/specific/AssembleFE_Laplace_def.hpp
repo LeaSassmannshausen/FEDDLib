@@ -55,7 +55,7 @@ void AssembleFE_Laplace<SC,LO,GO,NO>::assemblyLaplacian(SmallMatrixPtr_Type &ele
 
 	int dim = this->getDim();
 	int numNodes= std::get<3>(this->diskTuple_->at(0));//this->getNodesRefConfig().size();
-	int Grad =2; // Needs to be fixed	
+	UN Grad =2; // Needs to be fixed	
 	string FEType = std::get<1>(this->diskTuple_->at(0));
 	int dofs = std::get<2>(this->diskTuple_->at(0));
 
@@ -107,7 +107,7 @@ void AssembleFE_Laplace<SC,LO,GO,NO>::assembleRHS() {
 
 
 	int dim = this->getDim();
-	int Grad =1; // Needs to be fixed	
+	UN Grad =1; // Needs to be fixed	
 	int numNodes= std::get<3>(this->diskTuple_->at(0));//this->getNodesRefConfig().size();
 	string FEType = std::get<1>(this->diskTuple_->at(0));
 	vec_dbl_Type elementVector(numNodes);

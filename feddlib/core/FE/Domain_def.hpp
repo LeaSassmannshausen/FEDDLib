@@ -406,6 +406,19 @@ void Domain<SC,LO,GO,NO>::exportMesh(bool exportEdges, bool exportSurfaces, stri
 }
 
 template <class SC, class LO, class GO, class NO>
+void Domain<SC,LO,GO,NO>::preProcessMesh(bool correctSurfaceNormals, bool correctElementDirection){ 
+
+    if(correctSurfaceNormals)
+        mesh_->correctNormalDirections();
+
+    if(correctElementDirection)
+        mesh_->correctElementOrientation();
+
+
+}
+
+
+template <class SC, class LO, class GO, class NO>
 UN Domain<SC,LO,GO,NO>::getDimension() const{
 
     return dim_;
@@ -992,7 +1005,7 @@ void Domain<SC, LO, GO, NO>::exportNodeFlags(string name)
         Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
 
         Teuchos::RCP<MultiVector<SC,LO,GO,NO> > exportSolution(new MultiVector<SC,LO,GO,NO>(this->getMapUnique()));
-        vec_int_ptr_Type BCFlags = this->getBCFlagUnique();
+        vec_int_ptr_Type BCFlags = this->getBCFlagUnique(); // Unique flags at points
 
         Teuchos::ArrayRCP< SC > entries  = exportSolution->getDataNonConst(0);
         for(int i=0; i< entries.size(); i++){
@@ -1003,8 +1016,7 @@ void Domain<SC, LO, GO, NO>::exportNodeFlags(string name)
 
         exPara->setup("Mesh_Node_Flags_"+name,this->getMesh(), this->FEType_);
 
-        exPara->addVariable(exportSolutionConst, "Flags", "Scalar", 1,this->getMapUnique()); //, this->getMapUnique());
-
+        exPara->addVariable(exportSolutionConst, "Flags", "Scalar", 1,this->getMapUnique()); 
         exPara->save(0.0);
 
         exPara->closeExporter();
@@ -1018,10 +1030,10 @@ void Domain<SC, LO, GO, NO>::exportElementFlags(string name)
         Teuchos::RCP<MultiVector<SC,LO,GO,NO> > exportSolution(new MultiVector<SC,LO,GO,NO>(this->getElementMap()));
 
         Teuchos::ArrayRCP< SC > entries  = exportSolution->getDataNonConst(0);
-        ElementsPtr_Type elements = this->getElementsC();
+        ElementsPtr_Type elements = this->getElementsC(); // element list
 
         for(int i=0; i< entries.size(); i++){
-            entries[i] = elements->getElement(i).getFlag();
+            entries[i] = elements->getElement(i).getFlag(); // element flags
         }
 
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionConst = exportSolution;

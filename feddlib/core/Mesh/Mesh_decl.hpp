@@ -7,7 +7,7 @@
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 #include "feddlib/core/FE/Elements.hpp"
-#include "feddlib/core/FE/Elements.hpp"
+#include "feddlib/core/FE/Helper.hpp"
 #include "feddlib/core/Mesh/AABBTree.hpp"
 
 /*!
@@ -122,7 +122,10 @@ public:
     tuple_intint_Type getRankRange() const {return rankRange_;};
     
     void deleteSurfaceElements(){ surfaceElements_.reset(); };
-    
+
+    void correctNormalDirections();
+
+    void correctElementOrientation();    
 
 	/*! 
 		\brief Returns elements as a vector type
@@ -174,6 +177,7 @@ public:
     /* ###################################################################### */
 private:
 
+    void flipSurface(vec_int_Type &surfaceElements_vec);
 };
 }
 

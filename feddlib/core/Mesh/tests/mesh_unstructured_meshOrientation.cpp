@@ -97,6 +97,9 @@ int main(int argc, char *argv[]) {
     
     partitionerP1.readAndPartition(volumeID);
 
+    domainP1->preProcessMesh(true,true);
+
+
     if (FEType == "P2") {
         domainP2->buildP2ofP1Domain( domainP1 );
         domain = domainP2;
@@ -104,40 +107,8 @@ int main(int argc, char *argv[]) {
     else
         domain = domainP1;
 
-    domain->exportMesh(true,true,exportfilename);
-    
- 	FE<SC,LO,GO,NO> fe_1;
-    fe_1.addFE(domain);
-    fe_1.checkMeshOrientation(dim,FEType);
-    
-    comm->barrier();
-    
-    if(FEType =="P1"){
-		ParameterListPtr_Type pListPartitionerTest = Teuchos::rcp( new ParameterList("Mesh Partitioner") );
-		pListPartitionerTest->set( "Mesh 1 Name", exportfilename );
-		
-		DomainPtr_Type domainP1Test;
-		DomainPtr_Type domainTest;
-
-		domainP1Test.reset( new Domain_Type( comm, dim ) );
-		MeshPartitioner_Type::DomainPtrArray_Type domainP1ArrayTest(1);
-		domainP1ArrayTest[0] = domainP1Test;
-
-		MeshPartitioner<SC,LO,GO,NO> partitionerP1Test ( domainP1ArrayTest, pListPartitionerTest, "P1", dim );
-		comm->barrier();
-
-		partitionerP1Test.readAndPartition(volumeID);
-
-		domainTest = domainP1Test;
-	   
-		FE<SC,LO,GO,NO> fe_2;
-		fe_2.addFE(domainTest);
-		fe_2.checkMeshOrientation(dim,FEType);
-   	}
-    
-
-    
-
+	
+    //domain->exportNodeFlags();
 
     return(EXIT_SUCCESS);
 }

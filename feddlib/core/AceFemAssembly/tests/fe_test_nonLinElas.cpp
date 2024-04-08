@@ -118,7 +118,6 @@ int main(int argc, char *argv[]) {
 	d_rep->putScalar(solConst);
     MatrixPtr_Type A= Teuchos::rcp(new Matrix_Type( domain->getMapVecFieldUnique(), domain->getDimension() * domain->getApproxEntriesPerRow()  ) ); // Jacobi Matrix
     MultiVectorPtr_Type f = Teuchos::rcp( new MultiVector_Type( domain->getMapVecFieldRepeated(), 1 ) ); // RHS vector
-    cout << " FEDDLib Implementation .... " << endl;
     {
         //fe.assemblyElasticityJacobianAndStressAceFEM(dim, domain->getFEType(), A, f, d_rep, params, 1);
         fe.assemblyElasticityJacobianAceFEM(dim, domain->getFEType(), A,d_rep, "Neo-Hooke",youngModulus,poissonRatio,1.,true);
@@ -126,7 +125,6 @@ int main(int argc, char *argv[]) {
                                                   
 
     }
-    cout << " ... done " << endl;
     //A->print();
 	// Class for assembling linear Elasticity via Acefem implementation
  	FE<SC,LO,GO,NO> fe_test;
@@ -138,13 +136,11 @@ int main(int argc, char *argv[]) {
    	resVec->addBlock(f_test,0);
     BlockMatrixPtr_Type system = Teuchos::rcp( new BlockMatrix_Type( 1 ) ); // 
     system->addBlock(A_test,0,0);
-    cout << " ACEGen Implementation .... " << endl;
 
     {
         fe_test.assemblyNonLinearElasticity(dim, FEType, 2,dofs,d_rep, system,resVec,params,true);
         
     }
-    cout << " ... done " << endl;
 
 	//A_test->print();
 

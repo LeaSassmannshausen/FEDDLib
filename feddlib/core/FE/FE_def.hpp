@@ -1324,7 +1324,7 @@ void FE<SC,LO,GO,NO>::initAssembleFEElements(string elementType,tuple_disk_vec_p
 		AssembleFEFactory<SC,LO,GO,NO> assembleFEFactory;
 
 		AssembleFEPtr_Type assemblyFE = assembleFEFactory.build(elementType,elements->getElement(T).getFlag(),nodes, params,problemDisk);
-
+        //  
         assemblyFE->setGlobalElementID(elementMap->getGlobalElement(T));
 
 		assemblyFEElements_.push_back(assemblyFE);
@@ -1683,7 +1683,7 @@ void FE<SC,LO,GO,NO>::assemblyLaplaceAssFE(int dim,
                                         bool callFillComplete,
                                         int FELocExternal){
     ParameterListPtr_Type params = Teuchos::getParametersFromXmlFile("parametersProblemLaplace.xml");
-    
+
     UN FEloc = checkFE(dim,FEType);
     ElementsPtr_Type elements = domainVec_.at(FEloc)->getElementsC();
     vec2D_dbl_ptr_Type pointsRep = domainVec_.at(FEloc)->getPointsRepeated();
@@ -6833,90 +6833,6 @@ void FE<SC,LO,GO,NO>::computeSurfaceNormal(int dim,
 
 }
 
-template <class SC, class LO, class GO, class NO>
-void FE<SC,LO,GO,NO>::checkMeshOrientation(int dim,
-                                        string FEType){
-
-    ElementsPtr_Type elements = domainVec_.at(0)->getElementsC();
-
-    vec2D_dbl_ptr_Type pointsRep = domainVec_.at(0)->getPointsRepeated();
-    
-    vec2D_dbl_ptr_Type phi;
-
-    vec_dbl_ptr_Type weights = Teuchos::rcp(new vec_dbl_Type(0));
-   
-    Helper::getPhi(phi, weights, dim-1, FEType, 2);
-  
-    SC elScaling;
-    vec_dbl_Type b(dim);
-    SmallMatrix<SC> B(dim);
-    SmallMatrix<SC> Binv(dim);
-    SC detB;
-    SC absDetB;
-  
-
-    int inwardNormal=0;
-    int outwardNormal=0;
- 
-    double valueSurface;
-    // Step 0: determie flowrate on inlet to calculate resistance
-    for (UN T=0; T<elements->numberElements(); T++) {
-        FiniteElement fe = elements->getElement( T );
-        ElementsPtr_Type subEl = fe.getSubElements(); // might be null
-        for (int surface=0; surface<fe.numSubElements(); surface++) {
-            FiniteElement feSub = subEl->getElement( surface  );
-            if(subEl->getDimension() == dim-1 ){
-                vec_int_Type nodeList = feSub.getVectorNodeListNonConst ();
-                int numNodes_T = nodeList.size();
-                
-                vec_dbl_Type v_E(dim,1.);
-                double norm_v_E=1.;
-
-                Helper::computeSurfaceNormal(dim, pointsRep,nodeList,v_E,norm_v_E);
-                
-                // Calculating R * Q = R * v * A , A = norm_v_E * 0.5
-                // Step 1: Quadrature Points on physical surface:    
-                Helper::buildTransformationSurface( nodeList, pointsRep, B, b, FEType);
-                elScaling = B.computeScaling( );
-                
-                Teuchos::Array<SC> value(0);
-                value.resize(  numNodes_T, 0. ); // Volumetric flow rate over one surface is a skalar value
-
-                valueSurface=0.;
-                //cout << " Velocity over node ";
-                for (UN i=0; i < numNodes_T; i++) {
-                    // loop over basis functions quadrature points
-                    for (UN w=0; w<phi->size(); w++) {
-                        for (int j=0; j<dim; j++){    
-                            value[i] += weights->at(w) *v_E[j]/norm_v_E *(*phi)[w][i]; // valueFunc[0]* = 1.0
-                        }
-                    }             
-                    valueSurface +=  value[i] * elScaling;
-                }
-                if(valueSurface < 0)
-                    inwardNormal ++;
-                else if(valueSurface > 0)
-                    outwardNormal ++;
-            }
-           
-
-        }
-    }
-
-    reduceAll<int, int> (*domainVec_.at(0)->getComm(), REDUCE_SUM, inwardNormal, outArg (inwardNormal));
-    reduceAll<int, int> (*domainVec_.at(0)->getComm(), REDUCE_SUM, outwardNormal, outArg (outwardNormal));
-
-    if(domainVec_.at(0)->getComm()->getRank() == 0){
-        cout << " ############################################ " << endl;
-        cout << " Mesh Orientation Statistic " << endl;
-        cout << " Number of outward normals " << outwardNormal << endl;
-        cout << " Number of inward normals " << inwardNormal << endl;
-        cout << " ############################################ " << endl;
-    }
-
-}
-                                        
-    
 template <class SC, class LO, class GO, class NO>
 void FE<SC,LO,GO,NO>::assemblySurfaceIntegral(int dim,
                                               std::string FEType,

@@ -107,7 +107,7 @@ TRIBITS_ADD_TEST(
 fe_test_nonlinElas
 NAME fe_test_nonlinElas
 ARGS
-NUM_MPI_PROCS 1
+NUM_MPI_PROCS 4
 )
 
 TRIBITS_COPY_FILES_TO_BINARY_DIR(data_fe_test_nonlinElas

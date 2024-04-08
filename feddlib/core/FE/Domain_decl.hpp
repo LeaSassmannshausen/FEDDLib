@@ -30,7 +30,7 @@ class Domain {
     @todo This should actually be removed since the class should operate only on element level)
     \tparam NO The Kokkos Node type. This would allow for performance portibility when using Kokkos. Currently, this is not used.
     
-    Example: If you construct a Stokes finite element problem you get a velocity and pressure 'P2-P1' discretisation and ,thus , a domain for the P2 elements and one for the P2 elements with the respective node list etc.
+    Example: If you construct a Stokes finite element problem you get a velocity and pressure 'P2-P1' discretisation and ,thus , a domain for the P2 elements and one for the P1 elements with the respective node list etc.
      
 	*/
 
@@ -527,58 +527,62 @@ public:
     */
    void exportMesh(bool exportEdges = false, bool exportSurfaces=false, string exportMesh="export.mesh");
 
+     /*!
+         \brief Option of preprocessing mesh by making consistent outward normal and/or consisten element orientation
+         @param correctSurfaceNormals bool for normal direction
+         @param correctElementDirection bool for surface direction
+    */ 
+   void preProcessMesh(bool correctSurfaceNormals, bool correctElementDirection);
 
-    /// @brief Exporting Paraview file displaying element flags of the underlying mesh
-    /// @param name 
-    void exportElementFlags(string name = "default");
+   /// @brief Exporting Paraview file displaying element flags of the underlying mesh
+   /// @param name
+   void exportElementFlags(string name = "default");
 
+   /// @brief Exporting Paraview file displaying node flags of the underlying mesh
+   /// @param name export suffix to identify flags
+   void exportNodeFlags(string name = "default");
 
-    /// @brief Exporting Paraview file displaying node flags of the underlying mesh
-    /// @param name export suffix to identify flags
-    void exportNodeFlags(string name = "default");
+   /* ----------------------------------------------------------------------------------------*/
 
-/* ----------------------------------------------------------------------------------------*/
+   private:
+   CommConstPtr_Type comm_; // underlying comm
+   MeshPtr_Type mesh_;      // underlying mesh as base class mesh type. usually underlying mesh is either structured or unstructured
+   int dim_;                // dimension
+   vec_dbl_Type coorRec;
+   double length;
+   double height;
+   double width;
+   int n_;
+   int m_;
+   std::string FEType_; // Finite element discretization
+   mutable MapPtr_Type mapVecFieldUnique_;
+   mutable MapPtr_Type mapVecFieldRepeated_;
 
-private:
+   string_vec_ptr_Type geometries2DVec_; // list with available 2D structured geometries
+   string_vec_ptr_Type geometries3DVec_; // list with available 3D structured geometries
+   vec_dbl_ptr_Type distancesToInterface_;
 
-    CommConstPtr_Type 		comm_; // underlying comm
-    MeshPtr_Type 			mesh_; // underlying mesh as base class mesh type. usually underlying mesh is either structured or unstructured
-    int                     dim_; // dimension
-    vec_dbl_Type            coorRec; 
-    double 					length;
-    double		 			height;
-    double 					width;
-    int 					n_;
-    int 					m_;
-    std::string				FEType_; // Finite element discretization
-    mutable MapPtr_Type mapVecFieldUnique_;
-    mutable  MapPtr_Type mapVecFieldRepeated_;
-    
-    string_vec_ptr_Type     geometries2DVec_; // list with available 2D structured geometries
-    string_vec_ptr_Type		geometries3DVec_; // list with available 3D structured geometries
-    vec_dbl_ptr_Type        distancesToInterface_; 
+   // Unique Interface-Maps als nodes und als dofs in der Interface-Nummerierung
+   MapPtr_Type interfaceMapUnique_;         // nodes
+   MapPtr_Type interfaceMapVecFieldUnique_; // dofs
 
-    // Unique Interface-Maps als nodes und als dofs in der Interface-Nummerierung
-    MapPtr_Type             interfaceMapUnique_; // nodes
-    MapPtr_Type             interfaceMapVecFieldUnique_; // dofs
+   // Unique Fluid/Struktur-Interface-Maps als nodes und als dofs in der globalen Nummerierung
+   MapPtr_Type globalInterfaceMapUnique_;
+   MapPtr_Type globalInterfaceMapVecFieldUnique_;
+   MapPtr_Type partialGlobalInterfaceVecFieldMap_;
+   MapPtr_Type otherGlobalInterfaceMapUnique_;
+   MapPtr_Type otherGlobalInterfaceMapVecFieldUnique_;
+   MapPtr_Type otherPartialGlobalInterfaceVecFieldMap_;
+   // Dies ist ein (unique) partitionierter Vektor, der fuer jeden Stelle im Vektor i
+   // (= lokale Interface ID; also jeder Proz. haelt nur ein Teil des Interfaces)
+   // angibt, welche lokale ID dies in der globalen Nummerierung ist.
+   // Beide zeigen auf denselben physischen Knoten des Interfaces!
+   // TODO Fehlerhaft
+   vec_long_Type vecLocalInterfaceIDinGlobal_;
 
-    // Unique Fluid/Struktur-Interface-Maps als nodes und als dofs in der globalen Nummerierung
-    MapPtr_Type  globalInterfaceMapUnique_;
-    MapPtr_Type globalInterfaceMapVecFieldUnique_;
-    MapPtr_Type partialGlobalInterfaceVecFieldMap_;
-    MapPtr_Type otherGlobalInterfaceMapUnique_;
-    MapPtr_Type otherGlobalInterfaceMapVecFieldUnique_;
-    MapPtr_Type otherPartialGlobalInterfaceVecFieldMap_;
-    // Dies ist ein (unique) partitionierter Vektor, der fuer jeden Stelle im Vektor i
-    // (= lokale Interface ID; also jeder Proz. haelt nur ein Teil des Interfaces)
-    // angibt, welche lokale ID dies in der globalen Nummerierung ist.
-    // Beide zeigen auf denselben physischen Knoten des Interfaces!
-    // TODO Fehlerhaft
-    vec_long_Type           vecLocalInterfaceIDinGlobal_;
-
-    std::string meshType_;
-    int numProcsCoarseSolve_;
-    int flagsOption_;
+   std::string meshType_;
+   int numProcsCoarseSolve_;
+   int flagsOption_;
 
     };
 }

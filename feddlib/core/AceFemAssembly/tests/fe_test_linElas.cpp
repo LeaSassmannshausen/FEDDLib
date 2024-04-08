@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
     A->writeMM("A");
 	// Class for assembling linear Elasticity via Acefem implementation
  	FE<SC,LO,GO,NO> fe_test;
-    fe.addFE(domain);
+    fe_test.addFE(domain);
     
     MatrixPtr_Type A_test= Teuchos::rcp(new Matrix_Type( domain->getMapVecFieldUnique(),domain->getDimension() * domain->getApproxEntriesPerRow()   ) );
      BlockMatrixPtr_Type system = Teuchos::rcp( new BlockMatrix_Type( 1 ) ); //

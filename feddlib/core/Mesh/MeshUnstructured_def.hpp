@@ -1838,7 +1838,7 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
         }
         else if(this->dim_ == 3){         
 
-            if(this->FEType_ != "P2") // In case of P2 this function was already called!s
+            if(this->FEType_ != "P2") // In case of P2 this function was already called!
                 this->assignEdgeFlags();
                 
             vec_GO_Type globalImportIDsEdges(0);
@@ -1910,45 +1910,65 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
 
              // ########## Writing #######################
             if(this->comm_->getRank() == 0){
-                myFile << "Edges";
-                myFile << endl;
-                myFile << numberEdges;
-                myFile << endl;
 
-                int counter =0;
+
+                vec2D_int_Type edges(0,vec_int_Type(0));
                 for(int i = 0; i < edgeMapUnique->getGlobalNumElements(); i++)
                 {
+                    vec_int_Type entry(0);
                     if(edgeMapUnique->getLocalElement(i) != -1){
                         LO id = this->edgeMap_->getLocalElement(i);
-                        if(this->edgeElements_->getElement(id).getFlag() == 9 || this->edgeElements_->getElement(id).getFlag() == 10 ||  this->edgeElements_->getElement(id).getFlag() == 6 )//< this->volumeID_ && ){
+                        if(this->edgeElements_->getElement(id).getFlag() < this->volumeID_)
                         {
                             for(int j= 0; j < 2; j++)
                             {
-                                myFile << mapRep->getGlobalElement(this->edgeElements_->getElement(id).getVectorNodeList().at(j))+1;
-                                myFile << " ";
+                                entry.push_back(mapRep->getGlobalElement(this->edgeElements_->getElement(id).getVectorNodeList().at(j))+1);
                             }
                             if(this->FEType_ == "P2")
-                                myFile << mapRep->getGlobalElement(this->edgeElements_->getMidpoint(id))+1 << " ";
+                                entry.push_back(mapRep->getGlobalElement(this->edgeElements_->getMidpoint(id))+1);
 
-                            myFile << this->edgeElements_->getElement(id).getFlag();
-                            myFile << endl;
+                            entry.push_back(this->edgeElements_->getElement(id).getFlag());
+    
+                            edges.push_back(entry);
+
                         }
                         
                     }
                     else{
                         LO id = mapEdgesImport->getLocalElement(i);
-                        if(missingEdges[id][dofsEdges] == 9 || missingEdges[id][dofsEdges] == 10 || missingEdges[id][dofsEdges] == 6 ){ // < this->volumeID_){
+                        if(missingEdges[id][dofsEdges]< this->volumeID_){
 
                             for(int j= 0; j < dofsEdges; j++)
                             {
-                                myFile << missingEdges[id][j];
-                                myFile << " ";
+                                entry.push_back(missingEdges[id][j]);
                             }
-                            myFile << missingEdges[id][dofsEdges]; 
-                            myFile << endl;
+                           entry.push_back(missingEdges[id][dofsEdges]); 
+
+                           edges.push_back(entry);
+
                         }
                     }
+                }
+
+
+                myFile << "Edges";
+                myFile << endl;
+                myFile << edges.size();
+                myFile << endl;
+
+                for(int i = 0; i < edges.size(); i++)
+                {
                     
+                    for(int j= 0; j < 2; j++)
+                    {
+                        myFile << edges[i][j]; //mapRep->getGlobalElement(this->edgeElements_->getElement(id).getVectorNodeList().at(j))+1;
+                        myFile << " ";
+                    }
+                    if(this->FEType_ == "P2")
+                        myFile << edges[i][2]; //mapRep->getGlobalElement(this->edgeElements_->getMidpoint(id))+1 << " ";
+
+                    myFile << edges[i][edges[i].size()-1]; // this->edgeElements_->getElement(id).getFlag(); last entry
+                    myFile << endl;                    
 
                 }
 

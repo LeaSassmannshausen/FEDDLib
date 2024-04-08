@@ -11,6 +11,9 @@ Definition of Mesh
 @version 1.0
 @copyright CH
 */
+using Teuchos::reduceAll;
+using Teuchos::REDUCE_SUM;
+using Teuchos::outArg;
 
 using namespace std;
 namespace FEDD {
@@ -36,6 +39,8 @@ AABBTree_()
     surfaceElements_.reset(new Elements());
     
     elementsC_.reset(new Elements());    
+
+    FEType_ = "P1"; // We generally assume the mesh to be p1. In case of P1 or Q2 the FEType is allways adjusted
 }
 
 template <class SC, class LO, class GO, class NO>
@@ -62,6 +67,7 @@ AABBTree_()
 
     elementsC_.reset(new Elements());
 
+    FEType_ = "P1";
 }
 
 template <class SC, class LO, class GO, class NO>
@@ -467,6 +473,137 @@ vec2D_int_ptr_Type Mesh<SC,LO,GO,NO>::getElements(){
     return this->elementsVec_;
 }
 
+template <class SC, class LO, class GO, class NO>
+void Mesh<SC,LO,GO,NO>::correctNormalDirections(){
+
+    int outwardNormals = 0;
+    int inwardNormals = 0;
+    for (UN T=0; T<elementsC_->numberElements(); T++) {
+        FiniteElement fe = elementsC_->getElement( T );
+        ElementsPtr_Type subEl = fe.getSubElements(); // might be null
+        for (int surface=0; surface<fe.numSubElements(); surface++) {
+            FiniteElement feSub = subEl->getElement( surface  );
+            vec_int_Type nodeListElement = fe.getVectorNodeList();
+            if(subEl->getDimension() == dim_-1 ){
+                vec_int_Type nodeList = feSub.getVectorNodeListNonConst();
+                int numNodes_T = nodeList.size();
+                
+                vec_dbl_Type v_E(dim_,1.);
+                double norm_v_E=1.;
+                LO id0 = nodeList[0];
+
+                Helper::computeSurfaceNormal(dim_, pointsRep_,nodeList,v_E,norm_v_E);
+
+                std::sort(nodeList.begin(), nodeList.end());
+                std::sort(nodeListElement.begin(), nodeListElement.end());
+
+                std::vector<int> v_symDifference;
+
+                std::set_symmetric_difference(
+                    nodeList.begin(), nodeList.end(),
+                    nodeListElement.begin(), nodeListElement.end(),
+                    std::back_inserter(v_symDifference));
+
+                LO id1 = v_symDifference[0];
+
+                vec_dbl_Type p0(dim_,0.);
+                for(int i=0; i< dim_; i++)
+                    p0[i] = pointsRep_->at(id1)[i] - pointsRep_->at(id0)[i];
+
+                double sum = 0.;
+                for(int i=0; i< dim_; i++)
+                    sum += p0[i] * v_E[i];
+                
+                if(sum<=0){
+                    outwardNormals++;
+                }
+                if(sum>0){
+                    inwardNormals++;
+                }
+                if(sum>0)
+                    flipSurface(feSub.getVectorNodeListNonConst());
+                    
+
+            }
+        }
+    }
+    reduceAll<int, int> (*this->getComm(), REDUCE_SUM, inwardNormals, outArg (inwardNormals));
+    reduceAll<int, int> (*this->getComm(), REDUCE_SUM, outwardNormals, outArg (outwardNormals));
+
+    if(this->getComm()->getRank() == 0){
+        cout << " ############################################ " << endl;
+        cout << " Mesh Orientation Statistic " << endl;
+        cout << " Number of outward normals " << outwardNormals << endl;
+        cout << " Number of inward normals " << inwardNormals << endl;
+        cout << " ############################################ " << endl;
+    }
+
+}
+template <class SC, class LO, class GO, class NO>
+void Mesh<SC,LO,GO,NO>::correctElementOrientation(){
+
+    for (UN T=0; T<elementsC_->numberElements(); T++) {
+        FiniteElement fe = elementsC_->getElement( T );
+        ElementsPtr_Type subEl = fe.getSubElements(); // might be null
+        for (int surface=0; surface<fe.numSubElements(); surface++) {
+            FiniteElement feSub = subEl->getElement( surface  );
+            if(subEl->getDimension() == dim_-1 ){
+                vec_int_Type nodeList = feSub.getVectorNodeListNonConst ();
+                int numNodes_T = nodeList.size();
+                
+                vec_dbl_Type v_E(dim_,1.);
+                double norm_v_E=1.;
+
+                Helper::computeSurfaceNormal(dim_, pointsRep_,nodeList,v_E,norm_v_E);
+
+
+            }
+        }
+    }
+
 }
 
+// We allways want a outward normal direction
+template <class SC, class LO, class GO, class NO>
+void Mesh<SC,LO,GO,NO>::flipSurface(vec_int_Type &surfaceElements_vec){
+
+    if(dim_ == 2){
+
+    }
+    else if(dim_ == 3){
+
+        if(FEType_ == "P1"){
+            LO id1,id2,id3,id4,id5,id6;
+            id1= surfaceElements_vec[0];
+            id2= surfaceElements_vec[1];
+            id3= surfaceElements_vec[2];
+           
+            surfaceElements_vec[0] = id1;
+            surfaceElements_vec[1] = id3;
+            surfaceElements_vec[2] = id2;           
+        }
+        else if(FEType_ == "P2"){
+            LO id1,id2,id3,id4,id5,id6;
+            id1= surfaceElements_vec[0];
+            id2= surfaceElements_vec[1];
+            id3= surfaceElements_vec[2];
+            id4= surfaceElements_vec[3];
+            id5= surfaceElements_vec[4];
+            id6= surfaceElements_vec[5];
+
+            surfaceElements_vec[0] = id1;
+            surfaceElements_vec[1] = id3;
+            surfaceElements_vec[2] = id2;
+            surfaceElements_vec[3] = id6;
+            surfaceElements_vec[4] = id5;
+            surfaceElements_vec[5] = id4;
+        }
+        else    
+            TEUCHOS_TEST_FOR_EXCEPTION( true, std::runtime_error, "We can only flip normals for P1 or P2 elements. Invalid " << FEType_ << " " );
+
+    }   
+
+}
+
+}
 #endif

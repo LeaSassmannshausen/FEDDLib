@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
 
 	// Checking first Block:
 
-	MAIN_TIMER_START(FE," FE:   Assemble System");
+	MAIN_TIMER_START(FE," FE Routine:   Assemble System");
 	BlockMatrixPtr_Type systemFE= Teuchos::rcp(new BlockMatrix_Type(2 ) );  
 	MatrixPtr_Type ANW = Teuchos::rcp(new Matrix_Type(domain->getMapVecFieldUnique(), domain->getDimension() * domain->getApproxEntriesPerRow() ) );  
 
@@ -173,7 +173,7 @@ int main(int argc, char *argv[]) {
 	cout << " Done for FE routine " << endl;
 	// ANW is first block 
 	// --------------------------------------------------------------
-	MAIN_TIMER_START(FE_test," FE_test: Assemble System");
+	MAIN_TIMER_START(FE_test," Assemble_FE_Routine: Assemble System");
 
     fe_test.addFE(domain);
     fe_test.addFE(domainP1);
@@ -183,7 +183,6 @@ int main(int argc, char *argv[]) {
     MatrixPtr_Type BT_test= Teuchos::rcp(new Matrix_Type(domain->getMapVecFieldUnique(), domain->getDimension() * domain->getApproxEntriesPerRow() )  );
     MatrixPtr_Type B_test= Teuchos::rcp(new Matrix_Type(domainP1->getMapUnique(), domain->getDimension() * domain->getApproxEntriesPerRow() )  );
 	MatrixPtr_Type dummy = Teuchos::rcp( new Matrix_Type( domainP1->getMapUnique(), 1 ) );
-       
 	
 	systemFETest->addBlock(A_test,0,0);
 	systemFETest->addBlock(BT_test,0,1);
@@ -203,7 +202,7 @@ int main(int argc, char *argv[]) {
     defTS[1][1] = 0;
 
 
-    fe_test.assemblyNavierStokes(dim, FETypeV, FETypeP, 2,dofsV,dofsP,u_rep, p_rep, systemFETest, resVec, defTS, params, true, "Jacobian", true/*call fillComplete*/);
+    fe_test.assemblyNavierStokes(dim, FETypeV, FETypeP, 2,dofsV,dofsP,u_rep, p_rep, systemFETest, resVec, defTS, params, false, "Jacobian", true/*call fillComplete*/);
     
 	//B->print();
 	//B_test->print();
@@ -214,8 +213,6 @@ int main(int argc, char *argv[]) {
 	MatrixPtr_Type Sum= Teuchos::rcp(new Matrix_Type( domain->getMapVecFieldUnique(), domain->getDimension() * domain->getApproxEntriesPerRow() )  );
 	ANW->addMatrix(1, Sum, 0);
 	A_test->addMatrix(-1, Sum, 1);
-
-
 
 	int maxRank = std::get<1>(domain->getMesh()->rankRange_);
 
@@ -246,7 +243,6 @@ int main(int argc, char *argv[]) {
 	MatrixPtr_Type Sum2= Teuchos::rcp(new Matrix_Type( domainP1->getMapUnique(), domain->getDimension() * domain->getApproxEntriesPerRow() )  );
 	B->addMatrix(1, Sum2, 0);
 	B_test->addMatrix(-1, Sum2, 1);
-
 
 	res=0.;
 	for (UN i=0; i < domainP1->getMapUnique()->getMaxLocalIndex()+1 ; i++) {

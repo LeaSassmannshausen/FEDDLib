@@ -69,7 +69,7 @@ void AssembleFENavierStokesNonNewtonian<SC,LO,GO,NO>::assemblyLaplacian(SmallMat
 
 	int dim = this->getDim();
 	int numNodes= this->numNodesVelocity_;
-	int Grad =2; // Needs to be fixed	
+	UN Grad =2; // Needs to be fixed	
 	string FEType = this->FETypeVelocity_;
 	int dofs = this->dofsVelocity_;
 
