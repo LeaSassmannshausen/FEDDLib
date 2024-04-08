@@ -521,7 +521,7 @@ void Mesh<SC,LO,GO,NO>::correctNormalDirections(){
                     inwardNormals++;
                 }
                 if(sum>0)
-                    flipSurface(feSub.getVectorNodeList());
+                    flipSurface(feSub);
                     
 
             }
@@ -565,7 +565,9 @@ void Mesh<SC,LO,GO,NO>::correctElementOrientation(){
 
 // We allways want a outward normal direction
 template <class SC, class LO, class GO, class NO>
-void Mesh<SC,LO,GO,NO>::flipSurface(vec_int_Type &surfaceElements_vec){
+void Mesh<SC,LO,GO,NO>::flipSurface(FiniteElement_Type feSub){
+
+    vec_LO_Type surfaceElements_vec = feSub.getVectorNodeList();
 
     if(dim_ == 2){
 

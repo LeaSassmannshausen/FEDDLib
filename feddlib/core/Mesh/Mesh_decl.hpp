@@ -7,6 +7,7 @@
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 #include "feddlib/core/FE/Elements.hpp"
+#include "feddlib/core/FE/FiniteElement.hpp"
 #include "feddlib/core/FE/Helper.hpp"
 #include "feddlib/core/Mesh/AABBTree.hpp"
 
@@ -25,6 +26,8 @@ class Mesh {
     
 public:
     typedef Elements Elements_Type;
+    typedef FiniteElement FiniteElement_Type;
+    typedef Teuchos::RCP<FiniteElement_Type> FiniteElementPtr_Type;
     typedef Teuchos::RCP<Elements_Type> ElementsPtr_Type;
     
     typedef Teuchos::RCP<Mesh> Mesh_ptr_Type;
@@ -177,7 +180,7 @@ public:
     /* ###################################################################### */
 private:
 
-    void flipSurface(vec_int_Type &surfaceElements_vec);
+    void flipSurface(FiniteElement_Type feSub);
 };
 }
 
