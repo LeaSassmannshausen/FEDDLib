@@ -521,7 +521,7 @@ void Mesh<SC,LO,GO,NO>::correctNormalDirections(){
                     inwardNormals++;
                 }
                 if(sum>0)
-                    flipSurface(feSub.getVectorNodeListNonConst());
+                    flipSurface(feSub.getVectorNodeList());
                     
 
             }
