@@ -1654,7 +1654,7 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
                     myFile << this->getPointsUnique()->at(id).at(j);
                     myFile << " ";
                 }
-                if(dim_ == 2){
+                if(this->dim_ == 2){
                     myFile << 0.0;
                     myFile << " ";
                 }
@@ -1668,7 +1668,7 @@ void MeshUnstructured<SC,LO,GO,NO>::exportMesh(MapConstPtr_Type mapUnique, MapCo
                     myFile << missingNodes[id][j];
                     myFile << " ";
                 }
-                if(dim_ == 2){
+                if(this->dim_ == 2){
                     myFile << 0.0;
                     myFile << " ";
                 }
