@@ -279,6 +279,7 @@ void MeshStructured<SC,LO,GO,NO>::buildSurfaceLinesSquareMiniTPM(string feType){
 
 }
 
+
 template <class SC, class LO, class GO, class NO>
 void MeshStructured<SC,LO,GO,NO>::buildMesh2D(std::string FEType,
                                                  int N,
@@ -568,7 +569,6 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2D(std::string FEType,
 
         for (int s=0; s < M; s++) {
             for (int r=0; r < M; r++) {
-
                 (*elementsVec)[counter][0] = 2*(r+1)	+ 2*P2M * (s) ;
                 (*elementsVec)[counter][1] = 2*(r)      + 2*P2M * (s) ;
                 (*elementsVec)[counter][2] = 2*(r+1)	+ 2*P2M * (s+1) ;
@@ -615,6 +615,8 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2D(std::string FEType,
         }
     }
     buildElementsClass(elementsVec, elementFlag);
+    buildElementMap();
+    this->buildEdges(this->elementsC_);
 
 }
 
@@ -3888,6 +3890,7 @@ void MeshStructured<SC,LO,GO,NO>::buildElementMap(){
     this->elementMap_.reset(new Map<LO,GO,NO>( underlyingLib, (GO) -1, elementsGlobalMapping(), 0, this->comm_) );
 
 }
+
 
 }
 #endif

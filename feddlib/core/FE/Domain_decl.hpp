@@ -558,6 +558,10 @@ public:
    /// @param name export suffix to identify flags
    void exportElementOrientation(string name = "default");
 
+   string getMeshType(){return meshType_;};
+
+   // The general idea is, that when you build for example a structured mesh, you can convert it into a unstructured mesh type to use for adaptive mesh refinement or build a P2 mesh on top
+   void setUnstructuredMesh(MeshPtr_Type mesh);
    /* ----------------------------------------------------------------------------------------*/
 
    private:

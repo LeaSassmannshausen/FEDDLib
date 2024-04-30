@@ -436,7 +436,12 @@ typename AdaptiveMeshRefinement<SC,LO,GO,NO>::DomainPtr_Type AdaptiveMeshRefinem
 
 
 	// Reading Mesh from domainP1 as we always refine the P1 Mesh, here defined as inputMesh_
-	inputMeshP1_ = Teuchos::rcp_dynamic_cast<MeshUnstr_Type>( domainP1->getMesh() , true);
+	if(!domainP1->getMeshType().compare("unstructured"))
+		inputMeshP1_ = Teuchos::rcp_dynamic_cast<MeshUnstr_Type>( domainP1->getMesh() , true);
+	else{
+		domainP1->setUnstructuredMesh(domainP1->getMesh());
+		inputMeshP1_ = Teuchos::rcp_dynamic_cast<MeshUnstr_Type>( domainP1->getMesh() , true);
+	}
 	inputMeshP1_->FEType_ = domainP1->getFEType();
 	
 	// With the global Algorithm we create a new P1 domain with a new mesh
@@ -605,7 +610,8 @@ typename AdaptiveMeshRefinement<SC,LO,GO,NO>::DomainPtr_Type AdaptiveMeshRefinem
 	    exporterError_->closeExporter();
 	} 
 	else
-		cout << " -- done -- " << endl;
+		if(this->comm_->getRank() == 0)
+			cout << " -- done -- " << endl;
 
     domainRefined->setMesh(outputMesh);
 	

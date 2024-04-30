@@ -24,7 +24,6 @@ MeshUnstructured<SC,LO,GO,NO>::MeshUnstructured():
 Mesh<SC,LO,GO,NO>(),
 meshInterface_(),
 volumeID_(10),
-edgeElements_(),
 surfaceEdgeElements_(),
 meshFileName_("fileName.mesh"),
 delimiter_(" ")
@@ -45,7 +44,6 @@ delimiter_(" ")
 //SetP2ElementsTime_(Teuchos::TimeMonitor::getNewCounter("FE: Unstructured Mesh: Set P2 Information: Set Elements"))
 //#endif
 {
-    edgeElements_ = Teuchos::rcp( new EdgeElements_Type() );
     surfaceEdgeElements_ = Teuchos::rcp( new Elements_Type() );
     
 }
@@ -55,12 +53,10 @@ MeshUnstructured<SC,LO,GO,NO>::MeshUnstructured(CommConstPtr_Type comm, int volu
 Mesh<SC,LO,GO,NO>(comm),
 meshInterface_(),
 volumeID_(volumeID),
-edgeElements_(),
 surfaceEdgeElements_(),
 meshFileName_("fileName.mesh"),
 delimiter_(" ")
 {
-    edgeElements_ = Teuchos::rcp( new EdgeElements_Type() );
     surfaceEdgeElements_ = Teuchos::rcp( new Elements_Type() );
         
 }
@@ -817,17 +813,18 @@ int MeshUnstructured<SC,LO,GO,NO>::determineFlagP2( LO p1ID, LO p2ID, LO localEd
                 fe.findEdgeFlagInSubElements( edge, newFlags, false /*we are not in a subElement yet*/, permutation, foundLineSegment );
 
                 //We need to mark this point since it can still be on the surface and another element holds the corresponding surface with the correct flag.
-                if (newFlags.size() == 0 && newFlag > this->volumeID_)
-                    newFlag = this->volumeID_; //do we need this?
 
                 //If we found a line element, then we choose this flag
                 if (foundLineSegment){
                     foundFlag = true;
-                    newFlag = newFlags [0];
+                    newFlag = newFlags[0];
                 }
-                else {
-                    // We use the lowest flag of all surfaces
-					
+                else if(this->dim_ == 2){ // there is always the possibility edges or surfaces are not included in mesh file. In this case we will simply determine the edge flag based on the node flags
+                    foundFlag = true;
+                    newFlag = max(flag1,flag2);
+                }
+                else{
+                    // We use the lowest flag of all surfaces					
                     for (int k = 0; k < newFlags.size(); k++) {
                         foundFlag = true;
                        if (newFlag > newFlags[k] )

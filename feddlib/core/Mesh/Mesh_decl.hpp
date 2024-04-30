@@ -7,6 +7,8 @@
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 #include "feddlib/core/FE/Elements.hpp"
+#include "feddlib/core/FE/EdgeElements.hpp"
+#include "feddlib/core/FE/TriangleElements.hpp"
 #include "feddlib/core/FE/FiniteElement.hpp"
 #include "feddlib/core/FE/Helper.hpp"
 #include "feddlib/core/Mesh/AABBTree.hpp"
@@ -29,6 +31,12 @@ public:
     typedef FiniteElement FiniteElement_Type;
     typedef Teuchos::RCP<FiniteElement_Type> FiniteElementPtr_Type;
     typedef Teuchos::RCP<Elements_Type> ElementsPtr_Type;
+
+    typedef EdgeElements EdgeElements_Type;
+    typedef Teuchos::RCP<EdgeElements_Type> EdgeElementsPtr_Type;
+
+    typedef SurfaceElements SurfaceElements_Type;
+    typedef Teuchos::RCP<SurfaceElements_Type> SurfaceElementsPtr_Type;
     
     typedef Teuchos::RCP<Mesh> Mesh_ptr_Type;
     
@@ -41,8 +49,17 @@ public:
     typedef Teuchos::RCP<const Map_Type> MapConstPtr_Type;
     typedef Teuchos::RCP<const Map_Type> MapConstPtrConst_Type;
 
-    typedef MultiVector<SC,LO,GO,NO> MultiVector_Type;
-    typedef Teuchos::RCP<MultiVector_Type> MultiVectorPtr_Type;
+	typedef MultiVector<SC,LO,GO,NO> MultiVector_Type;
+	typedef Teuchos::RCP<MultiVector_Type> MultiVectorPtr_Type;
+	typedef MultiVector<LO,LO,GO,NO> MultiVectorLO_Type;
+	typedef Teuchos::RCP<MultiVectorLO_Type> MultiVectorLOPtr_Type;
+    typedef MultiVector<GO,LO,GO,NO> MultiVectorGO_Type;
+    typedef Teuchos::RCP<MultiVectorGO_Type> MultiVectorGOPtr_Type;
+	typedef Teuchos::RCP<const MultiVector_Type> MultiVectorPtrConst_Type;
+    typedef Teuchos::OrdinalTraits<LO> OTLO;
+
+	typedef Matrix<SC,LO,GO,NO> Matrix_Type;
+    typedef Teuchos::RCP<Matrix_Type> MatrixPtr_Type;
 
     typedef AABBTree<SC,LO,GO,NO> AABBTree_Type;
     typedef Teuchos::RCP<AABBTree_Type > AABBTreePtr_Type;
@@ -187,34 +204,51 @@ public:
     /// @brief Correct the element orientation of all elements to have positive volume / det when doint transformation
     void correctElementOrientation();    
 
+    /// @brief Generating elements list corresponding to element list 
+    void buildEdges(ElementsPtr_Type elements);
+
+    /// Rebuilding the information of elementsOfEdgeLocal and elementsOfEdgeGlobal of edges
+    void updateElementsOfEdgesLocalAndGlobal(int maxRank, MapConstPtr_Type edgeMap);
+
+    /// @brief This just gives us the element locations of nodes that determine an edge
+    void setLocalEdgeIndices(vec2D_int_Type &localEdgeIndices);
+
+
 	/*! 
 		\brief Returns elements as a vector type contrary to the C-object list.
 	*/
 	vec2D_int_ptr_Type getElements();
     
+	/*! 
+		\brief Building Edge Map
+	*/
+    void buildEdgeMap();
     /* ###################################################################### */
     
-    int                     dim_;
-    long long               numElementsGlob_;
+    int                     dim_; // Dimension
+    long long               numElementsGlob_; // global number of elements
 
-    std::string 			FEType_;
-    MapPtr_Type             mapUnique_;
-    MapPtr_Type 			mapRepeated_;
-    vec2D_dbl_ptr_Type		pointsRep_;
-    vec2D_dbl_ptr_Type 		pointsUni_;
-    vec_int_ptr_Type 		bcFlagRep_;
-    vec_int_ptr_Type		bcFlagUni_;
+    std::string 			FEType_; // Finite Element Type
+    MapPtr_Type             mapUnique_; // Unique node map
+    MapPtr_Type 			mapRepeated_; // Repeated node map
+    vec2D_dbl_ptr_Type		pointsRep_; // repeated points
+    vec2D_dbl_ptr_Type 		pointsUni_; // unique points
+    vec_int_ptr_Type 		bcFlagRep_; // repeated flags
+    vec_int_ptr_Type		bcFlagUni_; // unique flags
 
-    ElementsPtr_Type        surfaceElements_;
+    ElementsPtr_Type        surfaceElements_; // Surface elements as elements type
 
     ElementsPtr_Type        elementsC_;
     MapPtr_Type				elementMap_;
     MapPtr_Type				edgeMap_;
 
+    // April 2024: EdgeElements and SurfaceTriangleElements were move from unstructuredMeshes to Meshes, as they can be a feature for structured meshes now.
+    EdgeElementsPtr_Type edgeElements_;    
+	SurfaceElementsPtr_Type surfaceTriangleElements_; 
 
     CommConstPtrConst_Type  comm_;
     
-	vec2D_int_ptr_Type  elementsVec_;
+	vec2D_int_ptr_Type  elementsVec_; // Elements as a vector not a c-object
     
     vec2D_dbl_ptr_Type		pointsRepRef_; // Repeated Referenzkonfiguration
     vec2D_dbl_ptr_Type		pointsUniRef_; // Unique Referenzkonfiguration

@@ -268,9 +268,7 @@ public:
     /* ###################################################################### */
 
 
- 	EdgeElementsPtr_Type edgeElements_;    
     ElementsPtr_Type surfaceEdgeElements_;
-	SurfaceElementsPtr_Type surfaceTriangleElements_;
 
  	string meshFileName_;
     string delimiter_;

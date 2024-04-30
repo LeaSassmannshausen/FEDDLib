@@ -413,6 +413,36 @@ void Domain<SC, LO, GO, NO>::initDummyMesh(MapPtr_Type map)
 }
 
 template <class SC, class LO, class GO, class NO>
+void Domain<SC, LO, GO, NO>::setUnstructuredMesh(MeshPtr_Type mesh)
+{
+    MeshUnstrPtr_Type outputMesh = Teuchos::rcp( new MeshUnstr_Type( comm_) );
+
+    outputMesh->dim_ = mesh->dim_ ;
+	outputMesh->FEType_ = mesh->FEType_ ;
+	outputMesh->rankRange_ =  mesh->rankRange_;
+
+    outputMesh->elementMap_ = mesh->elementMap_ ;
+	outputMesh->mapUnique_ = mesh->mapUnique_  ;
+	outputMesh->mapRepeated_ = mesh->mapRepeated_;
+	outputMesh->edgeMap_  = mesh->edgeMap_  ;
+
+	outputMesh->elementsC_ = mesh->elementsC_;
+	outputMesh->edgeElements_ = mesh->edgeElements_;
+	outputMesh->surfaceTriangleElements_ = mesh->surfaceTriangleElements_;
+
+   	outputMesh->pointsRep_ =  mesh->pointsRep_  ; 
+    outputMesh->pointsUni_ = mesh->pointsUni_; 
+
+    outputMesh->bcFlagUni_ = mesh->bcFlagUni_ ; 
+	outputMesh->bcFlagRep_ = mesh->bcFlagRep_ ;
+
+	outputMesh->edgesElementOrder_ = mesh->edgesElementOrder_;
+	outputMesh->numElementsGlob_ = mesh->numElementsGlob_  ; 
+	
+    mesh_ = outputMesh;
+}
+
+template <class SC, class LO, class GO, class NO>
 void Domain<SC,LO,GO,NO>::exportMesh(bool exportEdges, bool exportSurfaces, string exportMesh){ 
 
     MeshUnstrPtr_Type meshUnstructured = Teuchos::rcp_dynamic_cast<MeshUnstr_Type>( mesh_ );
