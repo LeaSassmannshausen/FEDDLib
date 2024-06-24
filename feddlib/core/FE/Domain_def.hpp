@@ -207,7 +207,7 @@ LO Domain<SC,LO,GO,NO>::getApproxEntriesPerRow() const{
 
 
 template <class SC, class LO, class GO, class NO>
-void Domain<SC,LO,GO,NO>::buildMesh(int flagsOption , std::string meshType, int dim, std::string FEType, int N, int M, int numProcsCoarseSolve){
+void Domain<SC,LO,GO,NO>::buildMesh(int flagsOption , std::string meshType, int dim, std::string FEType, int N, int M, int numProcsCoarseSolve, bool buildSurface){
 
     int geoNumber = checkGeomentry(meshType, dim);
 
@@ -275,7 +275,13 @@ void Domain<SC,LO,GO,NO>::buildMesh(int flagsOption , std::string meshType, int 
     meshStructured->buildElementMap();
     meshStructured->setStructuredMeshFlags(flagsOption,FEType);
     meshStructured->buildSurfaces(flagsOption,FEType);
-    
+    if(buildSurface){
+        if(dim==2)
+            meshStructured->buildEdges(meshStructured->getElementsC());
+        else if(dim == 3)
+            meshStructured->buildEdges(meshStructured->getElementsC());
+    }
+
     mesh_ = meshStructured;
 }
 

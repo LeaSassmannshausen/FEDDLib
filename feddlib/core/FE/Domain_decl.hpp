@@ -137,10 +137,11 @@ public:
          @param[in] N
          @param[in] M
          @param[in] numProcsCoarseSolve
+         @param[in] whether to additionally construct dim-1 surface for structured mesh
          
     */
     
-    void buildMesh(int flags, std::string meshType, int dim, std::string FEType, int N, int M, int numProcsCoarseSolve = 0);
+    void buildMesh(int flags, std::string meshType, int dim, std::string FEType, int N, int M, int numProcsCoarseSolve = 0, bool buildSurface=false);
     
      /*!
          \brief Estimate depending on FEType and dimension for the numer of entries in system matrix, as approximate number of entries is requiered for matrix initialization.

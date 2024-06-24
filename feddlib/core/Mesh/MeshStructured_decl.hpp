@@ -220,14 +220,13 @@ public:
 
     void flipSurface(vec_int_Type &surfaceElements_vec);
 
-
     /* ###################################################################### */
     
     std::vector<double> coorRec;
     double 				length; // length of geometry
     double		 		height; // height of geometry
     double 				width; // width of geometry
-
+    bool                buildEdges_;
     /* ###################################################################### */
 private:
 };

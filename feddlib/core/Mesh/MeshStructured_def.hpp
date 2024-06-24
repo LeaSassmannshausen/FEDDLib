@@ -615,8 +615,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2D(std::string FEType,
         }
     }
     buildElementsClass(elementsVec, elementFlag);
-    buildElementMap();
-    this->buildEdges(this->elementsC_);
+   
 
 }
 

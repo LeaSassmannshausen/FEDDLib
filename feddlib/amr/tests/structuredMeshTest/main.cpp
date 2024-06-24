@@ -168,14 +168,14 @@ int main(int argc, char *argv[]) {
                 std::vector<double> x(2);
                 x[0]=0.0;    x[1]=0.0;
                 domainP1 = Teuchos::rcp( new Domain<SC,LO,GO,NO>(x, 1., 1., comm) ) ;
-                domainP1->buildMesh(1, "Square", dim, "P1", n, m, numProcsCoarseSolve);
+                domainP1->buildMesh(1, "Square", dim, "P1", n, m, numProcsCoarseSolve,true);
             }
             else if (dim == 3){
                 n = (int) (std::pow(size,1/3.) + 100.*Teuchos::ScalarTraits< SC >::eps()); // 1/H
                 std::vector<double> x(3);
                 x[0]=0.0;    x[1]=0.0;	x[2]=0.0;
                 domainP1 = Teuchos::rcp( new Domain<SC,LO,GO,NO>(x, 1., 1., 1., comm) ) ;
-                domainP1->buildMesh(1, "Square", dim, "P1", n, m, numProcsCoarseSolve);
+                domainP1->buildMesh(1, "Square", dim, "P1", n, m, numProcsCoarseSolve,true);
             }
         }
 		else
