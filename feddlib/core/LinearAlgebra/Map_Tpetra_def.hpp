@@ -1,6 +1,6 @@
-#ifndef MAP_DEF_hpp
-#define MAP_DEF_hpp
-#include "Map_decl.hpp"
+#ifndef MAP_TPETRA_DEF_hpp
+#define MAP_TPETRA_DEF_hpp
+#include "Map_Tpetra_decl.hpp"
 
 /*!
  Declaration of Map
@@ -14,72 +14,99 @@
 using namespace std;
 namespace FEDD {
 template < class LO, class GO, class NO>
-Map<LO,GO,NO>::Map():
+Map_Tpetra<LO,GO,NO>::Map_Tpetra():
 map_()
 {
 
 }
 
 template <class LO, class GO, class NO>
-Map<LO,GO,NO>::Map( XpetraMapConstPtrConst_Type& xpetraMapPtrIn ):
-map_( xpetraMapPtrIn )
+Map_Tpetra<LO,GO,NO>::Map_Tpetra( TpetraMapConstPtrConst_Type& tpetraMapPtrIn ):
+map_( tpetraMapPtrIn )
 {
     
 }
 
 template < class LO, class GO, class NO>
-Map<LO,GO,NO>::Map( const Map_Type& mapIn ):
+Map_Tpetra<LO,GO,NO>::Map_Tpetra( const Map_Type& mapIn ):
 map_()
 {
-    Xpetra::UnderlyingLib ulib;
-    if (!mapIn.getUnderlyingLib().compare("Epetra"))
-        ulib = Xpetra::UseEpetra;
-    else if (!mapIn.getUnderlyingLib().compare("Tpetra"))
-        ulib = Xpetra::UseTpetra;
-
-    map_ = Xpetra::MapFactory<LO,GO,NO>::Build( ulib, mapIn.getGlobalNumElements(), mapIn.getNodeElementList(), mapIn.getIndexBase(), mapIn.getComm() );
+    map_ = Teuchos::RCP(new TpetraMap_Type(mapIn.getGlobalNumElements(), mapIn.getNodeElementList(),mapIn.getIndexBase(), mapIn.getComm()));
+    //map_ = Xpetra::MapFactory<LO,GO,NO>::Build( ulib, mapIn.getGlobalNumElements(), mapIn.getNodeElementList(), mapIn.getIndexBase(), mapIn.getComm() );
 }
     
 template < class LO, class GO, class NO>
-Map<LO,GO,NO>::Map(std::string lib,
+Map_Tpetra<LO,GO,NO>::Map_Tpetra(std::string lib,
                     GO numGlobalElements,
                     const Teuchos::ArrayView<const GO> &elementList,
                     GO indexBase,
                     const CommConstPtr_Type &comm):
 map_()
 {
-    Xpetra::UnderlyingLib ulib;
-    if (!lib.compare("Epetra"))
-        ulib = Xpetra::UseEpetra;
-    else if (!lib.compare("Tpetra"))
-        ulib = Xpetra::UseTpetra;
-    map_ = Xpetra::MapFactory<LO,GO,NO>::Build( ulib, numGlobalElements, elementList, indexBase, comm);
+    map_ =  Teuchos::RCP(new TpetraMap_Type(numGlobalElements, elementList, indexBase, comm));
 }
 
 template < class LO, class GO, class NO>
-Map<LO,GO,NO>::Map(std::string lib,
+Map_Tpetra<LO,GO,NO>::Map_Tpetra(std::string lib,
                    GO numGlobalElements,
                    LO numLocalElements,
                    GO indexBase,
                    const CommConstPtr_Type &comm):
 map_()
 {
-    Xpetra::UnderlyingLib ulib;
-    if (!lib.compare("Epetra"))
-        ulib = Xpetra::UseEpetra;
-    else if (!lib.compare("Tpetra"))
-        ulib = Xpetra::UseTpetra;
-    
-    map_ = Xpetra::MapFactory<LO,GO,NO>::Build( ulib, numGlobalElements, numLocalElements, indexBase, comm);
+    map_ = Teuchos::RCP(new TpetraMap_Type(numGlobalElements, numLocalElements, indexBase, comm));
+
 }
     
 template < class LO, class GO, class NO>
-Map<LO,GO,NO>::~Map(){
+Map_Tpetra<LO,GO,NO>::~Map_Tpetra(){
     
 }
 
+    
 template < class LO, class GO, class NO>
-std::string Map<LO,GO,NO>::getUnderlyingLib( ) const{
+GO Map_Tpetra<LO,GO,NO>::getGlobalElement(LO id) const{
+    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
+    return map_->getGlobalElement(id);
+}
+
+template < class LO, class GO, class NO>
+LO Map_Tpetra<LO,GO,NO>::getLocalElement(GO id) const{
+    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
+    return map_->getLocalElement(id);
+}
+
+template < class LO, class GO, class NO>
+LO Map_Tpetra<LO,GO,NO>::getNodeNumElements() const{
+    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
+    return map_->getLocalNumElements();
+}
+
+template < class LO, class GO, class NO>
+GO Map_Tpetra<LO,GO,NO>::getGlobalNumElements() const{
+    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
+    return map_->getGlobalNumElements();
+}
+
+template < class LO, class GO, class NO>
+typename Map_Tpetra<LO,GO,NO>::CommConstPtr_Type Map_Tpetra<LO,GO,NO>::getComm() const{
+    
+    return map_->getComm();
+}
+
+template <class LO,class GO,class NO>
+GO Map_Tpetra<LO,GO,NO>::getIndexBase() const{
+    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
+    return map_->getIndexBase();
+}
+
+template < class LO, class GO, class NO>
+Teuchos::ArrayView< const GO > Map_Tpetra<LO,GO,NO>::getNodeElementList() const{
+    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
+    return map_->getLocalElementList();
+}
+/*template < class LO, class GO, class NO>
+std::string Map_Tpetra<LO,GO,NO>::getUnderlyingLib( ) const{
     TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
     std::string uLib;
     if (map_->lib() == Xpetra::UseEpetra)
@@ -92,7 +119,7 @@ std::string Map<LO,GO,NO>::getUnderlyingLib( ) const{
 }
 
 template < class LO, class GO, class NO>
-typename Map<LO,GO,NO>::MapPtr_Type Map<LO,GO,NO>::buildVecFieldMap(UN numDofs, std::string ordering) const{
+typename Map_Tpetra<LO,GO,NO>::MapPtr_Type Map_Tpetra<LO,GO,NO>::buildVecFieldMap(UN numDofs, std::string ordering) const{
 
     TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
     TEUCHOS_TEST_FOR_EXCEPTION(ordering.compare("NodeWise"), std::logic_error,"Select a valid ordering: NodeWise");
@@ -107,7 +134,7 @@ typename Map<LO,GO,NO>::MapPtr_Type Map<LO,GO,NO>::buildVecFieldMap(UN numDofs, 
 }
 
 template < class LO, class GO, class NO>
-typename Map<LO,GO,NO>::XpetraMapConstPtr_Type Map<LO,GO,NO>::getXpetraMap() const{
+typename Map_Tpetra<LO,GO,NO>::XpetraMapConstPtr_Type Map_Tpetra<LO,GO,NO>::getXpetraMap() const{
     
     TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"getXpetraMap(): map_ is null.");
     
@@ -115,74 +142,47 @@ typename Map<LO,GO,NO>::XpetraMapConstPtr_Type Map<LO,GO,NO>::getXpetraMap() con
 }
 
 template < class LO, class GO, class NO>
-typename Map<LO,GO,NO>::ThyraVSBConstPtr_Type Map<LO,GO,NO>::getThyraVectorSpaceBase() const{
+typename Map_Tpetra<LO,GO,NO>::ThyraVSBConstPtr_Type Map_Tpetra<LO,GO,NO>::getThyraVectorSpaceBase() const{
     
     TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"getThyraVectorSpaceBase(): map_ is null.");
     return Xpetra::ThyraUtils<default_sc,LO,GO,NO>::toThyra( map_ );
 }
 
-    
-template < class LO, class GO, class NO>
-GO Map<LO,GO,NO>::getGlobalElement(LO id) const{
-    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
-    return map_->getGlobalElement(id);
-}
+
 
 template < class LO, class GO, class NO>
-LO Map<LO,GO,NO>::getLocalElement(GO id) const{
-    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
-    return map_->getLocalElement(id);
-}
-
-template < class LO, class GO, class NO>
-LO Map<LO,GO,NO>::getNodeNumElements() const{
-    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
-    return map_->getLocalNumElements();
-}
-
-template < class LO, class GO, class NO>
-GO Map<LO,GO,NO>::getGlobalNumElements() const{
-    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
-    return map_->getGlobalNumElements();
-}
-
-template < class LO, class GO, class NO>
-Teuchos::ArrayView< const GO > Map<LO,GO,NO>::getNodeElementList() const{
+Teuchos::ArrayView< const GO > Map_Tpetra<LO,GO,NO>::getNodeElementList() const{
     TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
     return map_->getLocalElementList();
 }
     
 template < class LO, class GO, class NO>
-GO Map<LO,GO,NO>::getMaxAllGlobalIndex() const{
+GO Map_Tpetra<LO,GO,NO>::getMaxAllGlobalIndex() const{
     return map_->getMaxAllGlobalIndex();
 }
     
 template < class LO, class GO, class NO>
-LO Map<LO,GO,NO>::getMaxLocalIndex() const{
+LO Map_Tpetra<LO,GO,NO>::getMaxLocalIndex() const{
     return map_->getMaxLocalIndex();
 }
     
 template < class LO, class GO, class NO>
-void Map<LO,GO,NO>::print(Teuchos::EVerbosityLevel verbLevel) const{
+void Map_Tpetra<LO,GO,NO>::print(Teuchos::EVerbosityLevel verbLevel) const{
 
     Teuchos::RCP<Teuchos::FancyOStream> out = Teuchos::VerboseObjectBase::getDefaultOStream();
     map_->describe(*out,verbLevel);
 }
 
-template < class LO, class GO, class NO>
-typename Map<LO,GO,NO>::CommConstPtr_Type Map<LO,GO,NO>::getComm() const{
-    
-    return map_->getComm();
-}
+
 
 template < class LO, class GO, class NO>
-typename Map<LO,GO,NO>::CommPtr_Type Map<LO,GO,NO>::getCommNonConst() {
+typename Map_Tpetra<LO,GO,NO>::CommPtr_Type Map_Tpetra<LO,GO,NO>::getCommNonConst() {
     CommConstPtr_Type commConst = map_->getComm();
     return Teuchos::rcp_const_cast<Comm_Type>(commConst);
 }
     
 template <class LO,class GO,class NO>
-Teuchos::RCP<Map<LO,GO,NO> > Map<LO,GO,NO>::buildUniqueMap( int numFreeProcs ) const
+Teuchos::RCP<Map_Tpetra<LO,GO,NO> > Map_Tpetra<LO,GO,NO>::buildUniqueMap( int numFreeProcs ) const
 {
     TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
     if (numFreeProcs==0) {
@@ -206,7 +206,7 @@ Teuchos::RCP<Map<LO,GO,NO> > Map<LO,GO,NO>::buildUniqueMap( int numFreeProcs ) c
             }
         }
         Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapXpetra = Xpetra::MapFactory<LO,GO,NO>::Build(map_->lib(),-1,uniqueVector(),0,map_->getComm());
-        Teuchos::RCP<Map<LO,GO,NO> > map = Teuchos::rcp( new Map<LO,GO,NO>( mapXpetra ) );
+        Teuchos::RCP<Map_Tpetra<LO,GO,NO> > map = Teuchos::rcp( new Map_Tpetra<LO,GO,NO>( mapXpetra ) );
         return  map;
     }
     else{
@@ -256,7 +256,7 @@ Teuchos::RCP<Map<LO,GO,NO> > Map<LO,GO,NO>::buildUniqueMap( int numFreeProcs ) c
             }
         }
         Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapXpetra = Xpetra::MapFactory<LO,GO,NO>::Build(map_->lib(),-1,uniqueVector(),0,map_->getComm());
-        Teuchos::RCP<Map<LO,GO,NO> > map = Teuchos::rcp( new Map<LO,GO,NO>( mapXpetra ) );
+        Teuchos::RCP<Map_Tpetra<LO,GO,NO> > map = Teuchos::rcp( new Map_Tpetra<LO,GO,NO>( mapXpetra ) );
         return  map;
     }
     
@@ -264,7 +264,7 @@ Teuchos::RCP<Map<LO,GO,NO> > Map<LO,GO,NO>::buildUniqueMap( int numFreeProcs ) c
    
 //merge with above function
 template <class LO,class GO,class NO>
-Teuchos::RCP<Map<LO,GO,NO> > Map<LO,GO,NO>::buildUniqueMap( tuple_intint_Type rankRange ) const
+Teuchos::RCP<Map_Tpetra<LO,GO,NO> > Map_Tpetra<LO,GO,NO>::buildUniqueMap( tuple_intint_Type rankRange ) const
 {
     TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
     int rank = map_->getComm()->getRank();
@@ -315,16 +315,12 @@ Teuchos::RCP<Map<LO,GO,NO> > Map<LO,GO,NO>::buildUniqueMap( tuple_intint_Type ra
         }
     }
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapXpetra = Xpetra::MapFactory<LO,GO,NO>::Build(map_->lib(),-1,uniqueVector(),0,map_->getComm());
-    Teuchos::RCP<Map<LO,GO,NO> > map = Teuchos::rcp( new Map<LO,GO,NO>( mapXpetra ) );
+    Teuchos::RCP<Map_Tpetra<LO,GO,NO> > map = Teuchos::rcp( new Map_Tpetra<LO,GO,NO>( mapXpetra ) );
 
     return  map;
 
 }
     
-template <class LO,class GO,class NO>
-GO Map<LO,GO,NO>::getIndexBase() const{
-    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
-    return map_->getIndexBase();
-}
+*/
 }
 #endif
