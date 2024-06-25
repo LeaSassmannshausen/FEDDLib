@@ -581,11 +581,11 @@ int main(int argc, char *argv[])
 
 
 
-            // Baue Epetra_Import indem wir eine TargetMap und eine SourceMap bauen/ angeben
+            // Baue Xpetra_Import indem wir eine TargetMap und eine SourceMap bauen/ angeben
             // SourceMap: Welche Indizes besitze ich (= der derzeitige Prozzesor)
             // TargetMap: Welche Indizes benoetige ich (= der derzeitge Prozessor)
             // Auf gut Deutsch also: Welche Indizes will ich (= der Prozessor) importiert haben/ am Ende besitzen.
-            // Wir umgehen hiermit das explizite Aufstellen des Epetra_Imports.
+            // Wir umgehen hiermit das explizite Aufstellen des Xpetra_Imports.
             MultiVectorPtr_Type interfaceSolutionFluid = rcp( new MultiVector_Type( interfaceMapFluidVecField, 1 ) );
             interfaceSolutionFluid->importFromVector( interfaceSolutionStruct );
 
