@@ -701,6 +701,6 @@ int main(int argc, char *argv[])
 
     Teuchos::TimeMonitor::report(std::cout);
 
-    Tpetra::finalize(); //$$$
+    Tpetra::finalize();
     return EXIT_SUCCESS;
 }
