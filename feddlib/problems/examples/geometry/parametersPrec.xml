@@ -16,7 +16,7 @@
                 <!--<Parameter name="Use OverlappingOperator" 							type="bool" 	value="true">-->
                 <Parameter name="Level Combination"                                 type="string"   value="Additive"/><!--Multiplicative,Additive-->
                 <Parameter name="OverlappingOperator Type"                          type="string"   value="AlgebraicOverlappingOperator"/>
-                <!--<Parameter name="Use CoarseOperator" 								type="bool" 	value="true">-->
+                <!--<Parameter name="Use CoarseOperator"                                type="bool"     value="true">-->
                 <Parameter name="CoarseOperator Type"                               type="string"   value="RGDSWCoarseOperator"/><!--GDSWCoarseOperator,IPOUHarmonicCoarseOperator-->
                 <ParameterList name="AlgebraicOverlappingOperator">
                     <Parameter name="Reuse Symbolic Factorization"                  type="bool"     value="true"/>
@@ -123,7 +123,7 @@
                             <Parameter name="debug_procs"                        type="string"   value="0"/>
                             <Parameter name="error_check_level"                  type="string"   value="basic_assertions"/>
                             <Parameter name="imbalance_tolerance"                type="double"   value="1.1"/>
-                            <Parameter name="timer_type"				         type="string"   value="macro_timers"/>
+                            <Parameter name="timer_type"                         type="string"   value="macro_timers"/>
                             <!-- sets num_global_parts = NumProc()/num_global_parts_fraction -->
                         </ParameterList>
                     </ParameterList>
@@ -269,7 +269,7 @@
                             <Parameter name="debug_procs"                        type="string"   value="0"/>
                             <Parameter name="error_check_level"                  type="string"   value="basic_assertions"/>
                             <Parameter name="imbalance_tolerance"                type="double"   value="1.1"/>
-                            <Parameter name="timer_type"				         type="string"   value="macro_timers"/>
+                            <Parameter name="timer_type"                         type="string"   value="macro_timers"/>
                             <!-- sets num_global_parts = NumProc()/num_global_parts_fraction -->
                         </ParameterList>
                     </ParameterList>
