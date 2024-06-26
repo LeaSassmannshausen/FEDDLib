@@ -3,7 +3,7 @@
 
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
-#include "feddlib/core/LinearAlgebra/Map.hpp"
+#include "feddlib/core/LinearAlgebra/Map_Tpetra.hpp"
 
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Xpetra_DefaultPlatform.hpp>
@@ -35,8 +35,6 @@ int main(int argc, char *argv[]) {
 
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
-    string ulib_str = "Tpetra";
-    myCLP.setOption("ulib",&ulib_str,"Underlying lib");
     GO numGlobalElements = 10;
     myCLP.setOption("nge",&numGlobalElements,"numGlobalElements.");
 
@@ -47,15 +45,9 @@ int main(int argc, char *argv[]) {
         mpiSession.~GlobalMPISession();
         return 0;
     }
-
-    typedef Xpetra::Map<LO,GO,NO> XpetraMap_Type;
-    typedef RCP<XpetraMap_Type> XpetraMapPtr_Type;
-    typedef RCP<const XpetraMap_Type> XpetraMapConstPtr_Type;
-
-    typedef Map<LO,GO,NO> Map_Type;
+    
+    typedef Map_Tpetra<LO,GO,NO> Map_Type;
     typedef RCP<Map_Type> MapPtr_Type;
-
-    TEUCHOS_TEST_FOR_EXCEPTION(!(!ulib_str.compare("Tpetra") || !ulib_str.compare("Epetra") ) , std::runtime_error,"Unknown algebra type");
 
 
     Array<GO> indices(numGlobalElements);
@@ -63,7 +55,7 @@ int main(int argc, char *argv[]) {
         indices[i] = i;
     }
 
-    MapPtr_Type map = rcp( new Map_Type(ulib_str, commWorld->getSize()*numGlobalElements, indices(), 0, commWorld) );
+    MapPtr_Type map = rcp( new Map_Type(commWorld->getSize()*numGlobalElements, indices(), 0, commWorld) );
 
     map->print();
 

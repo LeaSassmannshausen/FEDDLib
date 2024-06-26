@@ -5,10 +5,8 @@
 /*!
  Declaration of Map
  
- @brief  Map
- @author Christian Hochmuth
- @version 1.0
- @copyright CH
+    June 2024: Transition from XPetra to TPetra. In most instances XPetra interface works through a Factory + Build-call. We replaced this with a direct call 
+    to the TPetra functions which can be seen in the corresponding XPetra::Factories. 
  */
 
 using namespace std;
@@ -36,8 +34,7 @@ map_()
 }
     
 template < class LO, class GO, class NO>
-Map_Tpetra<LO,GO,NO>::Map_Tpetra(std::string lib,
-                    GO numGlobalElements,
+Map_Tpetra<LO,GO,NO>::Map_Tpetra(GO numGlobalElements,
                     const Teuchos::ArrayView<const GO> &elementList,
                     GO indexBase,
                     const CommConstPtr_Type &comm):
@@ -47,8 +44,7 @@ map_()
 }
 
 template < class LO, class GO, class NO>
-Map_Tpetra<LO,GO,NO>::Map_Tpetra(std::string lib,
-                   GO numGlobalElements,
+Map_Tpetra<LO,GO,NO>::Map_Tpetra(GO numGlobalElements,
                    LO numLocalElements,
                    GO indexBase,
                    const CommConstPtr_Type &comm):
@@ -105,16 +101,14 @@ Teuchos::ArrayView< const GO > Map_Tpetra<LO,GO,NO>::getNodeElementList() const{
     TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
     return map_->getLocalElementList();
 }
-/*template < class LO, class GO, class NO>
+
+template < class LO, class GO, class NO>
 std::string Map_Tpetra<LO,GO,NO>::getUnderlyingLib( ) const{
     TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
     std::string uLib;
-    if (map_->lib() == Xpetra::UseEpetra)
-        uLib = "Epetra";
-    else if (map_->lib() == Xpetra::UseTpetra)
-        uLib = "Tpetra";
-    else
-        TEUCHOS_TEST_FOR_EXCEPTION(true,std::logic_error,"Unknown underlying lib");
+
+    uLib = "Tpetra";
+
     return uLib;
 }
 
@@ -130,32 +124,18 @@ typename Map_Tpetra<LO,GO,NO>::MapPtr_Type Map_Tpetra<LO,GO,NO>::buildVecFieldMa
             elementListField[ numDofs * i + dof ] = numDofs * elementList[i] + dof;
     }
     typedef Teuchos::OrdinalTraits<GO> GOOT;
-    return Teuchos::rcp(new Map_Type( this->getUnderlyingLib(), GOOT::invalid(), elementListField(), map_->getIndexBase(), map_->getComm() ) );
+    return Teuchos::rcp(new Map_Type(GOOT::invalid(), elementListField(), map_->getIndexBase(), map_->getComm() ) );
 }
 
+
 template < class LO, class GO, class NO>
-typename Map_Tpetra<LO,GO,NO>::XpetraMapConstPtr_Type Map_Tpetra<LO,GO,NO>::getXpetraMap() const{
+typename Map_Tpetra<LO,GO,NO>::TpetraMapConstPtr_Type Map_Tpetra<LO,GO,NO>::getTpetraMap() const{
     
     TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"getXpetraMap(): map_ is null.");
     
     return map_;
 }
 
-template < class LO, class GO, class NO>
-typename Map_Tpetra<LO,GO,NO>::ThyraVSBConstPtr_Type Map_Tpetra<LO,GO,NO>::getThyraVectorSpaceBase() const{
-    
-    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"getThyraVectorSpaceBase(): map_ is null.");
-    return Xpetra::ThyraUtils<default_sc,LO,GO,NO>::toThyra( map_ );
-}
-
-
-
-template < class LO, class GO, class NO>
-Teuchos::ArrayView< const GO > Map_Tpetra<LO,GO,NO>::getNodeElementList() const{
-    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
-    return map_->getLocalElementList();
-}
-    
 template < class LO, class GO, class NO>
 GO Map_Tpetra<LO,GO,NO>::getMaxAllGlobalIndex() const{
     return map_->getMaxAllGlobalIndex();
@@ -173,13 +153,159 @@ void Map_Tpetra<LO,GO,NO>::print(Teuchos::EVerbosityLevel verbLevel) const{
     map_->describe(*out,verbLevel);
 }
 
-
+template < class LO, class GO, class NO>
+typename Map_Tpetra<LO,GO,NO>::ThyraVSBConstPtr_Type Map_Tpetra<LO,GO,NO>::getThyraVectorSpaceBase() const{
+    
+    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"getThyraVectorSpaceBase(): map_ is null.");
+    //RCP< const Tpetra::Map< LocalOrdinal, GlobalOrdinal, Node > > tpMap = tpetraMap->getTpetra_Map();
+    Teuchos::RCP<Thyra::TpetraVectorSpace<default_sc,LO,GO,NO> > thyraTpetraMap = Thyra::tpetraVectorSpace<default_sc,LO,GO,NO>(map_);
+    return thyraTpetraMap;
+}
 
 template < class LO, class GO, class NO>
 typename Map_Tpetra<LO,GO,NO>::CommPtr_Type Map_Tpetra<LO,GO,NO>::getCommNonConst() {
     CommConstPtr_Type commConst = map_->getComm();
     return Teuchos::rcp_const_cast<Comm_Type>(commConst);
 }
+
+template <class LO,class GO,class NO>
+Teuchos::RCP<Map_Tpetra<LO,GO,NO> > Map_Tpetra<LO,GO,NO>::buildUniqueMap( int numFreeProcs ) const
+{
+    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
+    if (numFreeProcs==0) {
+        
+        Teuchos::RCP<Tpetra::Vector<GO,LO,GO,NO> > myIndices = Teuchos::RCP( new Tpetra::Vector<GO,LO,GO,NO>(map_));
+        myIndices->putScalar(map_->getComm()->getRank()+1);
+
+        TpetraMapPtr_Type linearMap = Teuchos::RCP(new TpetraMap_Type( map_->getMaxAllGlobalIndex()+1, 0, map_->getComm()));
+        Teuchos::RCP<Tpetra::Vector<GO,LO,GO,NO> > globalIndices = Teuchos::RCP( new Tpetra::Vector<GO,LO,GO,NO>(linearMap));
+
+        Teuchos::RCP<Tpetra::Import<LO,GO,NO> > importer = Teuchos::RCP(new Tpetra::Import<LO, GO, NO>( map_,linearMap));
+        Teuchos::RCP<Tpetra::Import<LO,GO,NO> > importer2 = Teuchos::RCP(new Tpetra::Import<LO, GO, NO>(linearMap, map_));
+        globalIndices->doImport(*myIndices,*importer,Tpetra::INSERT);
+        myIndices->putScalar(0);
+        myIndices->doImport(*globalIndices,*importer2,Tpetra::ADD);
+        
+        Teuchos::Array<GO> uniqueVector;
+        for (unsigned i=0; i<myIndices->getLocalLength(); i++) {
+            if (myIndices->getData(0)[i] == map_->getComm()->getRank()+1) {
+                uniqueVector.push_back(map_->getGlobalElement(i));
+            }
+        }
+        TpetraMapPtr_Type mapTpetra = Teuchos::RCP(new TpetraMap_Type(-1, uniqueVector(),0,map_->getComm()));
+        Teuchos::RCP<Map_Tpetra<LO,GO,NO> > map = Teuchos::rcp( new Map_Tpetra<LO,GO,NO>( mapTpetra ) );
+        return  map;
+    }
+    else{
+        Teuchos::RCP<Tpetra::Vector<GO,LO,GO,NO> > myIndices = Teuchos::RCP( new Tpetra::Vector<GO,LO,GO,NO>(map_));
+        myIndices->putScalar(map_->getComm()->getRank()+1);
+        GO maxGID = map_->getMaxAllGlobalIndex();
+        int numAvailableRanks = map_->getComm()->getSize() - numFreeProcs;
+        int numElementsForAvailRank = (int) ( ( (maxGID+1) / numAvailableRanks ) + 100.*std::numeric_limits<double>::epsilon() );
+        
+        int remainingElement = maxGID+1 - numAvailableRanks * numElementsForAvailRank;
+        bool hasOneMoreElement = false;
+        
+        if ( remainingElement > map_->getComm()->getRank() ) {
+            numElementsForAvailRank++;
+            hasOneMoreElement = true;
+        }
+        
+        if ( map_->getComm()->getRank() + 1 > map_->getComm()->getSize() - numFreeProcs){
+            numElementsForAvailRank = 0;
+        }
+        
+        Teuchos::Array<GO> myElements( numElementsForAvailRank );
+        GO offset = numElementsForAvailRank * map_->getComm()->getRank();
+        if (!hasOneMoreElement) {
+            offset += remainingElement;
+        }
+        for (int i=0; i<myElements.size(); i++) {
+            myElements[i] = i + offset;
+        }
+
+        TpetraMapPtr_Type linearMapAvailRanks = Teuchos::RCP(new TpetraMap_Type(Teuchos::OrdinalTraits<GO>::invalid(), myElements(), 0, map_->getComm()));
+        Teuchos::RCP<Tpetra::Vector<GO,LO,GO,NO> > globalIndices = Teuchos::RCP( new Tpetra::Vector<GO,LO,GO,NO>(linearMapAvailRanks));
+
+        Teuchos::RCP<Tpetra::Import<LO,GO,NO> > importer = Teuchos::RCP(new Tpetra::Import<LO, GO, NO>(map_, linearMapAvailRanks ));
+        Teuchos::RCP<Tpetra::Import<LO,GO,NO> > importer2 = Teuchos::RCP(new Tpetra::Import<LO, GO, NO>( linearMapAvailRanks, map_));
+        
+        globalIndices->doImport(*myIndices,*importer,Tpetra::INSERT);
+        
+        myIndices->putScalar(0);
+        myIndices->doImport(*globalIndices,*importer2,Tpetra::ADD);
+        
+        Teuchos::Array<GO> uniqueVector;
+        for (unsigned i=0; i<myIndices->getLocalLength(); i++) {
+            if (myIndices->getData(0)[i] == map_->getComm()->getRank()+1) {
+                uniqueVector.push_back(map_->getGlobalElement(i));
+            }
+        }
+        TpetraMapPtr_Type mapTpetra = Teuchos::RCP(new TpetraMap_Type(-1, uniqueVector(),0,map_->getComm()));
+        Teuchos::RCP<Map_Tpetra<LO,GO,NO> > map = Teuchos::rcp( new Map_Tpetra<LO,GO,NO>( mapTpetra ) );
+        return  map;
+    }
+    
+}
+
+//merge with above function
+template <class LO,class GO,class NO>
+Teuchos::RCP<Map_Tpetra<LO,GO,NO> > Map_Tpetra<LO,GO,NO>::buildUniqueMap( tuple_intint_Type rankRange ) const
+{
+    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
+    int rank = map_->getComm()->getRank();
+    Teuchos::RCP<Tpetra::Vector<GO,LO,GO,NO> > myIndices = Teuchos::RCP( new Tpetra::Vector<GO,LO,GO,NO>(map_));
+
+    myIndices->putScalar(rank + 1);
+    GO maxGID = map_->getMaxAllGlobalIndex();
+
+    int numAvailableRanks = std::get<1>(rankRange) - std::get<0>(rankRange) + 1;
+    int numElementsForAvailRank = (int) ( ( (maxGID+1) / numAvailableRanks ) + 100.*std::numeric_limits<double>::epsilon() );
+    
+    int remainingElement = maxGID+1 - numAvailableRanks * numElementsForAvailRank;
+    bool hasOneMoreElement = false;
+    
+    if ( remainingElement > map_->getComm()->getRank() - std::get<0>(rankRange) ) {
+        numElementsForAvailRank++;
+        hasOneMoreElement = true;
+    }
+    if ( map_->getComm()->getRank() < std::get<0>(rankRange) || map_->getComm()->getRank() > std::get<1>(rankRange)  )
+        numElementsForAvailRank = 0;
+    
+    
+    Teuchos::Array<GO> myElements( numElementsForAvailRank );
+    GO offset = numElementsForAvailRank * ( map_->getComm()->getRank() - std::get<0>(rankRange) );
+    
+    if (!hasOneMoreElement)
+        offset += remainingElement;
+
+    for (int i=0; i<myElements.size(); i++)
+        myElements[i] = i + offset;
+  
+    TpetraMapPtr_Type linearMapAvailRanks = Teuchos::RCP(new TpetraMap_Type( Teuchos::OrdinalTraits<GO>::invalid(), myElements(), 0, map_->getComm()));
+    Teuchos::RCP<Tpetra::Vector<GO,LO,GO,NO> > globalIndices = Teuchos::RCP( new Tpetra::Vector<GO,LO,GO,NO>(linearMapAvailRanks));
+
+    Teuchos::RCP<Tpetra::Import<LO,GO,NO> > importer = Teuchos::RCP(new Tpetra::Import<LO, GO, NO>( map_,linearMapAvailRanks));
+    Teuchos::RCP<Tpetra::Import<LO,GO,NO> > importer2 = Teuchos::RCP(new Tpetra::Import<LO, GO, NO>(linearMapAvailRanks, map_));
+
+    globalIndices->doImport(*myIndices,*importer,Tpetra::INSERT);
+    
+    myIndices->putScalar(0);
+    myIndices->doImport(*globalIndices,*importer2,Tpetra::ADD);
+    
+    Teuchos::Array<GO> uniqueVector;
+    for (unsigned i=0; i<myIndices->getLocalLength(); i++) {
+        if (myIndices->getData(0)[i] == map_->getComm()->getRank()+1) {
+            uniqueVector.push_back(map_->getGlobalElement(i));
+        }
+    }
+
+    TpetraMapPtr_Type mapTpetra = Teuchos::RCP(new TpetraMap_Type(-1, uniqueVector(),0,map_->getComm()));
+    Teuchos::RCP<Map_Tpetra<LO,GO,NO> > map = Teuchos::rcp( new Map_Tpetra<LO,GO,NO>( mapTpetra ) );
+    return  map;
+
+}
+/*
     
 template <class LO,class GO,class NO>
 Teuchos::RCP<Map_Tpetra<LO,GO,NO> > Map_Tpetra<LO,GO,NO>::buildUniqueMap( int numFreeProcs ) const
@@ -319,8 +445,8 @@ Teuchos::RCP<Map_Tpetra<LO,GO,NO> > Map_Tpetra<LO,GO,NO>::buildUniqueMap( tuple_
 
     return  map;
 
-}
+}*/
     
-*/
+
 }
 #endif

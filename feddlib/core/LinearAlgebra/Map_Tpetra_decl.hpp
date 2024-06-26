@@ -18,7 +18,10 @@
 #include <Tpetra_Vector.hpp>
 #include <Tpetra_Export.hpp>
 #include <Tpetra_Import.hpp>
-
+#include <Thyra_TpetraThyraWrappers.hpp>
+#include <Thyra_TpetraVector.hpp>
+#include <Thyra_TpetraMultiVector.hpp>
+#include <Thyra_TpetraVectorSpace.hpp>
 /*!
  Declaration of Map
  
@@ -45,10 +48,10 @@ public:
     typedef const TpetraMapConstPtr_Type TpetraMapConstPtrConst_Type;
 
     
-    typedef Xpetra::Map<LO,GO,NO> XpetraMap_Type;
+    /*typedef Xpetra::Map<LO,GO,NO> XpetraMap_Type;
     typedef Teuchos::RCP<XpetraMap_Type> XpetraMapPtr_Type;
     typedef Teuchos::RCP<const XpetraMap_Type> XpetraMapConstPtr_Type;
-    typedef const XpetraMapConstPtr_Type XpetraMapConstPtrConst_Type;
+    typedef const XpetraMapConstPtr_Type XpetraMapConstPtrConst_Type;*/
 
     typedef Thyra::VectorSpaceBase<default_sc> ThyraVSB_Type;
     typedef Teuchos::RCP<ThyraVSB_Type> ThyraVSBPtr_Type;
@@ -64,14 +67,12 @@ public:
     
     Map_Tpetra( const Map_Type& mapIn );
     
-    Map_Tpetra(std::string lib,
-        GO numGlobalElements,
+    Map_Tpetra(GO numGlobalElements,
         const Teuchos::ArrayView<const GO> &elementList,
         GO indexBase,
         const CommConstPtr_Type &comm);
 
-    Map_Tpetra(std::string lib,
-        GO numGlobalElements,
+    Map_Tpetra(GO numGlobalElements,
         LO numLocalElements,
         GO indexBase,
         const CommConstPtr_Type &comm);
@@ -91,33 +92,31 @@ public:
 
     Teuchos::ArrayView<const GO> getNodeElementList() const;
 
-    GO getIndexBase() const;        
-    
-    /*std::string getUnderlyingLib( ) const;
+    GO getIndexBase() const; 
 
+    std::string getUnderlyingLib( ) const;       
+    
     MapPtr_Type buildVecFieldMap(UN numDofs, std::string ordering="NodeWise") const;
-    
-    XpetraMapConstPtr_Type getXpetraMap() const;
-    
-    ThyraVSBConstPtr_Type getThyraVectorSpaceBase() const;
-    
-    
+   
+    TpetraMapConstPtr_Type getTpetraMap() const;
+
     GO getMaxAllGlobalIndex() const;
     
     LO getMaxLocalIndex() const;
     
     void print(Teuchos::EVerbosityLevel verbLevel=Teuchos::VERB_EXTREME) const;
 
-    
-    CommPtr_Type getCommNonConst(); */
+    ThyraVSBConstPtr_Type getThyraVectorSpaceBase() const;
+
+    CommPtr_Type getCommNonConst();
+
     /*!
      @param[in] numFreeProcs: Do not use the last numFreeProcs of MPI communicator in the building process
      */
-    /*Teuchos::RCP<Map_Tpetra<LO,GO,NO> > buildUniqueMap( int numFreeProcs=0 ) const;
+    Teuchos::RCP<Map_Tpetra<LO,GO,NO> > buildUniqueMap( int numFreeProcs=0 ) const;
     
     Teuchos::RCP<Map_Tpetra<LO,GO,NO> > buildUniqueMap( tuple_intint_Type rankRange ) const;
-    
-    */
+   
     
 private:
     
