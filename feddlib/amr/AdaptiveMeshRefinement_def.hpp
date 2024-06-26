@@ -774,7 +774,7 @@ void AdaptiveMeshRefinement<SC,LO,GO,NO>::calcErrorNorms(MultiVectorConstPtr_Typ
 		Teuchos::ArrayView<GO> repIDsVecArray = Teuchos::arrayViewFromVector(repIDsVec);
 		// global Ids of Elements' Nodes
 		MapPtr_Type mapRepSystem =
-				Teuchos::rcp( new Map_Type( elementMap->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), repIDsVecArray , 0, domainP12_->getComm()) );
+				Teuchos::rcp( new Map_Type(  Teuchos::OrdinalTraits<GO>::invalid(), repIDsVecArray , 0, domainP12_->getComm()) );
 
 		MultiVectorPtr_Type mvValuesError =  Teuchos::rcp( new MultiVector_Type( mapRepSystem, 1 ) );
 		Teuchos::ArrayRCP< SC > mvValuesErrorA  = mvValuesError->getDataNonConst(0);	
@@ -810,7 +810,7 @@ void AdaptiveMeshRefinement<SC,LO,GO,NO>::calcErrorNorms(MultiVectorConstPtr_Typ
 
 			// global Ids of Elements' Nodes
 			MapPtr_Type mapNodeExport =
-				Teuchos::rcp( new Map_Type( elementMap->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalNodeArray, 0, domainP12_->getComm()) );
+				Teuchos::rcp( new Map_Type(Teuchos::OrdinalTraits<GO>::invalid(), globalNodeArray, 0, domainP12_->getComm()) );
 					
 			MultiVectorPtr_Type notMV  =  Teuchos::rcp( new MultiVector_Type( mapNodeExport, 1 ) );
 			Teuchos::ArrayRCP<SC> notMVA = notMV->getDataNonConst(0);
@@ -989,11 +989,11 @@ void AdaptiveMeshRefinement<SC,LO,GO,NO>::writeRefinementInfo(){
 	Teuchos::ArrayView<GO> localProcArray = Teuchos::arrayViewFromVector( localProc);
 
 	MapPtr_Type mapGlobalProc =
-		Teuchos::rcp( new Map_Type( domainP1_->getElementMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalProcArray, 0, comm_) );
+		Teuchos::rcp( new Map_Type(  Teuchos::OrdinalTraits<GO>::invalid(), globalProcArray, 0, comm_) );
 
 	// Global IDs of Procs
 	MapPtr_Type mapProc =
-		Teuchos::rcp( new Map_Type( domainP1_->getElementMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), localProcArray, 0, comm_) );
+		Teuchos::rcp( new Map_Type(  Teuchos::OrdinalTraits<GO>::invalid(), localProcArray, 0, comm_) );
 	
 	MultiVectorPtr_Type exportLocalEntry = Teuchos::rcp( new MultiVector_Type( mapProc, 1 ) );
 

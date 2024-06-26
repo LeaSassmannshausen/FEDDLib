@@ -280,9 +280,9 @@ void RefinementFactory<SC,LO,GO,NO>::refineMesh( MeshUnstrPtr_Type meshP1, int i
 		Teuchos::ArrayView<GO> globalEdgesInterfaceTaggedArray = Teuchos::arrayViewFromVector( globalInterfaceIDsTagged);
 
 		MapPtr_Type mapInterfaceEdges =
-			Teuchos::rcp( new Map_Type( edgeMap->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalEdgesInterfaceArray, 0, this->comm_) );
+			Teuchos::rcp( new Map_Type( Teuchos::OrdinalTraits<GO>::invalid(), globalEdgesInterfaceArray, 0, this->comm_) );
 		MapPtr_Type mapInterfaceEdgesTagged =
-			Teuchos::rcp( new Map_Type( edgeMap->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalEdgesInterfaceTaggedArray, 0, this->comm_) );
+			Teuchos::rcp( new Map_Type(  Teuchos::OrdinalTraits<GO>::invalid(), globalEdgesInterfaceTaggedArray, 0, this->comm_) );
 
 		// Multivector based on interfaceEdges Map with zero entries 
 		MultiVectorGOPtr_Type taggedEdgesGlobal = Teuchos::rcp( new MultiVectorGO_Type(mapInterfaceEdges, 1 ) );
@@ -352,10 +352,10 @@ void RefinementFactory<SC,LO,GO,NO>::refineMesh( MeshUnstrPtr_Type meshP1, int i
 		Teuchos::ArrayView<GO> localProcArray = Teuchos::arrayViewFromVector( localProc);
 
 		MapPtr_Type mapGlobalProc =
-			Teuchos::rcp( new Map_Type( meshP1->getEdgeMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalProcArray, 0, this->comm_) );
+			Teuchos::rcp( new Map_Type( Teuchos::OrdinalTraits<GO>::invalid(), globalProcArray, 0, this->comm_) );
 
 		MapPtr_Type mapProc =
-			Teuchos::rcp( new Map_Type( meshP1->getEdgeMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), localProcArray, 0, this->comm_) );
+			Teuchos::rcp( new Map_Type(  Teuchos::OrdinalTraits<GO>::invalid(), localProcArray, 0, this->comm_) );
 		
 		this->buildNodeMap(edgeElements, mapGlobalProc, mapProc, newPoints, newPointsRepeated);
 
@@ -412,7 +412,7 @@ void RefinementFactory<SC,LO,GO,NO>::refineMesh( MeshUnstrPtr_Type meshP1, int i
 		Teuchos::RCP<std::vector<GO> > elementsGlobMapping = Teuchos::rcp( new vector<GO>( vecGlobalIDsElements ) );
 		Teuchos::ArrayView<GO> elementsGlobMappingArray = Teuchos::arrayViewFromVector( *elementsGlobMapping);
 
-		this->elementMap_.reset(new Map<LO,GO,NO>(meshP1->getMapRepeated()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), elementsGlobMappingArray, 0, this->comm_) );
+		this->elementMap_.reset(new Map_Tpetra<LO,GO,NO>( Teuchos::OrdinalTraits<GO>::invalid(), elementsGlobMappingArray, 0, this->comm_) );
 
 		// determine global number of elements
 		this->numElementsGlob_ = this->elementMap_->getMaxAllGlobalIndex()+1;  
@@ -792,7 +792,7 @@ void RefinementFactory<SC,LO,GO,NO>::buildNodeMap(EdgeElementsPtr_Type edgeEleme
 		Teuchos::RCP<std::vector<GO> > pointsRepGlobMapping = Teuchos::rcp( new vector<GO>( vecGlobalIDs ) );
 		Teuchos::ArrayView<GO> pointsRepGlobMappingArray = Teuchos::arrayViewFromVector( *pointsRepGlobMapping );
 		
-		this->mapRepeated_.reset(new Map<LO,GO,NO>( this->getMapRepeated()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), pointsRepGlobMappingArray, 0, this->comm_) );
+		this->mapRepeated_.reset(new Map_Tpetra<LO,GO,NO>( Teuchos::OrdinalTraits<GO>::invalid(), pointsRepGlobMappingArray, 0, this->comm_) );
 		this->mapUnique_ = this->mapRepeated_->buildUniqueMap( this->rankRange_ );
 	
 	
@@ -1139,7 +1139,7 @@ void RefinementFactory<SC,LO,GO,NO>::buildEdgeMap(MapConstPtr_Type mapGlobalProc
 		Teuchos::RCP<std::vector<GO>> edgesGlobMapping = Teuchos::rcp( new vector<GO>( vecGlobalIDsEdges ) );
 		Teuchos::ArrayView<GO> edgesGlobMappingArray = Teuchos::arrayViewFromVector( *edgesGlobMapping);
 
-		this->edgeMap_.reset(new Map<LO,GO,NO>(this->getMapRepeated()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), edgesGlobMappingArray, 0, this->comm_) );
+		this->edgeMap_.reset(new Map_Tpetra<LO,GO,NO>(Teuchos::OrdinalTraits<GO>::invalid(), edgesGlobMappingArray, 0, this->comm_) );
 		//this->edgeMap_->print();
 }
 
@@ -1302,7 +1302,7 @@ void RefinementFactory<SC,LO,GO,NO>::refinementRestrictions(MeshUnstrPtr_Type me
 			// Constructing a map of the global IDs of the tagged Edges	
 			Teuchos::ArrayView<GO> globalEdgesArray = Teuchos::arrayViewFromVector( globalEdges);
 			MapPtr_Type mapEdgesTagged =
-				Teuchos::rcp( new Map_Type( meshP1->getEdgeMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalEdgesArray, 0, this->comm_) );
+				Teuchos::rcp( new Map_Type( Teuchos::OrdinalTraits<GO>::invalid(), globalEdgesArray, 0, this->comm_) );
 			// Multivector based on taggesEdgesMap with one as entries
 			MultiVectorLOPtr_Type isActiveEdge = Teuchos::rcp( new MultiVectorLO_Type( mapEdgesTagged, 1 ) );
 			isActiveEdge->putScalar( (LO) 1);
@@ -1444,7 +1444,7 @@ void RefinementFactory<SC,LO,GO,NO>::refinementRestrictions(MeshUnstrPtr_Type me
 			// Constructing a map of the global IDs of the tagged Edges	
 			Teuchos::ArrayView<GO> globalEdgesArray = Teuchos::arrayViewFromVector( untaggedIDs);
 			MapPtr_Type mapEdgesTagged =
-				Teuchos::rcp( new Map_Type( meshP1->getEdgeMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalEdgesArray, 0, this->comm_) );
+				Teuchos::rcp( new Map_Type( Teuchos::OrdinalTraits<GO>::invalid(), globalEdgesArray, 0, this->comm_) );
 			// Multivector based on taggesEdgesMap with one as entries
 			MultiVectorLOPtr_Type isActiveEdge = Teuchos::rcp( new MultiVectorLO_Type( mapEdgesTagged, 1 ) );
 			isActiveEdge->putScalar( (LO) 1);
@@ -1652,7 +1652,7 @@ void RefinementFactory<SC,LO,GO,NO>::updateElementsOfEdgesLocalAndGlobal(int max
 		Teuchos::ArrayView<GO> edgesInterfaceGlobalID_ = Teuchos::arrayViewFromVector( edgesInterfaceGlobalID);
 
 		MapPtr_Type mapGlobalInterface =
-			Teuchos::rcp( new Map_Type( this->edgeMap_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), edgesInterfaceGlobalID_, 0, this->comm_) );
+			Teuchos::rcp( new Map_Type(  Teuchos::OrdinalTraits<GO>::invalid(), edgesInterfaceGlobalID_, 0, this->comm_) );
 		//mapGlobalInterface->print();
 
 		// Global IDs of Procs
@@ -1712,7 +1712,7 @@ void RefinementFactory<SC,LO,GO,NO>::updateElementsOfEdgesLocalAndGlobal(int max
 		Teuchos::ArrayView<GO> edgesInterfaceGlobalID_ = Teuchos::arrayViewFromVector( edgesInterfaceGlobalID);
 
 		MapPtr_Type mapGlobalInterface =
-			Teuchos::rcp( new Map_Type( this->edgeMap_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), edgesInterfaceGlobalID_, 0, this->comm_) );
+			Teuchos::rcp( new Map_Type(Teuchos::OrdinalTraits<GO>::invalid(), edgesInterfaceGlobalID_, 0, this->comm_) );
 
 		// As edges can be part of multiple elements on different processors we collect the number of elements connected to the edge in total
 		MultiVectorLOPtr_Type numberInterfaceElements = Teuchos::rcp( new MultiVectorLO_Type( mapGlobalInterface, 1 ) );
@@ -1781,7 +1781,7 @@ void RefinementFactory<SC,LO,GO,NO>::updateElementsOfEdgesLocalAndGlobal(int max
 			Teuchos::ArrayView<GO> edgesInterfaceGlobalIDProc_ = Teuchos::arrayViewFromVector( edgesInterfaceGlobalIDProc);
 
 			MapPtr_Type mapGlobalInterfaceProcs =
-				Teuchos::rcp( new Map_Type( this->edgeMap_->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), edgesInterfaceGlobalIDProc_, 0, this->comm_) );
+				Teuchos::rcp( new Map_Type( Teuchos::OrdinalTraits<GO>::invalid(), edgesInterfaceGlobalIDProc_, 0, this->comm_) );
 
 			for(int j=0; j< myNumberElementsMax; j++){
 				MultiVectorLOPtr_Type interfaceElements = Teuchos::rcp( new MultiVectorLO_Type( mapGlobalInterfaceProcs, 1 ) );

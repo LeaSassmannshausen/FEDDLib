@@ -1035,7 +1035,7 @@ vec3D_dbl_Type ErrorEstimation<SC,LO,GO,NO>::calcNPhi(string phiDerivative, int 
 
 	// Map which represents the surface ids that need to import element information
 	MapPtr_Type mapElementImport =
-		Teuchos::rcp( new Map_Type( elementMap->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalElementArrayImp, 0, inputMesh_->getComm()) );
+		Teuchos::rcp( new Map_Type( Teuchos::OrdinalTraits<GO>::invalid(), globalElementArrayImp, 0, inputMesh_->getComm()) );
 
 
 	int maxRank = std::get<1>(inputMesh_->rankRange_);
@@ -2044,10 +2044,10 @@ void ErrorEstimation<SC,LO,GO,NO>::buildTriangleMap(){
 		Teuchos::ArrayView<GO> localProcArray = Teuchos::arrayViewFromVector( localProc);
 
 		MapPtr_Type mapGlobalProc =
-			Teuchos::rcp( new Map_Type( inputMesh_->getEdgeMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), globalProcArray, 0, inputMesh_->getComm()) );
+			Teuchos::rcp( new Map_Type( Teuchos::OrdinalTraits<GO>::invalid(), globalProcArray, 0, inputMesh_->getComm()) );
 
 		MapPtr_Type mapProc =
-			Teuchos::rcp( new Map_Type( inputMesh_->getEdgeMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), localProcArray, 0, inputMesh_->getComm()) );
+			Teuchos::rcp( new Map_Type(  Teuchos::OrdinalTraits<GO>::invalid(), localProcArray, 0, inputMesh_->getComm()) );
 
 
 
@@ -2103,7 +2103,7 @@ void ErrorEstimation<SC,LO,GO,NO>::buildTriangleMap(){
 		Teuchos::ArrayView<GO> elementRepArray = Teuchos::arrayViewFromVector( elementRep);
 
 		MapPtr_Type elementMapRep =
-			Teuchos::rcp( new Map_Type( inputMesh_->getElementMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), elementRepArray, 0, inputMesh_->getComm()) );
+			Teuchos::rcp( new Map_Type( Teuchos::OrdinalTraits<GO>::invalid(), elementRepArray, 0, inputMesh_->getComm()) );
 
 	
 
@@ -2250,7 +2250,7 @@ void ErrorEstimation<SC,LO,GO,NO>::buildTriangleMap(){
 		Teuchos::RCP<std::vector<GO>> surfacesGlobMapping = Teuchos::rcp( new vector<GO>( vecGlobalIDsSurfaces ) );
 		Teuchos::ArrayView<GO> surfacesGlobMappingArray = Teuchos::arrayViewFromVector( *surfacesGlobMapping);
 
-		this->surfaceTriangleMap_.reset(new Map<LO,GO,NO>(inputMesh_->getElementMap()->getUnderlyingLib(), Teuchos::OrdinalTraits<GO>::invalid(), surfacesGlobMappingArray, 0, inputMesh_->getComm()) );
+		this->surfaceTriangleMap_.reset(new Map_Tpetra<LO,GO,NO>(Teuchos::OrdinalTraits<GO>::invalid(), surfacesGlobMappingArray, 0, inputMesh_->getComm()) );
 }
 
 /*!
