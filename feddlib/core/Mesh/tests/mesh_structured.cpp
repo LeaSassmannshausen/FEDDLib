@@ -34,8 +34,7 @@ int main(int argc, char *argv[]) {
 
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
-    string ulib_str = "Tpetra";
-    myCLP.setOption("ulib",&ulib_str,"Underlying lib");
+   
     string FEType = "P1";
     myCLP.setOption("FEType",&FEType,"FEType");
     int dim = 2;
@@ -110,12 +109,12 @@ int main(int argc, char *argv[]) {
     if (boolExportMesh) {
         RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
         
-        typedef Xpetra::MultiVector<SC,LO,GO,NO> XpetraMV_Type;
-        typedef RCP<XpetraMV_Type> XpetraMVPtr_Type;
+        typedef Tpetra::MultiVector<SC,LO,GO,NO> TpetraMultiVector_Type;
+        typedef RCP<TpetraMultiVector_Type> TpetraMultiVectorPtr_Type;
         
-        XpetraMVPtr_Type xMV = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(meshStr->getMapUnique()->getXpetraMap(), 1);
+        TpetraMultiVectorPtr_Type tMV = RCP( new TpetraMultiVector_Type( meshStr->getMapUnique()->getTpetraMap(), 1));
 
-        RCP<const MultiVector<SC,LO,GO,NO> > exportDummy = rcp(new MultiVector<SC,LO,GO,NO>(xMV));
+        RCP<const MultiVector<SC,LO,GO,NO> > exportDummy = rcp(new MultiVector<SC,LO,GO,NO>(tMV));
         
         exPara->setup("u", meshStr, FEType);
 

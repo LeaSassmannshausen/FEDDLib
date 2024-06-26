@@ -3,7 +3,7 @@
 
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
-#include "Map.hpp"
+#include "Map_Tpetra.hpp"
 #include "BlockMap.hpp"
 #include "BlockMultiVector.hpp"
 #include <Xpetra_MultiVectorFactory.hpp>
@@ -12,6 +12,13 @@
 #include "Xpetra_ThyraUtils.hpp"
 #include <Teuchos_VerboseObject.hpp>
 #include <MatrixMarket_Tpetra.hpp>
+
+#include <Tpetra_MultiVector.hpp>
+#include <Tpetra_Map.hpp>
+#include <Tpetra_MultiVector.hpp>
+#include <Tpetra_Vector.hpp>
+#include <Tpetra_Export.hpp>
+#include <Tpetra_Import.hpp>
 
 /*!
  Declaration of MultiVector
@@ -30,14 +37,10 @@ template <class SC = default_sc, class LO = default_lo, class GO = default_go, c
 class MultiVector {
 
 public:
-    typedef Xpetra::Map<LO,GO,NO> XpetraMap_Type;
+   /*typedef Xpetra::Map<LO,GO,NO> XpetraMap_Type;
     typedef Teuchos::RCP<XpetraMap_Type> XpetraMapPtr_Type;
     typedef Teuchos::RCP<const XpetraMap_Type> XpetraMapConstPtr_Type;
-    typedef const XpetraMapConstPtr_Type XpetraMapConstPtrConst_Type;
-
-    typedef Map<LO,GO,NO> Map_Type;
-    typedef Teuchos::RCP<Map_Type> MapPtr_Type;
-    typedef Teuchos::RCP<const Map_Type> MapConstPtr_Type;
+    typedef const XpetraMapConstPtr_Type XpetraMapConstPtrConst_Type;*/
 
     typedef MultiVector<SC,LO,GO,NO> MultiVector_Type;
     typedef Teuchos::RCP<MultiVector_Type> MultiVectorPtr_Type;
@@ -52,12 +55,6 @@ public:
     typedef Teuchos::RCP<const XpetraMultiVector_Type> XpetraMultiVectorConstPtr_Type;
     typedef const XpetraMultiVectorConstPtr_Type XpetraMultiVectorConstPtrConst_Type;
 
-    typedef Tpetra::Map<LO,GO,NO> TpetraMap_Type;
-    typedef Teuchos::RCP<const TpetraMap_Type> TpetraMapConstPtr_Type;
-
-    typedef Tpetra::MultiVector<SC,LO,GO,NO> TpetraMultiVector_Type;
-    typedef Teuchos::RCP<TpetraMultiVector_Type> TpetraMultiVectorPtr_Type;
-    typedef Teuchos::RCP<const TpetraMultiVector_Type> TpetraMultiVectorConstPtr_Type;
 
     typedef Xpetra::Import<LO,GO,NO> XpetraImport_Type;
     typedef Teuchos::RCP<XpetraImport_Type> XpetraImportPtr_Type;
@@ -69,18 +66,41 @@ public:
     typedef Teuchos::RCP<Comm_Type> CommPtr_Type;    
     typedef Teuchos::RCP<const Comm_Type> CommConstPtr_Type;
 
+    // -------------
+    typedef Map_Tpetra<LO,GO,NO> Map_Type;
+    typedef Teuchos::RCP<Map_Type> MapPtr_Type;
+    typedef Teuchos::RCP<const Map_Type> MapConstPtr_Type;
+
+    typedef Tpetra::Map<LO,GO,NO> TpetraMap_Type;
+    typedef Teuchos::RCP<TpetraMap_Type> TpetraMapPtr_Type;
+    typedef Teuchos::RCP<const TpetraMap_Type> TpetraMapConstPtr_Type;
+    typedef const TpetraMapConstPtr_Type TpetraMapConstPtrConst_Type;
+
+    typedef Tpetra::MultiVector<SC,LO,GO,NO> TpetraMultiVector_Type;
+    typedef Teuchos::RCP<TpetraMultiVector_Type> TpetraMultiVectorPtr_Type;
+    typedef Teuchos::RCP<const TpetraMultiVector_Type> TpetraMultiVectorConstPtr_Type;
+    typedef const TpetraMultiVectorConstPtr_Type TpetraMultiVectorConstPtrConst_Type;
+
+    typedef Tpetra::Import<LO,GO,NO> TpetraImport_Type;
+    typedef Teuchos::RCP<TpetraImport_Type> TpetraImportPtr_Type;
+
+    typedef Tpetra::Export<LO,GO,NO> TpetraExport_Type;
+    typedef Teuchos::RCP<TpetraExport_Type> TpetraExportPtr_Type;
+
+ 
+
     MultiVector();
 
     MultiVector( MapConstPtr_Type map, UN nmbVectors=1 );
 
-    MultiVector( XpetraMultiVectorPtr_Type& xpetraMVPtrIn );
+    MultiVector( TpetraMultiVectorPtr_Type& TpetraMVPtrIn );
 
     MultiVector( MultiVectorConstPtr_Type mvIn );
 
     ~MultiVector();
 
     MultiVector_Type& operator= (const MultiVector_Type& rhs) {
-        *multiVector_ = *rhs.getXpetraMultiVector();
+        *multiVector_ = *rhs.getTpetraMultiVector();
         return *this;
     }
 
@@ -90,7 +110,7 @@ public:
     
     MapPtr_Type getMapNonConst();
 
-    XpetraMapConstPtr_Type getMapXpetra() const;
+    TpetraMapConstPtr_Type getMapTpetra() const;
 
     void replaceGlobalValue (GO globalRow, UN vectorIndex, const SC &value);
 
@@ -106,15 +126,15 @@ public:
 
     void print(Teuchos::EVerbosityLevel verbLevel=Teuchos::VERB_EXTREME) const;
 
-    XpetraMultiVectorConstPtr_Type getXpetraMultiVector() const;
+    TpetraMultiVectorConstPtr_Type getTpetraMultiVector() const;
 
-    XpetraMultiVectorPtr_Type getXpetraMultiVectorNonConst();
+    TpetraMultiVectorPtr_Type getTpetraMultiVectorNonConst();
 
     Teuchos::RCP< Thyra::MultiVectorBase<SC> > getThyraMultiVector( );
 
-    Teuchos::RCP<const Thyra::MultiVectorBase<SC> > getThyraMultiVectorConst( ) const;
+    Teuchos::RCP<const Thyra::MultiVectorBase<SC> > getThyraMultiVectorConst( ) const; 
 
-    void fromThyraMultiVector( Teuchos::RCP< Thyra::MultiVectorBase<SC> > thyraMV);
+    void fromThyraMultiVector( Teuchos::RCP< Thyra::MultiVectorBase<SC> > thyraMV); 
 
     void norm2(const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms) const;
 
@@ -155,10 +175,10 @@ public:
     
 private:
 
-    XpetraMultiVectorPtr_Type multiVector_;
+    TpetraMultiVectorPtr_Type multiVector_;
     MapConstPtr_Type map_;
-    XpetraImportPtr_Type importer_;
-    XpetraExportPtr_Type exporter_;
+    TpetraImportPtr_Type importer_;
+    TpetraExportPtr_Type exporter_;
 };
 }
 
