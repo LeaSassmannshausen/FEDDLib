@@ -17,8 +17,15 @@
  @copyright CH
  */
 
+
 using namespace std;
 using namespace Teuchos;
+
+using Teuchos::reduceAll;
+using Teuchos::REDUCE_SUM;
+using Teuchos::REDUCE_MAX;
+using Teuchos::REDUCE_MIN;
+using Teuchos::outArg;
 
 typedef unsigned UN;
 typedef double SC;
@@ -35,8 +42,8 @@ int main(int argc, char *argv[]) {
 
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
-    GO numGlobalElements = 10;
-    myCLP.setOption("nge",&numGlobalElements,"numGlobalElements.");
+    LO numLocalElements = 10;
+   // LO numGlobalElements = 10*(commWorld->getSize()-2);
 
     myCLP.recogniseAllOptions(true);
     myCLP.throwExceptions(false);
@@ -45,19 +52,33 @@ int main(int argc, char *argv[]) {
         mpiSession.~GlobalMPISession();
         return 0;
     }
-    
+
     typedef Map_Tpetra<LO,GO,NO> Map_Type;
     typedef RCP<Map_Type> MapPtr_Type;
 
 
-    Array<GO> indices(numGlobalElements);
-    for (UN i=0; i<indices.size(); i++) {
-        indices[i] = i;
-    }
+    UN lowerOffset = 10 * commWorld->getRank() - commWorld->getRank()*2 ;
+    UN upperOffset = 10*(commWorld->getRank()+1);
 
-    MapPtr_Type map = rcp( new Map_Type(commWorld->getSize()*numGlobalElements, indices(), 0, commWorld) );
+    LO numLocalIDs = upperOffset-lowerOffset;
+
+    Array<GO> indices(numLocalIDs);
+
+    for (UN i=0; i<numLocalIDs; i++) {
+        indices[i] = lowerOffset+i;
+    }
+    GO numGlobalIDs = 0;
+
+	reduceAll<int, int> (*commWorld, REDUCE_SUM, numLocalIDs, outArg (numGlobalIDs));
+
+    MapPtr_Type map = rcp( new Map_Type(numGlobalIDs, indices(), 0, commWorld) );
 
     map->print();
+
+    MapPtr_Type mapUnique =  map->buildUniqueMap();
+
+    mapUnique->print();
+
 
     return(EXIT_SUCCESS);
 }
