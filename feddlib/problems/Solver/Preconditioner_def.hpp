@@ -1197,21 +1197,37 @@ void Preconditioner<SC,LO,GO,NO>::setVelocityParameters( ParameterListPtr_Type p
 
     bool verbose( comm->getRank() == 0 );
     
-    Teuchos::ArrayRCP<Teuchos::RCP<Tpetra::Map<LO,GO,NO> > > repeatedMaps(1);
+    // Xpetra for now
+    Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > repeatedMaps(1);
+    typedef Xpetra::Map<LO,GO,NO> XpetraMap_Type;
+    typedef Teuchos::RCP<XpetraMap_Type> XpetraMapPtr_Type;
+    typedef Teuchos::RCP<const XpetraMap_Type> XpetraMapConstPtr_Type;
+    typedef const XpetraMapConstPtr_Type XpetraMapConstPtrConst_Type;
+
     Teuchos::ArrayRCP<FROSch::DofOrdering> dofOrderings(1);
     Teuchos::ArrayRCP<UN> dofsPerNodeVector(1);
     ParameterListPtr_Type velocitySubList = sublist( sublist( sublist( sublist( parameterList, "Preconditioner Types" ) , "Teko" ) , "Inverse Factory Library" ) , "FROSch-Velocity" );
     dofsPerNodeVector[0] = (UN) velocitySubList->get( "DofsPerNode", 2);
     TEUCHOS_TEST_FOR_EXCEPTION(dofsPerNodeVector[0]<2, std::logic_error, "DofsPerNode for velocity must be atleast 2.");
 
-    Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
+    /*Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
     if (!problem_.is_null())
         mapConstTmp = problem_->getDomain(0)->getMapVecFieldRepeated()->getTpetraMap();
     else if(!timeProblem_.is_null())
         mapConstTmp = timeProblem_->getDomain(0)->getMapVecFieldRepeated()->getTpetraMap();
 
-    Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-    repeatedMaps[0] = mapTmp;
+    Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);*/
+
+    MapPtr_Type mapConstTmp;
+    if (!problem_.is_null())
+        mapConstTmp = problem_->getDomain(0)->getMapVecFieldRepeated();
+    else if(!timeProblem_.is_null())
+        mapConstTmp = timeProblem_->getDomain(0)->getMapVecFieldRepeated();
+    
+    XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+
+    repeatedMaps[0] = mapX;
 
     if (!velocitySubList->get( "DofOrdering", "NodeWise" ).compare("DimensionWise"))
         dofOrderings[0] = FROSch::DimensionWise;
@@ -1275,14 +1291,19 @@ void Preconditioner<SC,LO,GO,NO>::setPressureParameters( ParameterListPtr_Type p
 
     bool verbose( comm->getRank() == 0 );
     
-    Teuchos::ArrayRCP<Teuchos::RCP<Tpetra::Map<LO,GO,NO> > > repeatedMaps(1);
+    Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > repeatedMaps(1);
+    typedef Xpetra::Map<LO,GO,NO> XpetraMap_Type;
+    typedef Teuchos::RCP<XpetraMap_Type> XpetraMapPtr_Type;
+    typedef Teuchos::RCP<const XpetraMap_Type> XpetraMapConstPtr_Type;
+    typedef const XpetraMapConstPtr_Type XpetraMapConstPtrConst_Type;
+
     Teuchos::ArrayRCP<FROSch::DofOrdering> dofOrderings(1);
     Teuchos::ArrayRCP<UN> dofsPerNodeVector(1);
     ParameterListPtr_Type pressureSubList = sublist( sublist( sublist( sublist( parameterList, "Preconditioner Types" ) , "Teko" ) , "Inverse Factory Library" ) , "FROSch-Pressure" );
     dofsPerNodeVector[0] = (UN) pressureSubList->get( "DofsPerNode", 1);
     TEUCHOS_TEST_FOR_EXCEPTION(dofsPerNodeVector[0]!=1, std::logic_error, "DofsPerNode for pressure must be  1.");
 
-    Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
+    /*Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
 
     if (!problem_.is_null()){
         if ( problem_->getDomain(1)->getFEType()=="P0" )
@@ -1295,10 +1316,27 @@ void Preconditioner<SC,LO,GO,NO>::setPressureParameters( ParameterListPtr_Type p
             mapConstTmp = timeProblem_->getDomain(1)->getElementMap()->getTpetraMap();
         else
             mapConstTmp = timeProblem_->getDomain(1)->getMapRepeated()->getTpetraMap();
+    }*/
+    MapPtr_Type mapConstTmp;
+    if (!problem_.is_null()){
+        if ( problem_->getDomain(1)->getFEType()=="P0" )
+            mapConstTmp = problem_->getDomain(1)->getElementMap();
+        else
+            mapConstTmp = problem_->getDomain(1)->getMapRepeated();
+    }
+    else if(!timeProblem_.is_null()){
+        if ( timeProblem_->getDomain(1)->getFEType()=="P0" )
+            mapConstTmp = timeProblem_->getDomain(1)->getElementMap();
+        else
+            mapConstTmp = timeProblem_->getDomain(1)->getMapRepeated();
     }
 
-    Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-    repeatedMaps[0] = mapTmp;
+    //Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+    
+    XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+                           
+    repeatedMaps[0] = mapX;
 
     if (!pressureSubList->get( "DofOrdering", "NodeWise" ).compare("DimensionWise"))
         dofOrderings[0] = FROSch::DimensionWise;

@@ -25,8 +25,7 @@ int main(int argc, char *argv[]) {
 
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
-    string ulib_str = "Tpetra";
-    myCLP.setOption("ulib",&ulib_str,"Underlying lib");
+   
     int option = 1;
     myCLP.setOption("option",&option,"option");
     
@@ -40,7 +39,7 @@ int main(int argc, char *argv[]) {
 
     TEUCHOS_TEST_FOR_EXCEPTION( option>3 || option<1, std::logic_error, "Chooes option beteween 1 and 3 for FaCSI test.");
     
-    typedef Map<LO,GO,NO> Map_Type;
+    typedef Map_Tpetra<LO,GO,NO> Map_Type;
     typedef RCP<Map_Type> MapPtr_Type;
     typedef RCP<const Map_Type> MapConstPtr_Type;
     typedef Matrix<SC,LO,GO,NO> Matrix_Type;
@@ -68,8 +67,8 @@ int main(int argc, char *argv[]) {
         elementList2.push_back(0);
 
     
-    MapConstPtr_Type map1 = Teuchos::rcp( new Map_Type(ulib_str, -1, elementList1(), 0, comm) );
-    MapConstPtr_Type map2 = Teuchos::rcp( new Map_Type(ulib_str, -1, elementList2(), 0, comm) );
+    MapConstPtr_Type map1 = Teuchos::rcp( new Map_Type( -1, elementList1(), 0, comm) );
+    MapConstPtr_Type map2 = Teuchos::rcp( new Map_Type( -1, elementList2(), 0, comm) );
     
     MatrixPtr_Type mm1 = Teuchos::rcp( new Matrix_Type( map1, 1 )  );
     Array<GO> col;

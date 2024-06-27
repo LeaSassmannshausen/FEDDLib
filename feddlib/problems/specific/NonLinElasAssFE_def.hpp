@@ -165,7 +165,7 @@ void NonLinElasAssFE<SC,LO,GO,NO>::reAssembleExtrapolation(BlockMultiVectorPtrAr
 
 }
 template<class SC,class LO,class GO,class NO>
-void NonLinElasticity<SC,LO,GO,NO>::evalModelImpl(const Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
+void NonLinElasAssFE<SC,LO,GO,NO>::evalModelImpl(const Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
                                             const Thyra::ModelEvaluatorBase::OutArgs<SC> &outArgs
                                             ) const
 {

@@ -340,7 +340,7 @@ void NavierStokesAssFE<SC,LO,GO,NO>::evalModelImpl(const Thyra::ModelEvaluatorBa
 
 */
 template<class SC,class LO,class GO,class NO>
-void NavierStokes<SC,LO,GO,NO>::evalModelImplMonolithic(const Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
+void NavierStokesAssFE<SC,LO,GO,NO>::evalModelImplMonolithic(const Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
                                                         const Thyra::ModelEvaluatorBase::OutArgs<SC> &outArgs ) const
 {
 
@@ -454,7 +454,7 @@ void NavierStokes<SC,LO,GO,NO>::evalModelImplMonolithic(const Thyra::ModelEvalua
 */
 #ifdef FEDD_HAVE_TEKO
 template<class SC,class LO,class GO,class NO>
-void NavierStokes<SC,LO,GO,NO>::evalModelImplBlock(const Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
+void NavierStokesAssFE<SC,LO,GO,NO>::evalModelImplBlock(const Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
                                                    const Thyra::ModelEvaluatorBase::OutArgs<SC> &outArgs ) const
 {
 
