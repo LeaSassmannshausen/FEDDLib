@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     typedef RCP<ExporterPV_Type> ExporterPVPtr_Type;
     typedef MeshPartitioner<SC,LO,GO,NO> MeshPartitioner_Type;
     
-    typedef Map<LO,GO,NO> Map_Type;
+    typedef Map_Tpetra<LO,GO,NO> Map_Type;
     typedef RCP<Map_Type> MapPtr_Type;
     typedef Teuchos::RCP<const Map_Type> MapConstPtr_Type;
     typedef MultiVector<SC,LO,GO,NO> MultiVector_Type;
@@ -138,8 +138,6 @@ int main(int argc, char *argv[])
 
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
-    string ulib_str = "Tpetra";
-    myCLP.setOption("ulib",&ulib_str,"Underlying lib");
     string xmlProblemFile = "parametersProblem.xml";
     myCLP.setOption("problemfile",&xmlProblemFile,".xml file with Inputparameters.");
     string xmlPrecFile = "parametersPrec.xml";

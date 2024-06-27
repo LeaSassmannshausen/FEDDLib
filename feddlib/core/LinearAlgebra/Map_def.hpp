@@ -113,7 +113,6 @@ typename Map<LO,GO,NO>::XpetraMapConstPtr_Type Map<LO,GO,NO>::getXpetraMap() con
     
     return map_;
 }
-
 template < class LO, class GO, class NO>
 typename Map<LO,GO,NO>::ThyraVSBConstPtr_Type Map<LO,GO,NO>::getThyraVectorSpaceBase() const{
     

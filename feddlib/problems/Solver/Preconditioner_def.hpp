@@ -275,12 +275,27 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
         thyraMatrix = timeProblem_->getSystemCombined()->getThyraLinOp();
 
     UN numberOfBlocks = parameterList->get("Number of blocks",1);
-    Teuchos::ArrayRCP<Teuchos::RCP<Tpetra::Map<LO,GO,NO> > > repeatedMaps(numberOfBlocks);
 
     typedef Tpetra::MultiVector<SC,LO,GO,NO> TMultiVector;
     typedef Teuchos::RCP<TMultiVector> TMultiVectorPtr;
     typedef Teuchos::ArrayRCP<TMultiVectorPtr> TMultiVectorPtrVecPtr;
     
+    // ------------------------
+    // Defs to cast back from tpetra to xpetra
+    typedef Xpetra::MultiVector<SC,LO,GO,NO> XMultiVector;
+    typedef Teuchos::RCP<XMultiVector> XMultiVectorPtr;
+    typedef Teuchos::ArrayRCP<XMultiVectorPtr> XMultiVectorPtrVecPtr;
+
+    typedef Xpetra::Map<LO,GO,NO> XpetraMap_Type;
+    typedef Teuchos::RCP<XpetraMap_Type> XpetraMapPtr_Type;
+    typedef Teuchos::RCP<const XpetraMap_Type> XpetraMapConstPtr_Type;
+    typedef const XpetraMapConstPtr_Type XpetraMapConstPtrConst_Type;
+    // ---------
+    // XMapVecPtrVecPtr
+    //Teuchos::ArrayRCP<Teuchos::RCP<Tpetra::Map<LO,GO,NO> > > repeatedMaps(numberOfBlocks);
+    Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > repeatedMaps(numberOfBlocks);
+    // --------
+
     TMultiVectorPtrVecPtr nodeListVec( numberOfBlocks );
     if (!useNodeLists)
         nodeListVec = Teuchos::null;
@@ -302,51 +317,70 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                                 TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error, "Vector field map not implemented for P0 elements.");
                             }
 
-                            Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
+                            //Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
+                            //Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
 
-                            mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
+                            MapPtr_Type mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
+                            XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                            Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+                            
+                            repeatedMaps[i] = mapX;
 
-                            Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                            repeatedMaps[i] = mapTmp;
 
                         }
                         else if(!timeProblem_.is_null()){
                             if (timeProblem_->getDomain(i)->getFEType() == "P0") {
                                 TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error, "Vector field map not implemented for P0 elements.");
                             }
-                            Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
-                            mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
-                            Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                            repeatedMaps[i] = mapTmp;
+                            // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
+                            // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                            
+                            MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
+                            XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                            Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+                            
+                            repeatedMaps[i] = mapX;
                         }
                     }
                     else{
                         if (!problem_.is_null()){
                             if (problem_->getDomain(i)->getFEType() == "P0") {
-                                Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
-                                mapConstTmp = problem_->getDomain(i)->getElementMap()->getTpetraMap();
-                                Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                repeatedMaps[i] = mapTmp;
+                                 // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getElementMap()->getTpetraMap();
+                                // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                                MapPtr_Type mapConstTmp = problem_->getDomain(i)->getElementMap();//->getTpetraMap();
+                                XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                                Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+
+                                repeatedMaps[i] = mapX;
                             }
                             else{
-                                Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
-                                mapConstTmp = problem_->getDomain(i)->getMapRepeated()->getTpetraMap();
-                                Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                repeatedMaps[i] = mapTmp;
+                                // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getMapRepeated()->getTpetraMap();
+                                // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                                MapPtr_Type mapConstTmp = problem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
+                                XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                                Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+                                
+                                repeatedMaps[i] = mapX;
                             }
                         }
                         else if (!timeProblem_.is_null()){
                             if (timeProblem_->getDomain(i)->getFEType() == "P0") {
-                                Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
-                                mapConstTmp = timeProblem_->getDomain(i)->getElementMap()->getTpetraMap();
-                                Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                repeatedMaps[i] = mapTmp;
+                                 // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getElementMap()->getTpetraMap();
+                                // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                                MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getElementMap();//->getTpetraMap();
+                                XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                                Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+
+                                repeatedMaps[i] = mapX;
                             }
                             else{
-                                Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
-                                mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated()->getTpetraMap();
-                                Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                repeatedMaps[i] = mapTmp;
+                                // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated()->getTpetraMap();
+                                // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                                MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
+                                XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                                Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+
+                                repeatedMaps[i] = mapX;
                             }
                         }
                     }
@@ -503,12 +537,26 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithicFSI( )
     UN numberOfBlocks = parameterList->get("Number of blocks",1);
     TEUCHOS_TEST_FOR_EXCEPTION( numberOfBlocks<4 || numberOfBlocks>5, std::logic_error, "Unknown FSI size." );
     
-    Teuchos::ArrayRCP<Teuchos::RCP<Tpetra::Map<LO,GO,NO> > > repeatedMaps(numberOfBlocks);
 
     typedef Tpetra::MultiVector<SC,LO,GO,NO> TMultiVector;
     typedef Teuchos::RCP<TMultiVector> TMultiVectorPtr;
     typedef Teuchos::ArrayRCP<TMultiVectorPtr> TMultiVectorPtrVecPtr;
     
+    // ------------------------
+    // Defs to cast back from tpetra to xpetra
+    typedef Xpetra::MultiVector<SC,LO,GO,NO> XMultiVector;
+    typedef Teuchos::RCP<XMultiVector> XMultiVectorPtr;
+    typedef Teuchos::ArrayRCP<XMultiVectorPtr> XMultiVectorPtrVecPtr;
+
+    typedef Xpetra::Map<LO,GO,NO> XpetraMap_Type;
+    typedef Teuchos::RCP<XpetraMap_Type> XpetraMapPtr_Type;
+    typedef Teuchos::RCP<const XpetraMap_Type> XpetraMapConstPtr_Type;
+    typedef const XpetraMapConstPtr_Type XpetraMapConstPtrConst_Type;
+
+    // XMapPtrVecPtr
+    Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > repeatedMaps(numberOfBlocks);
+    // ------------------------
+
     TMultiVectorPtrVecPtr nodeListVec( numberOfBlocks );
     nodeListVec = Teuchos::null;
 
@@ -522,10 +570,13 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithicFSI( )
                 if (i==3) { //interface coupling
                     TEUCHOS_TEST_FOR_EXCEPTION( timeProblem_.is_null(), std::logic_error, "FSI time problem is null!" );
                     TEUCHOS_TEST_FOR_EXCEPTION( timeProblem_->getDomain(i)->getFEType() == "P0", std::logic_error, "We should not be able to use P0 for interface coupling." );
-                    Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
-                    mapConstTmp = timeProblem_->getDomain(i)->getInterfaceMapUnique()->getTpetraMap();
-                    Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                    repeatedMaps[i] = mapTmp;
+                    //Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp timeProblem_->getDomain(i)->getInterfaceMapUnique()->getTpetraMap();
+                    //Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                    MapPtr_Type mapConstTmp =timeProblem_->getDomain(i)->getInterfaceMapUnique();//->getTpetraMap();
+                    XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+
+                    repeatedMaps[i] = mapX;
                 }
                 else {
                     if (useRepeatedMaps) {
@@ -536,51 +587,74 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithicFSI( )
                                     TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error, "Vector field map not implemented for P0 elements.");
                                 }
 
-                                Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
+                                //Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
+                                //Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
 
-                                mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
-
-                                Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                repeatedMaps[i] = mapTmp;
+                                MapPtr_Type mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
+                                XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                                Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+                               
+                                repeatedMaps[i] = mapX;
 
                             }
                             else if(!timeProblem_.is_null()){
                                 if (timeProblem_->getDomain(i)->getFEType() == "P0") {
                                     TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error, "Vector field map not implemented for P0 elements.");
                                 }
-                                Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
-                                mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
-                                Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                repeatedMaps[i] = mapTmp;
+                                // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
+                                // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                                
+                                MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
+                                XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                                Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+                                
+                                repeatedMaps[i] = mapX;
                             }
                         }
                         else{
                             if (!problem_.is_null()){
                                 if (problem_->getDomain(i)->getFEType() == "P0") {
-                                    Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
-                                    mapConstTmp = problem_->getDomain(i)->getElementMap()->getTpetraMap();
-                                    Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                    repeatedMaps[i] = mapTmp;
+                                    // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getElementMap()->getTpetraMap();
+                                    // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                                    MapPtr_Type mapConstTmp = problem_->getDomain(i)->getElementMap();//->getTpetraMap();
+                                    XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                                    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+
+                                   
+                                    
+                                    repeatedMaps[i] = mapX;
                                 }
                                 else{
-                                    Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
-                                    mapConstTmp = problem_->getDomain(i)->getMapRepeated()->getTpetraMap();
-                                    Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                    repeatedMaps[i] = mapTmp;
+                                    // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getMapRepeated()->getTpetraMap();
+                                    // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                                    MapPtr_Type mapConstTmp = problem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
+                                    XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                                    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+                                    
+                                    cout << " +++++++++ Output 3" << endl;
+                                    Teuchos::RCP<Teuchos::FancyOStream> out = Teuchos::VerboseObjectBase::getDefaultOStream();
+                                    mapX->describe(*out,Teuchos::VERB_EXTREME);
+                                    repeatedMaps[i] = mapX;
                                 }
                             }
                             else if (!timeProblem_.is_null()){
                                 if (timeProblem_->getDomain(i)->getFEType() == "P0") {
-                                    Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
-                                    mapConstTmp = timeProblem_->getDomain(i)->getElementMap()->getTpetraMap();
-                                    Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                    repeatedMaps[i] = mapTmp;
+                                    // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getElementMap()->getTpetraMap();
+                                    // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                                    MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getElementMap();//->getTpetraMap();
+                                    XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                                    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+
+                                    repeatedMaps[i] = mapX;
                                 }
                                 else{
-                                    Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp;
-                                    mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated()->getTpetraMap();
-                                    Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                    repeatedMaps[i] = mapTmp;
+                                    // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated()->getTpetraMap();
+                                    // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                                    MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
+                                    XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                                    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+
+                                    repeatedMaps[i] = mapX;
                                 }
                             }
                         }

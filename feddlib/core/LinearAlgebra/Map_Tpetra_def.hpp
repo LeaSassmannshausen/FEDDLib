@@ -29,8 +29,9 @@ template < class LO, class GO, class NO>
 Map_Tpetra<LO,GO,NO>::Map_Tpetra( const Map_Type& mapIn ):
 map_()
 {
+    //mapX_ = Xpetra::MapFactory<LO,GO,NO>::Build( mapIn.getUnderlyingLib(), mapIn.getGlobalNumElements(), mapIn.getNodeElementList(), mapIn.getIndexBase(), mapIn.getComm() );
     map_ = Teuchos::RCP(new TpetraMap_Type(mapIn.getGlobalNumElements(), mapIn.getNodeElementList(),mapIn.getIndexBase(), mapIn.getComm()));
-    //map_ = Xpetra::MapFactory<LO,GO,NO>::Build( ulib, mapIn.getGlobalNumElements(), mapIn.getNodeElementList(), mapIn.getIndexBase(), mapIn.getComm() );
+
 }
     
 template < class LO, class GO, class NO>
@@ -131,9 +132,17 @@ typename Map_Tpetra<LO,GO,NO>::MapPtr_Type Map_Tpetra<LO,GO,NO>::buildVecFieldMa
 template < class LO, class GO, class NO>
 typename Map_Tpetra<LO,GO,NO>::TpetraMapConstPtr_Type Map_Tpetra<LO,GO,NO>::getTpetraMap() const{
     
-    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"getXpetraMap(): map_ is null.");
+    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"getTpetraMap(): map_ is null.");
     
     return map_;
+}
+
+template < class LO, class GO, class NO>
+typename Map_Tpetra<LO,GO,NO>::XpetraMapConstPtr_Type Map_Tpetra<LO,GO,NO>::getXpetraMap() {
+    
+    TEUCHOS_TEST_FOR_EXCEPTION(mapX_.is_null(),std::runtime_error,"getXpetraMap(): map_ is null.");
+    
+    return mapX_;
 }
 
 template < class LO, class GO, class NO>
