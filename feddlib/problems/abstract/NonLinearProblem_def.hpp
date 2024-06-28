@@ -139,6 +139,7 @@ namespace FEDD
 
         // solution COPY!
         *previousSolution_ = *this->solution_;
+       
         int its = this->solve(residualVec_);
 
         return its;
@@ -156,7 +157,6 @@ namespace FEDD
             this->solution_->norm2(updateNorm());
             criterionValue = updateNorm[0];
         }
-
         this->solution_->update(1., *previousSolution_, 1.);
 
         return its;

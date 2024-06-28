@@ -44,6 +44,8 @@ map_(),
 importer_(),
 exporter_()
 {
+    FEDDLIB_WARNING("MultiVector_def",true, " MultiVector(TpetraMultiVectorPtr_Type& tpetraMVPtrIn) -- this is not a deep copy of the contents of the MV.");
+    
     map_.reset( new Map_Type( tpetraMVPtrIn->getMap() ) );
 }
 
@@ -54,6 +56,8 @@ map_(),
 importer_(),
 exporter_()
 {
+    FEDDLIB_NOTIFICATION("MultiVector_def",true, " MultiVector(MultiVectorConstPtr_Type mvIn) new multivector is created based on the input mv data");
+
     multiVector_ =Teuchos::RCP( new TpetraMultiVector_Type(  mvIn->getMap()->getTpetraMap(), mvIn->getNumVectors() ));
     map_.reset( new Map_Type( *mvIn->getMap() ) );
     for (UN j=0; j<this->getNumVectors(); j++) {
@@ -96,6 +100,11 @@ bool MultiVector<SC,LO,GO,NO>::is_null() const{
 template <class SC, class LO, class GO, class NO>
 void MultiVector<SC,LO,GO,NO>::replaceGlobalValue (GO globalRow, UN vectorIndex, const SC &value){
     multiVector_->replaceGlobalValue( globalRow, vectorIndex, value );
+}
+
+template <class SC, class LO, class GO, class NO>
+void MultiVector<SC,LO,GO,NO>::replaceLocalValue (LO localRow, UN vectorIndex, const SC &value){
+    multiVector_->replaceLocalValue( localRow, vectorIndex, value );
 }
 
 template <class SC, class LO, class GO, class NO>
@@ -192,6 +201,7 @@ template <class SC, class LO, class GO, class NO>
 void MultiVector<SC,LO,GO,NO>::normInf(const Teuchos::ArrayView< typename Teuchos::ScalarTraits<SC>::magnitudeType> &normsInf) const {
     TEUCHOS_TEST_FOR_EXCEPTION( multiVector_.is_null(), std::runtime_error,"MultiVector in normInf is null.");
     multiVector_->normInf(normsInf);
+
 }
 
 template <class SC, class LO, class GO, class NO>
@@ -209,7 +219,6 @@ void MultiVector<SC,LO,GO,NO>::dot(MultiVectorConstPtr_Type a, const Teuchos::Ar
 template <class SC, class LO, class GO, class NO>
 void MultiVector<SC,LO,GO,NO>::update( const SC& alpha, const MultiVector_Type& A, const SC& beta) {
     TEUCHOS_TEST_FOR_EXCEPTION( getNumVectors() != A.getNumVectors(), std::logic_error,"MultiVectors for update have different number of vectors.");
-
     multiVector_->update( alpha, *A.getTpetraMultiVector(), beta );
 
 }

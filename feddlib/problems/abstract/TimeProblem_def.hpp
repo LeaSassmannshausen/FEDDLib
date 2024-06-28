@@ -413,7 +413,7 @@ void TimeProblem<SC,LO,GO,NO>::setTimeParameters(SmallMatrix<double> &massParame
 
 }
 
-template<class SC,class LO,class GO,class NO>
+template<class SC,class LO,class GO,class NO>  
 bool TimeProblem<SC,LO,GO,NO>::getVerbose(){
 
     return verbose_;
@@ -426,7 +426,6 @@ double TimeProblem<SC,LO,GO,NO>::calculateResidualNorm(){
     TEUCHOS_TEST_FOR_EXCEPTION(nonLinProb.is_null(), std::runtime_error, "Nonlinear problem is null.");
     Teuchos::Array<SC> res(1);
     nonLinProb->getResidualVector()->norm2(res);
-
     return res[0];
 }
 

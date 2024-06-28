@@ -83,7 +83,7 @@ void NonLinearSolver<SC,LO,GO,NO>::solveNOX(NonLinearProblem_Type &problem){
 
     // Create the initial guess
     Teuchos::RCP<Thyra::VectorBase<SC> > initial_guess = problemPtr->getNominalValues().get_x()->clone_v();
-    Thyra::V_S(initial_guess.ptr(),Teuchos::ScalarTraits<SC>::zero());
+    Thyra::V_S(initial_guess.ptr(),Teuchos::ScalarTraits<SC>::one());
     
       
     Teuchos::RCP<NOX::Thyra::Group> nox_group(new NOX::Thyra::Group(initial_guess,
@@ -144,7 +144,6 @@ void NonLinearSolver<SC,LO,GO,NO>::solveNOX(NonLinearProblem_Type &problem){
     // Create the solver
     Teuchos::RCP<NOX::Solver::Generic> solver = NOX::Solver::buildSolver(nox_group, combo, nl_params);
     NOX::StatusTest::StatusType solveStatus = solver->solve();
-    
     double nonLinearIts = solver->getSolverStatistics()->linearSolve.allNonlinearSolves_NumLinearSolves;
     double linearIts = solver->getSolverStatistics()->linearSolve.allNonlinearSolves_NumLinearIterations;
 
@@ -370,7 +369,7 @@ void NonLinearSolver<SC,LO,GO,NO>::solveNewton( NonLinearProblem_Type &problem )
             if ( criterionValue < tol )
                 break;
         }
-
+        // PRINT INFOS
         gmresIts += problem.solveAndUpdate( criterion, criterionValue );
         nlIts++;
         if(criterion=="Update"){

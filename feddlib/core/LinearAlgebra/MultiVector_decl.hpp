@@ -80,6 +80,8 @@ public:
     typedef Teuchos::RCP<TpetraMultiVector_Type> TpetraMultiVectorPtr_Type;
     typedef Teuchos::RCP<const TpetraMultiVector_Type> TpetraMultiVectorConstPtr_Type;
     typedef const TpetraMultiVectorConstPtr_Type TpetraMultiVectorConstPtrConst_Type;
+    //typedef const Teuchos::RCP<TpetraMultiVector_Type> TpetraMultiVectorPtr_Type;
+
 
     typedef Tpetra::Import<LO,GO,NO> TpetraImport_Type;
     typedef Teuchos::RCP<TpetraImport_Type> TpetraImportPtr_Type;
@@ -91,39 +93,92 @@ public:
 
     MultiVector();
 
+    
+    /// @brief Initialize tpetra multivector based on underyling map and number of vectors within. In almost all cases nmbVectors is 1.
+    /// @param map parallel local to global indexing of row entries
+    /// @param nmbVectors number of vectors in multivector (seen maybe as different columns)
     MultiVector( MapConstPtr_Type map, UN nmbVectors=1 );
 
+    /// @brief Initialize tpetra multivector based on input multivector. Uses underlying map. !! Probably, this is not a deep copy. Both mv have the same pointer.
+    /// @param TpetraMVPtrIn tpetra multivector used to build new multivector 
     MultiVector( TpetraMultiVectorPtr_Type& TpetraMVPtrIn );
 
+    /// @brief Initialize tpetra multivector based on input multivector. Uses underlying map and value information to construct new mv
+    /// @param mvIn multivector used to build new multivector
     MultiVector( MultiVectorConstPtr_Type mvIn );
 
+    /// @brief Destructor
     ~MultiVector();
 
+
+    /// @brief This will replace *this contents with the rhs input. Updated to deep copy, as this is necessary so both this and rhs would NOT have the same pointer
+    /// @param rhs source for copy
+    /// @return destination/result of copy
     MultiVector_Type& operator= (const MultiVector_Type& rhs) {
-        *multiVector_ = *rhs.getTpetraMultiVector();
+        //*multiVector_ = *rhs.getTpetraMultiVector(); // old version which worked with xpetra
+        FEDDLIB_NOTIFICATION("MultiVector_decl",true, " '=' creating a deep copy of input vector into this.");
+        Tpetra::deep_copy<SC,LO,GO,NO>(*multiVector_,*rhs.getTpetraMultiVector()); // (destination, source)
         return *this;
     }
 
+    /// @brief checking whether the multiVector exists
 	bool is_null() const;
 
+    /// @brief Return underlying map
+    /// @return  MapConstPtr_Type
     MapConstPtr_Type getMap() const;
     
+    /// @brief Return non constant version of underlying map
+    /// @return MapPtr_Type
     MapPtr_Type getMapNonConst();
 
+    /// @brief Return direct tpetra map of underlying map
+    /// @return TpetraMapConstPtr_Type
     TpetraMapConstPtr_Type getMapTpetra() const;
 
+    /// @brief Replace global value in mv 
+    /// @param globalRow [in] Global row index of the entry to modify.
+    ///   This <i>must</i> be a valid global row index on the calling
+    ///   process with respect to the MultiVector's Map.
+    /// @param vectorIndex [in] Column index of the entry to modify.
+    /// @param value [in] Incoming value to add to the entry.
     void replaceGlobalValue (GO globalRow, UN vectorIndex, const SC &value);
 
+    /// \param lclRow [in] Local row index of the entry to modify.
+    ///   Must be a valid local index in this MultiVector's Map on the
+    ///   calling process.
+    /// \param vectorIndex [in] Column index of the entry to modify.
+    /// \param value [in] Incoming value to add to the entry.
+    void replaceLocalValue (LO localRow, UN vectorIndex, const SC &value);
+
+    /// \brief Update (+=) a value in host memory, using global row index.
+    ///
+    /// Add the given value to the existing value at row \c gblRow (a
+    /// global index) and column \c col.  The column index is zero
+    /// based.
+    /// \param globalRow [in] Global row index of the entry to modify.
+    ///   This <i>must</i> be a valid global row index on the calling
+    ///   process with respect to the MultiVector's Map.
+    /// \param vectorIndex [in] Column index of the entry to modify.
+    /// \param value [in] Incoming value to add to the entry.
     void sumIntoGlobalValue (GO globalRow, UN vectorIndex, const SC &value);
 
     LO getLocalLength() const;
 
+    /// @brief Get data of multivector
+    /// @param i 'column' of multivector
+    /// @return Array format of const entries (on my processor)
     Teuchos::ArrayRCP< const SC >  getData(UN i) const;
 
+    /// @brief Get data of multivector
+    /// @param i 'column' of multivector
+    /// @return Array format of entries (on my processor)
     Teuchos::ArrayRCP< SC > getDataNonConst(UN i) const;
 
+    /// @brief Get number of multivector (columns)
     UN getNumVectors() const;
 
+    /// @brief Printing mv. Depending on verbosity level, output increases
     void print(Teuchos::EVerbosityLevel verbLevel=Teuchos::VERB_EXTREME) const;
 
     TpetraMultiVectorConstPtr_Type getTpetraMultiVector() const;

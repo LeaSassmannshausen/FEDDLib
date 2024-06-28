@@ -6,6 +6,7 @@
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 #include "feddlib/core/Mesh/MeshPartitioner.hpp"
 #include "feddlib/problems/Solver/NonLinearSolver.hpp"
+#include "feddlib/problems/abstract/NonLinearProblem.hpp"
 #include "feddlib/problems/specific/NonLinLaplace.hpp"
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Xpetra_DefaultPlatform.hpp>

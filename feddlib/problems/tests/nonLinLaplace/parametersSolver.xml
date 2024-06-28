@@ -1,6 +1,6 @@
 <ParameterList name="solver">
     <ParameterList name="ThyraSolver">
-        <Parameter name="Linear Solver Type" type="string" value="Belos"/>
+        <Parameter name="Linear Solver Type" type="string" value="Amesos2"/>
         <ParameterList name="Linear Solver Types">
             <ParameterList name="Belos">
                 <Parameter name="Solver Type" type="string" value="Block GMRES"/>
@@ -19,6 +19,9 @@
                 <ParameterList name="VerboseObject">
                         <Parameter name="Verbosity Level" type="string" value="medium"/>
                 </ParameterList>
+            </ParameterList>
+            <ParameterList name="Amesos2">
+                <Parameter name="Solver Type" type="string"   value="KLU2"/>
             </ParameterList>
         </ParameterList>
     </ParameterList>
