@@ -296,7 +296,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
     Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > repeatedMaps(numberOfBlocks);
     // --------
 
-    TMultiVectorPtrVecPtr nodeListVec( numberOfBlocks );
+    XMultiVectorPtrVecPtr nodeListVec( numberOfBlocks );
     if (!useNodeLists)
         nodeListVec = Teuchos::null;
 
@@ -389,11 +389,19 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                 if (useNodeLists) {
                     if (!problem_.is_null()){
                         TEUCHOS_TEST_FOR_EXCEPTION( problem_->getDomain(i)->getFEType() == "P0", std::logic_error, "Node lists cannot be used for P0 elements." );
-                        nodeListVec[i] = problem_->getDomain(i)->getNodeListMV()->getTpetraMultiVectorNonConst();
+                        Teuchos::RCP< Tpetra::MultiVector<SC,LO,GO,NO> > nodeListTpetra =  problem_->getDomain(i)->getNodeListMV()->getTpetraMultiVectorNonConst();
+                        Teuchos::RCP< Xpetra::TpetraMultiVector<SC,LO,GO,NO> > nodeListXpetraTpetra = Teuchos::rcp(new Xpetra::TpetraMultiVector<SC,LO,GO,NO>(nodeListTpetra));
+                        Teuchos::RCP< Xpetra::MultiVector<SC,LO,GO,NO> > nodeListXpetra = Teuchos::rcp_dynamic_cast<Xpetra::MultiVector<SC,LO,GO,NO>>(nodeListXpetraTpetra);
+         
+                        nodeListVec[i] = nodeListXpetra; //problem_->getDomain(i)->getNodeListMV()->getTpetraMultiVectorNonConst();
                     }
                     else if (!timeProblem_.is_null()){
                         TEUCHOS_TEST_FOR_EXCEPTION( timeProblem_->getDomain(i)->getFEType() == "P0", std::logic_error, "Node lists cannot be used for P0 elements." );
-                        nodeListVec[i] = timeProblem_->getDomain(i)->getNodeListMV()->getTpetraMultiVectorNonConst();
+                        Teuchos::RCP< Tpetra::MultiVector<SC,LO,GO,NO> > nodeListTpetra =  timeProblem_->getDomain(i)->getNodeListMV()->getTpetraMultiVectorNonConst();
+                        Teuchos::RCP< Xpetra::TpetraMultiVector<SC,LO,GO,NO> > nodeListXpetraTpetra = Teuchos::rcp(new Xpetra::TpetraMultiVector<SC,LO,GO,NO>(nodeListTpetra));
+                        Teuchos::RCP< Xpetra::MultiVector<SC,LO,GO,NO> > nodeListXpetra = Teuchos::rcp_dynamic_cast<Xpetra::MultiVector<SC,LO,GO,NO>>(nodeListXpetraTpetra);
+         
+                        nodeListVec[i] =  nodeListXpetra;//timeProblem_->getDomain(i)->getNodeListMV()->getTpetraMultiVectorNonConst();
                     }
                     
                 }

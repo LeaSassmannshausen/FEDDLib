@@ -44,9 +44,11 @@ map_(),
 importer_(),
 exporter_()
 {
-    FEDDLIB_WARNING("MultiVector_def",true, " MultiVector(TpetraMultiVectorPtr_Type& tpetraMVPtrIn) -- this is not a deep copy of the contents of the MV.");
     
     map_.reset( new Map_Type( tpetraMVPtrIn->getMap() ) );
+
+    FEDDLIB_WARNING("MultiVector_def", this->getMap()->getComm()->getRank() == 0, " MultiVector(TpetraMultiVectorPtr_Type& tpetraMVPtrIn) -- this is not a deep copy of the contents of the MV.");
+
 }
 
 template <class SC, class LO, class GO, class NO>
@@ -56,7 +58,7 @@ map_(),
 importer_(),
 exporter_()
 {
-    FEDDLIB_NOTIFICATION("MultiVector_def",true, " MultiVector(MultiVectorConstPtr_Type mvIn) new multivector is created based on the input mv data");
+    //FEDDLIB_NOTIFICATION("MultiVector_def", mvIn->getMap()->getComm()->getRank() == 0, " MultiVector(MultiVectorConstPtr_Type mvIn) new multivector is created based on the input mv data");
 
     multiVector_ =Teuchos::RCP( new TpetraMultiVector_Type(  mvIn->getMap()->getTpetraMap(), mvIn->getNumVectors() ));
     map_.reset( new Map_Type( *mvIn->getMap() ) );

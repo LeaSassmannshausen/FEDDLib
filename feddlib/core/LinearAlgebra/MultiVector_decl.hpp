@@ -50,17 +50,17 @@ public:
     typedef Teuchos::RCP<BlockMultiVector_Type> BlockMultiVectorPtr_Type;
     typedef Teuchos::RCP<const BlockMultiVector_Type> BlockMultiVectorConstPtr_Type;
     
-    typedef Xpetra::MultiVector<SC,LO,GO,NO> XpetraMultiVector_Type;
-    typedef Teuchos::RCP<XpetraMultiVector_Type> XpetraMultiVectorPtr_Type;
-    typedef Teuchos::RCP<const XpetraMultiVector_Type> XpetraMultiVectorConstPtr_Type;
-    typedef const XpetraMultiVectorConstPtr_Type XpetraMultiVectorConstPtrConst_Type;
+   // typedef Xpetra::MultiVector<SC,LO,GO,NO> XpetraMultiVector_Type;
+   // typedef Teuchos::RCP<XpetraMultiVector_Type> XpetraMultiVectorPtr_Type;
+   // typedef Teuchos::RCP<const XpetraMultiVector_Type> XpetraMultiVectorConstPtr_Type;
+   // typedef const XpetraMultiVectorConstPtr_Type XpetraMultiVectorConstPtrConst_Type;
 
 
-    typedef Xpetra::Import<LO,GO,NO> XpetraImport_Type;
-    typedef Teuchos::RCP<XpetraImport_Type> XpetraImportPtr_Type;
+   // typedef Xpetra::Import<LO,GO,NO> XpetraImport_Type;
+   // typedef Teuchos::RCP<XpetraImport_Type> XpetraImportPtr_Type;
 
-    typedef Xpetra::Export<LO,GO,NO> XpetraExport_Type;
-    typedef Teuchos::RCP<XpetraExport_Type> XpetraExportPtr_Type;
+   // typedef Xpetra::Export<LO,GO,NO> XpetraExport_Type;
+   // typedef Teuchos::RCP<XpetraExport_Type> XpetraExportPtr_Type;
     
     typedef Teuchos::Comm<int> Comm_Type;
     typedef Teuchos::RCP<Comm_Type> CommPtr_Type;    
@@ -80,8 +80,6 @@ public:
     typedef Teuchos::RCP<TpetraMultiVector_Type> TpetraMultiVectorPtr_Type;
     typedef Teuchos::RCP<const TpetraMultiVector_Type> TpetraMultiVectorConstPtr_Type;
     typedef const TpetraMultiVectorConstPtr_Type TpetraMultiVectorConstPtrConst_Type;
-    //typedef const Teuchos::RCP<TpetraMultiVector_Type> TpetraMultiVectorPtr_Type;
-
 
     typedef Tpetra::Import<LO,GO,NO> TpetraImport_Type;
     typedef Teuchos::RCP<TpetraImport_Type> TpetraImportPtr_Type;
