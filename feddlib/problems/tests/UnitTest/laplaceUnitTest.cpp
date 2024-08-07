@@ -166,7 +166,6 @@ int main(int argc, char *argv[]) {
                 cout << "  Error Report " << endl;
 				cout << "   || solution_current - solution_stored||_2 = " << normError << endl;
                 cout << " --------------------------------------------------" << endl;
-
             }
             // Throwing exception, if error is too great.
 

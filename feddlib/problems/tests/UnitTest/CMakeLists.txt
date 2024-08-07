@@ -37,10 +37,57 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(data_laplaceUnitTest
 	EXEDEPS laplaceUnitTest
 )
 
-TRIBITS_COPY_FILES_TO_BINARY_DIR(data_tests
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_laplacetests
 	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ReferenceSolutions
 	SOURCE_FILES solution_laplace_2d_P1_4cores.h5 solution_laplace_2d_P2_4cores.h5 solution_laplace_3d_P1_8cores.h5 solution_laplace_3d_P2_8cores.h5
 	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions
 	DEST_FILES solution_laplace_2d_P1_4cores.h5 solution_laplace_2d_P2_4cores.h5 solution_laplace_3d_P1_8cores.h5 solution_laplace_3d_P2_8cores.h5
 	EXEDEPS laplaceUnitTest
+)
+
+
+# -----------
+# Stokes
+# -----------
+TRIBITS_ADD_EXECUTABLE(
+	stokesUnitTest
+	SOURCES stokesUnitTest.cpp
+)
+TRIBITS_ADD_TEST(
+	stokesUnitTest
+	NAME stokes_2D_P1
+	ARGS "--dim=2 --FEType=P1"
+	NUM_MPI_PROCS 4
+)
+TRIBITS_ADD_TEST(
+	stokesUnitTest
+	NAME stokes_2D_P2
+	ARGS "--dim=2 --FEType=P2"
+	NUM_MPI_PROCS 4
+)
+TRIBITS_ADD_TEST(
+	stokesUnitTest
+	NAME stokes_3D_P1
+	ARGS "--dim=3 --FEType=P1"
+	NUM_MPI_PROCS 8
+)
+TRIBITS_ADD_TEST(
+	stokesUnitTest
+	NAME stokes_3D_P2
+	ARGS "--dim=3 --FEType=P2"
+	NUM_MPI_PROCS 8
+)
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_stokesUnitTest
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+	SOURCE_FILES parametersPrec_Stokes_2D.xml parametersSolver.xml
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+	DEST_FILES parametersPrec_Stokes_2D.xml  parametersSolver.xml
+	EXEDEPS stokesUnitTest
+)
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_stokesTest
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ReferenceSolutions
+	SOURCE_FILES solution_stokes_2d_P1_4cores.h5 solution_stokes_2d_P2_4cores.h5 solution_stokes_3d_P1_8cores.h5 solution_stokes_3d_P2_8cores.h5
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions
+	DEST_FILES solution_stokes_2d_P1_4cores.h5 solution_stokes_2d_P2_4cores.h5 solution_stokes_3d_P1_8cores.h5 solution_stokes_3d_P2_8cores.h5
+	EXEDEPS stokesUnitTest
 )
