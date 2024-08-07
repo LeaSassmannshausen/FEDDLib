@@ -1,0 +1,34 @@
+@2024
+
+Add in this file small, simple ToDo tasks, which require a maximum work time of 1-2 days
+@IMPORTANT Open:           Add date, your name and small description 
+@IMPORTANT In preparation: If you work one one issue remove and paste it to this section with your name and date
+@IMPRORTANT Finished: If you finish a task move text to this section and set a Pull Request on Github
+
+
+Open: ---------------------------------------------------------------------------------------------------- 
+
+* July 2024, nkubicki@uni-koeln.de:
+
+*
+
+*
+
+
+In preparation: -------------------------------------------------------------------------------------------
+
+* July 2024, nkubicki@uni-koeln.de - ... working on :
+
+*
+
+*
+
+
+
+Finished: -------------------------------------------------------------------------------------------------
+
+*
+
+*
+
+*
