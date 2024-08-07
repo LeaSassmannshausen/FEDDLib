@@ -28,7 +28,7 @@ TRIBITS_ADD_TEST(
     NUM_MPI_PROCS 4
 )
 
-### Map
+### Map Tpetra
 TRIBITS_ADD_EXECUTABLE(
 	map_tpetra
 	SOURCES map_tpetra.cpp

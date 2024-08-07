@@ -320,7 +320,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             //Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
                             //Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
 
-                            MapPtr_Type mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
+                            MapConstPtr_Type mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
                             XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
                             
@@ -335,7 +335,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
                             // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
                             
-                            MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
+                            MapConstPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
                             XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
                             
@@ -347,7 +347,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             if (problem_->getDomain(i)->getFEType() == "P0") {
                                  // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getElementMap()->getTpetraMap();
                                 // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                MapPtr_Type mapConstTmp = problem_->getDomain(i)->getElementMap();//->getTpetraMap();
+                                MapConstPtr_Type mapConstTmp = problem_->getDomain(i)->getElementMap();//->getTpetraMap();
                                 XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                                 Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
 
@@ -356,7 +356,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             else{
                                 // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getMapRepeated()->getTpetraMap();
                                 // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                MapPtr_Type mapConstTmp = problem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
+                                MapConstPtr_Type mapConstTmp = problem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
                                 XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                                 Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
                                 
@@ -367,7 +367,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             if (timeProblem_->getDomain(i)->getFEType() == "P0") {
                                  // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getElementMap()->getTpetraMap();
                                 // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getElementMap();//->getTpetraMap();
+                                MapConstPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getElementMap();//->getTpetraMap();
                                 XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                                 Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
 
@@ -376,7 +376,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             else{
                                 // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated()->getTpetraMap();
                                 // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
+                                MapConstPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
                                 XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                                 Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
 
@@ -580,7 +580,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithicFSI( )
                     TEUCHOS_TEST_FOR_EXCEPTION( timeProblem_->getDomain(i)->getFEType() == "P0", std::logic_error, "We should not be able to use P0 for interface coupling." );
                     //Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp timeProblem_->getDomain(i)->getInterfaceMapUnique()->getTpetraMap();
                     //Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                    MapPtr_Type mapConstTmp =timeProblem_->getDomain(i)->getInterfaceMapUnique();//->getTpetraMap();
+                    MapConstPtr_Type mapConstTmp =timeProblem_->getDomain(i)->getInterfaceMapUnique();//->getTpetraMap();
                     XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
 
@@ -598,7 +598,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithicFSI( )
                                 //Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
                                 //Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
 
-                                MapPtr_Type mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
+                                MapConstPtr_Type mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
                                 XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                                 Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
                                
@@ -612,7 +612,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithicFSI( )
                                 // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
                                 // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
                                 
-                                MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
+                                MapConstPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
                                 XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                                 Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
                                 
@@ -624,7 +624,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithicFSI( )
                                 if (problem_->getDomain(i)->getFEType() == "P0") {
                                     // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getElementMap()->getTpetraMap();
                                     // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                    MapPtr_Type mapConstTmp = problem_->getDomain(i)->getElementMap();//->getTpetraMap();
+                                    MapConstPtr_Type mapConstTmp = problem_->getDomain(i)->getElementMap();//->getTpetraMap();
                                     XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                                     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
 
@@ -635,7 +635,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithicFSI( )
                                 else{
                                     // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getMapRepeated()->getTpetraMap();
                                     // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                    MapPtr_Type mapConstTmp = problem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
+                                    MapConstPtr_Type mapConstTmp = problem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
                                     XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                                     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
                                     
@@ -649,7 +649,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithicFSI( )
                                 if (timeProblem_->getDomain(i)->getFEType() == "P0") {
                                     // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getElementMap()->getTpetraMap();
                                     // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                    MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getElementMap();//->getTpetraMap();
+                                    MapConstPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getElementMap();//->getTpetraMap();
                                     XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                                     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
 
@@ -658,7 +658,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithicFSI( )
                                 else{
                                     // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated()->getTpetraMap();
                                     // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                                    MapPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
+                                    MapConstPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapRepeated();//->getTpetraMap();
                                     XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                                     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
 
@@ -1226,7 +1226,7 @@ void Preconditioner<SC,LO,GO,NO>::setVelocityParameters( ParameterListPtr_Type p
 
     Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);*/
 
-    MapPtr_Type mapConstTmp;
+    MapConstPtr_Type mapConstTmp;
     if (!problem_.is_null())
         mapConstTmp = problem_->getDomain(0)->getMapVecFieldRepeated();
     else if(!timeProblem_.is_null())
@@ -1325,7 +1325,7 @@ void Preconditioner<SC,LO,GO,NO>::setPressureParameters( ParameterListPtr_Type p
         else
             mapConstTmp = timeProblem_->getDomain(1)->getMapRepeated()->getTpetraMap();
     }*/
-    MapPtr_Type mapConstTmp;
+    MapConstPtr_Type mapConstTmp;
     if (!problem_.is_null()){
         if ( problem_->getDomain(1)->getFEType()=="P0" )
             mapConstTmp = problem_->getDomain(1)->getElementMap();

@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
     }
     GO numGlobalIDs = 0;
 
-	reduceAll<int, int> (*commWorld, REDUCE_SUM, numLocalIDs, outArg (numGlobalIDs));
+	reduceAll<int, GO> (*commWorld, REDUCE_SUM, numLocalIDs, outArg (numGlobalIDs));
 
     MapPtr_Type map = rcp( new Map_Type(numGlobalIDs, indices(), 0, commWorld) );
 
