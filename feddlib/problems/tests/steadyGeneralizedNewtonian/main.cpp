@@ -20,10 +20,10 @@
 #include <Xpetra_DefaultPlatform.hpp>
 
 /*!
- Main of steady-state Creeping flow problem with Non-Newtonian stress tensor assumption
- where we use e.g. Carreau Yasuda or Power law
+ Main of steady-state generalized Newtonian fluid problems
+ where we use e.g. Carreau Yasuda or Power law as viscosity model
 
- @brief steady-state Non-Newtonian creeping Flow main
+ @brief steady-state Generalized Newtonian fluid problem
  @author Natalie Kubicki
  @version 1.0
  @copyright NK
@@ -50,14 +50,6 @@ void zeroDirichlet2D(double *x, double *res, double t, const double *parameters)
     return;
 }
 
-void zeroDirichlet2D_onlyY(double *x, double *res, double t, const double *parameters)
-{
-
-    //res[0] = 0.;
-    res[1] = 0.;
-
-    return;
-}
 
 void couette2D(double *x, double *res, double t, const double *parameters)
 {
@@ -149,7 +141,7 @@ res[1] = 0.;
     return;
 }
 
-
+// If we have a rotated grid we have to change the inflow profile
 void inflowPowerLaw2D_y(double *x, double *res, double t, const double *parameters)
 {
 
@@ -277,10 +269,6 @@ int main(int argc, char *argv[])
     string xmlProblemFile = "parametersProblem.xml";
     myCLP.setOption("problemfile", &xmlProblemFile, ".xml file with Inputparameters.");
 
-    // So this we are reading in only if we want to compare with Newtonian solver
-    string xmlProblemFile2 = "parametersProblem_Newtonian.xml";
-    myCLP.setOption("problemfile2", &xmlProblemFile2, ".xml file with Inputparameters.");
-
     string xmlPrecFile = "parametersPrec.xml";
     myCLP.setOption("precfile", &xmlPrecFile, ".xml file with Inputparameters.");
     string xmlSolverFile = "parametersSolver.xml";
@@ -303,8 +291,6 @@ int main(int argc, char *argv[])
      // Einlesen von Parameterwerten 
     {
         ParameterListPtr_Type parameterListProblem = Teuchos::getParametersFromXmlFile(xmlProblemFile);
-
-        ParameterListPtr_Type parameterListProblem2 = Teuchos::getParametersFromXmlFile(xmlProblemFile2);
 
         ParameterListPtr_Type parameterListPrec = Teuchos::getParametersFromXmlFile(xmlPrecFile);
 
@@ -335,14 +321,6 @@ int main(int argc, char *argv[])
         parameterListAll->setParameters(*parameterListSolver);
 
 
-// For comparison with Navier-Stokes solver 
-    ParameterListPtr_Type parameterListAll2(new Teuchos::ParameterList(*parameterListProblem2));
-        if (!precMethod.compare("Monolithic"))
-            parameterListAll2->setParameters(*parameterListPrec);
-        else
-            parameterListAll2->setParameters(*parameterListPrecTeko);
-        parameterListAll2->setParameters(*parameterListSolver);
-//
 
         int minNumberSubdomains;
         if (!meshType.compare("structured"))
@@ -412,26 +390,21 @@ int main(int argc, char *argv[])
 
             //** POISEUILLE FLOW - Rectangle Grid //**//**//**//**//**//**//**//**//**//**//**
             // ROTATED GRID
-            bcFactory->addBC(zeroDirichlet2D, 1, 0, domainVelocity, "Dirichlet", dim);                // wall
-            bcFactory->addBC(zeroDirichlet2D, 2, 0, domainVelocity, "Dirichlet", dim, parameter_vec); // wall
-            bcFactory->addBC(inflowPowerLaw2D, 4, 0, domainVelocity, "Dirichlet", dim, parameter_vec); //original bc Inlet onex
-           // bcFactory->addBC(onex, 4, 0, domainVelocity, "Dirichlet", dim, parameter_vec); //original bc Inlet onex
+                // Flags for rectangular channel inside this folder rectangular_200.mesh
+                //            1
+                //   ------------------
+                //   |                |
+                // 4 |                | 3
+                //   |                |
+                //   ------------------
+                //            2
+                //************* POISEUILLE FLOW  *************
+                bcFactory->addBC(zeroDirichlet2D, 1, 0, domainVelocity, "Dirichlet", dim);                // wall
+                bcFactory->addBC(zeroDirichlet2D, 2, 0, domainVelocity, "Dirichlet", dim, parameter_vec); // wall
 
-            // For test 1x1, 2x2, 4x4 because else inflow is unsymmetric
-            //bcFactory->addBC(onex, 4, 0, domainVelocity, "Dirichlet", dim, parameter_vec);
-            bcFactory->addBC(zeroDirichlet, 3,  1, domainPressure, "Dirichlet", 1); //Outflow - Try Neumann but then we have to set a pressure point anywhere else that why // After we added the proper code line in NavierStokesAssFE we can set this for P2-P1 element
+                bcFactory->addBC(inflowPowerLaw2D, 4, 0, domainVelocity, "Dirichlet", dim, parameter_vec); // Analytical solution Power-Law 2D Poiseuille flow based on parameters and pressure gradient
 
-
-            //** Flow over step **************************************************************************/*
-            /*
-            bcFactory->addBC(zeroDirichlet2D, 1, 0, domainVelocity, "Dirichlet", dim);                // wall
-            bcFactory->addBC(zeroDirichlet2D, 2, 0, domainVelocity, "Dirichlet", dim, parameter_vec); // wall
-            bcFactory->addBC(zeroDirichlet2D, 3, 0, domainVelocity, "Dirichlet", dim, parameter_vec); // wall
-            bcFactory->addBC(zeroDirichlet2D, 4, 0, domainVelocity, "Dirichlet", dim, parameter_vec); // wall
-            bcFactory->addBC(inflowParabolicAverageVelocity2D, 5, 0, domainVelocity, "Dirichlet", dim, parameter_vec); //original bc Inlet
-            */
-            //bcFactory->addBC(zeroDirichlet, , 1, domainPressure, "Dirichlet", 1); //Outflow
-            // Ich muss irgendwo ein Druck Punkt festlegen bestimmt!!
+            // Theoretically somewhere pressure has to be set
             }
             else if (dim==3)
             {
@@ -489,20 +462,16 @@ int main(int argc, char *argv[])
           if((parameterListProblem->sublist("Material").get("Newtonian",true) == false) && (parameterListProblem->sublist("Material").get("WriteOutViscosity",false)) == true ) 
            {
 
-            Teuchos::RCP<ExporterParaView<SC, LO, GO, NO>> exParaViscsoity(new ExporterParaView<SC, LO, GO, NO>());
-            DomainPtr_Type domV = domainVelocity;
-            //int nmbElementsGlob = domV->getMesh()->getNumElementsGlobal();
+                Teuchos::RCP<ExporterParaView<SC, LO, GO, NO>> exParaViscsoity(new ExporterParaView<SC, LO, GO, NO>());
+                DomainPtr_Type domV = domainVelocity;
 
-            /*Viskosität berechnen auf Basis der berechnet Geschwindigkeitslösung*/
-            navierStokesAssFE.computeViscosity_Solution();
-            navierStokesAssFE.getViscosity_Solution();
-           //Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> exportSolutionViscosityAssFE = navierStokesAssFE.viscosity_element_; 
+                navierStokesAssFE.computeSteadyPostprocessingViscosity_Solution();
 
-            //**************** Write out viscosity ****************** so we need something from type multivector so this is not working because we can not access navierStokesAssFE.feFactory_->visco_output_->getBlock(0)
-            Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> exportSolutionViscosityAssFE = navierStokesAssFE.viscosity_element_; 
-            exParaViscsoity->setup("viscosity", domV->getMesh(), "P0");
-            exParaViscsoity->addVariable(exportSolutionViscosityAssFE, "viscosityAssFE", "Scalar", 1,  domV->getElementMap() );
-            exParaViscsoity->save(0.0);
+                //**************** Write out viscosity ******************
+                Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> exportSolutionViscosityAssFE = navierStokesAssFE.viscosity_element_;
+                exParaViscsoity->setup("viscosity", domV->getMesh(), "P0"); // Viscosity averaged therefore P0 value
+                exParaViscsoity->addVariable(exportSolutionViscosityAssFE, "viscosityAssFE", "Scalar", 1, domV->getElementMap());
+                exParaViscsoity->save(0.0);
                   
            }
 
@@ -578,137 +547,6 @@ int main(int argc, char *argv[])
 
 
  
-
-      //*********************************************************************************************************
-      //*********************************************************************************************************
-      //*********************  POST-PROCESSING - COMPARISON BETWEEN NON-NEWTONIAN POWER-LAW FLOW FOR n=1 with NAVIER STOKES SOLVER ***********************************
-if ((parameterListProblem->sublist("Material").get("compareNavierStokes",false)) == true  && (parameterListProblem->sublist("Material").get("PowerLaw index n",1.)==1.) &&  (parameterListProblem->sublist("Material").get("ShearThinningModel","")=="Power-Law") )
-{
-     if (verbose) {
-        cout << "###############################################################" <<endl;
-        cout << "##################### Start Navier-Stokes Newtonian Solver ####################" <<endl;
-        cout << "###############################################################" <<endl;
-         }
-
-         NavierStokesAssFE<SC, LO, GO, NO> navierStokesAssFENewtonian(domainVelocity, discVelocity, domainPressure, discPressure, parameterListAll2);
-            {
-                MAIN_TIMER_START(NavierStokesAssFE, " AssFE:   Assemble System and solve");
-                navierStokesAssFENewtonian.addBoundaries(bcFactory);
-                navierStokesAssFENewtonian.initializeProblem();
-                navierStokesAssFENewtonian.assemble();
-                navierStokesAssFENewtonian.setBoundariesRHS();
-                std::string nlSolverType = parameterListProblem->sublist("General").get("Linearization", "FixedPoint");
-                NonLinearSolver<SC, LO, GO, NO> nlSolverAssFE(nlSolverType);
-                nlSolverAssFE.solve(navierStokesAssFENewtonian); // jumps into NonLinearSolver_def.hpp
-                MAIN_TIMER_STOP(NavierStokesAssFE);
-                comm->barrier();
-            }
-
-            // **********************  POST-PROCESSING NS Solver comparison ***********************************
-            Teuchos::RCP<ExporterParaView<SC, LO, GO, NO>> exParaVelocityNewtonian(new ExporterParaView<SC, LO, GO, NO>());
-            Teuchos::RCP<ExporterParaView<SC, LO, GO, NO>> exParaPressureNewtonian(new ExporterParaView<SC, LO, GO, NO>());
-            Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> exportSolutionVAssFENewtonian = navierStokesAssFENewtonian.getSolution()->getBlock(0);
-            Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> exportSolutionPAssFENewtonian = navierStokesAssFENewtonian.getSolution()->getBlock(1);
-            dom = domainVelocity;
-            exParaVelocityNewtonian->setup("velocity_navierStokes_and_error", dom->getMesh(), dom->getFEType());
-            exParaVelocityNewtonian->addVariable(exportSolutionVAssFENewtonian, "uAssFE_newtonian", "Vector", dofsPerNode, dom->getMapUnique());
-
-            dom = domainPressure;
-            exParaPressureNewtonian->setup("pressure_navierStokes_and_error", dom->getMesh(), dom->getFEType());
-            exParaPressureNewtonian->addVariable(exportSolutionPAssFENewtonian, "pAssFE_newtonian", "Scalar", 1, dom->getMapUnique());
-
-            // Compute error between Navier-Stokes Solver and Power-Law Solver (only reasonable if n=1 in Power-Law!)
-			// Calculating the error per node
-			Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValues = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( navierStokesAssFE.getSolution()->getBlock(0)->getMap() ) ); 
-			//this = alpha*A + beta*B + gamma*this
-			errorValues->update( 1., exportSolutionVAssFE, -1. ,exportSolutionVAssFENewtonian, 0.);
-			// Taking abs norm
-			Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbsV = errorValues;
-			errorValues->abs(errorValuesAbsV);
-            dom = domainVelocity;
-            exParaVelocityNewtonian->addVariable(errorValuesAbsV, "u_pl_u_n", "Vector", dofsPerNode, dom->getMapUnique());
-
-           	// Calculating the error per node
-			Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValuesP = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( navierStokesAssFE.getSolution()->getBlock(1)->getMap() ) ); 
-			//this = alpha*A + beta*B + gamma*this
-			errorValuesP->update( 1., exportSolutionPAssFE, -1. ,exportSolutionPAssFENewtonian, 0.);
-
-			// Taking abs norm
-			Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbsP = errorValuesP;
-
-			errorValuesP->abs(errorValuesAbsP);
-            dom = domainPressure;
-            exParaPressureNewtonian->addVariable(errorValuesAbsP, "p_pl_p_n", "Scalar", 1, dom->getMapUnique());
-
-            exParaVelocityNewtonian->save(0.0);
-            exParaPressureNewtonian->save(0.0);
-
-            // Error comparison
-            Teuchos::Array<SC> norm(1); 
-    		errorValues->norm2(norm);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
-			double res = norm[0];
-			if(comm->getRank() ==0)
-				cout << " Inf Norm of Error of Solutions:" << res << endl;
-			double twoNormError = res;
-
-			navierStokesAssFE.getSolution()->norm2(norm);
-			res = norm[0];
-			if(comm->getRank() ==0)
-				cout << " 2 rel. Norm of solutions n=1 power law:" << twoNormError/res << endl;
-	        navierStokesAssFENewtonian.getSolution()->norm2(norm);
-			res = norm[0];
-			if(comm->getRank() ==0)
-				cout << " 2 rel. Norm of solutions navier stokes assemFE:" << twoNormError/res << endl;
-
-            // Get Block A
-	        MatrixPtr_Type Sum2= Teuchos::rcp(new Matrix_Type( domainVelocity->getMapVecFieldUnique(), domainVelocity->getDimension() * domainVelocity->getApproxEntriesPerRow() )  );
-			navierStokesAssFENewtonian.getSystem()->getBlock(0,0)->addMatrix(1, Sum2, 1);
-			navierStokesAssFE.getSystem()->getBlock(0,0)->addMatrix(-1, Sum2, 1);
-			Teuchos::ArrayView<const GO> indices;
-			Teuchos::ArrayView<const SC> values;
-			res=0.;
-			for (UN i=0; i < domainVelocity->getMapUnique()->getMaxLocalIndex()+1 ; i++) {
-				for(int d=0; d< dim ; d++){
-					GO row = dim*domainVelocity->getMapUnique()->getGlobalElement( i )+d;
-					Sum2->getGlobalRowView(row, indices,values);
-					
-					for(int j=0; j< values.size() ; j++){
-						if(fabs(values[j])>res)
-							res = fabs(values[j]);			
-					}	
-				}	
-			}
-			res = fabs(res);
-			reduceAll<int, double> (*comm, REDUCE_MAX, res, outArg (res));
-			if(comm->getRank() == 0)
-				cout << "Inf Norm of Difference between Block A: " << res << endl;
-            
-            // Get Block B
-            MatrixPtr_Type Sum1= Teuchos::rcp(new Matrix_Type( domainPressure->getMapUnique(), domainVelocity->getDimension() * domainVelocity->getApproxEntriesPerRow() )  );
-			navierStokesAssFENewtonian.getSystem()->getBlock(1,0)->addMatrix(1, Sum1, 1);
-			navierStokesAssFE.getSystem()->getBlock(1,0)->addMatrix(-1, Sum1, 1);
-			res=0.;
-			for (UN i=0; i < domainPressure->getMapUnique()->getMaxLocalIndex()+1 ; i++) {
-				GO row = domainPressure->getMapUnique()->getGlobalElement( i );
-				Sum1->getGlobalRowView(row, indices,values);	
-				for(int j=0; j< values.size() ; j++){
-					res += fabs(values[j]);			
-				}	
-			}	
-			res = fabs(res);
-			reduceAll<int, double> (*comm, REDUCE_SUM, res, outArg (res));
-			if(comm->getRank() == 0)
-				cout << " Norm of Difference between Block B: " << res << endl;
-            /*
-            if(comm->getRank() == 0)
-				cout << " Print A matrix ns solver: " << res << endl;
-            navierStokesAssFENewtonian.getSystem()->getBlock(0,0)->print(Teuchos::VERB_EXTREME);
-             if(comm->getRank() == 0)
-				cout << " Print A matrix pl solver: " << res << endl;
-            navierStokesAssFE.getSystem()->getBlock(0,0)->print(Teuchos::VERB_EXTREME);
-            */
-}
-
 
         
         }
