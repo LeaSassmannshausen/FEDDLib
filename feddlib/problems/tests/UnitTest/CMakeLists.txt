@@ -44,7 +44,46 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(data_laplacetests
 	DEST_FILES solution_laplace_2d_P1_4cores.h5 solution_laplace_2d_P2_4cores.h5 solution_laplace_3d_P1_8cores.h5 solution_laplace_3d_P2_8cores.h5
 	EXEDEPS laplaceUnitTest
 )
+# -----------
+# Linear Elasticity
+# -----------
+TRIBITS_ADD_EXECUTABLE(
+	linElasUnitTest
+	SOURCES linElasUnitTest.cpp
+)
 
+TRIBITS_ADD_TEST(
+	linElasUnitTest
+	NAME linElas_2D_P1
+	ARGS "--dim=2 --FEType=P1"
+	NUM_MPI_PROCS 4
+)
+TRIBITS_ADD_TEST(
+	linElasUnitTest
+	NAME linElas_2D_P2
+	ARGS "--dim=2 --FEType=P2"
+	NUM_MPI_PROCS 4
+)
+TRIBITS_ADD_TEST(
+	linElasUnitTest
+	NAME linElas_3D_P1
+	ARGS "--dim=3 --FEType=P1"
+	NUM_MPI_PROCS 8
+)
+TRIBITS_ADD_TEST(
+	linElasUnitTest
+	NAME linElas_3D_P2
+	ARGS "--dim=3 --FEType=P2"
+	NUM_MPI_PROCS 8
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_linElas
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ReferenceSolutions
+	SOURCE_FILES solution_linElas_2d_P1_4cores.h5 solution_linElas_2d_P2_4cores.h5 solution_linElas_3d_P1_8cores.h5 solution_linElas_3d_P2_8cores.h5
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions
+	DEST_FILES solution_linElas_2d_P1_4cores.h5 solution_linElas_2d_P2_4cores.h5 solution_linElas_3d_P1_8cores.h5 solution_linElas_3d_P2_8cores.h5
+	EXEDEPS linElasUnitTest
+)
 
 # -----------
 # Stokes
@@ -86,8 +125,8 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(data_stokesUnitTest
 )
 TRIBITS_COPY_FILES_TO_BINARY_DIR(data_stokesTest
 	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ReferenceSolutions
-	SOURCE_FILES solution_stokes_2d_P1_4cores.h5 solution_stokes_2d_P2_4cores.h5 solution_stokes_3d_P1_8cores.h5 solution_stokes_3d_P2_8cores.h5
+	SOURCE_FILES solution_stokes_velocity_2d_P1_4cores.h5 solution_stokes_velocity_2d_P2_4cores.h5 solution_stokes_velocity_3d_P1_8cores.h5 solution_stokes_velocity_3d_P2_8cores.h5 solution_stokes_pressure_2d_P1_4cores.h5 solution_stokes_pressure_2d_P2_4cores.h5 solution_stokes_pressure_3d_P1_8cores.h5 solution_stokes_pressure_3d_P2_8cores.h5
 	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions
-	DEST_FILES solution_stokes_2d_P1_4cores.h5 solution_stokes_2d_P2_4cores.h5 solution_stokes_3d_P1_8cores.h5 solution_stokes_3d_P2_8cores.h5
+	DEST_FILES solution_stokes_velocity_2d_P1_4cores.h5 solution_stokes_velocity_2d_P2_4cores.h5 solution_stokes_velocity_3d_P1_8cores.h5 solution_stokes_velocity_3d_P2_8cores.h5 solution_stokes_pressure_2d_P1_4cores.h5 solution_stokes_pressure_2d_P2_4cores.h5 solution_stokes_pressure_3d_P1_8cores.h5 solution_stokes_pressure_3d_P2_8cores.h5
 	EXEDEPS stokesUnitTest
 )

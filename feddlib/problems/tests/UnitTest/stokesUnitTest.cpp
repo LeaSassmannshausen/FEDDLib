@@ -16,9 +16,9 @@
 
  @brief Stokes main
 
- This laplace unit test compares the current solution of the laplace problem in
+ This stokes unit test compares the current solution of the stokes problem in
  2D and 3D to older already stored solutions. The folling test constructs a
- structured mesh with H/h = 6. The stored solutions make sense for the following
+ structured mesh with H/h = 4. The stored solutions make sense for the following
  configurations:
  - 2D on 4 procs with P1 or P2 elements
  - 3D on 8 procs with P1 or P2 elements
@@ -85,6 +85,9 @@ int main(int argc, char *argv[]) {
     string ulib_str = "Tpetra";
     myCLP.setOption("ulib", &ulib_str, "Underlying lib");
 
+    int boolExportSolution = 0;
+    myCLP.setOption("exportSolution", &boolExportSolution, "Export Solution");
+
     int dim = 2;
     myCLP.setOption("dim", &dim, "Dimension");
 
@@ -112,8 +115,6 @@ int main(int argc, char *argv[]) {
     }
 
     {
-        // ParameterListPtr_Type parameterListProblem =
-        // Teuchos::getParametersFromXmlFile(xmlProblemFile);
         ParameterListPtr_Type parameterListPrec = Teuchos::getParametersFromXmlFile(xmlPrecFile);
         ParameterListPtr_Type parameterListSolver = Teuchos::getParametersFromXmlFile(xmlSolverFile);
 
@@ -168,6 +169,10 @@ int main(int argc, char *argv[]) {
             bcFactory->addBC(inflowParabolic3D, 2, 0, domainVelocity, "Dirichlet", dim, parameter_vec);
         }
 
+        // Setting parameters that are needed for stokes 
+        // !! This avoids that errors occure when default values are changed along the way.
+        parameterListAll->sublist("Parameter").set("Density",1.0); // Value 1.0
+        parameterListAll->sublist("Parameter").set("Viscosity",1.0); // Value 1.0
         Stokes<SC, LO, GO, NO> stokes(domainVelocity, FETypeV, domainPressure, FEType, parameterListAll);
 
         {
@@ -178,56 +183,77 @@ int main(int argc, char *argv[]) {
             stokes.solve();
         }
 
-        bool boolExportSolution = true;
+
+        // HDF5Export<SC, LO, GO, NO> exporterV(stokes.getSolution()->getBlock(0)->getMap(),
+        //     "ReferenceSolutions/solution_stokes_velocity_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
+        // exporterV.writeVariablesHDF5("velocity",
+        //     stokes.getSolution()->getBlock(0)); // VariableName and Variable
+
+        // HDF5Export<SC, LO, GO, NO> exporterP(stokes.getSolution()->getBlock(1)->getMap(),
+        //     "ReferenceSolutions/solution_stokes_pressure_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
+      
+        // exporterP.writeVariablesHDF5("pressure",
+        //     stokes.getSolution()->getBlock(1)); // VariableName and Variable
+
+        // We exclude any other tests, than the one prescribed
+        if (dim == 2) {
+            TEUCHOS_TEST_FOR_EXCEPTION(!(size == 4 && m == 4), std::logic_error, "The 2D test solutions are only sensible for 4 processors.");
+        } else if (dim == 3)
+            TEUCHOS_TEST_FOR_EXCEPTION(!(size == 8 && m == 4), std::logic_error, "The 3D test solutions are only sensible for 8 processors.");
+
+        HDF5Import<SC, LO, GO, NO> importerV(stokes.getSolution()->getBlock(0)->getMap(),
+            "ReferenceSolutions/solution_stokes_velocity_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores");
+        Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solutionImportedVeloctiy = importerV.readVariablesHDF5("velocity");
+
+        HDF5Import<SC, LO, GO, NO> importerP(stokes.getSolution()->getBlock(1)->getMap(),
+            "ReferenceSolutions/solution_stokes_pressure_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores");
+        Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solutionImportedPressure = importerP.readVariablesHDF5("pressure");
+
+        // We compare the imported solution to the current one
+        Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solutionStokesVelocity = stokes.getSolution()->getBlock(0);
+        Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solutionStokesPressure = stokes.getSolution()->getBlock(1);
+
+        // Calculating the error per node
+        Teuchos::RCP<MultiVector<SC, LO, GO, NO>> errorValuesVelocity = Teuchos::rcp(new MultiVector<SC, LO, GO, NO>(stokes.getSolution()->getBlock(0)->getMap()));
+        Teuchos::RCP<MultiVector<SC, LO, GO, NO>> errorValuesPressure = Teuchos::rcp(new MultiVector<SC, LO, GO, NO>(stokes.getSolution()->getBlock(1)->getMap()));
+
+        // this = alpha*A + beta*B + gamma*this
+        errorValuesVelocity->update(1., solutionStokesVelocity, -1., solutionImportedVeloctiy, 0.);
+        errorValuesPressure->update(1., solutionStokesPressure, -1., solutionImportedPressure, 0.);
+
+        // Computing norm
+        Teuchos::Array<SC> normV(1);
+        Teuchos::Array<SC> normP(1);
+
+        errorValuesVelocity->norm2(normV);
+        errorValuesPressure->norm2(normP);
+
+        double normErrorV = normV[0];
+        double normErrorP = normP[0];
+
+        // Output of error
+        if (comm->getRank() == 0) {
+            cout << " --------------------------------------------------" << endl;
+            cout << "  Error Report " << endl;
+            cout << "   || velocity_current - velocity_stored||_2 = " << normErrorV << endl;
+            cout << "   || pressure_current - pressure_stored||_2 = " << normErrorP << endl;
+            cout << " --------------------------------------------------" << endl;
+        }
+
+        // Throwing exception, if error is too great.
+        TEUCHOS_TEST_FOR_EXCEPTION(normErrorV > 1.e-12 || normErrorP > 1.e-12 , std::logic_error,
+                                    "Difference between current solution and "
+                                    "stored solution greater than 1e-12.");
+
         if (boolExportSolution) {
-
-            // HDF5Export<SC, LO, GO, NO> exporter(stokes.getSolution()->getBlock(0)->getMap(),
-            //                                     "ReferenceSolutions/solution_stokes_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
-            // exporter.writeVariablesHDF5("solution",
-            //                             stokes.getSolution()->getBlock(0)); // VariableName and Variable
-
-            // We exclude any other tests, than the one prescribed
-            if (dim == 2) {
-                TEUCHOS_TEST_FOR_EXCEPTION(!(size == 4 && m == 4), std::logic_error, "The 2D test solutions are only sensible for 4 processors.");
-            } else if (dim == 3)
-                TEUCHOS_TEST_FOR_EXCEPTION(!(size == 8 && m == 4), std::logic_error, "The 3D test solutions are only sensible for 8 processors.");
-
-            HDF5Import<SC, LO, GO, NO> importer(stokes.getSolution()->getBlock(0)->getMap(),
-                                                "ReferenceSolutions/solution_stokes_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores");
-            Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solutionImported = importer.readVariablesHDF5("solution");
-
-            // We compare the imported solution to the current one
-            Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solutionStokes = stokes.getSolution()->getBlock(0);
-            // Calculating the error per node
-            Teuchos::RCP<MultiVector<SC, LO, GO, NO>> errorValues = Teuchos::rcp(new MultiVector<SC, LO, GO, NO>(stokes.getSolution()->getBlock(0)->getMap()));
-            // this = alpha*A + beta*B + gamma*this
-            errorValues->update(1., solutionStokes, -1., solutionImported, 0.);
-            // Computing norm
-            Teuchos::Array<SC> norm(1);
-            errorValues->norm2(norm);
-            double normError = norm[0];
-
-            // Output of error
-            if (comm->getRank() == 0) {
-                cout << " --------------------------------------------------" << endl;
-                cout << "  Error Report " << endl;
-                cout << "   || solution_current - solution_stored||_2 = " << normError << endl;
-                cout << " --------------------------------------------------" << endl;
-            }
-            // Throwing exception, if error is too great.
-
-            TEUCHOS_TEST_FOR_EXCEPTION(normError > 1.e-12, std::logic_error,
-                                       "Difference between current solution and "
-                                       "stored solution greater than 1e-12.");
-
             Teuchos::RCP<ExporterParaView<SC, LO, GO, NO>> exPara(new ExporterParaView<SC, LO, GO, NO>());
 
             Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> exportSolution = stokes.getSolution()->getBlock(0);
 
-            exPara->setup("solutionStokes", domainVelocity->getMesh(), FEType);
+            exPara->setup("solutionStokes", domainVelocity->getMesh(), FETypeV);
 
             exPara->addVariable(exportSolution, "u_current", "Vector", dim, domainVelocity->getMapUnique());
-            exPara->addVariable(solutionImported, "u_imported", "Vector", dim, domainVelocity->getMapUnique());
+            exPara->addVariable(solutionImportedVeloctiy, "u_imported", "Vector", dim, domainVelocity->getMapUnique());
 
             exPara->save(0.0);
         }
