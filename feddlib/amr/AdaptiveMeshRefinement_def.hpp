@@ -1018,38 +1018,38 @@ void AdaptiveMeshRefinement<SC,LO,GO,NO>::writeRefinementInfo(){
 			cout << " Summary of Mesh Refinement" << endl;
 			cout << "__________________________________________________________________________________________________________ " << endl;
 			cout << " " << endl;
-			cout << " Marking Strategy:	" << markingStrategy_ << endl;
-			cout << " Theta:			" << theta_ << endl;
+			cout << " Marking Strategy:\t" << markingStrategy_ << endl;
+			cout << " Theta:\t\t\t" << theta_ << endl;
 			cout << "__________________________________________________________________________________________________________ " << endl;
 			cout << " " << endl;
-			cout << " Tolerance:			" << tol_ << endl;
-			cout << " Max number of Iterations:	" <<  maxIter_ << endl;
-			cout << " Number of Processors:		" << maxRank_ +1 << endl;
-			cout << " Number of Refinements:		" << currentIter_ << endl;
+			cout << " Tolerance:\t\t\t" << tol_ << endl;
+			cout << " Max number of Iterations:\t" <<  maxIter_ << endl;
+			cout << " Number of Processors:\t\t\t << maxRank_ +1 << endl;
+			cout << " Number of Refinements:\t\t" << currentIter_ << endl;
 			cout << "__________________________________________________________________________________________________________ " << endl;
 			cout << " " << endl;
-			cout << " Refinementlevel|| Elements	|| Nodes	|| Max. estimated error  " << endl;
+			cout << " Refinementlevel|| Elements\t|| Nodes\t|| Max. estimated error  " << endl;
 			cout << "__________________________________________________________________________________________________________ " << endl;
 			for(int i=0; i<= currentIter_; i++)
-				cout <<" "<< i << "		|| " << numElements[i] << "		|| " << numNodes[i]<< "		|| " << maxErrorEl[i]<<  endl;
+				cout <<" "<< i << "\t\t|| " << numElements[i] << "\t\t|| " << numNodes[i]<< "\t\t|| " << maxErrorEl[i]<<  endl;
 			cout << "__________________________________________________________________________________________________________ " << endl;
 			cout << " " << endl;
 			if(exactSolInput_ == true){
 				cout << " Maximal error in nodes after Refinement. " << endl;
 				for (int i=1; i<=currentIter_ ; i++)
-					cout <<" "<< i << ":	" << maxErrorKn[i] << endl;
+					cout <<" "<< i << ":\t" << maxErrorKn[i] << endl;
 				cout << "__________________________________________________________________________________________________________ " << endl;
-				cout << " || u-u_h ||_H1	||	|| u-u_h ||_L2  ||" ;
+				cout << " || u-u_h ||_H1\t||\t|| u-u_h ||_L2  ||" ;
 				if( calculatePressure_== true  && exactSolPInput_ == true  ){
-					cout << " 	|| p-p_h||_L2 " << endl;
+					cout << " \t|| p-p_h||_L2 " << endl;
 				}
 				else
 					cout << endl;
 				cout << "__________________________________________________________________________________________________________ " << endl;
 				for (int i=1; i<=currentIter_ ; i++){
-					cout <<" "<< i << ":	"<<  setprecision(5) << fixed << errorH1[i]<< "		||	" << errorL2[i] ;
+					cout <<" "<< i << ":\t"<<  setprecision(5) << fixed << errorH1[i]<< "\t\t||\t" << errorL2[i] ;
 					if( calculatePressure_== true  && exactSolPInput_ == true  ){
-						cout << " 	 	||	" << setprecision(5) << fixed <<  errorL2P[i] << endl;
+						cout << " \t \t||\t" << setprecision(5) << fixed <<  errorL2P[i] << endl;
 					}
 					else
 						cout << endl;
@@ -1057,10 +1057,10 @@ void AdaptiveMeshRefinement<SC,LO,GO,NO>::writeRefinementInfo(){
 			
 				cout << "__________________________________________________________________________________________________________ " << endl;
 			}
-			cout << " ||u-u_h||_H1 / ||u ||_H1 	||  eta / ||u_h ||_H1	" << endl;
+			cout << " ||u-u_h||_H1 / ||u ||_H1 \t||  eta / ||u_h ||_H1\t" << endl;
 			cout << "__________________________________________________________________________________________________________ " << endl;
 			for (int i=1; i<=currentIter_ ; i++){
-				cout <<" "<< i << ":	" << relError[i] << " 		||	" << eRelError[i]  << endl;
+				cout <<" "<< i << ":\t" << relError[i] << " \t\t||\t" << eRelError[i]  << endl;
 			}
 			cout << "__________________________________________________________________________________________________________ " << endl;
 			cout << " " << endl;

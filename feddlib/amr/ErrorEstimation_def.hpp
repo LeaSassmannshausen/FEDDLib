@@ -273,15 +273,15 @@ typename ErrorEstimation<SC,LO,GO,NO>::MultiVectorPtr_Type ErrorEstimation<SC,LO
 			reduceAll<int, double> (*inputMesh_->getComm(), REDUCE_MAX, minC_T, outArg (minC_T));
 
 			if(inputMesh_->getComm()->getRank() == 0){
-				cout << "	Mesh Quality Assesment 2D of current mesh" << endl;
-				cout << "	__________________________________________________________________________________________________________ " << endl;
+				cout << "\tMesh Quality Assessment 2D of current mesh" << endl;
+				cout << "\t__________________________________________________________________________________________________________ " << endl;
 				cout << " " << endl;
-				cout << " 	Circumdiameter h_T: 		" <<"max. = " << setprecision(5)  << maxh_T << "	min. = " << setprecision(5)  << minh_T  << endl;
-				cout << " 	Incircumdiameter rho_T:		" <<"max. = " << setprecision(5)  <<maxrho_T << "	min. = " <<setprecision(5)  << minrho_T  << endl;
-				cout << " 	Area of Triangles:	 	" <<"max. = " << setprecision(5)  << maxArea_T << "	min. = " << setprecision(5)  << minArea_T  << endl;
-				cout << " 	Shape parameter:	 	" <<"max. = " << setprecision(5)  << maxC_T << "	min. = " << setprecision(5)  <<minC_T << endl;
-				cout << " 	The maximal Error of Elements is "  << maxErrorElLoc << endl;
-				cout << "	__________________________________________________________________________________________________________ " << endl;
+				cout << " \tCircumdiameter h_T: \t\t" <<"max. = " << setprecision(5)  << maxh_T << "\tmin. = " << setprecision(5)  << minh_T  << endl;
+				cout << " \tIncircumdiameter rho_T:\t\t" <<"max. = " << setprecision(5)  <<maxrho_T << "\tmin. = " <<setprecision(5)  << minrho_T  << endl;
+				cout << " \tArea of Triangles:\t \t" <<"max. = " << setprecision(5)  << maxArea_T << "\tmin. = " << setprecision(5)  << minArea_T  << endl;
+				cout << " \tShape parameter:\t \t" <<"max. = " << setprecision(5)  << maxC_T << "\tmin. = " << setprecision(5)  <<minC_T << endl;
+				cout << " \tThe maximal Error of Elements is "  << maxErrorElLoc << endl;
+				cout << "\t__________________________________________________________________________________________________________ " << endl;
 			}
 		}
 
@@ -434,19 +434,19 @@ typename ErrorEstimation<SC,LO,GO,NO>::MultiVectorPtr_Type ErrorEstimation<SC,LO
 
 
 			if(inputMesh_->getComm()->getRank() == 0){
-				cout << " 	-- Mesh Quality Assesment 3D of current mesh level -- 	" << endl;
-				cout << "	__________________________________________________________________________________________________________ " << endl;
+				cout << " \t-- Mesh Quality Assessment 3D of current mesh level -- \t" << endl;
+				cout << "\t__________________________________________________________________________________________________________ " << endl;
 				cout << " " << endl;
-				cout << " 	Circumdiameter h_T:			" <<"max. = "  << setprecision(5)  << maxh_T << " min. = " << setprecision(5)  <<minh_T  << endl;
-				cout << " 	Incircumdiameter rho_T:			" <<"max. = " <<setprecision(5)  << maxrho_T << " min. = " << setprecision(5)  <<minrho_T  << endl;
-				cout << " 	Circumdiameter h_Tri:			" <<"max. = " <<setprecision(5)  << maxh_Tri << " min. = " << setprecision(5)  <<minh_Tri  << endl;
-				cout << " 	Incircumdiameter rho_Tri:		" <<"max. = " << setprecision(5)  <<maxrho_Tri << " min. = " << setprecision(5)  <<minrho_Tri  << endl;
-				cout << " 	Area of Triangles: 			" <<"max. = " << setprecision(5)  <<maxArea_T << " min. = " << setprecision(5)  <<minArea_T  << endl;
-				cout << " 	Volume of Tetraeder: 			" <<"max. = " << setprecision(5)  <<maxVol_T << " min. = " << setprecision(5)  <<minVol_T  << endl;
-				cout << " 	Shape parameter Tetraeder: 		" <<"max. = " << setprecision(5)  << maxC_T << " min. = " << setprecision(5)  <<minC_T << endl;
-				cout << " 	Shape parameter Triangles: 		" <<"max. = " << setprecision(5)  << maxC_Tri << " min. = " << setprecision(5)  <<minC_Tri << endl;
-				cout << " 	The maximal Error of Elements is 	"  << maxErrorElLoc << endl;
-				cout << "	__________________________________________________________________________________________________________ " << endl;
+				cout << " \tCircumdiameter h_T:\t\t\t" <<"max. = "  << setprecision(5)  << maxh_T << " min. = " << setprecision(5)  <<minh_T  << endl;
+				cout << " \tIncircumdiameter rho_T:\t\t\t" <<"max. = " <<setprecision(5)  << maxrho_T << " min. = " << setprecision(5)  <<minrho_T  << endl;
+				cout << " \tCircumdiameter h_Tri:\t\t\t" <<"max. = " <<setprecision(5)  << maxh_Tri << " min. = " << setprecision(5)  <<minh_Tri  << endl;
+				cout << " \tIncircumdiameter rho_Tri:\t\t" <<"max. = " << setprecision(5)  <<maxrho_Tri << " min. = " << setprecision(5)  <<minrho_Tri  << endl;
+				cout << " \tArea of Triangles: \t\t\t" <<"max. = " << setprecision(5)  <<maxArea_T << " min. = " << setprecision(5)  <<minArea_T  << endl;
+				cout << " \tVolume of Tetraeder: \t\t\t" <<"max. = " << setprecision(5)  <<maxVol_T << " min. = " << setprecision(5)  <<minVol_T  << endl;
+				cout << " \tShape parameter Tetraeder: \t\t" <<"max. = " << setprecision(5)  << maxC_T << " min. = " << setprecision(5)  <<minC_T << endl;
+				cout << " \tShape parameter Triangles: \t\t" <<"max. = " << setprecision(5)  << maxC_Tri << " min. = " << setprecision(5)  <<minC_Tri << endl;
+				cout << " \tThe maximal Error of Elements is \t"  << maxErrorElLoc << endl;
+				cout << "\t__________________________________________________________________________________________________________ " << endl;
 			}
 		}
 
@@ -486,15 +486,15 @@ void ErrorEstimation<SC,LO,GO,NO>::tagArea( MeshUnstrPtr_Type inputMeshP1,vec2D_
 	int taggedElements=0;
 
 	if(inputMesh_->getComm()->getRank() == 0){
-		cout << "	__________________________________________________________________________________________________________ " << endl;
+		cout << "\t__________________________________________________________________________________________________________ " << endl;
 		cout << " " << endl;
-		cout << " 	The area you requested for Refinement is :" << endl ;
-			cout << "	x in [" << area[0][0] << ", " << area[0][1] << "] " << endl;
+		cout << " \tThe area you requested for Refinement is :" << endl ;
+			cout << "\tx in [" << area[0][0] << ", " << area[0][1] << "] " << endl;
 		if(this->dim_>1)
-			cout << "	y in [" << area[1][0] << ", " << area[1][1] << "] " << endl;
+			cout << "\ty in [" << area[1][0] << ", " << area[1][1] << "] " << endl;
 		if(this->dim_>2)
-			cout << "	z in [" << area[2][0] << ", " << area[2][1] << "] " << endl;
-		cout << "	__________________________________________________________________________________________________________ " << endl;
+			cout << "\tz in [" << area[2][0] << ", " << area[2][1] << "] " << endl;
+		cout << "\t__________________________________________________________________________________________________________ " << endl;
 	}
 	vec_int_Type edgeNum(6); 
 	edgeElements->matchEdgesToElements(elementMap);
@@ -559,10 +559,10 @@ void ErrorEstimation<SC,LO,GO,NO>::tagArea( MeshUnstrPtr_Type inputMeshP1,vec2D_
 	reduceAll<int, int> (*inputMesh_->getComm(), REDUCE_MAX, taggedElements, outArg (taggedElements));
 
 	if(inputMesh_->getComm()->getRank()==0){
-		cout << "	__________________________________________________________________________________________________________ " << endl;
+		cout << "\t__________________________________________________________________________________________________________ " << endl;
 		cout << " " << endl;
-		cout << "	 With the 'tagArea tool' " << taggedElements << " Elements were tagged for Refinement " << endl;
-		cout << "	__________________________________________________________________________________________________________ " << endl;
+		cout << "\t With the 'tagArea tool' " << taggedElements << " Elements were tagged for Refinement " << endl;
+		cout << "\t__________________________________________________________________________________________________________ " << endl;
 	}
 
 }
@@ -599,10 +599,10 @@ void ErrorEstimation<SC,LO,GO,NO>::tagAll( MeshUnstrPtr_Type inputMeshP1){
 	reduceAll<int, int> (*inputMesh_->getComm(), REDUCE_MAX, taggedElements, outArg (taggedElements));
 
 	if(inputMesh_->getComm()->getRank()==0){
-		cout << "	__________________________________________________________________________________________________________ " << endl;
+		cout << "\t__________________________________________________________________________________________________________ " << endl;
 		cout << " " << endl;
-		cout << "	With tag all:' " << taggedElements << " Elements were tagged for Refinement " << endl;
-		cout << "	__________________________________________________________________________________________________________ " << endl;
+		cout << "\tWith tag all:' " << taggedElements << " Elements were tagged for Refinement " << endl;
+		cout << "\t__________________________________________________________________________________________________________ " << endl;
 	}
 
 }
@@ -629,7 +629,7 @@ void ErrorEstimation<SC,LO,GO,NO>::tagFlag( MeshUnstrPtr_Type inputMeshP1,int fl
 		FiniteElement fe = elements->getElement( i );
 		if(fe.getFlag() == flag){
 			elements->getElement(i).tagForRefinement();
-			taggedElements++;						
+			taggedElements++;
 		}
 		else{
 			ElementsPtr_Type subEl = fe.getSubElements(); // might be null
@@ -637,8 +637,8 @@ void ErrorEstimation<SC,LO,GO,NO>::tagFlag( MeshUnstrPtr_Type inputMeshP1,int fl
 				FiniteElement feSub = subEl->getElement( surface  );
 				if(feSub.getFlag() == flag){
 					elements->getElement(i).tagForRefinement();
-					taggedElements++;						
-				}				
+					taggedElements++;
+				}
 			}
 		}
 	}
@@ -646,10 +646,10 @@ void ErrorEstimation<SC,LO,GO,NO>::tagFlag( MeshUnstrPtr_Type inputMeshP1,int fl
 	reduceAll<int, int> (*inputMesh_->getComm(), REDUCE_MAX, taggedElements, outArg (taggedElements));
 
 	if(inputMesh_->getComm()->getRank()==0){
-		cout << "	__________________________________________________________________________________________________________ " << endl;
+		cout << "\t__________________________________________________________________________________________________________ " << endl;
 		cout << " " << endl;
-		cout << "	With tag all:' " << taggedElements << " Elements were tagged for Refinement " << endl;
-		cout << "	__________________________________________________________________________________________________________ " << endl;
+		cout << "\tWith tag all:' " << taggedElements << " Elements were tagged for Refinement " << endl;
+		cout << "\t__________________________________________________________________________________________________________ " << endl;
 	}
 
 }
@@ -1207,7 +1207,7 @@ void ErrorEstimation<SC,LO,GO,NO>::markElements(MultiVectorPtr_Type errorElement
 
 	if(meshP1->getComm()->getRank() == 0){
 	cout << " " << endl;
-	cout << " 	A-posteriori Error Estimation for " << problemType_ << "-problem tagged " << flagCount << " Elements for adaptive Refinement with " <<  markingStrategy_ << "-Strategy and Theta= " << theta_ << endl;
+	cout << " \tA-posteriori Error Estimation for " << problemType_ << "-problem tagged " << flagCount << " Elements for adaptive Refinement with " <<  markingStrategy_ << "-Strategy and Theta= " << theta_ << endl;
 	cout << " " << endl;
 	}
   

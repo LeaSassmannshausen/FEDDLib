@@ -547,11 +547,11 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2D(std::string FEType,
             cout << " done! --" << endl;
         }
 
-        //                Triangle numbering
+        // Triangle numbering
         //                    2
         //                  * *
         //                *   *
-        //              4	  5
+        //              4     5
         //            *       *
         //          *         *
         //        1 * * 3 * * 0
@@ -886,14 +886,14 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3D(std::string FEType,
             }
         }
 
-        //                Face 1          Face2               Face 3            Face 4
-        //                    2      2 * * 9 * * 3        3 * * 9 * * 2          	3
-        //                  * *      *          *          *          * 		  * *
-        //                *   *      *        *             *        *          *   *
-        //              5	  6      6      7                8      5         8	    7
-        //            *       *      *    *                   *    *        *       *
-        //          *         *      *  *                      *  *       *         *
-        //        1 * * 4 * * 0       0                         1       1 * * 4 * * 0
+        //            Face 1             Face2                Face 3           Face 4
+        //                    2      2 * * 9 * * 3        3 * * 9 * * 2                3
+        //                  * *      *          *          *          *              * *
+        //                *   *      *        *             *        *             *   *
+        //              5     6      6      7                8      5            8     7
+        //            *       *      *    *                   *    *           *       *
+        //          *         *      *  *                      *  *          *         *
+        //        1 * * 4 * * 0      0                           1         1 * * 4 * * 0
 
 
         int    P2M = 2*(M+1)-1;
@@ -2278,11 +2278,11 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2DBFS(std::string FEType,
             cout << " done! --" << endl;
         }
 
-        //                Triangle numbering
+        // Triangle numbering
         //                    2
         //                  * *
         //                *   *
-        //              4	  5
+        //              4     5
         //            *       *
         //          *         *
         //        1 * * 3 * * 0
@@ -2677,14 +2677,14 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3DBFS(std::string FEType,
             cout << " done! --" << endl;
         }
 
-        //                Face 1          Face2               Face 3            Face 4
-        //                    2      2 * * 9 * * 3        3 * * 9 * * 2          	3
-        //                  * *      *          *          *          * 		  * *
-        //                *   *      *        *             *        *          *   *
-        //              5	  6      6      7                8      5         8	    7
-        //            *       *      *    *                   *    *        *       *
-        //          *         *      *  *                      *  *       *         *
-        //        1 * * 4 * * 0       0                         1       1 * * 4 * * 0
+        //            Face 1              Face2               Face 3          Face 4
+        //                    2      2 * * 9 * * 3        3 * * 9 * * 2               3
+        //                  * *      *          *          *          *             * *
+        //                *   *      *        *             *        *            *   *
+        //              5     6      6      7                8      5           8     7
+        //            *       *      *    *                   *    *          *       *
+        //          *         *      *  *                      *  *         *         *
+        //        1 * * 4 * * 0      0                          1         1 * * 4 * * 0
 
 
         int    P2M = 2*(M+1)-1;
@@ -3737,14 +3737,14 @@ void MeshStructured<SC,LO,GO,NO>::buildSurfaces(int flagsOption, string FEType){
                         vec2D_LO_Type surfaceElements_vec(4,vec_LO_Type(numNodesTriangle)); // four surfaces per element
 
 
-        //                Face 1          Face2               Face 3            Face 4
-        //                    2      2 * * 9 * * 3        3 * * 9 * * 2          	3
-        //                  * *      *          *          *          * 		  * *
-        //                *   *      *        *             *        *          *   *
-        //              5	  6      6      7                8      5         8	    7
-        //            *       *      *    *                   *    *        *       *
-        //          *         *      *  *                      *  *       *         *
-        //        1 * * 4 * * 0       0                         1       1 * * 4 * * 0
+        //           Face 1              Face2                Face 3          Face 4
+        //                    2      2 * * 9 * * 3        3 * * 9 * * 2               3
+        //                  * *      *          *          *          *             * *
+        //                *   *      *        *             *        *            *   *
+        //              5     6      6      7                8      5           8     7
+        //            *       *      *    *                   *    *          *       *
+        //          *         *      *  *                      *  *         *         *
+        //        1 * * 4 * * 0      0                          1         1 * * 4 * * 0
                         if(FEType == "P1"){
                             surfaceElements_vec[0] = {nodeList[1],nodeList[0],nodeList[2]};
                             surfaceElements_vec[1] = {nodeList[0],nodeList[3],nodeList[2]};
