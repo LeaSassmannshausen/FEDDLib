@@ -1024,7 +1024,7 @@ void AdaptiveMeshRefinement<SC,LO,GO,NO>::writeRefinementInfo(){
 			cout << " " << endl;
 			cout << " Tolerance:\t\t\t" << tol_ << endl;
 			cout << " Max number of Iterations:\t" <<  maxIter_ << endl;
-			cout << " Number of Processors:\t\t\t << maxRank_ +1 << endl;
+			cout << " Number of Processors:\t\t\t" << maxRank_ +1 << endl;
 			cout << " Number of Refinements:\t\t" << currentIter_ << endl;
 			cout << "__________________________________________________________________________________________________________ " << endl;
 			cout << " " << endl;
