@@ -51,7 +51,6 @@ void rhsX2D(double* x, double* res, double* parameters){
     res[1] = 0.;
     return;
 }
-
 void rhsX3D(double* x, double* res, double* parameters){
     res[0] = parameters[1];
     res[1] = 0.;
