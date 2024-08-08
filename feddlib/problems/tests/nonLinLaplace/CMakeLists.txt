@@ -5,9 +5,16 @@ TRIBITS_ADD_EXECUTABLE(
 
 TRIBITS_ADD_TEST(
   nonLinLaplace
-  NAME nonLinLaplace
-	ARGS
-	NUM_MPI_PROCS 4
+	NAME nonLinLaplace_2D_P1
+	ARGS "--dim=2"
+  NUM_MPI_PROCS 4
+)
+
+TRIBITS_ADD_TEST(
+  nonLinLaplace
+	NAME nonLinLaplace_3D_P1
+	ARGS "--dim=3"
+	NUM_MPI_PROCS 8
 )
 
 TRIBITS_COPY_FILES_TO_BINARY_DIR(data_nonLinLaplace
