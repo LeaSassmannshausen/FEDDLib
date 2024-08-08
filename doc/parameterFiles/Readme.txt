@@ -88,3 +88,74 @@ Legacy operator implementation (via RGDSW coarse operator or GDSW coarse operato
             <Parameter name="Option" type="string" value="2.2"/>
 
 -----------------------------------
+Mesh file format
+
+* The FEDDLib can read MESH (INRIA) files (file ending .mesh). 
+  - Binary files are not supported.
+  - Not all features of the MESH format are supported.
+  
+  Overview of the format:
+     [header]
+	 Vertices
+	 [number of nodes]
+     [node coordinates, flags]
+	 Edges
+	 [number of edges]
+	 [list of edges (n x 2) matrix, flags]
+	 Triangles
+	 [number of triangles]
+	 [list of triangles (m x 3) matrix, flags]
+	 Tetrahedra
+	 [number of tetrahedra]
+	 [list of tetrahedra (s x 4) matrix, flags]
+  
+  - The FEDDLib also ignores some of the header that is required in INRIA files. 
+    This is actually an advantage, since it makes the reader more robust.
+    For example: It does not matter if the coordinates are written with single or double precision.
+  - During import, a mesh file is read multiple times. 
+    This is, of course, not strictly necessary but simplified the initial implementation of the importer. 
+    For the examples considered so far, the additional time required is negligible.
+* The FEDDLib also has an importer for a specific format of Gmsh files (MSH file extension). 
+  It was not written by the developers of the FEDDLib, and its code base was last updated in 2014. 
+  The importer is not currently used and was also not used extensively in the past. 
+  1) MESH format is simple (easy to maintain), works, and does all we need.
+  2) Gmsh format is more complicated than the MESH format. An importer is more difficult and costly to maintain.
+  3) Both formats are not widely supported.
+     But the MESH format is more geared towards simple meshes, while the Gmsh format is more geared towards geometries (e.g., supporting parametrization), i.e., features that we do not require.
+* VTK support in FEDDLib would be good, since VTK is more widely supported (e.g., (partially) by Gmsh and ParaView). 
+  It could also simplify the process of setting flags, since these can be implemented in VTK as fields (i.e., scalar function defined on the mesh nodes). 
+  Unfortunately, the specifications for the latest VTK format have not been published (Gmsh only supports the older version). 
+  Ideally, there exists a C++ importer for VTK from the developers of VTK. 
+  However, the VTK format is not overly complicated if only a small subset of features is supported. 
+  A self-written importer might, thus, be feasible.
+  VTK could also be used as an alternative for exporting variables from the FEDDLib (instead of HDF5). (It is much easier to deal with an ASCII VTK file than with an HDF5 file.)
+
+
+How to prepare a mesh / prerequisites that need to be satisfied:
+
+* Mesh file must be in INRIA-MESH format.
+* Mesh must only contain P1 element nodes (i.e., a triangle has three nodes; a P2 triangle would have 6 nodes).
+* Fluid-structure interaction: fluid mesh and structure mesh must (currently) be separate files.
+* Each node is associated with a node flag. 
+  The flag indicates what type of boundary condition is set (on the surface). 
+  For interior nodes, a default flag is used (see below).
+* Providing only flagged nodes is not sufficient to set boundary conditions (e.g., if a P2 mesh is generated, it may be undefined at the interface of two boundary conditions what condition should be prescribed). 
+  Thus, elements that make up the interface between two boundary conditions need to be specified in the mesh file as well, along with the appropriate flag.
+  
+  Example:
+     Consider a tetrahedralized tube with an inflow and outflow. 
+     We set a velocity profile at the inflow, a zero flow at the wall, and a do-nothing boundary condition at the outflow. 
+     So we need to differentiate between three types of triangles on the surface of the tube. 
+     Each triangle receives a specific flag s.t. the FEDDLib knows which boundary condition to set. 
+     However, it is unclear what condition should be set at the boundary nodes of the outlet, where Dirichlet and Neumann condition both meet. 
+     Should it be a no-slip condition (yes!) or a do-nothing boundary condition (no! In this case fluid would leak out to the side of the tube). 
+     We need to specify all edges that make up the boundary of the outlet and give them the same flag as the wall (i.e., a no-slip boundary condition).
+  
+  If no additional information (to avoid ambigious boundary conditions) was provided by the user (via the mesh), the FEDDLib always uses the adjacent surface node with the larger flag as reference. 
+  This trickery is supported, but it is not recommended to rely on it since the implementation may change. 
+  Moreover, it is less clear and, thus, error prone. 
+  Only make use of it if the condition is unambigious. 
+  In the example above, we do not need to provide the edges at the inlet, since the prescribed velocity function should be zero at the boundary of the inlet, as is the no-slip boundary condition of the wall. 
+  Thus, in this case, both conditions are identical at their intersection.
+
+-----------------------------------
