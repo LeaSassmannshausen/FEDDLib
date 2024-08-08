@@ -37,6 +37,6 @@
         <Parameter name="Preconditioner Method"                 type="string"   value="Monolithic"/><!-- Monolithic, Diagonal, Triangular -->
         <Parameter name="Scale mass matrix"                     type="bool"     value="true"/>
         <Parameter name="Set Zeros"		                        type="bool"     value="true"/>
-        <Parameter name="Linearization"                         type="string"   value="Newton"/> <!-- FixedPoint, Newton, Extrapolation-->
+        <Parameter name="Linearization"                         type="string"   value="NOX"/> <!-- FixedPoint, Newton, Extrapolation-->
     </ParameterList>
 </ParameterList>

@@ -60,6 +60,9 @@ int main(int argc, char *argv[]) {
     string xmlSolverFile = "parametersSolver.xml";
     myCLP.setOption("solverfile",&xmlSolverFile,".xml file with Inputparameters.");
 
+    int boolExportSolution = 0;
+    myCLP.setOption("exportSolution", &boolExportSolution, "Export Solution");
+
     int dim = 2;
     myCLP.setOption("dim", &dim, "Dimension");
 
@@ -133,44 +136,43 @@ int main(int argc, char *argv[]) {
             laplace.solve();
         }
 
-        bool boolExportSolution = true;
-        if (boolExportSolution) {
+        
 
-            //  HDF5Export<SC,LO,GO,NO> exporter(laplace.getSolution()->getBlock(0)->getMap(), "ReferenceSolutions/solution_laplace_"+std::to_string(dim)+"d_"+FEType+"_"+std::to_string(size)+"cores"); //  Map and file name
-            //  exporter.writeVariablesHDF5("solution",laplace.getSolution()->getBlock(0)); // VariableName and Variable
+        //  HDF5Export<SC,LO,GO,NO> exporter(laplace.getSolution()->getBlock(0)->getMap(), "ReferenceSolutions/solution_laplace_"+std::to_string(dim)+"d_"+FEType+"_"+std::to_string(size)+"cores"); //  Map and file name
+        //  exporter.writeVariablesHDF5("solution",laplace.getSolution()->getBlock(0)); // VariableName and Variable
 
-            // We exclude any other tests, than the one prescribed
-            if(dim==2){
-                TEUCHOS_TEST_FOR_EXCEPTION( !(size == 4 && m==6), std::logic_error, "The 2D test solutions are only sensible for 4 processors.");
-            }
-            else if(dim==3)
-                TEUCHOS_TEST_FOR_EXCEPTION( !(size == 8 && m==6), std::logic_error, "The 3D test solutions are only sensible for 8 processors.");
+        // We exclude any other tests, than the one prescribed
+        if(dim==2){
+            TEUCHOS_TEST_FOR_EXCEPTION( !(size == 4 && m==6), std::logic_error, "The 2D test solutions are only sensible for 4 processors.");
+        }
+        else if(dim==3)
+            TEUCHOS_TEST_FOR_EXCEPTION( !(size == 8 && m==6), std::logic_error, "The 3D test solutions are only sensible for 8 processors.");
 
-            HDF5Import<SC,LO,GO,NO> importer(laplace.getSolution()->getBlock(0)->getMap(),"ReferenceSolutions/solution_laplace_"+std::to_string(dim)+"d_"+FEType+"_"+std::to_string(size)+"cores");
-            Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5("solution");
-		
-            // We compare the imported solution to the current one
-            Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionLaplace = laplace.getSolution()->getBlock(0);
-            // Calculating the error per node
-			Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValues = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( laplace.getSolution()->getBlock(0)->getMap() ) ); 
-			//this = alpha*A + beta*B + gamma*this
-			errorValues->update( 1., solutionLaplace, -1. ,solutionImported, 0.);
-		    // Computing norm
- 			Teuchos::Array<SC> norm(1); 
-    		errorValues->norm2(norm);
-			double normError = norm[0];
-			            
-            // Output of error
-            if(comm->getRank() ==0){
-                cout << " --------------------------------------------------" << endl;
-                cout << "  Error Report " << endl;
-				cout << "   || solution_current - solution_stored||_2 = " << normError << endl;
-                cout << " --------------------------------------------------" << endl;
-            }
-            // Throwing exception, if error is too great.
+        HDF5Import<SC,LO,GO,NO> importer(laplace.getSolution()->getBlock(0)->getMap(),"ReferenceSolutions/solution_laplace_"+std::to_string(dim)+"d_"+FEType+"_"+std::to_string(size)+"cores");
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5("solution");
+    
+        // We compare the imported solution to the current one
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionLaplace = laplace.getSolution()->getBlock(0);
+        // Calculating the error per node
+        Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValues = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( laplace.getSolution()->getBlock(0)->getMap() ) ); 
+        //this = alpha*A + beta*B + gamma*this
+        errorValues->update( 1., solutionLaplace, -1. ,solutionImported, 0.);
+        // Computing norm
+        Teuchos::Array<SC> norm(1); 
+        errorValues->norm2(norm);
+        double normError = norm[0];
+                    
+        // Output of error
+        if(comm->getRank() ==0){
+            cout << " --------------------------------------------------" << endl;
+            cout << "  Error Report " << endl;
+            cout << "   || solution_current - solution_stored||_2 = " << normError << endl;
+            cout << " --------------------------------------------------" << endl;
+        }
+        // Throwing exception, if error is too great.
 
-            TEUCHOS_TEST_FOR_EXCEPTION( normError > 1.e-12 , std::logic_error, "Difference between current solution and stored solution greater than 1e-12.");
-
+        TEUCHOS_TEST_FOR_EXCEPTION( normError > 1.e-12 , std::logic_error, "Difference between current solution and stored solution greater than 1e-12.");
+        if (boolExportSolution==1) {
             Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
 
             Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolution = laplace.getSolution()->getBlock(0);
