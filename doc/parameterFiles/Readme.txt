@@ -64,6 +64,21 @@ Option 2.2: Distance scaling on the interface
 
 Example for choosing the coarse space variants in the parameter file:
 
+Current operator implementation (via interface partition of unity coarse operator):
+
+<Parameter name="CoarseOperator Type" type="string" value="IPOUHarmonicCoarseOperator"/>
+<ParameterList name="IPOUHarmonicCoarseOperator">
+    <ParameterList name="Blocks">
+        <ParameterList name="1">
+            <ParameterList name="InterfacePartitionOfUnity">
+                <Parameter name="Type" type="string" value="RGDSW" />
+                <ParameterList name="RGDSW">
+                    <Parameter name="Distance Function" type="string" value="Constant" />           <!-- Option 1
+                    or
+                    <Parameter name="Distance Function" type="string" value="Inverse Euclidean" />  <!-- Option 2.2
+
+Legacy operator implementation (via RGDSW coarse operator or GDSW coarse operator):
+
 <Parameter name="CoarseOperator Type" type="string" value="RGDSWCoarseOperator"/>
 <ParameterList name="RGDSWCoarseOperator">
     <ParameterList name="Blocks">
