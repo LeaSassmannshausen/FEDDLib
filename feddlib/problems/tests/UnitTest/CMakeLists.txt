@@ -91,3 +91,44 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(data_stokesTest
 	DEST_FILES solution_stokes_2d_P1_4cores.h5 solution_stokes_2d_P2_4cores.h5 solution_stokes_3d_P1_8cores.h5 solution_stokes_3d_P2_8cores.h5
 	EXEDEPS stokesUnitTest
 )
+
+
+
+# -----------
+# Generalized Newtonian Power Law
+# -----------
+TRIBITS_ADD_EXECUTABLE(
+	generalizedNewtonianPowerLawTest
+	SOURCES generalizedNewtonianPowerLawTest.cpp
+)
+
+TRIBITS_ADD_TEST(
+	generalizedNewtonianPowerLawTest
+	NAME GNF_2D_P2
+	ARGS "--dim=2 --FEType=P2"
+	NUM_MPI_PROCS 4
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_generalizedNewtonianPowerLawTest
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+	SOURCE_FILES parametersPrec_GNF_2D.xml parametersSolver.xml parametersProblem_GNF_2D.xml
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+	DEST_FILES parametersPrec_GNF_2D.xml  parametersSolver.xml parametersProblem_GNF_2D.xml
+	EXEDEPS generalizedNewtonianPowerLawTest
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data2_generalizedNewtonianPowerLawTest
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ReferenceSolutions
+	SOURCE_FILES solution_GNF_pressure_2d_P2P1_4cores.h5 solution_GNF_velocity_2d_P2P1_4cores.h5
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions
+	DEST_FILES solution_GNF_pressure_2d_P2P1_4cores.h5 solution_GNF_velocity_2d_P2P1_4cores.h5
+	EXEDEPS generalizedNewtonianPowerLawTest
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(mesh_generalizedNewtonianPowerLawTest
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Meshes
+	SOURCE_FILES rectangle_200.mesh
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/Meshes
+	DEST_FILES rectangle_200.mesh
+	EXEDEPS generalizedNewtonianPowerLawTest
+)
