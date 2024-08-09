@@ -64,9 +64,9 @@ int main(int argc, char *argv[]) {
     Teuchos::CommandLineProcessor myCLP;
     string ulib_str = "Tpetra";
     myCLP.setOption("ulib", &ulib_str, "Underlying lib");
-    string xmlProblemFile = "parametersProblem.xml";
+    string xmlProblemFile = "parametersProblemNonLinLaplace.xml";
     myCLP.setOption("problemfile", &xmlProblemFile, ".xml file with Inputparameters.");
-    string xmlPrecFile = "parametersPrec.xml";
+    string xmlPrecFile = "parametersPrecNonLinLaplace.xml";
     myCLP.setOption("precfile", &xmlPrecFile, ".xml file with Inputparameters.");
     string xmlSolverFile = "parametersSolver.xml";
     myCLP.setOption("solverfile", &xmlSolverFile, ".xml file with Inputparameters.");
@@ -93,9 +93,9 @@ int main(int argc, char *argv[]) {
     ParameterListPtr_Type parameterListProblem = Teuchos::getParametersFromXmlFile(xmlProblemFile);
     ParameterListPtr_Type parameterListPrec = Teuchos::getParametersFromXmlFile(xmlPrecFile);
     ParameterListPtr_Type parameterListSolver = Teuchos::getParametersFromXmlFile(xmlSolverFile);
+
     // Set the dimension in the parameter list
     // Required because the AssembleFE class reads directly from the parameter file.
-
     parameterListProblem->sublist("Parameter").set("Dimension", dim);
     ParameterListPtr_Type parameterListAll(new Teuchos::ParameterList(*parameterListProblem));
     parameterListAll->setParameters(*parameterListPrec);
@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
     comm->barrier();
 
     HDF5Import<SC, LO, GO, NO> importer(nonLinLaplace.getSolution()->getBlock(0)->getMap(),
-                                        "./solution_nonlinlaplace_" + std::to_string(dim) + "d_" + FEType + "_" +
+                                        "ReferenceSolutions/solution_nonLinLaplace_" + std::to_string(dim) + "d_" + FEType + "_" +
                                             std::to_string(size) + "cores");
     Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solutionImported = importer.readVariablesHDF5("solution");
 
@@ -211,19 +211,19 @@ int main(int argc, char *argv[]) {
     }
 
     // Throwing exception, if error is too great.
-    TEUCHOS_TEST_FOR_EXCEPTION(normError > 1.e-10, std::logic_error,
-                               "Difference between current solution and stored solution greater than 1e-12.");
+    TEUCHOS_TEST_FOR_EXCEPTION(normError > 1.e-11, std::logic_error,
+                               "Difference between current solution and stored solution greater than 1e-11.");
 
     // For generating h5 solution files
-    // HDF5Export<SC, LO, GO, NO> exporter(nonLinLaplace.getSolution()->getBlock(0)->getMap(),
-    //                                     "./solution_nonlinlaplace_" + std::to_string(dim) + "d_" + FEType +
-    //                                         "_" + std::to_string(size) + "cores");     //  Map and file name
-    // exporter.writeVariablesHDF5("solution", nonLinLaplace.getSolution()->getBlock(0)); // VariableName and Variable
+    HDF5Export<SC, LO, GO, NO> exporter(nonLinLaplace.getSolution()->getBlock(0)->getMap(),
+                                        "solution_nonLinLaplace_" + std::to_string(dim) + "d_" + FEType +
+                                            "_" + std::to_string(size) + "cores");     //  Map and file name
+    exporter.writeVariablesHDF5("solution", nonLinLaplace.getSolution()->getBlock(0)); // VariableName and Variable
 
     // ########################
     // Export solution
     // ########################
-    bool boolExportSolution = true;
+    bool boolExportSolution = false;
     if (boolExportSolution) {
         Teuchos::RCP<ExporterParaView<SC, LO, GO, NO>> exPara(new ExporterParaView<SC, LO, GO, NO>());
         Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> exportSolution = nonLinLaplace.getSolution()->getBlock(0);

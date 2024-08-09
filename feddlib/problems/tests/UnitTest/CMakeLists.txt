@@ -171,3 +171,78 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(mesh_generalizedNewtonianPowerLawTest
 	DEST_FILES rectangle_200.mesh
 	EXEDEPS generalizedNewtonianPowerLawTest
 )
+
+# -----------
+# Nonlinear Elasticity
+# -----------
+TRIBITS_ADD_EXECUTABLE(
+  nonLinElasticityUnitTest
+	SOURCES nonLinElasticityUnitTest.cpp
+)
+
+TRIBITS_ADD_TEST(
+	nonLinElasticityUnitTest
+	NAME nonLinElasticity_2D_P1
+	ARGS "--dim=2"
+	NUM_MPI_PROCS 4
+)
+TRIBITS_ADD_TEST(
+  nonLinElasticityUnitTest
+	NAME nonLinElasticity_2D_P1
+	ARGS "--dim=3"
+	NUM_MPI_PROCS 8
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(param_nonLinElasticity
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+  SOURCE_FILES parametersPrecNonLinElasticity.xml parametersSolver.xml parametersProblemNonLinElasticity.xml
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+  DEST_FILES parametersPrecNonLinElasticity.xml  parametersSolver.xml parametersProblemNonLinElasticity.xml
+  EXEDEPS nonLinElasticityUnitTest
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_nonLinElasticity
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ReferenceSolutions
+  SOURCE_FILES solution_nonLinElasticity_2d_P1_4cores.h5 solution_nonLinElasticity_3d_P1_8cores.h5
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions
+  DEST_FILES solution_nonLinElasticity_2d_P1_4cores.h5 solution_nonLinElasticity_3d_P1_8cores.h5
+	EXEDEPS nonLinElasticityUnitTest
+)
+
+
+# -----------
+# Nonlinear Laplace
+# -----------
+TRIBITS_ADD_EXECUTABLE(
+  nonLinLaplaceUnitTest
+  SOURCES nonLinLaplaceUnitTest.cpp
+)
+
+TRIBITS_ADD_TEST(
+  nonLinLaplaceUnitTest
+  NAME nonLinLaplace_2D_P1
+	ARGS "--dim=2"
+	NUM_MPI_PROCS 4
+)
+TRIBITS_ADD_TEST(
+  nonLinLaplaceUnitTest
+  NAME nonLinLaplace_2D_P1
+	ARGS "--dim=3"
+	NUM_MPI_PROCS 8
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(param_nonLinLaplace
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+  SOURCE_FILES parametersPrecNonLinLaplace.xml parametersSolver.xml parametersProblemNonLinLaplace.xml
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+  DEST_FILES parametersPrecNonLinLaplace.xml  parametersSolver.xml parametersProblemNonLinLaplace.xml
+	EXEDEPS nonLinLaplaceUnitTest
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_nonLinLaplace
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ReferenceSolutions
+  SOURCE_FILES solution_nonLinLaplace_2d_P1_4cores.h5 solution_nonLinLaplace_3d_P1_8cores.h5
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions
+  DEST_FILES solution_nonLinLaplace_2d_P1_4cores.h5 solution_nonLinLaplace_3d_P1_8cores.h5
+  EXEDEPS nonLinLaplaceUnitTest
+)
