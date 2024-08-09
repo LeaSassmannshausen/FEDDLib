@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
             stokes.solve();
         }
 
-
+        // stokes.getSystem()->getMergedMatrix()->writeMM("F");
         // HDF5Export<SC, LO, GO, NO> exporterV(stokes.getSolution()->getBlock(0)->getMap(),
         //     "ReferenceSolutions/solution_stokes_velocity_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
         // exporterV.writeVariablesHDF5("velocity",
@@ -228,8 +228,8 @@ int main(int argc, char *argv[]) {
         Teuchos::Array<SC> normV(1);
         Teuchos::Array<SC> normP(1);
 
-        errorValuesVelocity->norm2(normV);
-        errorValuesPressure->norm2(normP);
+        errorValuesVelocity->normInf(normV);
+        errorValuesPressure->normInf(normP);
 
         double normErrorV = normV[0];
         double normErrorP = normP[0];
@@ -238,8 +238,8 @@ int main(int argc, char *argv[]) {
         if (comm->getRank() == 0) {
             cout << " --------------------------------------------------" << endl;
             cout << "  Error Report " << endl;
-            cout << "   || velocity_current - velocity_stored||_2 = " << normErrorV << endl;
-            cout << "   || pressure_current - pressure_stored||_2 = " << normErrorP << endl;
+            cout << "   || velocity_current - velocity_stored||_inf = " << normErrorV << endl;
+            cout << "   || pressure_current - pressure_stored||_inf = " << normErrorP << endl;
             cout << " --------------------------------------------------" << endl;
         }
 

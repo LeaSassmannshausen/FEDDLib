@@ -217,13 +217,13 @@ int main(int argc, char *argv[]) {
         errorValues_velocity->update(1., solution_GNF_velocity, -1., solutionImported, 0.);
         // Computing norm
         Teuchos::Array<SC> norm(1);
-        errorValues_velocity->norm2(norm);
+        errorValues_velocity->normInf(norm);
         double normError_velocity = norm[0];
 
 
         errorValues_pressure->update(1., solution_GNF_pressure, -1., solutionImported_pressure, 0.);
         Teuchos::Array<SC> norm_pressure(1);
-        errorValues_pressure->norm2(norm_pressure);
+        errorValues_pressure->normInf(norm_pressure);
         double normError_pressure = norm_pressure[0];
 
 
@@ -232,8 +232,8 @@ int main(int argc, char *argv[]) {
         if (comm->getRank() == 0) {
             cout << " --------------------------------------------------" << endl;
             cout << "  Error Report " << endl;
-            cout << "   || velocity_current - velocity_stored||_2 = " << normError_velocity << endl;
-            cout << "   || pressure_current - pressure_stored||_2 = " << normError_pressure << endl;
+            cout << "   || velocity_current - velocity_stored||_inf = " << normError_velocity << endl;
+            cout << "   || pressure_current - pressure_stored||_inf = " << normError_pressure << endl;
             cout << " --------------------------------------------------" << endl;
         }
 

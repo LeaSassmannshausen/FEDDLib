@@ -318,14 +318,14 @@ int main(int argc, char *argv[]) {
     errorValues->update(1., solutionElasticity, -1., solutionImported, 0.);
     // Computing norm
     Teuchos::Array<SC> norm(1);
-    errorValues->norm2(norm);
+    errorValues->normInf(norm);
     double normError = norm[0];
 
     // Output of error
     if (comm->getRank() == 0) {
         cout << " --------------------------------------------------" << endl;
         cout << "  Error Report " << endl;
-        cout << "   || solution_current - solution_stored||_2 = " << normError << endl;
+        cout << "   || solution_current - solution_stored||_inf = " << normError << endl;
         cout << " --------------------------------------------------" << endl;
     }
 
