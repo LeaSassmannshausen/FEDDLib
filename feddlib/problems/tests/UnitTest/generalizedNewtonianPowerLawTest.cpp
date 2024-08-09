@@ -200,60 +200,61 @@ int main(int argc, char *argv[]) {
         HDF5Import<SC, LO, GO, NO> importer(navierStokesAssFE.getSolution()->getBlock(0)->getMap(),
                                             "ReferenceSolutions/solution_GNF_velocity_" + std::to_string(dim) + "d_" + FEType + "_" + std::to_string(size) + "cores");
         Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solutionImported = importer.readVariablesHDF5("solution");
-
-        // We compare the imported solution to the current one
-        Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solution_GNF_velocity = navierStokesAssFE.getSolution()->getBlock(0);
-        // Calculating the error per node
-        Teuchos::RCP<MultiVector<SC, LO, GO, NO>> errorValues_velocity = Teuchos::rcp(new MultiVector<SC, LO, GO, NO>(navierStokesAssFE.getSolution()->getBlock(0)->getMap()));
-        // this = alpha*A + beta*B + gamma*this
-        errorValues_velocity->update(1., solution_GNF_velocity, -1., solutionImported, 0.);
-        // Computing norm
-        Teuchos::Array<SC> norm(1);
-        errorValues_velocity->norm2(norm);
-        double normError = norm[0];
-
-        // Output of error
-        if (comm->getRank() == 0) {
-            cout << " --------------------------------------------------" << endl;
-            cout << "  Error Report " << endl;
-            cout << "   || solution_current - solution_stored||_2 = " << normError << endl;
-            cout << " --------------------------------------------------" << endl;
-        }
-        // Throwing exception, if error is too great.
-
-        TEUCHOS_TEST_FOR_EXCEPTION(normError > 1.e-11, std::logic_error,
-                                    "Difference between current solution and "
-                                    "stored VELOCITY solution greater than 1e-11.");
-
         HDF5Import<SC, LO, GO, NO> importer_pressure(navierStokesAssFE.getSolution()->getBlock(1)->getMap(),
                                             "ReferenceSolutions/solution_GNF_pressure_" + std::to_string(dim) + "d_" + FEType + "_" + std::to_string(size) + "cores");
         Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solutionImported_pressure = importer_pressure.readVariablesHDF5("solution");
 
         // We compare the imported solution to the current one
+        Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solution_GNF_velocity = navierStokesAssFE.getSolution()->getBlock(0);
         Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> solution_GNF_pressure = navierStokesAssFE.getSolution()->getBlock(1);
+
         // Calculating the error per node
+        Teuchos::RCP<MultiVector<SC, LO, GO, NO>> errorValues_velocity = Teuchos::rcp(new MultiVector<SC, LO, GO, NO>(navierStokesAssFE.getSolution()->getBlock(0)->getMap()));
         Teuchos::RCP<MultiVector<SC, LO, GO, NO>> errorValues_pressure= Teuchos::rcp(new MultiVector<SC, LO, GO, NO>(navierStokesAssFE.getSolution()->getBlock(1)->getMap()));
+
+        // Calculating the error per node
         // this = alpha*A + beta*B + gamma*this
-        errorValues_pressure->update(1., solution_GNF_pressure, -1., solutionImported_pressure, 0.);
+        errorValues_velocity->update(1., solution_GNF_velocity, -1., solutionImported, 0.);
         // Computing norm
+        Teuchos::Array<SC> norm(1);
+        errorValues_velocity->norm2(norm);
+        double normError_velocity = norm[0];
+
+
+        errorValues_pressure->update(1., solution_GNF_pressure, -1., solutionImported_pressure, 0.);
         Teuchos::Array<SC> norm_pressure(1);
         errorValues_pressure->norm2(norm_pressure);
         double normError_pressure = norm_pressure[0];
+
+
 
         // Output of error
         if (comm->getRank() == 0) {
             cout << " --------------------------------------------------" << endl;
             cout << "  Error Report " << endl;
-            cout << "   || solution_current - solution_stored||_2 = " << normError_pressure << endl;
+            cout << "   || velocity_current - velocity_stored||_2 = " << normError_velocity << endl;
+            cout << "   || pressure_current - pressure_stored||_2 = " << normError_pressure << endl;
             cout << " --------------------------------------------------" << endl;
         }
+
         // Throwing exception, if error is too great.
-
-        TEUCHOS_TEST_FOR_EXCEPTION(normError_pressure > 1.e-11, std::logic_error,
+        TEUCHOS_TEST_FOR_EXCEPTION(normError_velocity > 1.e-11 || normError_pressure > 1.e-11 , std::logic_error,
                                     "Difference between current solution and "
-                                    "stored PRESSURE solution greater than 1e-11.");
+                                    "stored solution greater than 1e-11.");
 
+        int boolExportSolution = 0;
+        if (boolExportSolution) {
+            Teuchos::RCP<ExporterParaView<SC, LO, GO, NO>> exPara(new ExporterParaView<SC, LO, GO, NO>());
 
+            Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> exportSolution = navierStokesAssFE.getSolution()->getBlock(0);
+
+            exPara->setup("solutionGNF", domainVelocity->getMesh(), "P2");
+
+            exPara->addVariable(exportSolution, "u_current", "Vector", dim, domainVelocity->getMapUnique());
+            exPara->addVariable(solutionImported, "u_imported", "Vector", dim, domainVelocity->getMapUnique());
+
+            exPara->save(0.0);
+        }
 
         
         
