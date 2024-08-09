@@ -297,6 +297,13 @@ int main(int argc, char *argv[]) {
     elasticitySolver.solve(elasticity);
     comm->barrier();
 
+    // For generating h5 solution files
+    // HDF5Export<SC, LO, GO, NO> exporter(elasticity.getSolution()->getBlock(0)->getMap(),
+    //                                     "ReferenceSolutions//solution_nonLinElasticity_" + std::to_string(dim) + "d_" + FEType +
+    //                                         "_" + std::to_string(size) + "cores");     //  Map and file name
+    // exporter.writeVariablesHDF5("solution", elasticity.getSolution()->getBlock(0)); // VariableName and Variable
+
+
     HDF5Import<SC, LO, GO, NO> importer(elasticity.getSolution()->getBlock(0)->getMap(),
                                         "ReferenceSolutions/solution_nonLinElasticity_" + std::to_string(dim) + "d_" + FEType + "_" +
                                             std::to_string(size) + "cores");
@@ -325,14 +332,6 @@ int main(int argc, char *argv[]) {
     // Throwing exception, if error is too great.
     TEUCHOS_TEST_FOR_EXCEPTION(normError > 1.e-11, std::logic_error,
                                "Difference between current solution and stored solution greater than 1e-11.");
-
-
-    // For generating h5 solution files
-    HDF5Export<SC, LO, GO, NO> exporter(elasticity.getSolution()->getBlock(0)->getMap(),
-                                        "./solution_nonLinElasticity_" + std::to_string(dim) + "d_" + FEType +
-                                            "_" + std::to_string(size) + "cores");     //  Map and file name
-    exporter.writeVariablesHDF5("solution", elasticity.getSolution()->getBlock(0)); // VariableName and Variable
-
 
 
     // if (parameterListAll->sublist("General").get("ParaViewExport", false)) {

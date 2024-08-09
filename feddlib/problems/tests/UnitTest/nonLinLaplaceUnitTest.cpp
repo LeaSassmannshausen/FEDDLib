@@ -184,6 +184,13 @@ int main(int argc, char *argv[]) {
     NonLinearSolver<SC, LO, GO, NO> nlSolverAssFE(nlSolverType);
     nlSolverAssFE.solve(nonLinLaplace);
     comm->barrier();
+    
+    // For generating h5 solution files
+    // HDF5Export<SC, LO, GO, NO> exporter(nonLinLaplace.getSolution()->getBlock(0)->getMap(),
+    //                                     "ReferenceSolutions/solution_nonLinLaplace_" + std::to_string(dim) + "d_" + FEType +
+    //                                         "_" + std::to_string(size) + "cores");     //  Map and file name
+    // exporter.writeVariablesHDF5("solution", nonLinLaplace.getSolution()->getBlock(0)); // VariableName and Variable
+
 
     HDF5Import<SC, LO, GO, NO> importer(nonLinLaplace.getSolution()->getBlock(0)->getMap(),
                                         "ReferenceSolutions/solution_nonLinLaplace_" + std::to_string(dim) + "d_" + FEType + "_" +
@@ -214,13 +221,7 @@ int main(int argc, char *argv[]) {
     TEUCHOS_TEST_FOR_EXCEPTION(normError > 1.e-11, std::logic_error,
                                "Difference between current solution and stored solution greater than 1e-11.");
 
-    // For generating h5 solution files
-    HDF5Export<SC, LO, GO, NO> exporter(nonLinLaplace.getSolution()->getBlock(0)->getMap(),
-                                        "solution_nonLinLaplace_" + std::to_string(dim) + "d_" + FEType +
-                                            "_" + std::to_string(size) + "cores");     //  Map and file name
-    exporter.writeVariablesHDF5("solution", nonLinLaplace.getSolution()->getBlock(0)); // VariableName and Variable
-
-    // ########################
+      // ########################
     // Export solution
     // ########################
     bool boolExportSolution = false;

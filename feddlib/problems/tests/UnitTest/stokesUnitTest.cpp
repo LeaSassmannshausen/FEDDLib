@@ -121,6 +121,9 @@ int main(int argc, char *argv[]) {
         ParameterListPtr_Type parameterListAll(new Teuchos::ParameterList(*parameterListPrec));
         parameterListAll->setParameters(*parameterListSolver);
 
+        // parameterListAll->sublist("General").set("Preconditioner Method","Teko"); // Value 1.0
+
+
         // Mesh
         int m = 4;
         std::string meshType = "structured";

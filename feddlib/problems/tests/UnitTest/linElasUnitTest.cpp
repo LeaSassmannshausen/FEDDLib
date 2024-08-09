@@ -90,9 +90,9 @@ int main(int argc, char *argv[]) {
 
     string xmlPrecFile;
     if(dim==2)
-        xmlPrecFile = "parametersPrec_Stokes_2D.xml"; // We can use the stokes preconditioner list for now. Maybe we can use a more general name
+        xmlPrecFile = "parametersPrecNonLinElasticity.xml"; // We can use the stokes preconditioner list for now. Maybe we can use a more general name
     else if(dim==3)
-        xmlPrecFile = "parametersPrec_Stokes_3D.xml";
+        xmlPrecFile = "parametersPrecNonLinElasticity.xml";
     
     myCLP.setOption("precfile", &xmlPrecFile, ".xml file with Inputparameters.");
     string xmlSolverFile = "parametersSolver.xml";

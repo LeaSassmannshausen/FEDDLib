@@ -194,7 +194,7 @@ int main(int argc, char *argv[]) {
         //                         navierStokesAssFE.getSolution()->getBlock(1));
             
 
-        // We exclude any other tests, than the one prescribed
+         // We exclude any other tests, than the one prescribed
         TEUCHOS_TEST_FOR_EXCEPTION(!(size == 4), std::logic_error, "The 2D reference solution were generated using 4 processors.");
 
         HDF5Import<SC, LO, GO, NO> importer(navierStokesAssFE.getSolution()->getBlock(0)->getMap(),
