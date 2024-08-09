@@ -1,6 +1,6 @@
 <ParameterList name="solver">
     <ParameterList name="ThyraSolver">
-        <Parameter name="Linear Solver Type" type="string" value="Belos"/>
+        <Parameter name="Linear Solver Type" type="string" value="Amesos2"/>
         <ParameterList name="Linear Solver Types">
             <ParameterList name="Belos">
                 <Parameter name="Solver Type" type="string" value="Block GMRES"/>

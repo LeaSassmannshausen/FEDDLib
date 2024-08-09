@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
         // exporterP.writeVariablesHDF5("pressure",
         //     stokes.getSolution()->getBlock(1)); // VariableName and Variable
 
-        // We exclude any other tests, than the one prescribed
+        //We exclude any other tests, than the one prescribed
         if (dim == 2) {
             TEUCHOS_TEST_FOR_EXCEPTION(!(size == 4 && m == 4), std::logic_error, "The 2D test solutions are only sensible for 4 processors.");
         } else if (dim == 3)

@@ -1,0 +1,925 @@
+[33mcommit a687a0b48bb921e6bb1ee59ce1e169c00e3f85b4[m[33m ([m[1;36mHEAD[m[33m)[m
+Author: Lea <lea.sassmannshausen@hotmail.de>
+Date:   Fri Aug 9 12:32:47 2024 +0200
+
+    Changing tolerance from 1e-6 to 1e-12 in GMRES
+
+[33mcommit d26a7de3c552b0ba8a7bed6c7136250132487d4f[m[33m ([m[1;31morigin/HDF5_Import_Export[m[33m)[m
+Merge: 9f8cc0af 7c6388ab
+Author: NatalieKubicki1997 <nkubicki@uni-koeln.de>
+Date:   Thu Aug 8 17:23:12 2024 +0200
+
+    Merge branch 'HDF5_Import_Export' of https://github.com/LeaSassmannshausen/FEDDLib into HDF5_Import_Export_Natalie_ChangesPullRequest
+
+[33mcommit 9f8cc0af347780c9cf3c68f113e36fbd2f8d19c8[m
+Author: NatalieKubicki1997 <nkubicki@uni-koeln.de>
+Date:   Thu Aug 8 17:19:15 2024 +0200
+
+    Added Generalized Newtonian Power Law Test Case where we know analytical solution for simple 2D Poiseuille test flow
+
+[33mcommit 7c6388abdcac36f08b4a92b23c81a70d8b894212[m
+Author: kyrillh <kyrillh@gmail.com>
+Date:   Thu Aug 8 16:33:42 2024 +0200
+
+    Nonlinear Laplace test
+
+[33mcommit e648c2ed50fd0c3acdd4bcd6c3d5a38d4a50ce52[m
+Author: Lea <lea.sassmannshausen@hotmail.de>
+Date:   Thu Aug 8 15:55:17 2024 +0200
+
+    Test
+
+[33mcommit 836a90a6e22b3535f9f29b8742c178ad67d15157[m
+Author: Lea <lea.sassmannshausen@hotmail.de>
+Date:   Thu Aug 8 15:44:14 2024 +0200
+
+    Adding linear elasticity package and modifying stokes to include pressure. Small change in structured meshed for inflow flags.
+
+[33mcommit 09c65e903bf0d62e0d865dc9159c6c851335491d[m
+Author: NatalieKubicki1997 <nkubicki@uni-koeln.de>
+Date:   Wed Aug 7 19:05:34 2024 +0200
+
+    Added keyword const to writeVariablesHDF5 MultiVector as if not the write_read.cpp is not compilable for me becuase MultiVectorConstPtr_Type aUniqueConst)
+
+[33mcommit 29396a859df397af9e52e8ae93a5eadf2742fa3a[m
+Author: Lea <lea.sassmannshausen@hotmail.de>
+Date:   Wed Aug 7 18:21:49 2024 +0200
+
+    Unit Test stokes
+
+[33mcommit 2245c9f12a5bd7139ba3a766b53184fc10262f16[m
+Author: Lea <lea.sassmannshausen@hotmail.de>
+Date:   Wed Aug 7 16:23:29 2024 +0200
+
+    Export and Import of HDF5 Files with test. Start of Unit tests comparing to saved solution. Laplace for 2D/3D and P1/P2
+
+[33mcommit d0563ef57acc3690b83eeb2b10fcf3f509b59c76[m
+Author: Natalie Kubicki <102043344+NatalieKubicki1997@users.noreply.github.com>
+Date:   Wed Apr 24 14:52:44 2024 +0200
+
+    Added Fixed Point assembly for generalized newtonian test - in the old assembly routine we just set in specific NavierStokesAssFE instead FixedPoint - Jacobian so this is also possible and leads to same results (#44)
+
+[33mcommit 56cf14a37289cd3b25df61e660ec91679c00637d[m[33m ([m[1;31morigin/NonElasPackage[m[33m)[m
+Author: LeaSassmannshausen <84917921+LeaSassmannshausen@users.noreply.github.com>
+Date:   Mon Apr 22 08:43:03 2024 +0200
+
+    Mesh orientation features (#43)
+    
+    * Stokes LDC 2D Test added to stokes
+    
+    * Remove flag print
+    
+    * Consisten surface orientation implementation
+    
+    * Consisten surface orientation implementation -  now even with working export
+    
+    * Update mesh orientation volume element check -- missing correct flip
+    
+    * 2D and 3D element flipping -- tests missing
+    
+    * Adding a surface sort in amr as the surface structure node ordering changed and sort is necessary
+    
+    * Rename of test
+    
+    * All tests passed
+    
+    * Adressed issues.
+    
+    * Add few more comments
+    
+    * Remove Output
+
+[33mcommit eccb36fd44f8c7d29113c1b8bdb39ec8df8f5b19[m
+Author: Natalie Kubicki <102043344+NatalieKubicki1997@users.noreply.github.com>
+Date:   Tue Apr 16 11:16:51 2024 +0200
+
+    Added Implementation of Assembly for Generalized-Newtonian Fluid, and added in example a test case with a Poiseuille flow of a Power-law fluid, also added the possibility to writeout the viscosity averaged in each element at the center (#41)
+
+[33mcommit 12eb0c77b70fe9785ea4cfdfe7102e211371658d[m
+Author: kyrillh <49488037+kyrillh@users.noreply.github.com>
+Date:   Mon Apr 15 11:05:06 2024 +0200
+
+    Nonlinear Laplace example problem (#40)
+
+[33mcommit 5e14682b59aba4e8fa902aecac10178a8d96a2c0[m
+Author: LeaSassmannshausen <84917921+LeaSassmannshausen@users.noreply.github.com>
+Date:   Tue Apr 9 13:55:22 2024 +0200
+
+    Exporting mesh as file and other small things (#36)
+    
+    * Writing meshes in parallel also for P2 meshes. Some tests sill deactivated. Orientation preserving for 3D surface elements, and tetrahedra in general. For 2D still comming.
+    
+    * Mesh Export with corresponding tests
+    
+    * Test for meshorientation 3D
+    
+    * safe before switch
+    
+    * Start of reducing FE stuff
+    
+    * Export for mesh flags added.
+    
+    * All tests work. Remove of TPM tests
+    
+    * Tests all passed
+    
+    * Fix nonconst error
+    
+    * Change in FlipSurface function -- needs to be updated for preprocessing later
+    
+    * Dim without this in meshUnstructured
+    
+    * Merge upstream develop
+
+[33mcommit 5c99af34319b05fe062f50435b45e84658d9367f[m
+Author: Alexander Heinlein <a.heinlein@tudelft.nl>
+Date:   Fri Apr 5 10:56:15 2024 +0200
+
+    FEDD::IO::ParameterList (#31)
+
+[33mcommit 686022b79ae2d32e3b81d4e8b867926ebf91fd9d[m
+Author: kyrillh <49488037+kyrillh@users.noreply.github.com>
+Date:   Fri Apr 5 10:53:56 2024 +0200
+
+    MeshPartitioner and preconditioner optimization and code style fixes (#34)
+    
+    + readAndPartitionMesh makes better use of make_unique
+    + preconditioner class does not build preconditioner unnecessarily when solving directly
+    + header guard fixes
+    + virtual override function fixes
+    + virtual destructor of problem class fix
+    
+    Co-authored-by: Kyrill Ho <ubxin@student.kit.edu>
+
+[33mcommit 4a28dc6a137bdfc40713bf4badce722272d17a27[m
+Author: LeaSassmannshausen <84917921+LeaSassmannshausen@users.noreply.github.com>
+Date:   Thu Feb 29 15:24:36 2024 +0100
+
+    Update README.md (#35)
+
+[33mcommit c79fd7398ac37b627ab5a5e3adc9224c3c4707e6[m
+Author: LeaSassmannshausen <84917921+LeaSassmannshausen@users.noreply.github.com>
+Date:   Thu Oct 19 17:49:40 2023 +0200
+
+    Fix in AssembleFE routine for structured meshes and generally for P1-P1 disc. - new Tests (#33)
+
+[33mcommit 9e547766a8f8209a7dfac82fb32a45699058261d[m
+Author: LeaSassmannshausen <84917921+LeaSassmannshausen@users.noreply.github.com>
+Date:   Thu Jul 20 11:25:03 2023 +0200
+
+    Rework problem structure (#30)
+    
+    * FSI Test with Geometry
+    
+    * AceGen-FEAP integration-LinearElastic
+    
+    * Reworked Fortran interface - still bugged
+    
+    * Fix FSI Mesh and unsteady NS rhs assembly with new Assem
+    
+    * Updated Fortran/FEAP interface
+    
+    * New FSI Meshes for test
+    
+    * Interface bug fix
+    
+    * Merge
+    
+    * Merge
+    
+    * Changed Test Structure
+    
+    * Test update
+    
+    * new Tests and Structure
+    
+    * Merge mit FEDDLib/develop
+    
+    * Fix im Test
+    
+    * Test changes
+    
+    * New chances to artery test
+    
+    * Test Anpassung
+    
+    * Nonlin Test Case files for AceFEM
+    
+    * Neo-Hook implementation for comparison
+    
+    * New Example
+    
+    * Test Artery Benchmark; small fix in Meshpartitioner
+    
+    * Test Artery Benchmark; small fix in Meshpartitioner
+    
+    * Update Test benchmark
+    
+    * Update Test benchmark- error fix
+    
+    * Test parameter file update
+    
+    * Fix interface files
+    
+    * Fix interface files2
+    
+    * Test SCI
+    
+    * Test SCI Besser
+    
+    * Parmeterlist Fix
+    
+    * SCI with nonlin Elas
+    
+    * SCI with nonlin Elas Bug Fix
+    
+    * Fix Load
+    
+    * Fix Load Linear
+    
+    * Fix Load Linear
+    
+    * Fix SCI Sastionary
+    
+    * Fix SCI Sastionary
+    
+    * Fix Nonlinear
+    
+    * Vorlage NonNewtonian
+    
+    * Added a Simple Coupled Deformation-Diffusion Problem
+    
+    * Changes NS
+    
+    * Test SCI AceGEN
+    
+    * Small Bugfix
+    
+    * Test loadstepping
+    
+    * Test loadstepping
+    
+    * Fix Prec Param
+    
+    * Fix Bug SCI
+    
+    * Test
+    
+    * Test
+    
+    * Test2
+    
+    * Test3
+    
+    * Test4
+    
+    * Test5
+    
+    * Test6
+    
+    * Test6
+    
+    * Test7
+    
+    * Test7
+    
+    * FixSCI
+    
+    * FixSCI
+    
+    * Fix Main SCI
+    
+    * fix multiple bugs
+    
+    * BUG FIX FINALLY
+    
+    * Fix BC Fsi_ArterBenchmark
+    
+    * New SCI Test
+    
+    * New SCI Test
+    
+    * New SCI Test
+    
+    * New RB SCI Test
+    
+    * New RB SCI Test
+    
+    * New Read featur
+    
+    * FSCI Start
+    
+    * FSCI Start
+    
+    * FSCI- not working
+    
+    * Safe for pull
+    
+    * AMR Test Amandus
+    
+    * AMR Test Amandus fix
+    
+    * Diffusion test with AMR
+    
+    * SCI Setup
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Print test
+    
+    * Fix deltat AceGen maybe
+    
+    * Fix deltat AceGen no verbose
+    
+    * Fix SCI explicit
+    
+    * Test Update
+    
+    * Test Update
+    
+    * FIX PR
+    
+    * RefinementFeature
+    
+    * Trilinos Fix and AceGEN package
+    
+    * FIX Trilinos
+    
+    * FIX Trilinos
+    
+    * Features for AceGEN Package
+    
+    * Fix Test
+    
+    * Neo-Hooke 3
+    
+    * Safe for merge
+    
+    * deltat fix
+    
+    * new mesh
+    
+    * Tests for Paper
+    
+    * Test Settings
+    
+    * FLUID Paper Tests
+    
+    * FLUID Paper Tests
+    
+    * New SCI Problem
+    
+    * AceFEM sophisticated Model test
+    
+    * Interface checkup
+    
+    * Update Parameterlists fluidpaper
+    
+    * Ausgabe löschen
+    
+    * SCI Test partial artery
+    
+    * Small fix in Surface Integral Assembly
+    
+    * Small changes for FluidPaper
+    
+    * Tetst
+    
+    * TestNewMaterialModel
+    
+    * FSI_Benchmark test for Fritz
+    
+    * Small fix newtonian
+    
+    * FSI Test Paper
+    
+    * Optimized memory allocation
+    
+    * safe
+    
+    * Test for Interface Check
+    
+    * Partial Artery Test
+    
+    * Settings for Testing
+    
+    * Fix Interface
+    
+    * TestFix
+    
+    * NochEinFix
+    
+    * Ausgaben raus
+    
+    * Push
+    
+    * Fix for History and active component
+    
+    * SCI Test from Pamm
+    
+    * Partial Artery Mesh new Orientation
+    
+    * Test with correct parameters
+    
+    * Loadsteps for Paper Test
+    
+    * Test BC
+    
+    * Test new Stuff
+    
+    * Deactivating experimental code
+    
+    * Deactivating experimental code
+    
+    * Deactivating experimental code
+    
+    * Deactivating experimental code
+    
+    * Deactivating experimental code
+    
+    * Deactivating experimental code
+    
+    * Fixing ctests
+    
+    * Fixing ctests
+    
+    * Fixing ctests
+    
+    * Fixing Error
+    
+    * Timeframe fix
+    
+    * Test Fix
+    
+    * Test Fix
+    
+    * Fix External Nonlinear Load
+    
+    * Fix External Nonlinear Load lol
+    
+    * Fix External Nonlinear Load lol 2
+    
+    * test
+    
+    * Fix Move Mesh
+    
+    * Fix Move Mesh
+    
+    * Fix FE_def FEloc
+    
+    * New Mesh and fixed bc func
+    
+    * New Feature to export |d_s| at given point
+    
+    * New Feature to export |d_s| at given point
+    
+    * Hoffentlich lauffaehig
+    
+    * Test for next week
+    
+    * Test for next week - sign fix concentration
+    
+    * Test for next week - rework test
+    
+    * Moved Neo Hooke material model to new Interface
+    
+    * Fix for all our problems, maybe. Still not consistent approach for update. Current Approach: Doppelt hält besser
+    
+    * Removed prints and adjusted solver parameters
+    
+    * Minor fixes
+    
+    * Remove prints
+    
+    * Remove prints2
+    
+    * Remove prints3
+    
+    * New Material Model and other Modifications
+    
+    * New Material Model and other Modifications
+    
+    * Small Geometry Fix
+    
+    * Bug fixes
+    
+    * Fix Parameters
+    
+    * C Inflow
+    
+    * C Inflow
+    
+    * Fix History Length
+    
+    * Minor update
+    
+    * Modified SMC_Active material model2
+    
+    * New Scaling Test
+    
+    * Test with Scaling and new Model
+    
+    * Test with Scaling and new Model
+    
+    * Fine Mesh for Strong Scaling
+    
+    * Correcting various inconsitencies with time stepping and adding explicit couplings for all struture models - experimental
+    
+    * Correcting various inconsitencies with time stepping and adding explicit couplings for all struture models - experimental
+    
+    * Meshpartitioner
+    
+    * tests with orientation preserving mesh refinement
+    
+    * Multiple Fixed for Weak Scaling and Explicit Coupling
+    
+    * Fix in Explicit
+    
+    * Update AMR test
+    
+    * New Geometry and debug feature for AceGEN
+    
+    * New Mesh and Debug
+    
+    * Structured Mesh
+    
+    * Fix constant RB for aretey
+    
+    * Fix constant RB for aretey
+    
+    * Fix of all the tests maybe
+    
+    * Boundary conditions - Paper - improved
+    
+    * Boundary conditions - Paper - improved
+    
+    * New Mesh for strong scaling
+    
+    * Test
+    
+    * Excluding SCI
+    
+    * Ready for PR
+    
+    * New Comments/functions
+    
+    * New Comments/functions
+    
+    ---------
+    
+    Co-authored-by: nrsharan <71343528+nrsharan@users.noreply.github.com>
+    Co-authored-by: Sharan Nurani Ramesh <sharan.nuraniramesh@ruhr-uni-bochum.de>
+
+[33mcommit 91e7849687e91368354f3322d0f9ba87fc0feb94[m
+Author: LeaSassmannshausen <84917921+LeaSassmannshausen@users.noreply.github.com>
+Date:   Wed Jul 19 15:27:14 2023 +0200
+
+    Structured mesh new options (#29)
+    
+    * New Structured Mesh pattern for 3D Cube and keeping input surface numbering
+    
+    * New Timer for Navier-Stokes and fix for monolithic
+    
+    * Missing break..
+
+[33mcommit e6d6e7938997df8f934af61d14d3be36c832d033[m[33m ([m[1;31mupstream/develop[m[33m)[m
+Author: Alexander Heinlein <a.heinlein@tudelft.nl>
+Date:   Mon May 8 18:32:22 2023 +0200
+
+    Fix NO (#28)
+
+[33mcommit 437951783c158898dd3a97f1d2b9d362098e20fa[m
+Author: LeaSassmannshausen <84917921+LeaSassmannshausen@users.noreply.github.com>
+Date:   Mon May 8 13:11:21 2023 +0200
+
+    New trilinos version (#27)
+    
+    * Updated c++ default to 17 and compatability with latest Trilinos update -- Version check for Trilinos still todo
+    
+    * Further Commentary
+    
+    * Successfully tested with Trilinos Version of April 12th
+    
+    * Test with newest Trilinos Version 6th Mai
+
+[33mcommit ae720ef62afe86e95d9322bc8680c1b02e780d9d[m
+Author: LeaSassmannshausen <84917921+LeaSassmannshausen@users.noreply.github.com>
+Date:   Fri Dec 23 12:56:50 2022 +0100
+
+    Pr: Update FEDDLib to newest Trilinos Version (#12)
+    
+    * first commit
+    
+    * Progress 1
+    
+    * Neues Package AMR
+    
+    * Neues Package AMR Fix
+    
+    * Test Fix
+    
+    * Aneurysm Benchmark
+    
+    * Fix RefineArea
+    
+    * Fix RefineArea 2
+    
+    * Fix RefineArea 3
+    
+    * Fix RefinementFactory 3D
+    
+    * Ausbau Fehlerschätzer
+    
+    * Stokes Fehlerschätzer
+    
+    * Changes Benchmark
+    
+    * Fix in Divergenz
+    
+    * Fix in Divergenz
+    
+    * Parallel 3D Opti
+    
+    * 2.Modell
+    
+    * Hybrid Restriction Approach
+    
+    * Save
+    
+    * Safe
+    
+    * Safe
+    
+    * 2D Bisektion
+    
+    * safe
+    
+    * Fix Stokes
+    
+    * Fix Circumdiameter
+    
+    * PR Test
+    
+    * PR Test2
+    
+    * PR Test2
+    
+    * PR Ausgabe Fix
+    
+    * PR Test Aneurysma
+    
+    * Fix Pr
+    
+    * Super Bug Fix
+    
+    * PR Ready
+    
+    * PR Ready
+    
+    * PR Ready2
+    
+    * Pr 3
+    
+    * Fix Test
+    
+    * PR- Fix DivU
+    
+    * Safe
+    
+    * Final Push Test
+    
+    * Test
+    
+    * Code zur Masterarbeit: Lea Sassmannnshausen, 5924715
+    
+    * Verbesserung Ausgabe
+    
+    * cmakeTest
+    
+    * cmakeFix
+    
+    * Set all Test Settings to working ones
+    
+    * Fix Parameterlisten
+    
+    * reset
+    
+    * Merge with FEDDLib/develop
+    
+    * Small Fix with text output format
+    
+    * Fix Bug SCI
+    
+    * Revert "Fix Bug SCI"
+    
+    This reverts commit 57ed666f3cd0f16d81300986ff882933306aa7e3.
+    
+    * FIX VolumeFlag in AMR and new Tests for Flag check
+    
+    * Small Fix
+    
+    * Fix functions in evalModelImpl because of removed deprecated Trilinos code
+    
+    * Test
+    
+    * Test Refinement Fix
+    
+    * Test Refinement Fix Output delete
+
+[33mcommit 480c13dbeae6327c968af3fe9a95f12e5c69170d[m
+Author: LeaSassmannshausen <84917921+LeaSassmannshausen@users.noreply.github.com>
+Date:   Tue Sep 6 14:02:52 2022 +0200
+
+    Pr (#3)
+    
+    * first commit
+    
+    * Progress 1
+    
+    * Neues Package AMR
+    
+    * Neues Package AMR Fix
+    
+    * Test Fix
+    
+    * Aneurysm Benchmark
+    
+    * Fix RefineArea
+    
+    * Fix RefineArea 2
+    
+    * Fix RefineArea 3
+    
+    * Fix RefinementFactory 3D
+    
+    * Ausbau Fehlerschätzer
+    
+    * Stokes Fehlerschätzer
+    
+    * Changes Benchmark
+    
+    * Fix in Divergenz
+    
+    * Fix in Divergenz
+    
+    * Parallel 3D Opti
+    
+    * 2.Modell
+    
+    * Hybrid Restriction Approach
+    
+    * Save
+    
+    * Safe
+    
+    * Safe
+    
+    * 2D Bisektion
+    
+    * safe
+    
+    * Fix Stokes
+    
+    * Fix Circumdiameter
+    
+    * PR Test
+    
+    * PR Test2
+    
+    * PR Test2
+    
+    * PR Ausgabe Fix
+    
+    * PR Test Aneurysma
+    
+    * Fix Pr
+    
+    * Super Bug Fix
+    
+    * PR Ready
+    
+    * PR Ready
+    
+    * PR Ready2
+    
+    * Pr 3
+    
+    * Fix Test
+    
+    * PR- Fix DivU
+    
+    * Safe
+    
+    * Final Push Test
+    
+    * Test
+    
+    * Code zur Masterarbeit: Lea Sassmannnshausen, 5924715
+    
+    * Verbesserung Ausgabe
+    
+    * cmakeTest
+    
+    * cmakeFix
+    
+    * Set all Test Settings to working ones
+    
+    * Fix Parameterlisten
+    
+    * reset
+    
+    * Merge with FEDDLib/develop
+    
+    * Small Fix with text output format
+    
+    * Fix Bug SCI
+    
+    * Revert "Fix Bug SCI"
+    
+    This reverts commit 57ed666f3cd0f16d81300986ff882933306aa7e3.
+    
+    * FIX VolumeFlag in AMR and new Tests for Flag check
+    
+    * Small Fix
+
+[33mcommit 9fa5105456081291461945c4d7d49a35edf322d4[m
+Author: LeaSassmannshausen <84917921+LeaSassmannshausen@users.noreply.github.com>
+Date:   Sun Jul 31 10:13:20 2022 +0200
+
+    Mesh FIX PR (#10)
+
+[33mcommit 99629eef94c8f1b5f3697c53b5896068c6db5434[m
+Author: LeaSassmannshausen <84917921+LeaSassmannshausen@users.noreply.github.com>
+Date:   Thu Mar 10 16:05:20 2022 +0100
+
+    Fixing the boundary flags for P2 meshes
+    
+    * PR MeshFix
+    
+    * PR
+    
+    * Fix in Doy File
+    
+    * Fix in Map and Matrix class due to TPetra/XPetra updates
+    
+    * Changes PR Comments
+
+[33mcommit 1df213ad139970fe67dd2b3ba8153ca55461b94a[m
+Author: JuliaNBergmann <85493610+JuliaNBergmann@users.noreply.github.com>
+Date:   Mon Oct 11 16:17:18 2021 +0200
+
+    Fixing node connectivity (#2)
+    
+    Co-authored-by: Julia Bergmann <bergmann@mech107029.bauwesen.uni-duisburg-essen.de>
+
+[33mcommit 8a799abf5481ddffc440fd5030f55a820ef98e5e[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m
+Author: Alexander Heinlein <alexander.heinlein@uni-koeln.de>
+Date:   Thu May 27 14:53:32 2021 +0200
+
+    Commit with current FEDDLib version.
+
+[33mcommit 7ae3e14f77990fe01263ce4d9217c89cdade40a3[m
+Author: Alexander Heinlein <alexander.heinlein@uni-koeln.de>
+Date:   Mon Oct 12 13:09:09 2020 +0200
+
+    Initial commit
