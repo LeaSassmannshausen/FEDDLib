@@ -186,17 +186,17 @@ int main(int argc, char *argv[]) {
             stokes.solve();
         }
 
-        stokes.getSystem()->getMergedMatrix()->writeMM("F");
-        HDF5Export<SC, LO, GO, NO> exporterV(stokes.getSolution()->getBlock(0)->getMap(),
-            "ReferenceSolutions/solution_stokes_velocity_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
-        exporterV.writeVariablesHDF5("velocity",
-            stokes.getSolution()->getBlock(0)); // VariableName and Variable
+        // stokes.getSystem()->getMergedMatrix()->writeMM("F");
+        // HDF5Export<SC, LO, GO, NO> exporterV(stokes.getSolution()->getBlock(0)->getMap(),
+        //     "ReferenceSolutions/solution_stokes_velocity_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
+        // exporterV.writeVariablesHDF5("velocity",
+        //     stokes.getSolution()->getBlock(0)); // VariableName and Variable
 
-        HDF5Export<SC, LO, GO, NO> exporterP(stokes.getSolution()->getBlock(1)->getMap(),
-            "ReferenceSolutions/solution_stokes_pressure_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
+        // HDF5Export<SC, LO, GO, NO> exporterP(stokes.getSolution()->getBlock(1)->getMap(),
+        //     "ReferenceSolutions/solution_stokes_pressure_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
       
-        exporterP.writeVariablesHDF5("pressure",
-            stokes.getSolution()->getBlock(1)); // VariableName and Variable
+        // exporterP.writeVariablesHDF5("pressure",
+        //     stokes.getSolution()->getBlock(1)); // VariableName and Variable
 
         //We exclude any other tests, than the one prescribed
         if (dim == 2) {

@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
         parameterListAll->setParameters(*parameterListSolver);
 
         // Mesh
-        int m = 5;
+        int m = 4;
         std::string meshType = "structured";
         std::string meshDelimiter = " ";
 
@@ -191,9 +191,9 @@ int main(int argc, char *argv[]) {
 
         // // We exclude any other tests, than the one prescribed
         if (dim == 2) {
-            TEUCHOS_TEST_FOR_EXCEPTION(!(size == 4 && m == 5), std::logic_error, "The 2D test solutions are only sensible for 4 processors.");
+            TEUCHOS_TEST_FOR_EXCEPTION(!(size == 4 && m == 4), std::logic_error, "The 2D test solutions are only sensible for 4 processors.");
         } else if (dim == 3)
-            TEUCHOS_TEST_FOR_EXCEPTION(!(size == 8 && m == 5), std::logic_error, "The 3D test solutions are only sensible for 8 processors.");
+            TEUCHOS_TEST_FOR_EXCEPTION(!(size == 8 && m == 4), std::logic_error, "The 3D test solutions are only sensible for 8 processors.");
 
         HDF5Import<SC, LO, GO, NO> importer(linElas.getSolution()->getBlock(0)->getMap(),
                                             "ReferenceSolutions/solution_linElas_" + std::to_string(dim) + "d_" + FEType + "_" + std::to_string(size) + "cores");
