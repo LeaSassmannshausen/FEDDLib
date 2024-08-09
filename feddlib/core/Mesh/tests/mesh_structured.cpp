@@ -53,12 +53,6 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     
-//    Xpetra::UnderlyingLib ulib;
-//    if (!ulib_str.compare("UseTpetra"))
-//        ulib = Xpetra::UseTpetra;
-//    else if (!ulib_str.compare("UseEpetra"))
-//        ulib = Xpetra::UseEpetra;
-
     // Mesh
     int minNumberSubdomains;
     std::string meshGeometry;

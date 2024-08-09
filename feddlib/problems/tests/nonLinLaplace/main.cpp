@@ -63,8 +63,6 @@ int main(int argc, char *argv[]) {
     // Set default values for command line parameters
     // ########################
     Teuchos::CommandLineProcessor myCLP;
-    string ulib_str = "Tpetra";
-    myCLP.setOption("ulib", &ulib_str, "Underlying lib");
     string xmlProblemFile = "parametersProblem.xml";
     myCLP.setOption("problemfile", &xmlProblemFile,
                     ".xml file with Inputparameters.");

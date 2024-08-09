@@ -61,9 +61,6 @@ int main(int argc, char *argv[]) {
 
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
-    string ulib_str = "Tpetra";
-    myCLP.setOption("ulib",&ulib_str,"Underlying lib");
-
 
     std::string vectorLaplace = "false";
     myCLP.setOption("vectorLaplace",&vectorLaplace,"vectorLaplace");

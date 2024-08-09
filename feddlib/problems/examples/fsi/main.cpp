@@ -173,8 +173,6 @@ int main(int argc, char *argv[])
 
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
-    string ulib_str = "Tpetra";
-    myCLP.setOption("ulib",&ulib_str,"Underlying lib");
     string xmlProblemFile = "parametersProblemFSI.xml";
     myCLP.setOption("problemfile",&xmlProblemFile,".xml file with Inputparameters.");
     string xmlPrecFileGE = "parametersPrecGE.xml"; // GE

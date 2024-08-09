@@ -502,13 +502,12 @@ int main(int argc, char *argv[])
             // GO numberInterfaceNodes = localInterfaceID; // long long wg. 64
             //
             // // Baue nun die InterfaceMap fuer Fluid und Struktur
-            // std::string ulib = domainFluid->getMapUnique()->getUnderlyingLib();
             //
             // Teuchos::ArrayView<GO> vecInterfaceMapFluidArray =  Teuchos::arrayViewFromVector( vecInterfaceMapFluid );
-            // MapPtr_Type interfaceMapFluid = rcp(new Map_Type( ulib, numberInterfaceNodes, vecInterfaceMapFluidArray, 0, comm ) ); //maybe numberInterfaceNodes instead of -1
+            // MapPtr_Type interfaceMapFluid = rcp(new Map_Type( numberInterfaceNodes, vecInterfaceMapFluidArray, 0, comm ) ); //maybe numberInterfaceNodes instead of -1
             //
             // Teuchos::ArrayView<GO> vecInterfaceMapStructureArray =  Teuchos::arrayViewFromVector( vecInterfaceMapStructure );
-            // MapPtr_Type interfaceMapStructure = rcp(new Map_Type( ulib, numberInterfaceNodes, vecInterfaceMapStructureArray, 0, comm ) ); //maybe numberInterfaceNodes
+            // MapPtr_Type interfaceMapStructure = rcp(new Map_Type( numberInterfaceNodes, vecInterfaceMapStructureArray, 0, comm ) ); //maybe numberInterfaceNodes
 
             // Baue die Interface-Maps in der Interface-Nummerierung
             domainFluid->buildUniqueInterfaceMaps();
