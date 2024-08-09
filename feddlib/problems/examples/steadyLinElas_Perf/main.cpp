@@ -1,15 +1,16 @@
+#include <Tpetra_Core.hpp>
+#include <Teuchos_StackedTimer.hpp>
+
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 
 #include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/core/General/ExporterParaView.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
-#include "feddlib/problems/specific/LinElas.hpp"
-#include <Teuchos_GlobalMPISession.hpp>
-#include <Teuchos_StackedTimer.hpp>
-#include <Xpetra_DefaultPlatform.hpp>
 
-#include <FROSch_Tools_decl.hpp>
+#include "feddlib/problems/specific/LinElas.hpp"
+
+
 
 void zeroDirichlet(double* x, double* res, double t, const double* parameters)
 {
@@ -84,10 +85,9 @@ int main(int argc, char *argv[])
     typedef BlockMultiVector<SC,LO,GO,NO> BlockMultiVector_Type;
     typedef RCP<BlockMultiVector_Type> BlockMultiVectorPtr_Type;
 
-    Teuchos::oblackholestream blackhole;
-    Teuchos::GlobalMPISession mpiSession(&argc,&argv,&blackhole);
-
-    Teuchos::RCP<const Teuchos::Comm<int> > comm = Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
+    // MPI boilerplate
+    Tpetra::initialize(&argc, &argv);
+    Teuchos::RCP<const Teuchos::Comm<int> > comm = Tpetra::getDefaultComm();
 
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
@@ -105,8 +105,8 @@ int main(int argc, char *argv[])
     myCLP.throwExceptions(false);
     Teuchos::CommandLineProcessor::EParseCommandLineReturn parseReturn = myCLP.parse(argc,argv);
     if(parseReturn == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED) {
-        mpiSession.~GlobalMPISession();
-        return 0;
+        Tpetra::finalize();
+        return EXIT_SUCCESS;
     }
     
     comm->barrier();
@@ -247,5 +247,6 @@ int main(int argc, char *argv[])
     options.output_fraction = options.output_histogram = options.output_minmax = true;
     stackedTimer->report(*fancy,comm,options);
     
-    return(EXIT_SUCCESS);
+    Tpetra::finalize();
+    return EXIT_SUCCESS;
 }

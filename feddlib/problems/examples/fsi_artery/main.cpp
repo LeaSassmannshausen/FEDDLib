@@ -1,3 +1,5 @@
+#include <Tpetra_Core.hpp>
+
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 
@@ -5,12 +7,11 @@
 #include "feddlib/core/Mesh/MeshPartitioner.hpp"
 #include "feddlib/core/General/ExporterParaView.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
+
 #include "feddlib/problems/specific/FSI.hpp"
 #include "feddlib/problems/specific/Laplace.hpp"
 #include "feddlib/problems/Solver/DAESolverInTime.hpp"
 #include "feddlib/problems/Solver/NonLinearSolver.hpp"
-#include <Teuchos_GlobalMPISession.hpp>
-#include <Xpetra_DefaultPlatform.hpp>
 
 /*! Test case for specific artery geometrie or straight tube geometry. Inflow depends on inflow region
 	-> straight tube: Inflow in (0,0,z)*laplaceInflow direction
@@ -179,10 +180,9 @@ int main(int argc, char *argv[])
     typedef BlockMultiVector<SC,LO,GO,NO> BlockMultiVector_Type;
     typedef RCP<BlockMultiVector_Type> BlockMultiVectorPtr_Type;
 
-    oblackholestream blackhole;
-    GlobalMPISession mpiSession(&argc,&argv,&blackhole);
-
-    Teuchos::RCP<const Teuchos::Comm<int> > comm = Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
+    // MPI boilerplate
+    Tpetra::initialize(&argc, &argv);
+    Teuchos::RCP<const Teuchos::Comm<int> > comm = Tpetra::getDefaultComm();
 
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
@@ -220,8 +220,8 @@ int main(int argc, char *argv[])
     Teuchos::CommandLineProcessor::EParseCommandLineReturn parseReturn = myCLP.parse(argc,argv);
     if(parseReturn == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED)
     {
-        mpiSession.~GlobalMPISession();
-        return 0;
+        Tpetra::finalize();
+        return EXIT_SUCCESS;
     }
 
     bool verbose (comm->getRank() == 0);
@@ -743,6 +743,6 @@ int main(int argc, char *argv[])
     }
 
     TimeMonitor_Type::report(std::cout);
-
-    return(EXIT_SUCCESS);
+    Tpetra::finalize();
+    return EXIT_SUCCESS;
 }
