@@ -175,7 +175,7 @@ int main(int argc, char *argv[]) {
         // Setting parameters that are needed for stokes 
         // !! This avoids that errors occure when default values are changed along the way.
         parameterListAll->sublist("Parameter").set("Density",1.0); // Value 1.0
-        parameterListAll->sublist("Parameter").set("Viscosity",1.0e-1); // Value 1.0
+        parameterListAll->sublist("Parameter").set("Viscosity",1.0e-2); // Value 1.0
         Stokes<SC, LO, GO, NO> stokes(domainVelocity, FETypeV, domainPressure, FEType, parameterListAll);
 
         {
@@ -186,17 +186,17 @@ int main(int argc, char *argv[]) {
             stokes.solve();
         }
 
-        // stokes.getSystem()->getMergedMatrix()->writeMM("F");
-        // HDF5Export<SC, LO, GO, NO> exporterV(stokes.getSolution()->getBlock(0)->getMap(),
-        //     "ReferenceSolutions/solution_stokes_velocity_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
-        // exporterV.writeVariablesHDF5("velocity",
-        //     stokes.getSolution()->getBlock(0)); // VariableName and Variable
+        stokes.getSystem()->getMergedMatrix()->writeMM("F");
+        HDF5Export<SC, LO, GO, NO> exporterV(stokes.getSolution()->getBlock(0)->getMap(),
+            "ReferenceSolutions/solution_stokes_velocity_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
+        exporterV.writeVariablesHDF5("velocity",
+            stokes.getSolution()->getBlock(0)); // VariableName and Variable
 
-        // HDF5Export<SC, LO, GO, NO> exporterP(stokes.getSolution()->getBlock(1)->getMap(),
-        //     "ReferenceSolutions/solution_stokes_pressure_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
+        HDF5Export<SC, LO, GO, NO> exporterP(stokes.getSolution()->getBlock(1)->getMap(),
+            "ReferenceSolutions/solution_stokes_pressure_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores"); //  Map and file name
       
-        // exporterP.writeVariablesHDF5("pressure",
-        //     stokes.getSolution()->getBlock(1)); // VariableName and Variable
+        exporterP.writeVariablesHDF5("pressure",
+            stokes.getSolution()->getBlock(1)); // VariableName and Variable
 
         //We exclude any other tests, than the one prescribed
         if (dim == 2) {
