@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
 
 
         // Mesh
-        int m = 4;
+        int m = 3;
         std::string meshType = "structured";
         std::string meshDelimiter = " ";
 
@@ -175,7 +175,7 @@ int main(int argc, char *argv[]) {
         // Setting parameters that are needed for stokes 
         // !! This avoids that errors occure when default values are changed along the way.
         parameterListAll->sublist("Parameter").set("Density",1.0); // Value 1.0
-        parameterListAll->sublist("Parameter").set("Viscosity",1.0); // Value 1.0
+        parameterListAll->sublist("Parameter").set("Viscosity",1.0e-1); // Value 1.0
         Stokes<SC, LO, GO, NO> stokes(domainVelocity, FETypeV, domainPressure, FEType, parameterListAll);
 
         {
@@ -200,9 +200,9 @@ int main(int argc, char *argv[]) {
 
         //We exclude any other tests, than the one prescribed
         if (dim == 2) {
-            TEUCHOS_TEST_FOR_EXCEPTION(!(size == 4 && m == 4), std::logic_error, "The 2D test solutions are only sensible for 4 processors.");
+            TEUCHOS_TEST_FOR_EXCEPTION(!(size == 4 && m == 3), std::logic_error, "The 2D test solutions are only sensible for 4 processors.");
         } else if (dim == 3)
-            TEUCHOS_TEST_FOR_EXCEPTION(!(size == 8 && m == 4), std::logic_error, "The 3D test solutions are only sensible for 8 processors.");
+            TEUCHOS_TEST_FOR_EXCEPTION(!(size == 8 && m == 3), std::logic_error, "The 3D test solutions are only sensible for 8 processors.");
 
         HDF5Import<SC, LO, GO, NO> importerV(stokes.getSolution()->getBlock(0)->getMap(),
             "ReferenceSolutions/solution_stokes_velocity_" + std::to_string(dim) + "d_" + FETypeV + "_" + std::to_string(size) + "cores");
@@ -234,29 +234,38 @@ int main(int argc, char *argv[]) {
         double normErrorV = normV[0];
         double normErrorP = normP[0];
 
+        solutionStokesVelocity->normInf(normV);
+        solutionStokesPressure->normInf(normP);
+
+        double normVe = normV[0];
+        double normPr = normP[0];
         // Output of error
         if (comm->getRank() == 0) {
             cout << " --------------------------------------------------" << endl;
             cout << "  Error Report " << endl;
             cout << "   || velocity_current - velocity_stored||_inf = " << normErrorV << endl;
             cout << "   || pressure_current - pressure_stored||_inf = " << normErrorP << endl;
+            cout << "   || velocity_current - velocity_stored||_inf/|| velocity_current||_inf = " << normErrorV << endl;
+            cout << "   || pressure_current - pressure_stored||_inf/|| pressure_current ||_inf = " << normErrorP << endl;
+            cout << "   || velocity_current||_inf = " << normVe << endl;
+            cout << "   || pressure_current ||_inf = " << normPr << endl;
             cout << " --------------------------------------------------" << endl;
         }
 
         // Throwing exception, if error is too great.
-        TEUCHOS_TEST_FOR_EXCEPTION(normErrorV > 1.e-11 || normErrorP > 1.e-11 , std::logic_error,
+        TEUCHOS_TEST_FOR_EXCEPTION(normErrorV/normVe > 1.e-11 || normErrorP/normPr > 1.e-11 , std::logic_error,
                                     "Difference between current solution and "
                                     "stored solution greater than 1e-11.");
 
         if (boolExportSolution) {
             Teuchos::RCP<ExporterParaView<SC, LO, GO, NO>> exPara(new ExporterParaView<SC, LO, GO, NO>());
 
-            Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> exportSolution = stokes.getSolution()->getBlock(0);
+            Teuchos::RCP<const MultiVector<SC, LO, GO, NO>> exportSolution = stokes.getSolution()->getBlock(1);
 
-            exPara->setup("solutionStokes", domainVelocity->getMesh(), FETypeV);
+            exPara->setup("solutionStokes", domainPressure->getMesh(), FEType);
 
-            exPara->addVariable(exportSolution, "u_current", "Vector", dim, domainVelocity->getMapUnique());
-            exPara->addVariable(solutionImportedVeloctiy, "u_imported", "Vector", dim, domainVelocity->getMapUnique());
+            exPara->addVariable(exportSolution, "p_current", "Scalar", 1, domainPressure->getMapUnique());
+            exPara->addVariable(solutionImportedPressure, "p_imported", "Scalar", 1, domainPressure->getMapUnique());
 
             exPara->save(0.0);
         }
