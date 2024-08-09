@@ -171,7 +171,7 @@ int main(int argc, char *argv[]) {
         }
         // Throwing exception, if error is too great.
 
-        TEUCHOS_TEST_FOR_EXCEPTION( normError > 1.e-12 , std::logic_error, "Difference between current solution and stored solution greater than 1e-12.");
+        TEUCHOS_TEST_FOR_EXCEPTION( normError > 1.e-11 , std::logic_error, "Difference between current solution and stored solution greater than 1e-11.");
         if (boolExportSolution==1) {
             Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
 

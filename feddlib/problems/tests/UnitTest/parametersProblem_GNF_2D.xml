@@ -10,8 +10,8 @@
         <Parameter name="Density" type="double" value="1000.0"/>
         <Parameter name="Height Inflow"  type="double" value="0.1"/>
         <Parameter name="Constant Pressure Gradient" type="double" value="10.0"/>
-        <Parameter name="relNonLinTol" type="double" value="1.0e-4"/> 
-        <Parameter name="absNonLinTol" type="double" value="1.0e-4"/>
+        <Parameter name="relNonLinTol" type="double" value="1.0e-8"/> 
+        <Parameter name="absNonLinTol" type="double" value="1.0e-8"/>
     </ParameterList>
     <ParameterList name="Mesh Partitioner">
         <Parameter name="Contiguous" type="bool" value="true"/>        

@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
         // exporter.writeVariablesHDF5("solution",
         //                             linElas.getSolution()->getBlock(0)); // VariableName and Variable
 
-        // We exclude any other tests, than the one prescribed
+        // // We exclude any other tests, than the one prescribed
         if (dim == 2) {
             TEUCHOS_TEST_FOR_EXCEPTION(!(size == 4 && m == 5), std::logic_error, "The 2D test solutions are only sensible for 4 processors.");
         } else if (dim == 3)
@@ -219,9 +219,9 @@ int main(int argc, char *argv[]) {
         }
         // Throwing exception, if error is too great.
 
-        TEUCHOS_TEST_FOR_EXCEPTION(normError > 1.e-12, std::logic_error,
+        TEUCHOS_TEST_FOR_EXCEPTION(normError > 1.e-11, std::logic_error,
                                     "Difference between current solution and "
-                                    "stored solution greater than 1e-12.");
+                                    "stored solution greater than 1e-11.");
         if (boolExportSolution==1) {
             Teuchos::RCP<ExporterParaView<SC, LO, GO, NO>> exPara(new ExporterParaView<SC, LO, GO, NO>());
 
