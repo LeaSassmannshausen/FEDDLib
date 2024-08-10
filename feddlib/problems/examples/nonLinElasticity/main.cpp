@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
     typedef MeshPartitioner<SC,LO,GO,NO> MeshPartitioner_Type;
 
     // MPI boilerplate
-    Tpetra::initialize(&argc, &argv);
+    Tpetra::ScopeGuard tpetraScope (&argc, &argv); // initializes MPI
     Teuchos::RCP<const Teuchos::Comm<int> > comm = Tpetra::getDefaultComm();
     
     // Command Line Parameters
@@ -164,7 +164,6 @@ int main(int argc, char *argv[]) {
     myCLP.throwExceptions(false);
     Teuchos::CommandLineProcessor::EParseCommandLineReturn parseReturn = myCLP.parse(argc,argv);
     if(parseReturn == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED) {
-        Tpetra::finalize();
         return EXIT_SUCCESS;
     }
 
@@ -316,6 +315,5 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    Tpetra::finalize();
     return EXIT_SUCCESS;
 }

@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
     typedef Teuchos::RCP<vec3D_GO_Type> vec3D_GO_ptr_Type;
 
     // MPI boilerplate
-    Tpetra::initialize(&argc, &argv);
+    Tpetra::ScopeGuard tpetraScope (&argc, &argv); // initializes MPI
     Teuchos::RCP<const Teuchos::Comm<int> > comm = Tpetra::getDefaultComm();
 
     // Command Line Parameters
@@ -152,7 +152,6 @@ int main(int argc, char *argv[])
     Teuchos::CommandLineProcessor::EParseCommandLineReturn parseReturn = myCLP.parse(argc,argv);
     if(parseReturn == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED)
     {
-        Tpetra::finalize();
         return EXIT_SUCCESS;
     }
 
@@ -700,6 +699,5 @@ int main(int argc, char *argv[])
 
     Teuchos::TimeMonitor::report(std::cout);
 
-    Tpetra::finalize();
     return EXIT_SUCCESS;
 }
