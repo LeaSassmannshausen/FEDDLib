@@ -1,13 +1,16 @@
+#include <Tpetra_Core.hpp>
+
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
+
 #include "feddlib/core/Mesh/MeshPartitioner.hpp"
 #include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/core/General/ExporterParaView.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
+
 #include "feddlib/problems/specific/Geometry.hpp"
 #include "feddlib/problems/specific/LinElas.hpp"
-#include <Teuchos_GlobalMPISession.hpp>
-#include <Xpetra_DefaultPlatform.hpp>
+
 
 void geometryBC2D(double* x, double* res, double t, const double* parameters)
 {
@@ -116,7 +119,7 @@ int main(int argc, char *argv[])
     typedef RCP<ExporterPV_Type> ExporterPVPtr_Type;
     typedef MeshPartitioner<SC,LO,GO,NO> MeshPartitioner_Type;
     
-    typedef Map<LO,GO,NO> Map_Type;
+    typedef Map_Tpetra<LO,GO,NO> Map_Type;
     typedef RCP<Map_Type> MapPtr_Type;
     typedef Teuchos::RCP<const Map_Type> MapConstPtr_Type;
     typedef MultiVector<SC,LO,GO,NO> MultiVector_Type;
@@ -131,15 +134,12 @@ int main(int argc, char *argv[])
     typedef std::vector<vec2D_GO_Type> vec3D_GO_Type;
     typedef Teuchos::RCP<vec3D_GO_Type> vec3D_GO_ptr_Type;
 
-    Teuchos::oblackholestream blackhole;
-    Teuchos::GlobalMPISession mpiSession(&argc,&argv,&blackhole);
-
-    Teuchos::RCP<const Teuchos::Comm<int> > comm = Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
+    // MPI boilerplate
+    Tpetra::ScopeGuard tpetraScope (&argc, &argv); // initializes MPI
+    Teuchos::RCP<const Teuchos::Comm<int> > comm = Tpetra::getDefaultComm();
 
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
-    string ulib_str = "Tpetra";
-    myCLP.setOption("ulib",&ulib_str,"Underlying lib");
     string xmlProblemFile = "parametersProblem.xml";
     myCLP.setOption("problemfile",&xmlProblemFile,".xml file with Inputparameters.");
     string xmlPrecFile = "parametersPrec.xml";
@@ -152,8 +152,7 @@ int main(int argc, char *argv[])
     Teuchos::CommandLineProcessor::EParseCommandLineReturn parseReturn = myCLP.parse(argc,argv);
     if(parseReturn == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED)
     {
-        mpiSession.~GlobalMPISession();
-        return 0;
+        return EXIT_SUCCESS;
     }
 
     bool verbose (comm->getRank() == 0);
@@ -504,13 +503,12 @@ int main(int argc, char *argv[])
             // GO numberInterfaceNodes = localInterfaceID; // long long wg. 64
             //
             // // Baue nun die InterfaceMap fuer Fluid und Struktur
-            // std::string ulib = domainFluid->getMapUnique()->getUnderlyingLib();
             //
             // Teuchos::ArrayView<GO> vecInterfaceMapFluidArray =  Teuchos::arrayViewFromVector( vecInterfaceMapFluid );
-            // MapPtr_Type interfaceMapFluid = rcp(new Map_Type( ulib, numberInterfaceNodes, vecInterfaceMapFluidArray, 0, comm ) ); //maybe numberInterfaceNodes instead of -1
+            // MapPtr_Type interfaceMapFluid = rcp(new Map_Type( numberInterfaceNodes, vecInterfaceMapFluidArray, 0, comm ) ); //maybe numberInterfaceNodes instead of -1
             //
             // Teuchos::ArrayView<GO> vecInterfaceMapStructureArray =  Teuchos::arrayViewFromVector( vecInterfaceMapStructure );
-            // MapPtr_Type interfaceMapStructure = rcp(new Map_Type( ulib, numberInterfaceNodes, vecInterfaceMapStructureArray, 0, comm ) ); //maybe numberInterfaceNodes
+            // MapPtr_Type interfaceMapStructure = rcp(new Map_Type( numberInterfaceNodes, vecInterfaceMapStructureArray, 0, comm ) ); //maybe numberInterfaceNodes
 
             // Baue die Interface-Maps in der Interface-Nummerierung
             domainFluid->buildUniqueInterfaceMaps();
@@ -581,11 +579,11 @@ int main(int argc, char *argv[])
 
 
 
-            // Baue Epetra_Import indem wir eine TargetMap und eine SourceMap bauen/ angeben
+            // Baue Import indem wir eine TargetMap und eine SourceMap bauen/ angeben
             // SourceMap: Welche Indizes besitze ich (= der derzeitige Prozzesor)
             // TargetMap: Welche Indizes benoetige ich (= der derzeitge Prozessor)
             // Auf gut Deutsch also: Welche Indizes will ich (= der Prozessor) importiert haben/ am Ende besitzen.
-            // Wir umgehen hiermit das explizite Aufstellen des Epetra_Imports.
+            // Wir umgehen hiermit das explizite Aufstellen des Imports.
             MultiVectorPtr_Type interfaceSolutionFluid = rcp( new MultiVector_Type( interfaceMapFluidVecField, 1 ) );
             interfaceSolutionFluid->importFromVector( interfaceSolutionStruct );
 
@@ -701,5 +699,5 @@ int main(int argc, char *argv[])
 
     Teuchos::TimeMonitor::report(std::cout);
 
-    return(EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }
