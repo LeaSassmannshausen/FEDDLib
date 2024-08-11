@@ -1,18 +1,21 @@
-#include "feddlib/core/FE/Domain.hpp"
+#include <Tpetra_Core.hpp>
+
+#include <Teuchos_CommandLineProcessor.hpp>
+#include <Teuchos_RCPBoostSharedPtrConversions.hpp>
+#include <Teuchos_RCPDecl.hpp>
+#include <Teuchos_XMLParameterListHelpers.hpp>
+
 #include "feddlib/core/FEDDCore.hpp"
+#include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/core/General/ExporterParaView.hpp"
 #include "feddlib/core/Mesh/MeshPartitioner.hpp"
-#include "feddlib/problems/Solver/NonLinearSolver.hpp"
-#include "feddlib/problems/specific/NonLinElasticity.hpp"
 #include "feddlib/core/General/HDF5Import.hpp"
 #include "feddlib/core/General/HDF5Export.hpp"
 
-#include "Teuchos_CommandLineProcessor.hpp"
-#include "Teuchos_RCPBoostSharedPtrConversions.hpp"
-#include "Teuchos_RCPDecl.hpp"
-#include "Teuchos_XMLParameterListHelpers.hpp"
-#include <Teuchos_GlobalMPISession.hpp>
-#include <Xpetra_DefaultPlatform.hpp>
+#include "feddlib/problems/Solver/NonLinearSolver.hpp"
+#include "feddlib/problems/specific/NonLinElasticity.hpp"
+
+
 
 /*!
 main of nonlinear elasticity problem
@@ -143,15 +146,12 @@ int main(int argc, char *argv[]) {
 
     typedef MeshPartitioner<SC, LO, GO, NO> MeshPartitioner_Type;
 
-    Teuchos::oblackholestream blackhole;
-    Teuchos::GlobalMPISession mpiSession(&argc, &argv, &blackhole);
-
-    Teuchos::RCP<const Teuchos::Comm<int>> comm = Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
+    // MPI boilerplate
+    Tpetra::ScopeGuard tpetraScope (&argc, &argv); // initializes MPI
+    Teuchos::RCP<const Teuchos::Comm<int> > comm = Tpetra::getDefaultComm();
 
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
-    string ulib_str = "Tpetra";
-    myCLP.setOption("ulib", &ulib_str, "Underlying lib");
     double length = 4.;
     myCLP.setOption("length", &length, "length of domain.");
     string xmlProblemFile = "parametersProblemNonLinElasticity.xml";
@@ -168,8 +168,7 @@ int main(int argc, char *argv[]) {
     myCLP.throwExceptions(false);
     Teuchos::CommandLineProcessor::EParseCommandLineReturn parseReturn = myCLP.parse(argc, argv);
     if (parseReturn == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED) {
-        mpiSession.~GlobalMPISession();
-        return 0;
+        return EXIT_SUCCESS;
     }
 
     ParameterListPtr_Type parameterListProblem = Teuchos::getParametersFromXmlFile(xmlProblemFile);

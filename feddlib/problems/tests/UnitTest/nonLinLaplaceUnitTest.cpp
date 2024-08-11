@@ -1,3 +1,5 @@
+#include <Tpetra_Core.hpp>
+
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 
@@ -5,13 +7,12 @@
 #include "feddlib/core/General/ExporterParaView.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 #include "feddlib/core/Mesh/MeshPartitioner.hpp"
-#include "feddlib/problems/Solver/NonLinearSolver.hpp"
-#include "feddlib/problems/specific/NonLinLaplace.hpp"
 #include "feddlib/core/General/HDF5Import.hpp"
 #include "feddlib/core/General/HDF5Export.hpp"
 
-#include <Teuchos_GlobalMPISession.hpp>
-#include <Xpetra_DefaultPlatform.hpp>
+#include "feddlib/problems/Solver/NonLinearSolver.hpp"
+#include "feddlib/problems/specific/NonLinLaplace.hpp"
+
 
 void zeroDirichlet(double *x, double *res, double t, const double *parameters) { res[0] = 0.; }
 
@@ -53,17 +54,14 @@ int main(int argc, char *argv[]) {
     typedef BlockMultiVector<SC, LO, GO, NO> BlockMultiVector_Type;
     typedef RCP<BlockMultiVector_Type> BlockMultiVectorPtr_Type;
 
-    Teuchos::oblackholestream blackhole;
-    Teuchos::GlobalMPISession mpiSession(&argc, &argv, &blackhole);
-
-    Teuchos::RCP<const Teuchos::Comm<int>> comm = Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
-
+    // MPI boilerplate
+    Tpetra::ScopeGuard tpetraScope (&argc, &argv); // initializes MPI
+    Teuchos::RCP<const Teuchos::Comm<int> > comm = Tpetra::getDefaultComm();
+    
     // ########################
     // Set default values for command line parameters
     // ########################
     Teuchos::CommandLineProcessor myCLP;
-    string ulib_str = "Tpetra";
-    myCLP.setOption("ulib", &ulib_str, "Underlying lib");
     string xmlProblemFile = "parametersProblemNonLinLaplace.xml";
     myCLP.setOption("problemfile", &xmlProblemFile, ".xml file with Inputparameters.");
     string xmlPrecFile = "parametersPrecNonLinLaplace.xml";
@@ -79,8 +77,7 @@ int main(int argc, char *argv[]) {
     myCLP.throwExceptions(false);
     Teuchos::CommandLineProcessor::EParseCommandLineReturn parseReturn = myCLP.parse(argc, argv);
     if (parseReturn == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED) {
-        mpiSession.~GlobalMPISession();
-        return 0;
+        return EXIT_SUCCESS;
     }
 
     bool verbose(comm->getRank() == 0); // Only first rank prints
@@ -233,5 +230,5 @@ int main(int argc, char *argv[]) {
         exPara->save(0.0);
     }
 
-    return (EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }
