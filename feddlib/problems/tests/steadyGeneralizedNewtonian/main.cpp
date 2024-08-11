@@ -6,6 +6,8 @@
 #define MAIN_TIMER_STOP(A) A.reset();
 #endif
 
+#include <Tpetra_Core.hpp>
+
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/Mesh/MeshPartitioner.hpp"
 #include "feddlib/core/FE/Domain.hpp"
@@ -16,8 +18,6 @@
 #include "feddlib/problems/Solver/NonLinearSolver.hpp"
 #include "feddlib/problems/specific/NavierStokesAssFE.hpp"
 
-#include <Teuchos_GlobalMPISession.hpp>
-#include <Xpetra_DefaultPlatform.hpp>
 
 /*!
  Main of steady-state generalized Newtonian fluid problems
@@ -248,10 +248,8 @@ int main(int argc, char *argv[])
     typedef Matrix<SC, LO, GO, NO> Matrix_Type;
     typedef Teuchos::RCP<Matrix_Type> MatrixPtr_Type;
 
-    Teuchos::oblackholestream blackhole;
-    Teuchos::GlobalMPISession mpiSession(&argc, &argv, &blackhole);
-
-    Teuchos::RCP<const Teuchos::Comm<int>> comm = Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
+    Tpetra::ScopeGuard tpetraScope (&argc, &argv); // initializes MPI
+    Teuchos::RCP<const Teuchos::Comm<int> > comm = Tpetra::getDefaultComm();
     bool verbose(comm->getRank() == 0);
 
     //    Teuchos::RCP<Teuchos::FancyOStream> out = Teuchos::VerboseObjectBase::getDefaultOStream();
@@ -285,8 +283,7 @@ int main(int argc, char *argv[])
     Teuchos::CommandLineProcessor::EParseCommandLineReturn parseReturn = myCLP.parse(argc, argv);
     if (parseReturn == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED)
     {
-        MPI_Finalize();
-        return 0;
+        return EXIT_SUCCESS;
     }
      // Einlesen von Parameterwerten 
     {
