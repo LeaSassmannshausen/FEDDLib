@@ -166,9 +166,9 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(data2_generalizedNewtonianPowerLawTest
 
 TRIBITS_COPY_FILES_TO_BINARY_DIR(mesh_generalizedNewtonianPowerLawTest
 	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Meshes
-	SOURCE_FILES rectangle_200.mesh
+	SOURCE_FILES rectangle_200.mesh rectangle_100.mesh
 	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/Meshes
-	DEST_FILES rectangle_200.mesh
+	DEST_FILES rectangle_200.mesh rectangle_100.mesh
 	EXEDEPS generalizedNewtonianPowerLawTest
 )
 
