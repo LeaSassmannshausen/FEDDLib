@@ -27,7 +27,7 @@
  @brief Generalized Newtonian Power Law main
 
  This generalized newtonian power law unit test compares the current solution of the generalized newtonian power law problem in
- 2D to already stored solutions. The folling test constructs a structured mesh with H/h = 6. The stored solutions make sense for the following
+ 2D to already stored solutions. The stored solutions make sense for the following
  configurations:
  - 2D on 4 procs with P2/ P1 elements (P2 Velocity, P1 Pressure)
  */
@@ -180,16 +180,16 @@ int main(int argc, char *argv[]) {
 
     
         //Exporting the solution to a .h5 file 
-        // HDF5Export<SC, LO, GO, NO> exporter(navierStokesAssFE.getSolution()->getBlock(0)->getMap(),
-        //                                     "ReferenceSolutions/solution_GNF_velocity_" + std::to_string(dim) + "d_" + FEType + "_" + std::to_string(size) + "cores"); //  Map and file name
-        // exporter.writeVariablesHDF5("solution",
-        //                             navierStokesAssFE.getSolution()->getBlock(0)); // VariableName and Variable
+        /*HDF5Export<SC, LO, GO, NO> exporter(navierStokesAssFE.getSolution()->getBlock(0)->getMap(),
+                                             "ReferenceSolutions/solution_GNF_velocity_" + std::to_string(dim) + "d_" + FEType + "_" + std::to_string(size) + "cores"); //  Map and file name
+        exporter.writeVariablesHDF5("solution",
+                                     navierStokesAssFE.getSolution()->getBlock(0)); // VariableName and Variable
 
-        // HDF5Export<SC, LO, GO, NO> exporterP(navierStokesAssFE.getSolution()->getBlock(1)->getMap(),
-        //                                     "ReferenceSolutions/solution_GNF_pressure_" + std::to_string(dim) + "d_" + FEType + "_" + std::to_string(size) + "cores"); //  Map and file name
-        // exporterP.writeVariablesHDF5("solution",
-        //                         navierStokesAssFE.getSolution()->getBlock(1));
-            
+        HDF5Export<SC, LO, GO, NO> exporterP(navierStokesAssFE.getSolution()->getBlock(1)->getMap(),
+                                             "ReferenceSolutions/solution_GNF_pressure_" + std::to_string(dim) + "d_" + FEType + "_" + std::to_string(size) + "cores"); //  Map and file name
+         exporterP.writeVariablesHDF5("solution",
+                                 navierStokesAssFE.getSolution()->getBlock(1));
+         */   
 
          // We exclude any other tests, than the one prescribed
         TEUCHOS_TEST_FOR_EXCEPTION(!(size == 4), std::logic_error, "The 2D reference solution were generated using 4 processors.");
