@@ -242,8 +242,8 @@ int main(int argc, char *argv[]) {
             cout << "  Error Report " << endl;
             cout << "   || velocity_current - velocity_stored||_inf = " << normErrorV << endl;
             cout << "   || pressure_current - pressure_stored||_inf = " << normErrorP << endl;
-            cout << "   || velocity_current - velocity_stored||_inf/|| velocity_current||_inf = " << normErrorV << endl;
-            cout << "   || pressure_current - pressure_stored||_inf/|| pressure_current ||_inf = " << normErrorP << endl;
+            cout << "   || velocity_current - velocity_stored||_inf/|| velocity_current||_inf = " << normErrorV/normVe << endl;
+            cout << "   || pressure_current - pressure_stored||_inf/|| pressure_current ||_inf = " << normErrorP/normPr << endl;
             cout << "   || velocity_current||_inf = " << normVe << endl;
             cout << "   || pressure_current ||_inf = " << normPr << endl;
             cout << " --------------------------------------------------" << endl;
