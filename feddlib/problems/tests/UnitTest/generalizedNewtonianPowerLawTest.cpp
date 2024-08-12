@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
         // Throwing exception, if error is too great.
         TEUCHOS_TEST_FOR_EXCEPTION(normError_velocity > 1.e-11 || normError_pressure > 1.e-11 , std::logic_error,
                                     "Difference between current solution and "
-                                    "stored solution greater than 1e-11.");
+                                  "stored solution greater than 1e-11.");
 
         int boolExportSolution = 0;
         if (boolExportSolution) {

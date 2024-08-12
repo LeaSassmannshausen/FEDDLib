@@ -15,7 +15,7 @@
     </ParameterList>
     <ParameterList name="Mesh Partitioner">
         <Parameter name="Contiguous" type="bool" value="true"/>        
-    	<Parameter name="Mesh 1 Name" type="string" value="Meshes/rectangle_200.mesh"/>
+    	<Parameter name="Mesh 1 Name" type="string" value="Meshes/rectangle_100.mesh"/>
     </ParameterList>
     <!-- Material specific parameters like e.g. Newtonian fluid, Carreau-Yasuda model and corresponding parameters -->
     <ParameterList name="Material">    
