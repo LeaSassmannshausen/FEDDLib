@@ -8,6 +8,12 @@ SET(General_HEADERS
 	General/ExporterParaView_def.hpp
 	General/ExporterTxt.hpp
 	General/SmallMatrix.hpp
+	General/HDF5Import.hpp
+	General/HDF5Import_decl.hpp
+	General/HDF5Import_def.hpp
+	General/HDF5Export.hpp
+	General/HDF5Export_decl.hpp
+	General/HDF5Export_def.hpp
 	General/InputToOutputMappingClass.hpp
 	General/InputToOutputMappingClass_decl.hpp
 	General/InputToOutputMappingClass_def.hpp
@@ -22,6 +28,8 @@ SET(General_SOURCES
     General/ExporterTxt.cpp
 	General/InputToOutputMappingClass.cpp
 	General/DifferentiableFuncClass.cpp
+	General/HDF5Import.cpp
+	General/HDF5Export.cpp
 CACHE INTERNAL "")
 
 

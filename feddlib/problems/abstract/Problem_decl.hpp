@@ -11,6 +11,8 @@
 #include "feddlib/core/LinearAlgebra/BlockMultiVector.hpp"
 #include "feddlib/core/LinearAlgebra/BlockMatrix.hpp"
 #include "feddlib/problems/Solver/LinearSolver.hpp"
+#include "feddlib/core/General/HDF5Export.hpp"
+#include "feddlib/core/General/HDF5Import.hpp"
 
 #include <Stratimikos_DefaultLinearSolverBuilder.hpp>
 #include <Thyra_PreconditionerBase.hpp>
@@ -211,6 +213,7 @@ public:
 
 	double calculateL2Norm(MultiVectorConstPtr_Type mv, int domainInd=0); // Function that calculates L2 Error in the 'mv * M * mv' sense, with M beeing the Mass Matrix
 
+    void exportSolutionHDF5(); // Export the solution BlockMultiVector to a HDF5 Format
     int dim_;
     mutable CommConstPtr_Type comm_;
     mutable BlockMatrixPtr_Type system_;
@@ -224,6 +227,10 @@ public:
     std::vector<RhsFunc_Type>   rhsFuncVec_; // RHS functions of different blocks
     vec_dbl_Type parasSourceFunc_; //
     
+    // Exporter for the solution. Vector entry i corresponds to block i of the solution BlockMultiVector
+    std::vector<HDF5Export<SC,LO,GO,NO>> HDF5exporterSolution_; // Solution
+
+
 protected:
 
     mutable ParameterListPtr_Type	parameterList_;

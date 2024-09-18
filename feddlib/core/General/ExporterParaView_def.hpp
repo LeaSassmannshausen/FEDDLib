@@ -575,6 +575,7 @@ void ExporterParaView<SC,LO,GO,NO>::writeMeshPoints(std::string nameP_X,
 
 }
 
+
 template<class SC,class LO,class GO,class NO>
 void ExporterParaView<SC,LO,GO,NO>::updatePoints(){
     int dim = -1;

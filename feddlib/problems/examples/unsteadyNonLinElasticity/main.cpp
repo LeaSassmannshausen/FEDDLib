@@ -18,7 +18,6 @@ void rhsY2D(double* x, double* res, double* parameters){
         res[1] = parameters[1]*parameters[0]/parameters[2];
     else
         res[1] = parameters[1];
-    std::cout << "res[1]:" << res[1] <<" parameters[0]:"<<parameters[0] << " parameters[2]:" << parameters[2]<< std::endl;
     return;
 }
 

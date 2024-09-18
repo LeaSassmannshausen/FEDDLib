@@ -8,6 +8,8 @@
 #include "NonLinearProblem.hpp"
 //#include "LinearProblem.hpp"
 #include "Thyra_StateFuncModelEvaluatorBase.hpp"
+#include "feddlib/core/General/HDF5Export.hpp"
+
 /*!
  Declaration of TimeProblem
 
@@ -227,9 +229,17 @@ public:
     mutable double timeStep_ =0;
     mutable double newtonStep_=0;
     
+    void exportSolutionHDF5();
+
     ProblemPtr_Type problem_;
     CommConstPtr_Type comm_;
     
+    // Exporter for various parts of the solution or vectors that are needed for restarts
+    Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> HDF5exporterVelocity_; // Verlocity for Newmark
+    Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> HDF5exporterAcceleration_; // Acceleration for Newmark
+    std::vector<HDF5Export<SC,LO,GO,NO>> HDF5exporterSolution_; // Solution
+
+
     mutable BlockMatrixPtr_Type systemCombined_;
     mutable BlockMatrixPtr_Type systemMass_;
     mutable SmallMatrix<double> timeParameters_;

@@ -58,7 +58,7 @@ public:
     typedef Teuchos::RCP<Epetra_IntVector>	 						EpetraVecInt_ptr;
     typedef Teuchos::RCP<Epetra_LongLongVector>	 					EpetraVecLongLong_ptr;
     typedef Teuchos::RCP<Epetra_MultiVector>	 					EpetraMVPtr_Type;
-    typedef Teuchos::RCP<Epetra_Map>                               	EpetraMapPtr_Type;
+    typedef Teuchos::RCP<const Epetra_Map>                          EpetraMapPtr_Type;
 
     
     typedef EpetraExt::HDF5 HDF5_Type;
@@ -132,6 +132,8 @@ public:
     void closeExporter();
     
     void writeVariablesHDF5();
+
+    void readVariablesHDF5();
     
     void initHDF5();
     
@@ -142,6 +144,7 @@ public:
     void writeMeshPoints(std::string nameP_X,
                     std::string nameP_Y,
                     std::string nameP_Z );
+
     
     void updatePoints();
     
@@ -212,7 +215,14 @@ protected:
 	bool redo_ = false;
 	MeshPtr_Type mesh_;
     MapConstPtr_Type mapUniqueVariables_;
-    
+
+    // ------------------------
+    // READ 
+    // ------------------------
+    std::vector<std::string>   		varNamesRead_;
+    EpetraMapPtr_Type               readMap_;
+    Epetra_MultiVector* u_import_; 
+
     };
 }
 

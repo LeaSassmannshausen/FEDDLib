@@ -58,6 +58,12 @@
         <Parameter name="ParaViewExport"                        type="bool"   	value="true"/>
         <Parameter name="ParaView export subdomain"             type="bool"   	value="false"/>
         <Parameter name="Preconditioner Method"                 type="string"   value="Monolithic"/><!-- Monolithic, Tri, Diag, TriBFBT, DiagBFBT-->
+
+        <!-- Export: Write solution to hdf5 -->
+        <Parameter name="Safe solution" type="bool"  value="true"/>
+   		<Parameter name="File name export" type="string" value="solution"/> <!-- general name of the export file which will be extended by a block id-->
+		<Parameter name="Variable name export" type="string" value="u"/> <!-- name for variable within file, this be replace with time at some point -->
+  
     </ParameterList>
     
     <ParameterList name="Timestepping Parameter">
@@ -69,5 +75,11 @@
         <Parameter name="dt"			                    	type="double"   	value="0.01"/>
         <Parameter name="beta"			                    	type="double"   	value="0.25"/> <!-- newmark method parameter-->
         <Parameter name="gamma"			                    	type="double"   	value="0.5"/> <!-- newmark method parameter-->
+      	<!-- Import: Read solution from hdf5 as start soltion :::: RESTART     -->
+        <Parameter name="Restart" type="bool"  value="false"/>
+        <Parameter name="Time step" type="double"   	value="0.05"/> <!-- this time must be set as variable name import. Variable name import need to be set for 6 dezimal points -->
+      	<Parameter name="File name import" type="string" value="solution"/> <!-- general name of the export file which will be extended by a block id-->
+
+
     </ParameterList>
 </ParameterList>
