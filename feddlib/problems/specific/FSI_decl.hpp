@@ -125,6 +125,8 @@ public:
     
     virtual void getValuesOfInterest( vec_dbl_Type& values );
     
+    virtual void getValuesOfInterest( MultiVectorPtr_Type& values ) {} ;
+
     // init FSI vectors from partial problems
     void setFromPartialVectorsInit() const;
     

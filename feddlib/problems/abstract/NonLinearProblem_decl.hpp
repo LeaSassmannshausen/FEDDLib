@@ -75,6 +75,8 @@ public:
 
     virtual void getValuesOfInterest( vec_dbl_Type& values ) = 0;
     
+    virtual void getValuesOfInterest( MultiVectorPtr_Type& values) = 0;
+
     int solveAndUpdate( const std::string& criterion , double& criterionValue );
 
     int solveUpdate( );

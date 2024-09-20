@@ -838,6 +838,33 @@ void FE<SC, LO, GO, NO>::postProcessing(int type, MultiVectorPtr_Type &postProce
             arrayUni[i]  =0.;    
 }
 
+template <class SC, class LO, class GO, class NO>
+typename FE<SC, LO, GO, NO>::MultiVectorPtr_Type FE<SC, LO, GO, NO>::getHistoryValues()
+{
+    // We are only concerned with element information. We dont need any communication for that
+    MapConstPtr_Type elementMap = this->domainVec_[0]->getElementMap();
+
+    int numHistoryValues;
+    if(assemblyFEElements_.size()>0)
+        numHistoryValues = assemblyFEElements_[0]->getHistoryLength();
+
+    // Multiplicity of nodes (nodes being in more then one element) with weights from interpolation between gausspoints an node points
+    MultiVectorPtr_Type historyElements = Teuchos::rcp( new MultiVector_Type(elementMap, numHistoryValues ) );
+  
+    // Iterating over all elements
+    for (UN T=0; T<assemblyFEElements_.size(); T++) {
+        vec_dbl_Type historyElement = assemblyFEElements_[T]->getLocalHistory(); // 
+
+        for(int i=0; i< numHistoryValues ; i++){
+            Teuchos::ArrayRCP<SC>  arrayMultiRep = historyElements->getDataNonConst(i);
+            arrayMultiRep[T] = historyElement[i];
+
+        }
+
+    }
+    return historyElements;
+}
+
 
 // Check the order of chemistry and solid in system matrix
 template <class SC, class LO, class GO, class NO>

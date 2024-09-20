@@ -124,7 +124,7 @@ void DAESolverInTime<SC,LO,GO,NO>::setProblem(Problem_Type& problem){
 
 template<class SC,class LO,class GO,class NO>
 void DAESolverInTime<SC,LO,GO,NO>::defineTimeStepping(SmallMatrix<int> &timeStepDef){
-    cout << " Definite Time Stepping " << endl;
+
     timeStepDef_ = timeStepDef;
     timeSteppingTool_.reset(new TimeSteppingTools(sublist(parameterList_,"Timestepping Parameter") , comm_));
     isTimeSteppingDefined_ = true;

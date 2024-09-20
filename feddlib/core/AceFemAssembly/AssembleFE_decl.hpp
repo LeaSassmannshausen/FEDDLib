@@ -226,7 +226,15 @@ namespace FEDD {
         */
         vec_dbl_Type getLocalconstOutputField() {return constOutputField_;};
 
+        /*!
+         \brief Obtain history values of element
+         \return values
+        */
+        vec_dbl_Type getLocalHistory() {return history_;};
 
+        vec_dbl_Type getLocalHistoryUpdated() {return historyUpdated_;};
+
+        int getHistoryLength() {return historyLength_;};
     protected:
 
         /*!
@@ -271,6 +279,10 @@ namespace FEDD {
         double timeIncrement_;
         GO globalElementID_;
         vec2D_dbl_ptr_Type postProcessingData_;
+
+        vec_dbl_Type historyUpdated_;
+		vec_dbl_Type history_;
+		int historyLength_;				// Length of history vector
 
         friend class AssembleFEFactory<SC,LO,GO,NO>;
     };

@@ -722,6 +722,8 @@ class FE {
     // inside this BMV -> For visualization or postprocessing                                
     BlockMultiVectorPtr_Type const_output_fields;
 
+    MultiVectorPtr_Type getHistoryValues();
+
 
 /* ----------------------------------------------------------------------------------------*/
 private:

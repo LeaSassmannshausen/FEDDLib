@@ -79,10 +79,11 @@ void NonLinearSolver<SC,LO,GO,NO>::solve(TimeProblem_Type &problem, double time,
     }
 
     // Option to export the newly computed solution via HDF5 file
-    bool safeSolution = problem.getParameterList()->sublist("General").get("Safe solution", false);
-    if(safeSolution){
-        problem.exportSolutionHDF5();
-    }
+    // BlockMultiVectorPtrArray_Type solution;
+    // solution.resize(1);
+    // solution.at(0) = Teuchos::rcp(new BlockMultiVector_Type(problem.getSolution()));
+    // problem.checkForExportAndExport( solution, "Solution");
+    
 }
 
 #ifdef FEDD_HAVE_NOX

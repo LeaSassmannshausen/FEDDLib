@@ -32,7 +32,7 @@ materialModel_( parameterListSCI->sublist("Parameter").get("Structure Model","SC
     
     //std::string linearization = parameterListSCI->sublist("General").get("Linearization","FixedPoint");
     
-    //TEUCHOS_TEST_FOR_EXCEPTION( !(linearization == "Newton" || linearization == "NOX")  && materialModel_ != "linear", std::runtime_error, "Nonlinear material models can only be used with Newton's method or FixedPoint (nonlinear material Jacobian will still be used).");
+    //TEUCHOS_TEST_FOR_EXCEPTION( !(linearization == "Newton"|| linearization == "NOX")  && materialModel_ != "linear", std::runtime_error, "Nonlinear material models can only be used with Newton's method or FixedPoint (nonlinear material Jacobian will still be used).");
     this->addVariable( domainStructure, FETypeStructure, "d_s", domainStructure->getDimension() ); // Structure
     this->addVariable( domainChem, FETypeChem, "c", 1); // Chemistry scalar valued problem
 
@@ -1273,6 +1273,14 @@ template<class SC,class LO,class GO,class NO>
 vec_string_Type SCI<SC,LO,GO,NO>::getPostprocessingNames()
 {
     return postProcessingnames_;
+}
+
+template<class SC,class LO,class GO,class NO>
+void SCI<SC,LO,GO,NO>::getValuesOfInterest(MultiVectorPtr_Type& historyMultiVector)
+{
+    vec_string_Type historyNames = {"LambdaBarC1", "LambdaBarC2", "nA1", "nA2", "nB1", "nB2", "nC1", "nC2", "nD1", "nD2", "LambdaA1", "LambdaA2", "k251", "k252", "LambdaBarP1", "LambdaBarP2", "Theta1", "Theta2", "Theta3", "Ag11", "Ag12", "Ag13", "Ag21", "Ag22", "Ag23", "Ag31", "Ag32", "Ag33", "a11", "a12", "a13", "a21", "a22", "a23"};
+    historyMultiVector = this->feFactory_->getHistoryValues();
+
 }
 
 }

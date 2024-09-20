@@ -39,6 +39,8 @@ public:
     
     virtual void getValuesOfInterest( vec_dbl_Type& values ){};
 
+    virtual void getValuesOfInterest( MultiVectorPtr_Type& values ) {} ;
+
 	MatrixPtr_Type getMassMatrix() const; // new for calculating L2-Error
     
     virtual void computeValuesOfInterestAndExport() {};

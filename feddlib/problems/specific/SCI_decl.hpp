@@ -158,6 +158,8 @@ public:
     
     virtual void getValuesOfInterest( vec_dbl_Type& values ) {}  ;
 
+    virtual void getValuesOfInterest( MultiVectorPtr_Type& values );
+
     virtual void computeValuesOfInterestAndExport() {} ;
 
     virtual void reAssemble( BlockMultiVectorPtr_Type previousSolution ) const{};
@@ -171,6 +173,8 @@ public:
     BlockMultiVectorPtr_Type getPostProcessingData() const;
 
     vec_string_Type getPostprocessingNames();
+
+    MultiVectorPtr_Type getHistoryData();
     /*####################*/
 
     // Alternativ wie in reAssembleExtrapolation() in NS?

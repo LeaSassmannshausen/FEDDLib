@@ -201,6 +201,8 @@ public:
 
     virtual void getValuesOfInterest( vec_dbl_Type& values ) = 0 ;
 
+    virtual void getValuesOfInterest( MultiVectorPtr_Type& values ) = 0 ;
+
     virtual void computeValuesOfInterestAndExport() = 0;
     
     void addParemeterRhs(double para){ parasSourceFunc_.push_back( para ); }

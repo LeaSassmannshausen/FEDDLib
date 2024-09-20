@@ -5,6 +5,7 @@
 
 
 using namespace std;
+// namespace fs = ;
 namespace FEDD {
  
 template<class SC,class LO,class GO,class NO>
@@ -13,7 +14,7 @@ hdf5exporter_(),
 comm_(),
 commEpetra_()
 {
-
+    comm_ = writeMap->getComm();
     Teuchos::RCP<const Teuchos::MpiComm<int> > mpiComm = Teuchos::rcp_dynamic_cast<const Teuchos::MpiComm<int> >( writeMap->getComm() );
     commEpetra_.reset( new Epetra_MpiComm( *mpiComm->getRawMpiComm() ) );
 
@@ -35,6 +36,13 @@ commEpetra_()
     hdf5exporter_->Create(outputFilename+".h5"); // Creating output file with the 'outoutFilename'
 
     outputFilename_ = outputFilename; 
+
+    // Export Information write
+    int status = mkdir("ExportOutput", 0777);
+    exporterTxt_ = Teuchos::rcp(new ExporterTxt());
+    exporterTxt_->setup( "ExportOutput/HDFExporterInformation_"+outputFilename_, this->comm_ );
+
+
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -54,6 +62,8 @@ void HDF5Export<SC,LO,GO,NO>::writeVariablesHDF5(string varName,MultiVectorPtr_T
     
     if(writeVector->getMap()->getComm()->getRank() == 0 )
         cout << " HDF5_Export:: Exporting to file " << outputFilename_ << " with variable name " << varName << endl;
+
+    exporterTxt_->exportData("Exporting time step to " + outputFilename_ + " with varname ", std::stod(varName) );
 
     hdf5exporter_->Flush();
     

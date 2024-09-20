@@ -84,6 +84,7 @@ public:
                                           double time = 0.) const;
 
   virtual void getValuesOfInterest(vec_dbl_Type &values){};
+  virtual void getValuesOfInterest( MultiVectorPtr_Type& values ){};
 
   virtual void computeValuesOfInterestAndExport(){};
 

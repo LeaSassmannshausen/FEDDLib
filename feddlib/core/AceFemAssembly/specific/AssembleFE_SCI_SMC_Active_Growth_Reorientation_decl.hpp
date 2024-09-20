@@ -104,9 +104,6 @@ namespace FEDD
 		int postDataLength_;			// Number of post processing variables
 		int domainDataLength_;			// Number of domain data parameters
 
-		vec_dbl_Type historyUpdated_;
-		vec_dbl_Type history_;
-
 		vec_dbl_Type solutionC_n_;
 		vec_dbl_Type solutionC_n1_;
 

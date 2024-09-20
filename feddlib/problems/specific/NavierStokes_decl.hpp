@@ -91,6 +91,7 @@ public:
 //    virtual int ComputeDragLift(vec_dbl_ptr_Type &values);
 
     virtual void getValuesOfInterest( vec_dbl_Type& values ){};
+    virtual void getValuesOfInterest( MultiVectorPtr_Type& values ) {} ;
     
     virtual void computeValuesOfInterestAndExport() {};
 

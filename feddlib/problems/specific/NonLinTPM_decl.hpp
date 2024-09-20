@@ -56,6 +56,8 @@ public:
     
     virtual void getValuesOfInterest( vec_dbl_Type& values ){};
     
+    virtual void getValuesOfInterest( MultiVectorPtr_Type& values ) {} ;
+    
     virtual void computeValuesOfInterestAndExport() {};
     
 //    Teuchos::RCP< Thyra::LinearOpBase<SC> > create_W_op() const;// not needed

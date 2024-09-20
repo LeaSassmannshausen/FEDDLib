@@ -6,6 +6,7 @@
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 // Trilinos
 #include <Teuchos_Array.hpp>
+#include "feddlib/core/General/ExporterTxt.hpp"
 
 #include "Epetra_ConfigDefs.h"
 #ifdef HAVE_MPI
@@ -59,6 +60,8 @@ public:
     typedef MultiVector<SC,LO,GO,NO> MultiVector_Type;
     typedef Teuchos::RCP<MultiVector_Type> MultiVectorPtr_Type;
     
+    typedef Teuchos::RCP<ExporterTxt> ExporterTxtPtr_Type;
+
     /// @brief Constructor for HDF5 Exporter
     /// @param writeMap Map for writing file. Parallel distribution for of the exported multivector. 
     /// @param outputFilename Name for output file
@@ -79,11 +82,14 @@ protected:
     Teuchos::RCP<Epetra_MpiComm> commEpetra_;
     
     // ------------------------
-    // READ 
+    // WRITE 
     // ------------------------
     std::string outputFilename_;
     std::vector<std::string>   		varNamesRead_;
     EpetraMapPtr_Type               writeMap_;
+
+    // Exporter Information
+    ExporterTxtPtr_Type exporterTxt_;
 
 };
 

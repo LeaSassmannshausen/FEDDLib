@@ -30,6 +30,7 @@ public:
     typedef typename Problem_Type::Domain_Type Domain_Type;
     typedef typename Problem_Type::DomainConstPtr_Type DomainConstPtr_Type;
     typedef typename Problem_Type::DomainConstPtr_vec_Type DomainConstPtr_vec_Type;
+    typedef typename Problem_Type::MultiVectorPtr_Type MultiVectorPtr_Type;
 
     typedef typename Problem_Type::BlockMatrix_Type BlockMatrix_Type;
     typedef typename Problem_Type::BlockMatrixPtr_Type BlockMatrixPtr_Type;
@@ -58,6 +59,8 @@ public:
     virtual void assemble( std::string type="" )const {};
     
     virtual void getValuesOfInterest( vec_dbl_Type& values ){};
+
+    virtual void getValuesOfInterest( MultiVectorPtr_Type& values ){};
 
     virtual void computeValuesOfInterestAndExport() {};
 
