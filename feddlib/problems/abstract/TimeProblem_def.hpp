@@ -1590,9 +1590,10 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
 
                         // The history is only dependent on the checkpoint, not the blocks
                         // We asume the number of gauss points (gp) is constant to 4.
-                        for(int k=0; k < historyValues->getNumVectors()/4; k++){
-                            for(int gp =0; gp<4; gp++){
-                                string varName = historyNames[k]+std::to_string(gp);
+                        for(int gp =0; gp<4; gp++){
+                            for(int k=0; k < historyValues->getNumVectors()/4; k++){
+                                cout << " Export value " << k << " history name " << historyNames[k] << " of gausspoint " << gp << " checkpointtupel " << j << endl; 
+                                string varName = historyNames[k]+"_"+std::to_string(gp);
                                 this->getExporter("History", j)->writeVariablesHDF5(varName,historyValues->getVector(k+gp*k)); 
                             }
                         } 
@@ -1662,7 +1663,7 @@ Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> TimeProblem<SC,LO,GO,NO>::getExporter(str
         if(HDF5exporterHistory_.size() <1)
             initExporter(fileName);
 
-        return HDF5exporterSolution_.at(i); 
+        return HDF5exporterHistory_.at(i); 
     }
     else 
         TEUCHOS_TEST_FOR_EXCEPTION( true, std::runtime_error,"TimeProblem:: Get Exporter - no exporter for file name");
@@ -1708,7 +1709,7 @@ void TimeProblem<SC,LO,GO,NO>::initExporter(string fileName  ){
         for(int j = 0; j< checkPointTupel_.size() ; j++)
         {
             Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getDomain(0)->getElementMap(),fileName+std::to_string(std::get<0>(checkPointTupel_[j]))));
-            HDF5exporterSolution_.push_back(exporter);
+            HDF5exporterHistory_.push_back(exporter);
         }
     }
     else 

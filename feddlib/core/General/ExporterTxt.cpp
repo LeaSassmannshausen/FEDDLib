@@ -38,6 +38,11 @@ void ExporterTxt::exportData(std::string data1, double data2){
     
 }
 
+void ExporterTxt::exportData(std::string data1, std::string data2){
+   
+    writeTxt(data1,data2);
+    
+}
 void ExporterTxt::exportData(double data1, double data2){
    
     writeTxt(data1,data2);
@@ -62,6 +67,14 @@ void ExporterTxt::writeTxt(double data1, double data2){
 }
 
 void ExporterTxt::writeTxt(std::string data1, double data2){
+    if (verbose_) {
+        txt_out_ << data1 << " " << data2 << "\n";
+        txt_out_.flush();
+    }
+
+}
+
+void ExporterTxt::writeTxt(std::string data1, std::string data2){
     if (verbose_) {
         txt_out_ << data1 << " " << data2 << "\n";
         txt_out_.flush();

@@ -844,18 +844,18 @@ typename FE<SC, LO, GO, NO>::MultiVectorPtr_Type FE<SC, LO, GO, NO>::getHistoryV
     // We are only concerned with element information. We dont need any communication for that
     MapConstPtr_Type elementMap = this->domainVec_[0]->getElementMap();
 
-    int numHistoryValues;
+    UN numHistoryValues;
     if(assemblyFEElements_.size()>0)
-        numHistoryValues = assemblyFEElements_[0]->getHistoryLength();
+        numHistoryValues = assemblyFEElements_[0]->getHistoryLength(); // 34*4 
 
     // Multiplicity of nodes (nodes being in more then one element) with weights from interpolation between gausspoints an node points
-    MultiVectorPtr_Type historyElements = Teuchos::rcp( new MultiVector_Type(elementMap, numHistoryValues ) );
+    MultiVectorPtr_Type historyElements = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues) );
   
     // Iterating over all elements
     for (UN T=0; T<assemblyFEElements_.size(); T++) {
-        vec_dbl_Type historyElement = assemblyFEElements_[T]->getLocalHistory(); // 
+        vec_dbl_Type historyElement = assemblyFEElements_[T]->getLocalHistory();  
 
-        for(int i=0; i< numHistoryValues ; i++){
+        for(int i=0; i< historyElements->getNumVectors() ; i++){
             Teuchos::ArrayRCP<SC>  arrayMultiRep = historyElements->getDataNonConst(i);
             arrayMultiRep[T] = historyElement[i];
 

@@ -35,9 +35,13 @@ public:
 
     void exportData(std::string data1, double data2);
 
+    void exportData(std::string data1, std::string data2);
+
     void writeTxt(double data1, double data2);
     
     void writeTxt(std::string data1, double data2);
+
+    void writeTxt(std::string data1, std::string data2);
 
     void closeExporter();
     
