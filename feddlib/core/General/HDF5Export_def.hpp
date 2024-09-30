@@ -32,9 +32,6 @@ commEpetra_()
 
     writeMap_ = mapEpetra; // Defining the read map. All different variables that might be written to the .h5 file have the same map
 
-    std::cout << " name " << outputFilename << " map elements tpetra " << writeMap->getNodeNumElements() << " epetra " << writeMap_->NumMyElements()  << std::endl;
-
-
     hdf5exporter_.reset( new HDF5_Type(*commEpetra_) ); // Building HDF5 Exporter
 
     hdf5exporter_->Create(outputFilename+".h5"); // Creating output file with the 'outoutFilename'
@@ -54,7 +51,6 @@ void HDF5Export<SC,LO,GO,NO>::writeVariablesHDF5(string varName,MultiVectorPtr_T
 
     EpetraMVPtr_Type u_export(new Epetra_MultiVector(*(writeMap_),1)); // Epetra export vector
 
-    std::cout << " varname " << varName << " filename " << outputFilename_ << " " <<  writeMap_->NumMyElements() << " " << writeVector->getLocalLength() << endl;
     TEUCHOS_TEST_FOR_EXCEPTION( abs(writeMap_->NumMyElements() - writeVector->getLocalLength()) > 1e-12, std::logic_error, " The local length of map does not match the local mv length. Map and MultiVector are not compatible");
 
     // We need to write the contents of the writeVector into the Epetra export vector: Convert Xpetra -> Epetra
