@@ -32,9 +32,9 @@ solution_(0)
 	checkParameters();
 
 	// Checking for restart. In case of restart we need to adjust the current time step.
-    bool restart = parameterList_->sublist("Timestepping Parameter").get("Restart",false);
+    bool restart = params_->sublist("Timestepping Parameter").get("Restart",false);
 	if(restart)
-		timeStep_ = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
+		timeStep_ = params_->sublist("Timestepping Parameter").get("Time step", 0.0);
 
 	
 
