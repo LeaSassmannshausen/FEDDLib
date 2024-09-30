@@ -98,8 +98,9 @@
         <Parameter name="Restart" type="bool"  value="false"/>
         <Parameter name="Time step" type="double"   	value="0.4"/> <!-- this time must be set as variable name import. Variable name import need to be set for 6 dezimal points -->
         <Parameter name="Export history" type="bool"  value="true"/>
+        <Parameter name="Import history" type="bool"  value="false"/>
 
-        <!-- <Parameter name="File name import" type="string" value="solution_3D_bfs"/> --> <!-- general name of the import file which will be extended by a block id -->
+        <!-- <Parameter name="File name import" type="string" value="Solution/Solution"/> --> <!-- general name of the import file which will be extended by a block id -->
 
 
 

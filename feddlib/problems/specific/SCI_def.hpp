@@ -1286,7 +1286,7 @@ void SCI<SC,LO,GO,NO>::getValuesOfInterest(BlockMultiVectorPtr_Type& historyMult
 template<class SC,class LO,class GO,class NO>
 void SCI<SC,LO,GO,NO>::exportValuesOfInterest()
 {
-    bool exportHistory = parameterList_->sublist("Timestepping Parameter").get("Export history", false);
+    bool exportHistory = this->parameterList_->sublist("Timestepping Parameter").get("Export history", false);
 
     if(exportHistory)
     {
@@ -1315,7 +1315,7 @@ void SCI<SC,LO,GO,NO>::exportValuesOfInterest()
 template<class SC,class LO,class GO,class NO>
 void SCI<SC,LO,GO,NO>::importValuesOfInterest()
 {
-    bool importHistory = parameterList_->sublist("Timestepping Parameter").get("Import history", false);
+    bool importHistory = this->parameterList_->sublist("Timestepping Parameter").get("Import history", false);
 
     if(importHistory)
     {

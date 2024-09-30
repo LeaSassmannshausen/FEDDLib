@@ -10,6 +10,7 @@
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Xpetra_DefaultPlatform.hpp>
 #include <Teuchos_StackedTimer.hpp>
+#include "feddlib/core/General/HDF5Import.hpp"
 
 typedef unsigned UN;
 typedef double SC;
@@ -21,6 +22,8 @@ void reactionTerm(double *, double *, double *);
 void loadFunction(double *, double *, double *);
 void zeroDirichlet3D(double *, double *, double, const double *);
 void inflowChem(double *, double *, double, const double *);
+using namespace FEDD;
+
 
 int main(int argc, char *argv[])
 {
@@ -241,7 +244,49 @@ int main(int argc, char *argv[])
         daeTimeSolver.setupTimeStepping();
 
         daeTimeSolver.advanceInTime();
+    
+        // Testing restarted solution
+
+        std::string fileName = allParameters->sublist("Timestepping Parameter").get("File name import", "Solution");
+        double finalTime = allParameters->sublist("Timestepping Parameter").get("Final time", 0.0);
+        HDF5Import<SC,LO,GO,NO> importer(sci.getSolution()->getBlock(0)->getMap(),fileName+std::to_string(0));
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5(std::to_string(finalTime));
+
+        // Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaVelocity(new ExporterParaView<SC,LO,GO,NO>());
+
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionV = sci.getSolution()->getBlock(0);
+
+        // Calculating the error per node
+        Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValues = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( sci.getSolution()->getBlock(0)->getMap() ) ); 
+        //this = alpha*A + beta*B + gamma*this
+        errorValues->update( 1., exportSolutionV, -1. ,solutionImported, 0.);
+
+        // Taking abs norm
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbs = errorValues;
+
+        errorValues->abs(errorValuesAbs);
+
+        Teuchos::Array<SC> norm(1); 
+        errorValues->norm2(norm);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
+        double res = norm[0];
+        if(comm->getRank() ==0)
+            cout << " 2 Norm of Error of Solution Velocity " << res << endl;
+        double NormError = res;
+
+        sci.getSolution()->norm2(norm);
+        res = norm[0];
+        if(comm->getRank() ==0)
+            cout << " 2 rel. Norm to solution navier stokes " << NormError/res << endl;
+
+        sci.getSolution()->norm2(norm);
+        res = norm[0];
+        if(comm->getRank() ==0)
+            cout << " 2 rel. Norm to solutions navier stokes assemFE " << NormError/res << endl;
+
+
     }
+
+
     FEDD::TimeMonitor_Type::report(std::cout);
     stackedTimer->stop("Structure-chemical interaction");
     Teuchos::StackedTimer::OutputOptions options;
