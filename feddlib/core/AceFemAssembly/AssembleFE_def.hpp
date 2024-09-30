@@ -30,6 +30,12 @@ solution_(0)
 	diskTuple_= tuple;
 	
 	checkParameters();
+
+	// Checking for restart. In case of restart we need to adjust the current time step.
+    bool restart = parameterList_->sublist("Timestepping Parameter").get("Restart",false);
+	if(restart)
+		timeStep_ = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
+
 	
 
 /// Element Numbering for triangular elements:

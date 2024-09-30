@@ -1572,6 +1572,7 @@ void FE<SC,LO,GO,NO>::initAssembleFEElements(string elementType,tuple_disk_vec_p
             }
         }
 
+        cout << " Init Assembly FE Elements" << endl;
 		AssembleFEPtr_Type assemblyFE = assembleFEFactory.build(elementType,elements->getElement(T).getFlag(),nodes, params/*->sublist("Parameter Solid")->sublist(std::to_string(i))*/,problemDisk);
 
         assemblyFE->setGlobalElementID(elementMap->getGlobalElement(T));

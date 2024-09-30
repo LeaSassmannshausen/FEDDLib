@@ -227,7 +227,7 @@ namespace FEDD
 	template <class SC, class LO, class GO, class NO>
 	void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::advanceInTime(double dt)
 	{
-
+		cout << " Advance in time " << endl;
 		// If we have a time segment setting we switch to the demanded time increment
 		/*for(int i=0; i<numSegments_ ; i++){
 			if(this->timeStep_+1.0e-12 > timeParametersVec_[i][0])
