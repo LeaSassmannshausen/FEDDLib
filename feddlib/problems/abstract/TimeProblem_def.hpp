@@ -1556,7 +1556,7 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
             for(int j = 0; j< checkPointTupel_.size() ; j++){
                 
                 // We previously defined the checkpoints. If a checkpoint is reached, the second value of the checkpoint row turns to true.
-                if(time_ >= std::get<0>(checkPointTupel_[j]) && std::get<1>(checkPointTupel_[j]) == false ) 
+                if(time_ >= std::get<0>(checkPointTupel_[j])-1.e-10 && std::get<1>(checkPointTupel_[j]) == false ) 
                 { 
                     std::get<1>(checkPointTupel_[j])=true; // We export the checkpoint now
                     for (UN i = 0; i < size; i++)
