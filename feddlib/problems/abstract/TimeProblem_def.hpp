@@ -1591,10 +1591,10 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                         // The history is only dependent on the checkpoint, not the blocks
                         // We asume the number of gauss points (gp) is constant to 4.
                         for(int gp =0; gp<4; gp++){
-                            for(int k=0; k < historyValues->getNumVectors()/4; k++){
+                            for(int k=0; k < historyNames.size(); k++){
                                 cout << " Export value " << k << " history name " << historyNames[k] << " of gausspoint " << gp << " checkpointtupel " << j << endl; 
                                 string varName = historyNames[k]+"_"+std::to_string(gp);
-                                this->getExporter("History", j)->writeVariablesHDF5(varName,historyValues->getBlock(gp)->getVector(k+gp*k)); 
+                                this->getExporter("History", j)->writeVariablesHDF5(varName,historyValues->getBlock(gp)->getVector(k)); 
                             }
                         } 
 

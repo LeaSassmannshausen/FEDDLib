@@ -850,10 +850,10 @@ typename FE<SC, LO, GO, NO>::BlockMultiVectorPtr_Type FE<SC, LO, GO, NO>::getHis
 
     // Multiplicity of nodes (nodes being in more then one element) with weights from interpolation between gausspoints an node points
     BlockMultiVectorPtr_Type historyElements =  Teuchos::rcp( new BlockMultiVector_Type(4) );
-    MultiVectorPtr_Type historyElements_1 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues/4) );
-    MultiVectorPtr_Type historyElements_2 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues/4) );
-    MultiVectorPtr_Type historyElements_3 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues/4) );
-    MultiVectorPtr_Type historyElements_4 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues/4) );
+    MultiVectorPtr_Type historyElements_1 = Teuchos::rcp( new MultiVector_Type(elementMap,34) );
+    MultiVectorPtr_Type historyElements_2 = Teuchos::rcp( new MultiVector_Type(elementMap,34) );
+    MultiVectorPtr_Type historyElements_3 = Teuchos::rcp( new MultiVector_Type(elementMap,34) );
+    MultiVectorPtr_Type historyElements_4 = Teuchos::rcp( new MultiVector_Type(elementMap,34) );
 
     historyElements->addBlock(historyElements_1,0);
     historyElements->addBlock(historyElements_2,1);
@@ -864,7 +864,7 @@ typename FE<SC, LO, GO, NO>::BlockMultiVectorPtr_Type FE<SC, LO, GO, NO>::getHis
     for (UN T=0; T<assemblyFEElements_.size(); T++) {
         vec_dbl_Type historyElement = assemblyFEElements_[T]->getLocalHistory();  
         for(int gp =0; gp<4; gp++){
-            for(int i=0; i< historyElements->getNumVectors()/4 ; i++){
+            for(int i=0; i< historyElements_1->getNumVectors() ; i++){
                 Teuchos::ArrayRCP<SC>  arrayMultiRep = historyElements->getBlock(gp)->getDataNonConst(i);
                 arrayMultiRep[T] = historyElement[i+gp*i];
 
