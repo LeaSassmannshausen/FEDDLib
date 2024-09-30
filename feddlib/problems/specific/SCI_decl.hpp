@@ -11,6 +11,10 @@
 #include "Xpetra_CrsMatrixWrap.hpp"
 #include <Thyra_PreconditionerBase.hpp>
 #include <Thyra_ModelEvaluatorBase_decl.hpp>
+#include "feddlib/core/General/HDF5Export.hpp"
+#include "feddlib/core/General/HDF5Import.hpp"
+    
+    
 namespace FEDD{
 
 template <class SC , class LO , class GO , class NO >
@@ -159,6 +163,9 @@ public:
     virtual void getValuesOfInterest( vec_dbl_Type& values ) {}  ;
 
     virtual void getValuesOfInterest( BlockMultiVectorPtr_Type& values );
+
+    virtual void exportValuesOfInterest();
+    virtual void importValuesOfInterest();
 
     virtual void computeValuesOfInterestAndExport() {} ;
 

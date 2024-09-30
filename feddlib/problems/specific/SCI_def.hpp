@@ -1283,6 +1283,75 @@ void SCI<SC,LO,GO,NO>::getValuesOfInterest(BlockMultiVectorPtr_Type& historyMult
 
 }
 
+template<class SC,class LO,class GO,class NO>
+void SCI<SC,LO,GO,NO>::exportValuesOfInterest()
+{
+    bool exportHistory = parameterList_->sublist("Timestepping Parameter").get("Export history", false);
+
+    if(exportHistory)
+    {
+        BlockMultiVectorPtr_Type historyValues;
+        this->getValuesOfInterest(historyValues);
+
+        vec_string_Type historyNames = {"LambdaBarC1", "LambdaBarC2", "nA1", "nA2", "nB1", "nB2", "nC1", 
+                                        "nC2", "nD1", "nD2", "LambdaA1", "LambdaA2", "k251", "k252", "LambdaBarP1", 
+                                        "LambdaBarP2", "Theta1", "Theta2", "Theta3", "Ag11", "Ag12", "Ag13", "Ag21",
+                                        "Ag22", "Ag23", "Ag31", "Ag32", "Ag33", "a11", "a12", "a13", "a21", "a22", "a23"};
+
+        Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::rcp(new HDF5Export<SC,LO,GO,NO>(this->getDomain(0)->getElementMap(),"History"+std::to_string(timeSteppingTool_->t_)));
+
+        // The history is only dependent on the checkpoint, not the blocks
+        // We asume the number of gauss points (gp) is constant to 4.
+        for(int gp =0; gp<4; gp++){
+            for(int k=0; k < historyNames.size(); k++){
+                //cout << " Export value " << k << " history name " << historyNames[k] << " of gausspoint " << gp << " checkpointtupel " << j << endl; 
+                string varName = historyNames[k]+"_"+std::to_string(gp);
+                exporter->writeVariablesHDF5(varName,historyValues->getBlock(gp)->getVector(k)); 
+            }
+        } 
+    }
+}
+
+template<class SC,class LO,class GO,class NO>
+void SCI<SC,LO,GO,NO>::importValuesOfInterest()
+{
+    bool importHistory = parameterList_->sublist("Timestepping Parameter").get("Import history", false);
+
+    if(importHistory)
+    {
+        // BlockMultiVectorPtr_Type historyValues;
+        // problem_->getValuesOfInterest(historyValues);
+
+        vec_string_Type historyNames = {"LambdaBarC1", "LambdaBarC2", "nA1", "nA2", "nB1", "nB2", "nC1", 
+                                        "nC2", "nD1", "nD2", "LambdaA1", "LambdaA2", "k251", "k252", "LambdaBarP1", 
+                                        "LambdaBarP2", "Theta1", "Theta2", "Theta3", "Ag11", "Ag12", "Ag13", "Ag21",
+                                        "Ag22", "Ag23", "Ag31", "Ag32", "Ag33", "a11", "a12", "a13", "a21", "a22", "a23"};
+
+        MapConstPtr_Type elementMap = this->getDomain(0)->getElementMap();
+        Teuchos::RCP<HDF5Import<SC,LO,GO,NO>> importer =Teuchos::rcp(new HDF5Import<SC,LO,GO,NO>(this->getDomain(0)->getElementMap(),"History"+std::to_string(timeSteppingTool_->t_)));
+
+        // The history is only dependent on the checkpoint, not the blocks
+        // We asume the number of gauss points (gp) is constant to 4.
+        vec2D_dbl_Type myHistory (elementMap->getNodeNumElements(),vec_dbl_Type(historyNames.size()*4,-1.));
+        
+        for(int gp =0; gp<4; gp++){
+            for(int k=0; k < historyNames.size(); k++){
+                //cout << " Export value " << k << " history name " << historyNames[k] << " of gausspoint " << gp << " checkpointtupel " << j << endl; 
+                string varName = historyNames[k]+"_"+std::to_string(gp);
+                MultiVectorConstPtr_Type history  = importer->readVariablesHDF5(varName); 
+                Teuchos::ArrayRCP<SC>  historyArray = history->getDataNonConst(0);
+                for(int T =0;T<historyArray.size(); T++){
+                   myHistory[T][k+gp*k] = historyArray[T];      
+                }
+            }
+        } 
+
+        for(int T=0; T< elementMap->getNodeNumElements() ; T++ )
+            this->feFactory_->setHistoryValues(T,myHistory[T]);
+
+    }
+}
+
 }
 #endif
 

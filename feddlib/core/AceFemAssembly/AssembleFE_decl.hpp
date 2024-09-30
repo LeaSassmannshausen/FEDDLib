@@ -213,7 +213,6 @@ namespace FEDD {
 
         GO getGlobalElementID(){return globalElementID_;};
 
-
         /*!
         \brief E.g. In case of non-newtonian fluids the viscosity is not constant - Compute the viscosity for an element depending on the known velocity solution
         */
@@ -233,6 +232,14 @@ namespace FEDD {
         vec_dbl_Type getLocalHistory() {return history_;};
 
         vec_dbl_Type getLocalHistoryUpdated() {return historyUpdated_;};
+
+         /*!
+         \brief Set history values of element
+         \return values
+        */
+        void setLocalHistory(vec_dbl_Type history);
+
+        void setLocalHistoryUpdated(vec_dbl_Type historyUpdated);
 
         int getHistoryLength() {return historyLength_;};
     protected:

@@ -777,7 +777,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionPreviousStep(){
             else{
                 TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error,"You are trying to restart from a time with no previous time.");
             }
-
+            problem_->importValuesOfInterest();
 
         }
     }
@@ -833,6 +833,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps){
                 }
             }
            
+            problem_->importValuesOfInterest();
 
 
         }
@@ -1575,30 +1576,8 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                      // Here, we additionally want to consider history variables. 
                     // We introduce a boolean, that will export history variable of the underlying problem,
                     // if that is possible with the specific problem. Currently that only concerns SCI
-                    bool exportHistory = problem_->getParameterList()->sublist("Timestepping Parameter").get("Export history", false);
-
-                    if(exportHistory && fileName == "Solution")
-                    {
-                        BlockMultiVectorPtr_Type historyValues;
-                        problem_->getValuesOfInterest(historyValues);
-
-                        vec_string_Type historyNames = {"LambdaBarC1", "LambdaBarC2", "nA1", "nA2", "nB1", "nB2", "nC1", 
-                                                        "nC2", "nD1", "nD2", "LambdaA1", "LambdaA2", "k251", "k252", "LambdaBarP1", 
-                                                        "LambdaBarP2", "Theta1", "Theta2", "Theta3", "Ag11", "Ag12", "Ag13", "Ag21",
-                                                        "Ag22", "Ag23", "Ag31", "Ag32", "Ag33", "a11", "a12", "a13", "a21", "a22", "a23"};
-
-
-                        // The history is only dependent on the checkpoint, not the blocks
-                        // We asume the number of gauss points (gp) is constant to 4.
-                        for(int gp =0; gp<4; gp++){
-                            for(int k=0; k < historyNames.size(); k++){
-                                //cout << " Export value " << k << " history name " << historyNames[k] << " of gausspoint " << gp << " checkpointtupel " << j << endl; 
-                                string varName = historyNames[k]+"_"+std::to_string(gp);
-                                this->getExporter("History", j)->writeVariablesHDF5(varName,historyValues->getBlock(gp)->getVector(k)); 
-                            }
-                        } 
-
-                    }
+                    if(fileName == "Solution")
+                        problem_->exportValuesOfInterest();                     
                 }
             }
            
@@ -1659,12 +1638,12 @@ Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> TimeProblem<SC,LO,GO,NO>::getExporter(str
 
         return HDF5exporterSolution_.at(i); 
     }
-    else if(fileName =="History"){
-        if(HDF5exporterHistory_.size() <1)
-            initExporter(fileName);
+    // else if(fileName =="History"){
+    //     if(HDF5exporterHistory_.size() <1)
+    //         initExporter(fileName);
 
-        return HDF5exporterHistory_.at(i); 
-    }
+    //     return HDF5exporterHistory_.at(i); 
+    // }
     else 
         TEUCHOS_TEST_FOR_EXCEPTION( true, std::runtime_error,"TimeProblem:: Get Exporter - no exporter for file name");
 
@@ -1703,15 +1682,15 @@ void TimeProblem<SC,LO,GO,NO>::initExporter(string fileName  ){
             HDF5exporterSolution_.push_back(exporter);
         }
     }
-    else if(fileName =="History"){
-        // Compared to the other exporters, we build the history export based on the checkpoints. 
-        // Also, the history components are element wise, so we use the element map
-        for(int j = 0; j< checkPointTupel_.size() ; j++)
-        {
-            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getDomain(0)->getElementMap(),fileName+std::to_string(std::get<0>(checkPointTupel_[j]))));
-            HDF5exporterHistory_.push_back(exporter);
-        }
-    }
+    // else if(fileName =="History"){
+    //     // Compared to the other exporters, we build the history export based on the checkpoints. 
+    //     // Also, the history components are element wise, so we use the element map
+    //     for(int j = 0; j< checkPointTupel_.size() ; j++)
+    //     {
+    //         Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getDomain(0)->getElementMap(),fileName+std::to_string(std::get<0>(checkPointTupel_[j]))));
+    //         HDF5exporterHistory_.push_back(exporter);
+    //     }
+    // }
     else 
         TEUCHOS_TEST_FOR_EXCEPTION( true, std::runtime_error,"TimeProblem:: Init Exporter - no exporter for file name");
 }

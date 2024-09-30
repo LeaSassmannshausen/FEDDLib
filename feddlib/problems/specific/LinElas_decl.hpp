@@ -48,6 +48,10 @@ public:
     virtual void getValuesOfInterest( BlockMultiVectorPtr_Type& values ) {} ;
     
     virtual void computeValuesOfInterestAndExport() {};
+
+    virtual void exportValuesOfInterest(){};    
+
+    virtual void importValuesOfInterest(){};
     // Steifigkeitsmatrix des Problems der linearen Elastizitaet gegeben wie in assemble().
     // Moeglicherweise nicht noetig (vgl. Laplace.hpp)
     // Falls es doch irgendwann benutzt wird, denke daran den Konstruktor zu aendern (vgl. Stokes.hpp)

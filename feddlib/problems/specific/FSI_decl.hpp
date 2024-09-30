@@ -127,6 +127,9 @@ public:
     
     virtual void getValuesOfInterest( BlockMultiVectorPtr_Type& values ) {} ;
 
+    virtual void exportValuesOfInterest(){};    
+
+    virtual void importValuesOfInterest(){};
     // init FSI vectors from partial problems
     void setFromPartialVectorsInit() const;
     

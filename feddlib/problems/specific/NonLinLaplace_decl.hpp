@@ -85,7 +85,9 @@ public:
 
   virtual void getValuesOfInterest(vec_dbl_Type &values){};
   virtual void getValuesOfInterest( BlockMultiVectorPtr_Type& values ){};
-
+  virtual void exportValuesOfInterest(){};    
+  virtual void importValuesOfInterest(){};
+  
   virtual void computeValuesOfInterestAndExport(){};
 
   //    virtual void assembleExternal( std::string type ){};

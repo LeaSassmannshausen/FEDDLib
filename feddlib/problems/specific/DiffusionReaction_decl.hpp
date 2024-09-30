@@ -67,6 +67,10 @@ public:
 
     virtual void getValuesOfInterest( BlockMultiVectorPtr_Type& values ) {} ;
 
+    virtual void exportValuesOfInterest(){};    
+
+    virtual void importValuesOfInterest(){};
+
 	MatrixPtr_Type getMassMatrix() const; // new for calculating L2-Error
     
     virtual void computeValuesOfInterestAndExport() {};

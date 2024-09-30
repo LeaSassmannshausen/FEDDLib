@@ -45,6 +45,11 @@ public:
 	MatrixPtr_Type getMassMatrix() const; // new for calculating L2-Error
     
     virtual void computeValuesOfInterestAndExport() {};
+
+    virtual void exportValuesOfInterest(){};
+
+    virtual void importValuesOfInterest(){};
+
 //    virtual int SetupPreconditioner(BMat_ptr_Type systemPrec, ThyraConstLinOpPtr_Type thyraMatrix=Teuchos::null, ThyraPrecPtr_Type thyraPreconditioner = Teuchos::null, LinSolverBuilderPtr_Type linearSolverBuilder = Teuchos::null) const;
 
 private:

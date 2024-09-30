@@ -723,6 +723,7 @@ class FE {
     BlockMultiVectorPtr_Type const_output_fields;
 
     BlockMultiVectorPtr_Type getHistoryValues();
+    void setHistoryValues(LO T,vec_dbl_Type history);
 
 
 /* ----------------------------------------------------------------------------------------*/

@@ -205,6 +205,10 @@ public:
 
     virtual void computeValuesOfInterestAndExport() = 0;
     
+    virtual void exportValuesOfInterest() =0;
+
+    virtual void importValuesOfInterest() =0;
+    
     void addParemeterRhs(double para){ parasSourceFunc_.push_back( para ); }
     
     double getParameterRhs(int i ) const { return parasSourceFunc_[i]; }

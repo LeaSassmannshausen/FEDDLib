@@ -874,7 +874,13 @@ typename FE<SC, LO, GO, NO>::BlockMultiVectorPtr_Type FE<SC, LO, GO, NO>::getHis
     }
     return historyElements;
 }
+template <class SC, class LO, class GO, class NO>
+void FE<SC, LO, GO, NO>::setHistoryValues(LO T, vec_dbl_Type history)
+{
+    assemblyFEElements_[T]->setLocalHistory(history);
+    assemblyFEElements_[T]->setLocalHistoryUpdated(history);
 
+}
 
 // Check the order of chemistry and solid in system matrix
 template <class SC, class LO, class GO, class NO>
@@ -1572,7 +1578,6 @@ void FE<SC,LO,GO,NO>::initAssembleFEElements(string elementType,tuple_disk_vec_p
             }
         }
 
-        cout << " Init Assembly FE Elements" << endl;
 		AssembleFEPtr_Type assemblyFE = assembleFEFactory.build(elementType,elements->getElement(T).getFlag(),nodes, params/*->sublist("Parameter Solid")->sublist(std::to_string(i))*/,problemDisk);
 
         assemblyFE->setGlobalElementID(elementMap->getGlobalElement(T));

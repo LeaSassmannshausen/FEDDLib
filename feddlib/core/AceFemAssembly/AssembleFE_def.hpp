@@ -5,36 +5,30 @@
 
 namespace FEDD {
 
-
 template <class SC, class LO, class GO, class NO>
-AssembleFE<SC,LO,GO,NO>::AssembleFE(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type params,tuple_disk_vec_ptr_Type tuple):
-rhsVec_(0),
-jacobian_(0),
-solution_(0)
-{
-	flag_=flag;
-	nodesRefConfig_ = nodesRefConfig;
+AssembleFE<SC, LO, GO, NO>::AssembleFE(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type params, tuple_disk_vec_ptr_Type tuple) : rhsVec_(0), jacobian_(0), solution_(0) {
+    flag_ = flag;
+    nodesRefConfig_ = nodesRefConfig;
 
-	timeStep_ =0. ;
-	newtonStep_ =0 ;
-	globalElementID_=-1; // First not set
+    timeStep_ = 0.;
+    newtonStep_ = 0;
+    globalElementID_ = -1; // First not set
 
+    params_ = params;
 
-	params_=params;
+    // Reading through parameterlist
+    dim_ = params_->sublist("Parameter").get("Dimension", -1);
 
-	// Reading through parameterlist
-	dim_= params_->sublist("Parameter").get("Dimension",-1);
+    timeIncrement_ = params_->sublist("Timestepping Parameter").get("dt", 0.1);
 
-	timeIncrement_= params_->sublist("Timestepping Parameter").get("dt",0.1);
+    diskTuple_ = tuple;
 
-	diskTuple_= tuple;
-	
-	checkParameters();
+    checkParameters();
 
-	// Checking for restart. In case of restart we need to adjust the current time step.
+    // Checking for restart. In case of restart we need to adjust the current time step.
     bool restart = params_->sublist("Timestepping Parameter").get("Restart",false);
 	if(restart)
-		timeStep_ = params_->sublist("Timestepping Parameter").get("Time step", 0.0);
+		timeStep_ = params_->sublist("Timestepping Parameter").get("Time step", 0.0) - timeIncrement_;
 
 	
 
@@ -65,7 +59,6 @@ solution_(0)
 ------------------------------------------------------------------------------------
 */
 }
-
 
 template <class SC, class LO, class GO, class NO>
 void AssembleFE<SC,LO,GO,NO>::checkParameters( ){
@@ -152,6 +145,18 @@ template <class SC, class LO, class GO, class NO>
 vec2D_dbl_Type AssembleFE<SC,LO,GO,NO>::getNodesRefConfig( ){
 	return nodesRefConfig_;
 
+};
+
+template <class SC, class LO, class GO, class NO>
+void AssembleFE<SC, LO, GO, NO>::setLocalHistory(vec_dbl_Type history) {
+	  TEUCHOS_TEST_FOR_EXCEPTION(history.size() != history_.size(), std::runtime_error, "Input history and current history have different length. History input " << history.size() << " history current " <<history_.size() );
+    this->history_ = history;
+};
+template <class SC, class LO, class GO, class NO>
+void AssembleFE<SC, LO, GO, NO>::setLocalHistoryUpdated(vec_dbl_Type history) {
+	  TEUCHOS_TEST_FOR_EXCEPTION(history.size() != historyUpdated_.size(), std::runtime_error, "Input history and current history have different length. History input " << history.size() << " history current " <<historyUpdated_.size() );
+    this->historyUpdated_ = history;
+  
 };
 
 
