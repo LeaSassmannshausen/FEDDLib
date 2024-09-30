@@ -1579,7 +1579,7 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
 
                     if(exportHistory && fileName == "Solution")
                     {
-                        MultiVectorPtr_Type historyValues;
+                        BlockMultiVectorPtr_Type historyValues;
                         problem_->getValuesOfInterest(historyValues);
 
                         vec_string_Type historyNames = {"LambdaBarC1", "LambdaBarC2", "nA1", "nA2", "nB1", "nB2", "nC1", 
@@ -1594,7 +1594,7 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                             for(int k=0; k < historyValues->getNumVectors()/4; k++){
                                 cout << " Export value " << k << " history name " << historyNames[k] << " of gausspoint " << gp << " checkpointtupel " << j << endl; 
                                 string varName = historyNames[k]+"_"+std::to_string(gp);
-                                this->getExporter("History", j)->writeVariablesHDF5(varName,historyValues->getVector(k+gp*k)); 
+                                this->getExporter("History", j)->writeVariablesHDF5(varName,historyValues->getBlock(gp)->getVector(k+gp*k)); 
                             }
                         } 
 

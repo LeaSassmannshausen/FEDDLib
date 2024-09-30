@@ -839,7 +839,7 @@ void FE<SC, LO, GO, NO>::postProcessing(int type, MultiVectorPtr_Type &postProce
 }
 
 template <class SC, class LO, class GO, class NO>
-typename FE<SC, LO, GO, NO>::MultiVectorPtr_Type FE<SC, LO, GO, NO>::getHistoryValues()
+typename FE<SC, LO, GO, NO>::BlockMultiVectorPtr_Type FE<SC, LO, GO, NO>::getHistoryValues()
 {
     // We are only concerned with element information. We dont need any communication for that
     MapConstPtr_Type elementMap = this->domainVec_[0]->getElementMap();
@@ -849,16 +849,26 @@ typename FE<SC, LO, GO, NO>::MultiVectorPtr_Type FE<SC, LO, GO, NO>::getHistoryV
         numHistoryValues = assemblyFEElements_[0]->getHistoryLength(); // 34*4 
 
     // Multiplicity of nodes (nodes being in more then one element) with weights from interpolation between gausspoints an node points
-    MultiVectorPtr_Type historyElements = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues) );
-  
+    BlockMultiVectorPtr_Type historyElements =  Teuchos::rcp( new BlockMultiVector_Type(4) );
+    MultiVectorPtr_Type historyElements_1 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues/4) );
+    MultiVectorPtr_Type historyElements_2 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues/4) );
+    MultiVectorPtr_Type historyElements_3 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues/4) );
+    MultiVectorPtr_Type historyElements_4 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues/4) );
+
+    historyElements->addBlock(historyElements_1,0);
+    historyElements->addBlock(historyElements_2,1);
+    historyElements->addBlock(historyElements_3,2);
+    historyElements->addBlock(historyElements_4,3);
+
     // Iterating over all elements
     for (UN T=0; T<assemblyFEElements_.size(); T++) {
         vec_dbl_Type historyElement = assemblyFEElements_[T]->getLocalHistory();  
+        for(int gp =0; gp<4; gp++){
+            for(int i=0; i< historyElements->getNumVectors()/4 ; i++){
+                Teuchos::ArrayRCP<SC>  arrayMultiRep = historyElements->getBlock(gp)->getDataNonConst(i);
+                arrayMultiRep[T] = historyElement[i+gp*i];
 
-        for(int i=0; i< historyElements->getNumVectors() ; i++){
-            Teuchos::ArrayRCP<SC>  arrayMultiRep = historyElements->getDataNonConst(i);
-            arrayMultiRep[T] = historyElement[i];
-
+            }
         }
 
     }

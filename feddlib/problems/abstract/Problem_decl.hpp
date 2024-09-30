@@ -201,7 +201,7 @@ public:
 
     virtual void getValuesOfInterest( vec_dbl_Type& values ) = 0 ;
 
-    virtual void getValuesOfInterest( MultiVectorPtr_Type& values ) = 0 ;
+    virtual void getValuesOfInterest( BlockMultiVectorPtr_Type& values ) = 0 ;
 
     virtual void computeValuesOfInterestAndExport() = 0;
     

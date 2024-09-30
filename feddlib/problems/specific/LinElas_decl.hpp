@@ -45,7 +45,7 @@ public:
 
     virtual void getValuesOfInterest( vec_dbl_Type& values ){};
    
-    virtual void getValuesOfInterest( MultiVectorPtr_Type& values ) {} ;
+    virtual void getValuesOfInterest( BlockMultiVectorPtr_Type& values ) {} ;
     
     virtual void computeValuesOfInterestAndExport() {};
     // Steifigkeitsmatrix des Problems der linearen Elastizitaet gegeben wie in assemble().
