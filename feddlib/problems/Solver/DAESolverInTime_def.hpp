@@ -1002,6 +1002,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     std::string structureModel = parameterList_->sublist("Parameter").get("Structure Model","SCI_NH");
     std::string couplingType = parameterList_->sublist("Parameter").get("Coupling Type","explicit");
 
+    bool restart = this->parameterList_->get("Restart", false);
+    double timeStepRestart = this->parameterList_->get("Time step", 0.0);
     double timeStep = 0;
 
     while(timeSteppingTool_->continueTimeStepping())
@@ -1012,19 +1014,29 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         }
         timeSteppingTool_->dt_= dt;
         sci->timeSteppingTool_->dt_ = dt;
-        if(timeSteppingTool_->currentTime() <= 0. + 1e-12){
-            timeSteppingTool_->dt_prev_= dt;        
-            sci->timeSteppingTool_->dt_prev_= dt;        
+        if(restart){
+            if(timeSteppingTool_->currentTime() <= timeStepRestart + 1e-12){
+                timeSteppingTool_->dt_prev_= dt;        
+                sci->timeSteppingTool_->dt_prev_= dt;        
+            }
+            else{
+                timeSteppingTool_->dt_prev_= timeSteppingTool_->dt_;
+                this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
+                sci->timeSteppingTool_->dt_prev_ = timeSteppingTool_->dt_;
+            }
+
         }
         else{
-            timeSteppingTool_->dt_prev_= timeSteppingTool_->dt_;
-
-            this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
-
-            sci->timeSteppingTool_->dt_prev_ = timeSteppingTool_->dt_;
-
+            if(timeSteppingTool_->currentTime() <= 0. + 1e-12){
+                timeSteppingTool_->dt_prev_= dt;        
+                sci->timeSteppingTool_->dt_prev_= dt;        
+            }
+            else{
+                timeSteppingTool_->dt_prev_= timeSteppingTool_->dt_;
+                this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
+                sci->timeSteppingTool_->dt_prev_ = timeSteppingTool_->dt_;
+            }
         }
-
         
 
         timeSteppingTool_->printInfo();
