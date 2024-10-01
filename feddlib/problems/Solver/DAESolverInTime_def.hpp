@@ -862,7 +862,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         }
 
     }
-    
+    cout << " dt in advance in time " << dt << " with time " << timeSteppingTool_->currentTime() << endl;
     // Notwendige Parameter
     int sizeSCI = timeStepDef_.size();
 

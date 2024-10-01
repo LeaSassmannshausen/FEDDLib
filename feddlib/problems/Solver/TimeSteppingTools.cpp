@@ -131,6 +131,14 @@ void TimeSteppingTools::setParameter(){
         BDFNmb_ = parameterList_->get("BDF",1);
         setInformationBDF();
     }
+
+    // Updating time if restart occurs.
+    bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
+    bool timeStep = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
+
+    if(restart)
+        t_ = timeStep;
+        
 }
 
 double TimeSteppingTools::currentTime(){
