@@ -1003,7 +1003,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     std::string couplingType = parameterList_->sublist("Parameter").get("Coupling Type","explicit");
 
     bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
-    double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").("Time step", 0.0);
+    double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
     double timeStep = 0;
 
     while(timeSteppingTool_->continueTimeStepping())
