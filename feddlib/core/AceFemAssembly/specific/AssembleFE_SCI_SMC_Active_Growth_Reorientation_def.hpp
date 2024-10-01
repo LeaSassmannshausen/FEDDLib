@@ -305,14 +305,14 @@ namespace FEDD
 			cout << " Reorientation " << reorientationBool_ << endl;
 			cout << " ---------------------------------------------- " << endl;
 		}
-		cout << " Update:: History " ;
+		// cout << " Update:: History " ;
 		for (int i = 0; i < this->historyLength_; i++)
 		{
 			// if(this->timeStep_  > activeStartTime_ +dt )
 			this->history_[i] = this->historyUpdated_[i];
-			 cout << " | " << this->history_[i] ;
+			//  cout << " | " << this->history_[i] ;
 		}
-		cout << endl;
+		// cout << endl;
 		for (int i = 0; i < 10; i++)
 			this->solutionC_n_[i] = (*this->solution_)[i + 30]; // this is the LAST solution of newton iterations
 																// #ifdef FEDD_HAVE_ACEGENINTERFACE

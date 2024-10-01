@@ -1341,6 +1341,7 @@ void SCI<SC,LO,GO,NO>::importValuesOfInterest()
             for(int k=0; k < historyNames.size(); k++){
                 //cout << " Export value " << k << " history name " << historyNames[k] << " of gausspoint " << gp << " checkpointtupel " << j << endl; 
                 string varName = historyNames[k]+"_"+std::to_string(gp);
+                cout << " Reading values of varname = " << varName << " with histroy index " << k+gp*k << endl;
                 MultiVectorConstPtr_Type history  = importer->readVariablesHDF5(varName); 
                 Teuchos::ArrayRCP<SC>  historyArray = history->getDataNonConst(0);
                 for(int T =0;T<historyArray.size(); T++){
