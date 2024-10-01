@@ -855,7 +855,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     }
     double dt;
     for(int i=0; i<numSegments ; i++){
-        if(timeSteppingTool_->currentTime()+1.0e-12 > timeParametersVec[i][0]){
+        if(timeSteppingTool_->currentTime()+1.0e-12 < timeParametersVec[i+1][0]){
             dt=timeParametersVec[i][1];
             timeSteppingTool_->dt_ = dt;
         }
