@@ -191,8 +191,8 @@ namespace FEDD
 			timeParametersVecReorientation_.push_back(segment);
 			// cout << " Reorientation Segment " << i << ":[" << startTime << "," << endTime << "]" << endl;
 		}
-		if(this->globalElementID_<10)
-			cout << " Element initialized with timestep " << this->timeStep_ << endl;
+		// if(this->globalElementID_<10)
+		// 	cout << " Element initialized with timestep " << this->timeStep_ << endl;
 
 
 #endif
