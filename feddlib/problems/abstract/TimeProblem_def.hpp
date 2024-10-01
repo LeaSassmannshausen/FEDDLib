@@ -834,8 +834,6 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps){
             }
            
             problem_->importValuesOfInterest();
-
-
         }
 
     }

@@ -1315,10 +1315,12 @@ void SCI<SC,LO,GO,NO>::exportValuesOfInterest()
 template<class SC,class LO,class GO,class NO>
 void SCI<SC,LO,GO,NO>::importValuesOfInterest()
 {
+
     bool importHistory = this->parameterList_->sublist("Timestepping Parameter").get("Import history", false);
 
     if(importHistory)
     {
+        cout << " Importing values of interest " << endl;
         // BlockMultiVectorPtr_Type historyValues;
         // problem_->getValuesOfInterest(historyValues);
 
@@ -1349,6 +1351,11 @@ void SCI<SC,LO,GO,NO>::importValuesOfInterest()
 
         for(int T=0; T< elementMap->getNodeNumElements() ; T++ )
             this->feFactory_->setHistoryValues(T,myHistory[T]);
+
+        for (int i = 0; i < myHistory[0].size(); i++) {
+            cout << myHistory[0][i] << " ";
+        }
+        cout << endl;
 
     }
 }
