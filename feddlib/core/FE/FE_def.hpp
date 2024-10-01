@@ -846,14 +846,14 @@ typename FE<SC, LO, GO, NO>::BlockMultiVectorPtr_Type FE<SC, LO, GO, NO>::getHis
 
     UN numHistoryValues;
     if(assemblyFEElements_.size()>0)
-        numHistoryValues = assemblyFEElements_[0]->getHistoryLength(); // 34*4 
+        numHistoryValues = assemblyFEElements_[0]->getHistoryLength()/4; // 34*4 
 
     // Multiplicity of nodes (nodes being in more then one element) with weights from interpolation between gausspoints an node points
     BlockMultiVectorPtr_Type historyElements =  Teuchos::rcp( new BlockMultiVector_Type(4) );
-    MultiVectorPtr_Type historyElements_1 = Teuchos::rcp( new MultiVector_Type(elementMap,34) );
-    MultiVectorPtr_Type historyElements_2 = Teuchos::rcp( new MultiVector_Type(elementMap,34) );
-    MultiVectorPtr_Type historyElements_3 = Teuchos::rcp( new MultiVector_Type(elementMap,34) );
-    MultiVectorPtr_Type historyElements_4 = Teuchos::rcp( new MultiVector_Type(elementMap,34) );
+    MultiVectorPtr_Type historyElements_1 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues) );
+    MultiVectorPtr_Type historyElements_2 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues) );
+    MultiVectorPtr_Type historyElements_3 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues) );
+    MultiVectorPtr_Type historyElements_4 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues) );
 
     historyElements->addBlock(historyElements_1,0);
     historyElements->addBlock(historyElements_2,1);
@@ -864,9 +864,9 @@ typename FE<SC, LO, GO, NO>::BlockMultiVectorPtr_Type FE<SC, LO, GO, NO>::getHis
     for (UN T=0; T<assemblyFEElements_.size(); T++) {
         vec_dbl_Type historyElement = assemblyFEElements_[T]->getLocalHistory();  
         for(int gp =0; gp<4; gp++){
-            for(int i=0; i< historyElements_1->getNumVectors() ; i++){
+            for(int i=0; i< numHistoryValues ; i++){
                 Teuchos::ArrayRCP<SC>  arrayMultiRep = historyElements->getBlock(gp)->getDataNonConst(i);
-                arrayMultiRep[T] = historyElement[i+gp*i];
+                arrayMultiRep[T] = historyElement[i+gp*numHistoryValues];
 
             }
         }
