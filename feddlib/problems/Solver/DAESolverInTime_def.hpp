@@ -854,7 +854,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         TEUCHOS_TEST_FOR_EXCEPTION( loadStepSize != timeSteppingTool_->dt_, std::runtime_error, "Load Step Size and dt appear different" );
     }
     double dt;
-    for(int i=0; i<numSegments ; i++){
+    for(int i=0; i<numSegments-1 ; i++){
         if(timeSteppingTool_->currentTime()+1.0e-12 < timeParametersVec[i+1][0]){
             dt=timeParametersVec[i][1];
             timeSteppingTool_->dt_ = dt;
