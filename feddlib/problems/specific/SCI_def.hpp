@@ -1349,13 +1349,16 @@ void SCI<SC,LO,GO,NO>::importValuesOfInterest()
             }
         } 
 
-        for(int T=0; T< elementMap->getNodeNumElements() ; T++ )
+        for(int T=0; T< elementMap->getNodeNumElements() ; T++ ){
             this->feFactory_->setHistoryValues(T,myHistory[T]);
 
-        for (int i = 0; i < myHistory[0].size(); i++) {
-            cout << myHistory[0][i] << " ";
+            if(T==0){
+                for (int i = 0; i < myHistory[0].size(); i++) {
+                    cout << myHistory[0][i] << " ";
+                }
+                cout << endl;
+            }
         }
-        cout << endl;
 
     }
 }
