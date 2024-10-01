@@ -1328,6 +1328,7 @@ void SCI<SC,LO,GO,NO>::importValuesOfInterest()
                                         "Ag22", "Ag23", "Ag31", "Ag32", "Ag33", "a11", "a12", "a13", "a21", "a22", "a23"};
 
         MapConstPtr_Type elementMap = this->getDomain(0)->getElementMap();
+        std::cout <<    timeSteppingTool_->t_ << std::endl;
         Teuchos::RCP<HDF5Import<SC,LO,GO,NO>> importer =Teuchos::rcp(new HDF5Import<SC,LO,GO,NO>(this->getDomain(0)->getElementMap(),"History"+std::to_string(timeSteppingTool_->t_)));
 
         // The history is only dependent on the checkpoint, not the blocks
