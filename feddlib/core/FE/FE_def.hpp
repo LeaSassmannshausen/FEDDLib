@@ -846,7 +846,7 @@ typename FE<SC, LO, GO, NO>::BlockMultiVectorPtr_Type FE<SC, LO, GO, NO>::getHis
 
     UN numHistoryValues;
     if(assemblyFEElements_.size()>0)
-        numHistoryValues = assemblyFEElements_[0]->getHistoryLength()/4; // 34*4 
+        numHistoryValues = 34; //assemblyFEElements_[0]->getHistoryLength()/4; // 34*4 
 
     cout << " Num History Values " << numHistoryValues << endl;
     // Multiplicity of nodes (nodes being in more then one element) with weights from interpolation between gausspoints an node points
