@@ -129,6 +129,8 @@ void DAESolverInTime<SC,LO,GO,NO>::defineTimeStepping(SmallMatrix<int> &timeStep
     timeSteppingTool_.reset(new TimeSteppingTools(sublist(parameterList_,"Timestepping Parameter") , comm_));
     isTimeSteppingDefined_ = true;
 
+    timeSteppingTool_->printInfo();
+
     // Now we will check if we perform a restart and set the time accordingly.
     // bool restart = parameterList_->sublist("Timestepping Parameter").get("Restart",false);
     // // If we restart we also need to change the starting time
@@ -762,7 +764,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     // problemCoeff vor A (= komplettes steady-System)
     // massCoeff vor M (= Massematrix)
     // coeffSourceTerm vor f (= rechte Seite der DGL)
-    
+    timeSteppingTool_->printInfo();
+
     SCIProblemPtr_Type sci = Teuchos::rcp_dynamic_cast<SCIProblem_Type>( this->problemTime_->getUnderlyingProblem() );
     
     bool print = parameterList_->sublist("General").get("ParaViewExport",false);
