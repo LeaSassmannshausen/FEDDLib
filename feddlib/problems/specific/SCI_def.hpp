@@ -1361,6 +1361,15 @@ void SCI<SC,LO,GO,NO>::importValuesOfInterest()
         }
 
     }
+    MultiVectorConstPtr_Type c; 
+    if(chemistryExplicit_)
+        c= this->problemTimeChem_->getSolution()->getBlock(0);
+    else
+        c = this->solution_->getBlock(1);
+
+    MultiVectorConstPtr_Type d = this->solution_->getBlock(0);
+    d_rep_->importFromVector(d, true); 
+    this->feFactory_->updateSolutionAssemblyFEElements(d_rep_, c_rep_ );    
 }
 
 }

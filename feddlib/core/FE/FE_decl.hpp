@@ -582,8 +582,25 @@ class FE {
         }
         
     };
-
-
+    void updateSolutionAssemblyFEElements(MultiVectorPtr_Type d_rep , MultiVectorPtr_Type c_rep) 
+    {
+        ElementsPtr_Type elementsSolid = domainVec_.at(0)->getElementsC();
+        
+        vec_dbl_Type solution_c;
+	    vec_dbl_Type solution_d;
+        for (UN T=0; T<assemblyFEElements_.size(); T++) {
+		    vec_dbl_Type solution(0);
+            
+            solution_d = getSolution(elementsSolid->getElement(T).getVectorNodeList(), d_rep,3);
+            solution_c = getSolution(elementsSolid->getElement(T).getVectorNodeList(), c_rep,1);
+            // First Solid, then Chemistry
+            solution.insert( solution.end(), solution_d.begin(), solution_d.end() );
+            solution.insert( solution.end(), solution_c.begin(), solution_c.end() );
+            
+            assemblyFEElements_[T]->updateSolution(solution);
+        }
+        
+    };
 
     void advanceInTimeAssemblyFEElements(double dt ,MultiVectorPtr_Type d_rep) 
     {
