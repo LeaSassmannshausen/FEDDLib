@@ -848,7 +848,7 @@ typename FE<SC, LO, GO, NO>::BlockMultiVectorPtr_Type FE<SC, LO, GO, NO>::getHis
     if(assemblyFEElements_.size()>0)
         numHistoryValues = assemblyFEElements_[0]->getHistoryLength()/4; // 34*4 
 
-    cout << " Num History Values " << endl;
+    cout << " Num History Values " << numHistoryValues << endl;
     // Multiplicity of nodes (nodes being in more then one element) with weights from interpolation between gausspoints an node points
     BlockMultiVectorPtr_Type historyElements =  Teuchos::rcp( new BlockMultiVector_Type(4) );
     MultiVectorPtr_Type historyElements_1 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues) );
