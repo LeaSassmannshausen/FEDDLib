@@ -130,13 +130,12 @@ void DAESolverInTime<SC,LO,GO,NO>::defineTimeStepping(SmallMatrix<int> &timeStep
     isTimeSteppingDefined_ = true;
 
     // Now we will check if we perform a restart and set the time accordingly.
-    bool restart = parameterList_->sublist("Timestepping Parameter").get("Restart",false);
-    // If we restart we also need to change the starting time
-    if(restart)
-    {
-        timeSteppingTool_->t_ = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
-
-    }
+    // bool restart = parameterList_->sublist("Timestepping Parameter").get("Restart",false);
+    // // If we restart we also need to change the starting time
+    // if(restart)
+    // {
+    //     timeSteppingTool_->t_ = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
+    // }
 
 
 }
