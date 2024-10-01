@@ -133,8 +133,8 @@ void TimeSteppingTools::setParameter(){
     }
 
     // Updating time if restart occurs.
-    bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
-    bool timeStep = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
+    bool restart = this->parameterList_->get("Restart", false);
+    bool timeStep = this->parameterList_->get("Time step", 0.0);
 
     if(restart)
         t_ = timeStep;
