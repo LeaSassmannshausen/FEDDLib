@@ -858,9 +858,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         if(timeSteppingTool_->currentTime() < timeParametersVec[i+1][0] && timeSteppingTool_->currentTime()+1.0e-12 > timeParametersVec[i][0] ){
             dt=timeParametersVec[i][1];
             timeSteppingTool_->dt_ = dt;
-            cout << " Assining dt= " << dt << " for [" << timeParametersVec[i][0] << " , " << timeParametersVec[i+1][0] << "]" << endl;
         }
-
     }
     cout << " dt in advance in time " << dt << " with time " << timeSteppingTool_->currentTime() << endl;
     // Notwendige Parameter

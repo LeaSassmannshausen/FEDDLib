@@ -281,6 +281,8 @@ void TimeSteppingTools::advanceTime(bool printInfo){
     if (printInfo)
         this->printInfo();
 
+    cout << " Advancing in TIME in Timestepping Tool " << endl;
+
 }
 
 void TimeSteppingTools::printInfo(){
