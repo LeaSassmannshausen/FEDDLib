@@ -267,23 +267,22 @@ int main(int argc, char *argv[])
         errorValues->abs(errorValuesAbs);
 
         Teuchos::Array<SC> norm(1); 
-        errorValues->norm2(norm);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
+        errorValues->normInf(norm);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
         double res = norm[0];
         if(comm->getRank() ==0)
-            cout << " 2 Norm of Error of Solution Velocity " << res << endl;
+            cout << " Inf Norm of Error of Solution " << res << endl;
+
+        errorValues->norm2(norm);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
+        res = norm[0];
+        if(comm->getRank() ==0)
+            cout << " 2 Norm of Error of Solution " << res << endl;
+
         double NormError = res;
 
         sci.getSolution()->norm2(norm);
         res = norm[0];
         if(comm->getRank() ==0)
-            cout << " 2 rel. Norm to solution navier stokes " << NormError/res << endl;
-
-        sci.getSolution()->norm2(norm);
-        res = norm[0];
-        if(comm->getRank() ==0)
-            cout << " 2 rel. Norm to solutions navier stokes assemFE " << NormError/res << endl;
-
-
+            cout << " 2 rel. Norm to solution  " << NormError/res << endl;
     }
 
 
