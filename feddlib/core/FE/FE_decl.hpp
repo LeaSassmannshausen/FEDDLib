@@ -586,6 +586,8 @@ class FE {
     {
         ElementsPtr_Type elementsSolid = domainVec_.at(0)->getElementsC();
         
+        cout << " ----- We update the solution  -----------" << endl;
+        d_rep->print();
         vec_dbl_Type solution_c;
 	    vec_dbl_Type solution_d;
         for (UN T=0; T<assemblyFEElements_.size(); T++) {

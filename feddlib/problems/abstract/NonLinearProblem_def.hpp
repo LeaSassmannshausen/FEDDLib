@@ -33,6 +33,7 @@ namespace FEDD
                                                                                                                        coeff_(0),
                                                                                                                        exporterResidual_(0)
     {
+        
     }
     template <class SC, class LO, class GO, class NO>
     NonLinearProblem<SC, LO, GO, NO>::~NonLinearProblem()
