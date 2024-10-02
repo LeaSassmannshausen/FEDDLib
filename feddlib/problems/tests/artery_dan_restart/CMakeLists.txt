@@ -11,11 +11,31 @@ TRIBITS_ADD_TEST(
 )
 
 TRIBITS_COPY_FILES_TO_BINARY_DIR(data_artery_dan_restart
-	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
-	SOURCE_FILES materialParameters_dan.xml preconditionerParameters_Chemistry.xml preconditionerParameters_Structure.xml simulationParameters.xml solverParameters.xml slurm-script.sh
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} 
+	SOURCE_FILES materialParameters_dan.xml preconditionerParameters_Chemistry.xml 
+	preconditionerParameters_Structure.xml simulationParameters.xml solverParameters.xml slurm-script.sh
+	referenceSolution/History0.500000.h5
+	referenceSolution/History4.000000.h5
+	referenceSolution/History25.000000.h5
+	referenceSolution/Solution0.h5
+	referenceSolution/Solution1.h5
+	# referenceSolution/c.h5
+	# referenceSolution/c.xmf
+	# referenceSolution/d_s.h5
+	# referenceSolution/d_s.xmf
 	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
-	DEST_FILES materialParameters_dan.xml preconditionerParameters_Chemistry.xml preconditionerParameters_Structure.xml simulationParameters.xml solverParameters.xml slurm-script.sh
-	EXEDEPS artery_dan_restart
+	DEST_FILES materialParameters_dan.xml preconditionerParameters_Chemistry.xml 
+	preconditionerParameters_Structure.xml simulationParameters.xml solverParameters.xml slurm-script.sh
+	History0.500000.h5
+	History4.000000.h5
+	History25.000000.h5
+	Solution0.h5
+	Solution1.h5
+	# referenceSolution/c.h5
+	# referenceSolution/c.xmf
+	# referenceSolution/d_s.h5
+	# referenceSolution/d_s.xmf
+	EXEDEPS artery_dan_restart 
 )
 
 TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_artery_dan_restart

@@ -1,0 +1,3 @@
+Exporting time step to Solution1 with varname  0.500000
+Exporting time step to Solution1 with varname  4.000000
+Exporting time step to Solution1 with varname  25.000000

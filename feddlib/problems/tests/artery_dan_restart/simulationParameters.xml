@@ -88,27 +88,29 @@
     </ParameterList>
     <ParameterList name="Timestepping Parameter">
         <!-- CHECKPOINTING -->
-        <Parameter name="Checkpointing" type="bool"  value="true"/> 
+        <Parameter name="Checkpointing" type="bool"  value="false"/> 
         <Parameter name="Number Checkpoints"  type="int"   	value="2"/>
         <ParameterList name="Checkpoints">
-         	<Parameter name="1" type="double"   	value="0.4"/>
-         	<Parameter name="2" type="double"   	value="0.8"/>
+         	<Parameter name="1" type="double"   	value="0.5"/>
+         	<Parameter name="2" type="double"   	value="4.0"/>
         </ParameterList>
        	<!-- Import: Read solution from hdf5 as start soltion :::: RESTART     -->
-        <Parameter name="Restart" type="bool"  value="false"/>
-        <Parameter name="Time step" type="double"   	value="0.4"/> <!-- this time must be set as variable name import. Variable name import need to be set for 6 dezimal points -->
-        <Parameter name="Export history" type="bool"  value="true"/>
-        <Parameter name="Import history" type="bool"  value="false"/>
+        <Parameter name="Restart" type="bool"  value="true"/>
+        <Parameter name="Time step" type="double"   	value="0.5"/> <!-- this time must be set as variable name import. Variable name import need to be set for 6 dezimal points -->
+        <Parameter name="Export history" type="bool"  value="false"/>
+        <Parameter name="Import history" type="bool"  value="true"/>
 
-        <!-- <Parameter name="File name import" type="string" value="Solution/Solution"/> --> <!-- general name of the import file which will be extended by a block id -->
-
+        <!-- Parameters to compare the computed solution to a reference solution-->
+        
+        <Parameter name="File name import" type="string" value="referenceSolution/Solution"/>  <!-- general name of the import file which will be extended by a block id -->
+        <Parameter name="Final time" type="double" value="4.0"/> <!-- Final time we compare to -->
 
 
         <Parameter name="BDF" type="int" value="1"/>
         <Parameter name="Class" type="string" value="Multistep"/> <!-- External, Multistep-->
         <Parameter name="Timestepping type" type="string" value="non-adaptive"/><!--non-adaptive,adaptive:not working for BDF2-->
     
-        <Parameter name="Final time" type="double" value="1"/>
+        <Parameter name="Final time" type="double" value="4.0"/>
         <Parameter name="dt" type="double" value=".05"/>
         <Parameter name="beta" type="double" value="0.25"/> <!-- newmark method parameter-->
         <Parameter name="gamma" type="double" value="0.5"/> <!-- newmark method parameter-->
