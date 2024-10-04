@@ -229,7 +229,7 @@ namespace FEDD {
          \brief Obtain history values of element
          \return values
         */
-        vec_dbl_Type getLocalHistory() {cout << " Timestep in FEELEMENT " << timeStep_ << endl; return history_;};
+        vec_dbl_Type getLocalHistory() {return history_;};
 
         vec_dbl_Type getLocalHistoryUpdated() {return historyUpdated_;};
 
