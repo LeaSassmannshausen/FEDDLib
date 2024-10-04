@@ -374,9 +374,9 @@ namespace FEDD
 #ifdef FEDD_HAVE_ACEGENINTERFACE
 
 		// We check this in case of restart. Then the history parameters are already set or we are already in a state of reorientation etc. Then the history does not need to be explicitly updated again.
-		bool restart = params_->sublist("Timestepping Parameter").get("Restart",false);
+		bool restart = this->params_->sublist("Timestepping Parameter").get("Restart",false);
 	  	if(restart){
-		  	double timeStepRestart = params_->sublist("Timestepping Parameter").get("Time step", 0.0) ;//- timeIncrement_;
+		  	double timeStepRestart = this->params_->sublist("Timestepping Parameter").get("Time step", 0.0) ;//- timeIncrement_;
 			// we need to look for the correct first time increment
 			if(this->timeStep_ -1.e-10 < timeStepRestart && this->historyImported_)
 				checkingReorientationActiveGrowth();		
