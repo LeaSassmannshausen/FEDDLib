@@ -211,8 +211,7 @@ LO Domain<SC,LO,GO,NO>::getApproxEntriesPerRow() const{
 template <class SC, class LO, class GO, class NO>
 void Domain<SC,LO,GO,NO>::buildMesh(int flagsOption , std::string meshType, int dim, std::string FEType, int N, int M, int numProcsCoarseSolve){
 
-            int geoNumber = checkGeomentry(meshType, dim);
-            cout << " Geo Number " << geoNumber <<  endl;
+    int geoNumber = checkGeomentry(meshType, dim);
 #ifdef ASSERTS_WARNINGS
     MYASSERT(geoNumber!=-1, "Geometry not known for this Dimension.")
 #endif

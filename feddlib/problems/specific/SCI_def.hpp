@@ -1291,6 +1291,7 @@ void SCI<SC,LO,GO,NO>::exportValuesOfInterest()
 
     if(exportHistory)
     {
+
         BlockMultiVectorPtr_Type historyValues;
         this->getValuesOfInterest(historyValues);
 
@@ -1321,7 +1322,6 @@ void SCI<SC,LO,GO,NO>::importValuesOfInterest()
 
     if(importHistory)
     {
-        cout << " Importing values of interest " << endl;
         // BlockMultiVectorPtr_Type historyValues;
         // problem_->getValuesOfInterest(historyValues);
 

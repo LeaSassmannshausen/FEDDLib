@@ -466,8 +466,6 @@ int main(int argc, char *argv[])
         domainChem->setReferenceConfiguration();
         domainStructure->setReferenceConfiguration();
 
-        MultiVectorPtr_Type nodes(domainStructure->getNodeListMV());
-
         // Defining diffusion tensor. Only used for explicit approach
         vec2D_dbl_Type diffusionTensor(dim,vec_dbl_Type(3));
         double D0 = parameterListAll->sublist("Parameter Diffusion").get("D0",1.);
@@ -636,18 +634,21 @@ int main(int argc, char *argv[])
 
         daeTimeSolver.advanceInTime();
 
-
-
         // Testing restarted solution
-
         std::string fileName = parameterListStructureAll->sublist("Timestepping Parameter").get("File name import", "Solution");
         double finalTime = parameterListStructureAll->sublist("Timestepping Parameter").get("Final time", 0.0);
         HDF5Import<SC,LO,GO,NO> importer(sci.getSolution()->getBlock(0)->getMap(),fileName+std::to_string(0));
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5(std::to_string(finalTime));
 
-        // Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaVelocity(new ExporterParaView<SC,LO,GO,NO>());
+        Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaResults(new ExporterParaView<SC,LO,GO,NO>());
+        exParaResults->setup("Restart_Error", domainStructure->getMesh(), domainStructure->getFEType());
+
 
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionV = sci.getSolution()->getBlock(0);
+
+        // Adding solution to paraview exporter
+        exParaResults->addVariable(exportSolutionV, "d", "Vector", 3, domainStructure->getMapUnique());
+        exParaResults->addVariable(solutionImported, "d_import", "Vector", 3,  domainStructure->getMapUnique());
 
         // Calculating the error per node
         Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValues = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( sci.getSolution()->getBlock(0)->getMap() ) ); 
@@ -677,6 +678,11 @@ int main(int argc, char *argv[])
         if(comm->getRank() ==0)
             cout << " 2 rel. Norm to solution  " << NormError/res << endl;
 
+
+        // Adding error to paraview exporter
+        exParaResults->addVariable(errorValuesAbs, "d-dImport", "Vector", 3,  domainStructure->getMapUnique());
+
+        exParaResults->save(0.0);
 
     }
     TimeMonitor_Type::report(std::cout);

@@ -27,10 +27,21 @@ AssembleFE<SC, LO, GO, NO>::AssembleFE(int flag, vec2D_dbl_Type nodesRefConfig, 
 
     // Checking for restart. In case of restart we need to adjust the current time step.
     bool restart = params_->sublist("Timestepping Parameter").get("Restart",false);
-	if(restart)
-		timeStep_ = params_->sublist("Timestepping Parameter").get("Time step", 0.0) - timeIncrement_;
+	  if(restart){
+		  timeStep_ = params_->sublist("Timestepping Parameter").get("Time step", 0.0) ;//- timeIncrement_;
+      // we need to look for the correct first time increment
+      int numSegments = params_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").get("Number of Segments",0);
 
+      for(int i=1; i <= numSegments; i++){
+
+            double startTime = params_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("Start Time",0.);
+            
+            if(startTime-1e-10 < timeStep_)
+              timeIncrement_ = params_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("dt",0.1);
+      }
 	
+    }
+    historyImported_=false; // If we restart from a previous solution, we also ne to import the history values.
 
 /// Element Numbering for triangular elements:
 /*!
@@ -154,6 +165,7 @@ template <class SC, class LO, class GO, class NO>
 void AssembleFE<SC, LO, GO, NO>::setLocalHistory(vec_dbl_Type history) {
 	  TEUCHOS_TEST_FOR_EXCEPTION(history.size() != history_.size(), std::runtime_error, "Input history and current history have different length. History input " << history.size() << " history current " <<history_.size() );
     this->history_ = history;
+    historyImported_=true;
 };
 template <class SC, class LO, class GO, class NO>
 void AssembleFE<SC, LO, GO, NO>::setLocalHistoryUpdated(vec_dbl_Type history) {

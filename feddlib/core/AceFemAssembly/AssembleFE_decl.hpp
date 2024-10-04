@@ -229,7 +229,7 @@ namespace FEDD {
          \brief Obtain history values of element
          \return values
         */
-        vec_dbl_Type getLocalHistory() {return history_;};
+        vec_dbl_Type getLocalHistory() {cout << " Timestep in FEELEMENT " << timeStep_ << endl; return history_;};
 
         vec_dbl_Type getLocalHistoryUpdated() {return historyUpdated_;};
 
@@ -289,6 +289,7 @@ namespace FEDD {
 
         vec_dbl_Type historyUpdated_;
 		vec_dbl_Type history_;
+        bool historyImported_;
 		int historyLength_;				// Length of history vector
 
         friend class AssembleFEFactory<SC,LO,GO,NO>;

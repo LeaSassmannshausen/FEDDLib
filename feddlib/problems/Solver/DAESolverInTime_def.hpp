@@ -1204,8 +1204,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
 
         if (printData) {
             exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
-            exporterIterations->exportData( (*its)[0] );
-            exporterNewtonIterations->exportData( (*its)[1] );
+            exporterIterations->exportData(timeSteppingTool_->currentTime(), (*its)[0] );
+            exporterNewtonIterations->exportData(timeSteppingTool_->currentTime(), (*its)[1] );
 
             vec_dbl_Type d_s(0);
             double norm=0.;
