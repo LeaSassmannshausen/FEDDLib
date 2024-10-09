@@ -1200,7 +1200,7 @@ int main(int argc, char *argv[])
         if(comm->getRank() ==0){
             cout << " Inf Norm of Error of Fluid Solution " << normInf[0] << endl;
             cout << " 2 Norm of Error of FluidSolution " << norm2[0] << endl;
-            cout << " 2 rel. Norm Fluid  " << norm2/res << endl;
+            cout << " 2 rel. Norm Fluid  " << norm2[0]/res << endl;
         }
         if(comm->getRank() ==0)
             cout << " ---------------------- " << endl;
@@ -1248,7 +1248,7 @@ int main(int argc, char *argv[])
         if(comm->getRank() ==0){
             cout << " Inf Norm of Error of Fluid Solution " << normInf[0] << endl;
             cout << " 2 Norm of Error of FluidSolution " << norm2[0] << endl;
-            cout << " 2 rel. Norm Fluid  " << norm2/res << endl;
+            cout << " 2 rel. Norm Fluid  " << norm2[0]/res << endl;
         }
         if(comm->getRank() ==0)
             cout << " ---------------------- " << endl;
@@ -1272,7 +1272,7 @@ int main(int argc, char *argv[])
         if(comm->getRank() ==0){
             cout << " Inf Norm of Error of Fluid Solution " << normInf[0] << endl;
             cout << " 2 Norm of Error of FluidSolution " << norm2[0] << endl;
-            cout << " 2 rel. Norm Fluid  " << norm2/res << endl;
+            cout << " 2 rel. Norm Fluid  " << norm2[0]/res << endl;
         }
         if(comm->getRank() ==0)
             cout << " ---------------------- " << endl;
