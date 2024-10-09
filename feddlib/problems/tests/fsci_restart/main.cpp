@@ -1121,38 +1121,38 @@ int main(int argc, char *argv[])
          // Testing restarted solution
         std::string fileName = parameterListStructureAll->sublist("Timestepping Parameter").get("File name import", "Solution");
         double finalTime = parameterListStructureAll->sublist("Timestepping Parameter").get("Final time compare", 0.0);
-        HDF5Import<SC,LO,GO,NO> importer(fsci.getSolution()->getBlock(0)->getMap(),fileName+std::to_string(0));
-        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedV = importer.readVariablesHDF5(std::to_string(finalTime));
+        HDF5Import<SC,LO,GO,NO> importerV(fsci.getSolution()->getBlock(0)->getMap(),fileName+std::to_string(0));
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedV = importerV.readVariablesHDF5(std::to_string(finalTime));
 
-        HDF5Import<SC,LO,GO,NO> importer(fsci.getSolution()->getBlock(1)->getMap(),fileName+std::to_string(1));
-        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedP = importer.readVariablesHDF5(std::to_string(finalTime));
+        HDF5Import<SC,LO,GO,NO> importerP(fsci.getSolution()->getBlock(1)->getMap(),fileName+std::to_string(1));
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedP = importerP.readVariablesHDF5(std::to_string(finalTime));
 
-        HDF5Import<SC,LO,GO,NO> importer(fsci.getSolution()->getBlock(2)->getMap(),fileName+std::to_string(2));
-        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedD = importer.readVariablesHDF5(std::to_string(finalTime));
+        HDF5Import<SC,LO,GO,NO> importerD(fsci.getSolution()->getBlock(2)->getMap(),fileName+std::to_string(2));
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedD = importerD.readVariablesHDF5(std::to_string(finalTime));
 
-        HDF5Import<SC,LO,GO,NO> importer(fsci.getSolution()->getBlock(4)->getMap(),fileName+std::to_string(4));
-        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedC = importer.readVariablesHDF5(std::to_string(finalTime));
+        HDF5Import<SC,LO,GO,NO> importerC(fsci.getSolution()->getBlock(4)->getMap(),fileName+std::to_string(4));
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedC = importerC.readVariablesHDF5(std::to_string(finalTime));
 
-        HDF5Import<SC,LO,GO,NO> importer(fsci.getSolution()->getBlock(3)->getMap(),fileName+std::to_string(3));
-        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedG = importer.readVariablesHDF5(std::to_string(finalTime));
+        HDF5Import<SC,LO,GO,NO> importerG(fsci.getSolution()->getBlock(3)->getMap(),fileName+std::to_string(3));
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedG = importerG.readVariablesHDF5(std::to_string(finalTime));
 
         // ---------------
         // Exporter
         // ---------------
         Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaResultsVel(new ExporterParaView<SC,LO,GO,NO>());
-        exParaResults->setup("Restart_Error_v", domainFluidVelocity->getMesh(), domainFluidVelocity->getFEType());
+        exParaResultsVel->setup("Restart_Error_v", domainFluidVelocity->getMesh(), domainFluidVelocity->getFEType());
 
         Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaResultsPres(new ExporterParaView<SC,LO,GO,NO>());
-        exParaResults->setup("Restart_Error_p", domainFluidPressure->getMesh(), domainFluidPressure->getFEType());
+        exParaResultsPres->setup("Restart_Error_p", domainFluidPressure->getMesh(), domainFluidPressure->getFEType());
 
         Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaResultsStructure(new ExporterParaView<SC,LO,GO,NO>());
-        exParaResults->setup("Restart_Error_d", domainStructure->getMesh(), domainStructure->getFEType());
+        exParaResultsStructure->setup("Restart_Error_d", domainStructure->getMesh(), domainStructure->getFEType());
 
         Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaResultsChem(new ExporterParaView<SC,LO,GO,NO>());
-        exParaResults->setup("Restart_Error_c", domainChem->getMesh(), domainChem->getFEType());
+        exParaResultsChem->setup("Restart_Error_c", domainChem->getMesh(), domainChem->getFEType());
 
         Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaResultsGeo(new ExporterParaView<SC,LO,GO,NO>());
-        exParaResults->setup("Restart_Error_g", domainGeometry->getMesh(), domainGeometry->getFEType());
+        exParaResultsGeo->setup("Restart_Error_g", domainGeometry->getMesh(), domainGeometry->getFEType());
 
         // Solutions
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionV = fsci.getSolution()->getBlock(0);
@@ -1265,8 +1265,8 @@ int main(int argc, char *argv[])
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbsC = errorValuesC;
         errorValuesC->abs(errorValuesAbsC);
 
-        errorValues->normInf(normInf);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
-        errorValues->norm2(norm2);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
+        errorValuesC->normInf(normInf);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
+        errorValuesC->norm2(norm2);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
         fsci.getSolution()->getBlock(4)->norm2(normSol2);
         res = normSol2[0];
         if(comm->getRank() ==0){
