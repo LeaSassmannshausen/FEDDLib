@@ -1236,13 +1236,13 @@ int main(int argc, char *argv[])
         // ------------------------------
         Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValuesS = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( fsci.getSolution()->getBlock(2)->getMap() ) ); 
         //this = alpha*A + beta*B + gamma*this
-        errorValuesS->update( 1., exportSolutionS, -1. ,solutionImportedS, 0.);
+        errorValuesS->update( 1., exportSolutionD, -1. ,solutionImportedD, 0.);
         // Taking abs norm
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbsS = errorValuesS;
         errorValuesS->abs(errorValuesAbsS);
 
-        errorValues->normInf(normInf);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
-        errorValues->norm2(norm2);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
+        errorValuesS->normInf(normInf);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
+        errorValuesS->norm2(norm2);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
         fsci.getSolution()->getBlock(2)->norm2(normSol2);
         res = normSol2[0];
         if(comm->getRank() ==0){
