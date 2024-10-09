@@ -7,7 +7,7 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(data_fsci_restart
 	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
 	SOURCE_FILES parametersPrecGE.xml parametersPrecGI.xml parametersPrecGeometry.xml parametersPrecChem.xml parametersProblemFSCI.xml parametersProblemFluid.xml parametersProblemStructure.xml parametersSolverFSCI.xml parametersSolverGeometry.xml parametersPrecFluidMono.xml parametersPrecFluidTeko.xml parametersPrecStructure.xml parametersPrecStructureCE.xml plistProblemLaplace.xml plistPrecLaplace.xml plistSolverLaplace.xml 
 	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
-	DEST_FILES parametersPrecGE.xml parametersPrecGI.xml parametersPrecGeometry.xml parametersPrecChem.xml  parametersProblemFSCI.xml parametersProblemFluid.xml parametersProblemStructure.xml parametersPrecStructureCE.xml parametersSolverFSCI.xml parametersSolverGeometry.xml parametersPrecFluidMono.xml parametersPrecFluidTeko.xml parametersPrecStructure.xml plistProblemLaplace.xml plistPrecLaplace.xml plistSolverLaplace.xml p
+	DEST_FILES parametersPrecGE.xml parametersPrecGI.xml parametersPrecGeometry.xml parametersPrecChem.xml  parametersProblemFSCI.xml parametersProblemFluid.xml parametersProblemStructure.xml parametersPrecStructureCE.xml parametersSolverFSCI.xml parametersSolverGeometry.xml parametersPrecFluidMono.xml parametersPrecFluidTeko.xml parametersPrecStructure.xml plistProblemLaplace.xml plistPrecLaplace.xml plistSolverLaplace.xml 
 	EXEDEPS fsci_restart
 )
 
