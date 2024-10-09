@@ -961,13 +961,13 @@ void FSCI<SC,LO,GO,NO>::initializeGE(){
 }
 
 template<class SC,class LO,class GO,class NO>
-void SCI<SC,LO,GO,NO>::exportValuesOfInterest()
+void FSCI<SC,LO,GO,NO>::exportValuesOfInterest()
 {
     problemSCI_->importValuesOfInterest();   
 }
 
 template<class SC,class LO,class GO,class NO>
-void SCI<SC,LO,GO,NO>::importValuesOfInterest()
+void FSCI<SC,LO,GO,NO>::importValuesOfInterest()
 {
     problemSCI_->importValuesOfInterest();   
 }
