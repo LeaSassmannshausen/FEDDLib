@@ -672,17 +672,17 @@ void FSCI<SC,LO,GO,NO>::setFromPartialVectorsInit() const
 {
     
     //Fluid velocity
-    this->solution_->addBlock( this->problemFluid_->getSolution()->getBlockNonConst(0), 0 );
+    //this->solution_->addBlock( this->problemFluid_->getSolution()->getBlockNonConst(0), 0 );
     this->residualVec_->addBlock( this->problemFluid_->getResidualVector()->getBlockNonConst(0), 0 );
-    this->residualVec_->addBlock( this->problemFluid_->getResidualVector()->getBlockNonConst(0), 0 );
+    //this->previousSolution_->addBlock( this->problemFluid_->getPreviousSolution()->getBlockNonConst(0), 0 );
     this->rhs_->addBlock( this->problemFluid_->getRhs()->getBlockNonConst(0), 0 );
     this->sourceTerm_->addBlock( this->problemFluid_->getSourceTerm()->getBlockNonConst(0), 0 );
     
     //Fluid pressure
-    this->solution_->addBlock( this->problemFluid_->getSolution()->getBlockNonConst(1), 1 );
+    //this->solution_->addBlock( this->problemFluid_->getSolution()->getBlockNonConst(1), 1 );
     this->residualVec_->addBlock( this->problemFluid_->getResidualVector()->getBlockNonConst(1), 1 );
     this->rhs_->addBlock( this->problemFluid_->getRhs()->getBlockNonConst(1), 1 );
-    this->previousSolution_->addBlock( this->problemFluid_->getPreviousSolution()->getBlockNonConst(1), 1 );
+    //this->previousSolution_->addBlock( this->problemFluid_->getPreviousSolution()->getBlockNonConst(1), 1 );
     this->sourceTerm_->addBlock( this->problemFluid_->getSourceTerm()->getBlockNonConst(1), 1 );
     
     /*if (materialModel_=="linear"){
@@ -699,18 +699,18 @@ void FSCI<SC,LO,GO,NO>::setFromPartialVectorsInit() const
         this->sourceTerm_->addBlock( this->problemStructureNonLin_->getSourceTerm()->getBlockNonConst(0), 2 );
     }*/
     // Structure 
-    this->solution_->addBlock( this->problemSCI_->getSolution()->getBlockNonConst(0), 2 );
+    //this->solution_->addBlock( this->problemSCI_->getSolution()->getBlockNonConst(0), 2 );
     this->residualVec_->addBlock( this->problemSCI_->getResidualVector()->getBlockNonConst(0), 2 );
     this->rhs_->addBlock( this->problemSCI_->getRhs()->getBlockNonConst(0), 2 );
-    this->previousSolution_->addBlock( this->problemSCI_->getPreviousSolution()->getBlockNonConst(0), 2 );
+    //this->previousSolution_->addBlock( this->problemSCI_->getPreviousSolution()->getBlockNonConst(0), 2 );
     this->sourceTerm_->addBlock( this->problemSCI_->getSourceTerm()->getBlockNonConst(0), 2 );
 
     // Diffusion 
     if(!chemistryExplicit_){
-        this->solution_->addBlock( this->problemSCI_->getSolution()->getBlockNonConst(1), 4 );
+        //this->solution_->addBlock( this->problemSCI_->getSolution()->getBlockNonConst(1), 4 );
         this->residualVec_->addBlock( this->problemSCI_->getResidualVector()->getBlockNonConst(1), 4 );
         this->rhs_->addBlock( this->problemSCI_->getRhs()->getBlockNonConst(1), 4 );
-        this->previousSolution_->addBlock( this->problemSCI_->getPreviousSolution()->getBlockNonConst(1), 4 );
+        //this->previousSolution_->addBlock( this->problemSCI_->getPreviousSolution()->getBlockNonConst(1), 4 );
         this->sourceTerm_->addBlock( this->problemSCI_->getSourceTerm()->getBlockNonConst(1), 4 );
     }
    /* if(!this->geometryExplicit_){
@@ -958,6 +958,18 @@ void FSCI<SC,LO,GO,NO>::initializeGE(){
         }
         this->initVectorSpaces();  //reinitialize NOX vector spaces
     }
+}
+
+template<class SC,class LO,class GO,class NO>
+void SCI<SC,LO,GO,NO>::exportValuesOfInterest()
+{
+    problemSCI_->importValuesOfInterest();   
+}
+
+template<class SC,class LO,class GO,class NO>
+void SCI<SC,LO,GO,NO>::importValuesOfInterest()
+{
+    problemSCI_->importValuesOfInterest();   
 }
 
 }
