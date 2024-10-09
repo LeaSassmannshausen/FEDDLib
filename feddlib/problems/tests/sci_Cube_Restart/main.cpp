@@ -636,7 +636,7 @@ int main(int argc, char *argv[])
 
         // Testing restarted solution
         std::string fileName = parameterListStructureAll->sublist("Timestepping Parameter").get("File name import", "Solution");
-        double finalTime = parameterListStructureAll->sublist("Timestepping Parameter").get("Final time", 0.0);
+        double finalTime = parameterListStructureAll->sublist("Timestepping Parameter").get("Final time compare", 0.0);
         HDF5Import<SC,LO,GO,NO> importer(sci.getSolution()->getBlock(0)->getMap(),fileName+std::to_string(0));
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5(std::to_string(finalTime));
 

@@ -16,5 +16,5 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_fsci_restart
     SOURCE_FILES fluid_length_0_5_simp.mesh solid_length_0_5_simp.mesh
 	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
 	DEST_FILES  fluid_length_0_5_simp.mesh solid_length_0_5_simp.mesh
-	EXEDEPS fscfsci_restarti
+	EXEDEPS fsci_restart
 )
