@@ -1,8 +1,6 @@
 <ParameterList name="unsteady Navier-Stokes">
     <ParameterList name="Parameter">
         <Parameter name="Dimension" type="int" value="2"/>
-        <Parameter name="Discretization Velocity" type="string" value="P2"/><!--P1, P2; velocity -->
-        <Parameter name="Discretization Pressure" type="string" value="P1"/>
         <Parameter name="Viscosity" type="double" value=".001"/>
         <Parameter name="Density" type="double" value="1."/>
         <Parameter name="MaxVelocity" type="double" value="1.5"/>

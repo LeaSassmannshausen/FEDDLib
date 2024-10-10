@@ -50,7 +50,7 @@ u_rep_()
     this->nonLinearTolerance_ = this->parameterList_->sublist("Parameter").get("relNonLinTol",1.0e-6);
     this->initNOXParameters();
 
-    this->addVariable( domainVelocity , FETypeVelocity , "u" , domainVelocity->getDimension());
+    this->addVariable( domainVelocity , FETypeVelocity , "u_f" , domainVelocity->getDimension());
     this->addVariable( domainPressure , FETypePressure , "p" , 1);
     this->dim_ = this->getDomain(0)->getDimension();
 
