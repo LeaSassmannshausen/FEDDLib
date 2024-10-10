@@ -588,20 +588,20 @@ void SCI<SC,LO,GO,NO>::setFromPartialVectorsInit() const
     
     //Chem 
     if(!chemistryExplicit_){
-        // this->solution_->addBlock( this->problemChem_->getSolution()->getBlockNonConst(0), 1);
+        this->solution_->addBlock( this->problemChem_->getSolution()->getBlockNonConst(0), 1);
         //this->residualVec_->addBlock( this->problemChem_->getResidualVector()->getBlockNonConst(0), 1 );
         this->rhs_->addBlock( this->problemChem_->getRhs()->getBlockNonConst(0), 1 );
         this->sourceTerm_->addBlock( this->problemChem_->getSourceTerm()->getBlockNonConst(0), 1 );
     }
 
     if (materialModel_=="SCI_Linear"){
-        // this->solution_->addBlock( this->problemStructure_->getSolution()->getBlockNonConst(0), 0);
+        this->solution_->addBlock( this->problemStructure_->getSolution()->getBlockNonConst(0), 0);
         // we dont have a residual vector for linear problems
         this->rhs_->addBlock( this->problemStructure_->getRhs()->getBlockNonConst(0), 0 );
         this->sourceTerm_->addBlock( this->problemStructure_->getSourceTerm()->getBlockNonConst(0), 0 );
     }
     else{
-        // this->solution_->addBlock( this->problemStructureNonLin_->getSolution()->getBlockNonConst(0), 0);
+        this->solution_->addBlock( this->problemStructureNonLin_->getSolution()->getBlockNonConst(0), 0);
         this->residualVec_->addBlock( this->problemStructureNonLin_->getResidualVector()->getBlockNonConst(0), 0 );
         this->rhs_->addBlock( this->problemStructureNonLin_->getRhs()->getBlockNonConst(0), 0 );
         // this->previousSolution_->addBlock( this->problemStructureNonLin_->getPreviousSolution()->getBlockNonConst(0), 0 );
