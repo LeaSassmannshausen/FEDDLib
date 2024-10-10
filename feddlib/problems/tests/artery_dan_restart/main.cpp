@@ -249,7 +249,7 @@ int main(int argc, char *argv[])
 
         std::string fileName = allParameters->sublist("Timestepping Parameter").get("File name import", "Solution");
         double finalTime = allParameters->sublist("Timestepping Parameter").get("Final time compare", 0.0);
-        HDF5Import<SC,LO,GO,NO> importer(sci.getSolution()->getBlock(0)->getMap(),fileName+std::to_string(0));
+        HDF5Import<SC,LO,GO,NO> importer(sci.getSolution()->getBlock(0)->getMap(),fileName+"d_s");
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5(std::to_string(finalTime));
 
         // Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaVelocity(new ExporterParaView<SC,LO,GO,NO>());

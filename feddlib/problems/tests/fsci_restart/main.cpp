@@ -1121,19 +1121,19 @@ int main(int argc, char *argv[])
          // Testing restarted solution
         std::string fileName = parameterListStructureAll->sublist("Timestepping Parameter").get("File name import", "Solution");
         double finalTime = parameterListStructureAll->sublist("Timestepping Parameter").get("Final time compare", 0.0);
-        HDF5Import<SC,LO,GO,NO> importerV(fsci.getSolution()->getBlock(0)->getMap(),fileName+std::to_string(0));
+        HDF5Import<SC,LO,GO,NO> importerV(fsci.getSolution()->getBlock(0)->getMap(),fileName+"u_f");
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedV = importerV.readVariablesHDF5(std::to_string(finalTime));
 
-        HDF5Import<SC,LO,GO,NO> importerP(fsci.getSolution()->getBlock(1)->getMap(),fileName+std::to_string(1));
+        HDF5Import<SC,LO,GO,NO> importerP(fsci.getSolution()->getBlock(1)->getMap(),fileName+"p");
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedP = importerP.readVariablesHDF5(std::to_string(finalTime));
 
-        HDF5Import<SC,LO,GO,NO> importerD(fsci.getSolution()->getBlock(2)->getMap(),fileName+std::to_string(2));
+        HDF5Import<SC,LO,GO,NO> importerD(fsci.getSolution()->getBlock(2)->getMap(),fileName+"d_s");
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedD = importerD.readVariablesHDF5(std::to_string(finalTime));
 
-        HDF5Import<SC,LO,GO,NO> importerC(fsci.getSolution()->getBlock(4)->getMap(),fileName+std::to_string(4));
+        HDF5Import<SC,LO,GO,NO> importerC(fsci.getSolution()->getBlock(4)->getMap(),fileName+"c");
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedC = importerC.readVariablesHDF5(std::to_string(finalTime));
 
-        HDF5Import<SC,LO,GO,NO> importerG(fsci.getSolution()->getBlock(3)->getMap(),fileName+std::to_string(3));
+        HDF5Import<SC,LO,GO,NO> importerG(fsci.getSolution()->getBlock(3)->getMap(),fileName+"d_f");
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedG = importerG.readVariablesHDF5(std::to_string(finalTime));
 
         // ---------------
