@@ -498,8 +498,6 @@ void SCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
         this->residualVec_->addBlock(Teuchos::rcp_const_cast<MultiVector_Type>(resTmp->getBlock(1)),1);
     }
 
-   
-
     if(nonlinearExternalForce_)
         computeSolidRHSInTime();
 

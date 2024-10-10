@@ -768,7 +768,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionPreviousStep(){
                 for (UN i = 0; i < size; i++)
                 {
                     MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
-                    HDF5Import<SC,LO,GO,NO> importer(map,fileName+std::to_string(i));
+                    HDF5Import<SC,LO,GO,NO> importer(map,fileName+problem_->getVariableName(i));
                     MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
 
                     solutionPreviousTimesteps_[0]->addBlock(aImported,i);
@@ -823,7 +823,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps){
                     for (UN i = 0; i < size; i++)
                     {
                         MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
-                        HDF5Import<SC,LO,GO,NO> importer(map,fileName+std::to_string(i));
+                        HDF5Import<SC,LO,GO,NO> importer(map,fileName+problem_->getVariableName(i));
                         MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
                         solutionPreviousTimesteps_[j]->addBlock(aImported,i);
                     }
@@ -912,7 +912,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionNewmarkPreviousStep(double dt, doub
                     for (UN i = 0; i < size; i++)
                     {
                         MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
-                        HDF5Import<SC,LO,GO,NO> importer(map,fileName+std::to_string(i));
+                        HDF5Import<SC,LO,GO,NO> importer(map,fileName+problem_->getVariableName(i));
                         MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
                         solutionPreviousTimesteps_[j]->addBlock(aImported,i);
                     }
@@ -1618,18 +1618,6 @@ Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> TimeProblem<SC,LO,GO,NO>::getExporter(str
            
         return HDF5exporterDsAcceleration_;
     }
-    else if(fileName =="u_Solution"){
-        if(HDF5exporterFluidSolution_.size() <1)
-            initExporter(fileName);
-
-        return HDF5exporterFluidSolution_.at(i);        
-    }
-    else if(fileName =="ds_Solution"){
-        if(HDF5exporterDsSolution_.size() <1)
-            initExporter(fileName);
-
-        return HDF5exporterDsSolution_.at(i); 
-    }
     else if(fileName =="Solution"){
         if(HDF5exporterSolution_.size() <1)
             initExporter(fileName);
@@ -1656,27 +1644,11 @@ void TimeProblem<SC,LO,GO,NO>::initExporter(string fileName  ){
     else if(fileName =="ds_Acceleration")
         HDF5exporterDsAcceleration_.reset(new HDF5Export<SC,LO,GO,NO>(problem_->getSolution()->getBlock(0)->getMap(),fileName));
 
-    else if(fileName =="u_Solution"){
-        int size = this->getSolution()->size();
-        for (UN i = 0; i < size; i++)
-        {
-            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter = Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),fileName+std::to_string(i)));
-            HDF5exporterFluidSolution_.push_back(exporter);
-        }
-    }
-    else if(fileName =="ds_Solution"){
-        int size = this->getSolution()->size();
-        for (UN i = 0; i < size; i++)
-        {
-            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),fileName+std::to_string(i)));
-            HDF5exporterDsSolution_.push_back(exporter);
-        }
-    }
     else if(fileName =="Solution"){
         int size = this->getSolution()->size();
         for (UN i = 0; i < size; i++)
         {
-            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),fileName+std::to_string(i)));
+            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),fileName+problem_->getVariableName(i)));
             HDF5exporterSolution_.push_back(exporter);
         }
     }

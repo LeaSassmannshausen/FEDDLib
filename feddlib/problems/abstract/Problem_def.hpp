@@ -432,7 +432,7 @@ namespace FEDD
                 std::string varName = std::to_string(0.0);
 
                 MapConstPtr_Type map = solution_->getBlock(i)->getMap();
-                HDF5Import<SC,LO,GO,NO> importer(map,fileName+std::to_string(i));
+                HDF5Import<SC,LO,GO,NO> importer(map,fileName+variableName_vec_[i]);
                 MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
                 solution_->addBlock(aImported,i);
             }
@@ -442,7 +442,7 @@ namespace FEDD
                 std::string varName = std::to_string(parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0));
 
                 MapConstPtr_Type map = solution_->getBlock(i)->getMap();
-                HDF5Import<SC,LO,GO,NO> importer(map,fileName+std::to_string(i));
+                HDF5Import<SC,LO,GO,NO> importer(map,fileName+variableName_vec_[i]);
                 MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
                 solution_->addBlock(aImported,i);
             }

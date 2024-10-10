@@ -355,7 +355,6 @@ namespace FEDD
 	{
 
 		this->rhsVec_.reset(new vec_dbl_Type(this->dofsElement_, 0.));
-
 #ifdef FEDD_HAVE_ACEGENINTERFACE
 
 		assemble_SCI_SMC_Active_Growth_Reorientation(false);

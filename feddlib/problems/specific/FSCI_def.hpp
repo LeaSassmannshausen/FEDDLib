@@ -659,30 +659,25 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
 
 }
 
-// Muss derzeit nur am Anfang jeder Zeititeration aufgerufen werden, damit
-// problemTimeFluid_ und problemTimeStructure_ die aktuelle Loesung haben.
-// ACHTUNG: Wenn wir irgendwann einmal anfangen reAssemble() auf problemFluid_ und
-// problemStructure_ aufzurufen, dann muessen wir in jeder nichtlinearen Iteration
-// diese setPartialSolutions() aufrufen, damit problemFluid_ und problemStructure_
-// den korrekten nichtlinearen Term ausrechnen koennen.
-// CH: Ist das noch relevant?
+// This connects the here computed 'solution_' to the solutions of the subproblems. This way the subproblems have
+// the correct solution when computing residual and co
 // We need to build FSCI so this method is not needed anymore
 template<class SC,class LO,class GO,class NO>
 void FSCI<SC,LO,GO,NO>::setFromPartialVectorsInit() const
 {
     
     //Fluid velocity
-    //this->solution_->addBlock( this->problemFluid_->getSolution()->getBlockNonConst(0), 0 );
+    this->solution_->addBlock( this->problemFluid_->getSolution()->getBlockNonConst(0), 0 );
     this->residualVec_->addBlock( this->problemFluid_->getResidualVector()->getBlockNonConst(0), 0 );
-    //this->previousSolution_->addBlock( this->problemFluid_->getPreviousSolution()->getBlockNonConst(0), 0 );
+    this->previousSolution_->addBlock( this->problemFluid_->getPreviousSolution()->getBlockNonConst(0), 0 );
     this->rhs_->addBlock( this->problemFluid_->getRhs()->getBlockNonConst(0), 0 );
     this->sourceTerm_->addBlock( this->problemFluid_->getSourceTerm()->getBlockNonConst(0), 0 );
     
     //Fluid pressure
-    //this->solution_->addBlock( this->problemFluid_->getSolution()->getBlockNonConst(1), 1 );
+    this->solution_->addBlock( this->problemFluid_->getSolution()->getBlockNonConst(1), 1 );
     this->residualVec_->addBlock( this->problemFluid_->getResidualVector()->getBlockNonConst(1), 1 );
     this->rhs_->addBlock( this->problemFluid_->getRhs()->getBlockNonConst(1), 1 );
-    //this->previousSolution_->addBlock( this->problemFluid_->getPreviousSolution()->getBlockNonConst(1), 1 );
+    this->previousSolution_->addBlock( this->problemFluid_->getPreviousSolution()->getBlockNonConst(1), 1 );
     this->sourceTerm_->addBlock( this->problemFluid_->getSourceTerm()->getBlockNonConst(1), 1 );
     
     /*if (materialModel_=="linear"){
@@ -699,18 +694,18 @@ void FSCI<SC,LO,GO,NO>::setFromPartialVectorsInit() const
         this->sourceTerm_->addBlock( this->problemStructureNonLin_->getSourceTerm()->getBlockNonConst(0), 2 );
     }*/
     // Structure 
-    //this->solution_->addBlock( this->problemSCI_->getSolution()->getBlockNonConst(0), 2 );
+    this->solution_->addBlock( this->problemSCI_->getSolution()->getBlockNonConst(0), 2 );
     this->residualVec_->addBlock( this->problemSCI_->getResidualVector()->getBlockNonConst(0), 2 );
     this->rhs_->addBlock( this->problemSCI_->getRhs()->getBlockNonConst(0), 2 );
-    //this->previousSolution_->addBlock( this->problemSCI_->getPreviousSolution()->getBlockNonConst(0), 2 );
+    this->previousSolution_->addBlock( this->problemSCI_->getPreviousSolution()->getBlockNonConst(0), 2 );
     this->sourceTerm_->addBlock( this->problemSCI_->getSourceTerm()->getBlockNonConst(0), 2 );
 
     // Diffusion 
     if(!chemistryExplicit_){
-        //this->solution_->addBlock( this->problemSCI_->getSolution()->getBlockNonConst(1), 4 );
+        this->solution_->addBlock( this->problemSCI_->getSolution()->getBlockNonConst(1), 4 );
         this->residualVec_->addBlock( this->problemSCI_->getResidualVector()->getBlockNonConst(1), 4 );
         this->rhs_->addBlock( this->problemSCI_->getRhs()->getBlockNonConst(1), 4 );
-        //this->previousSolution_->addBlock( this->problemSCI_->getPreviousSolution()->getBlockNonConst(1), 4 );
+        this->previousSolution_->addBlock( this->problemSCI_->getPreviousSolution()->getBlockNonConst(1), 4 );
         this->sourceTerm_->addBlock( this->problemSCI_->getSourceTerm()->getBlockNonConst(1), 4 );
     }
    /* if(!this->geometryExplicit_){
@@ -721,7 +716,6 @@ void FSCI<SC,LO,GO,NO>::setFromPartialVectorsInit() const
     }*/
 
 }
-
 template<class SC,class LO,class GO,class NO>
 void FSCI<SC,LO,GO,NO>::setupSubTimeProblems(ParameterListPtr_Type parameterListFluid, ParameterListPtr_Type parameterListStructure,ParameterListPtr_Type parameterListChem ) const
 {

@@ -21,6 +21,10 @@
         <Parameter name="Heart Beat Start 2" type="double" value="1200.0"/><!-- Start of heartbea -->
         <Parameter name="Heart Beat End 2" type="double" value="2900.0"/><!-- Start of heartbea -->
     
+        <Parameter name="Accelerated Active Until" type="double" value="220.0"/>
+        <Parameter name="Active Acceleration Multiplier" type="double" value="20.0"/>
+    
+
         <Parameter name="Coupling Type" type="string" value="implicit"/>
 
         <Parameter name="relNonLinTol" type="double" value="1.0e-6"/>
@@ -141,17 +145,17 @@
     <ParameterList name="Timestepping Parameter">
 
         <!-- CHECKPOINTING -->
-        <Parameter name="Checkpointing" type="bool"  value="false"/> 
+        <Parameter name="Checkpointing" type="bool"  value="true"/> 
         <Parameter name="Number Checkpoints"  type="int"   	value="2"/>
         <ParameterList name="Checkpoints">
          	<Parameter name="1" type="double"   	value="0.5"/>
          	<Parameter name="2" type="double"   	value="4.0"/>
         </ParameterList>
        	<!-- Import: Read solution from hdf5 as start soltion :::: RESTART     -->
-        <Parameter name="Restart" type="bool"  value="true"/>
+        <Parameter name="Restart" type="bool"  value="false"/>
         <Parameter name="Time step" type="double"   	value="0.5"/> <!-- this time must be set as variable name import. Variable name import need to be set for 6 dezimal points -->
-        <Parameter name="Export history" type="bool"  value="false"/>
-        <Parameter name="Import history" type="bool"  value="true"/>
+        <Parameter name="Export history" type="bool"  value="true"/>
+        <Parameter name="Import history" type="bool"  value="false"/>
 
         <!-- Parameters to compare the computed solution to a reference solution-->
         
