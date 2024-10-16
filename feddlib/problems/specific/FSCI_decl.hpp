@@ -249,8 +249,6 @@ private:
     vec_dbl_Type valuesForExport_;
     bool chemistryExplicit_;
     //bool geometryExplicit_;
-    ExporterTxtPtr_Type exporterTxtDrag_;
-    ExporterTxtPtr_Type exporterTxtLift_;
     /*####################*/
 
 public:

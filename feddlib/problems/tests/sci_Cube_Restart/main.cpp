@@ -405,6 +405,8 @@ int main(int argc, char *argv[])
         sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
         parameterListChemAll->setParameters(*parameterListSolverSCI);
         parameterListChemAll->setParameters(*parameterListPrecChem);
+        parameterListChemAll->setParameters(*parameterListProblemStructure);
+
 
         
         ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListPrec));
@@ -634,55 +636,88 @@ int main(int argc, char *argv[])
 
         daeTimeSolver.advanceInTime();
 
+        MultiVectorPtr_Type solutionChem ;
+
+        if(chemistryExplicit_ )
+            solutionChem = sci.getChemProblem()->getSolution()->getBlock(0);
+        else
+            solutionChem = sci.getSolution()->getBlock(1);
         // Testing restarted solution
         std::string fileName = parameterListStructureAll->sublist("Timestepping Parameter").get("File name import", "Solution");
         double finalTime = parameterListStructureAll->sublist("Timestepping Parameter").get("Final time compare", 0.0);
         HDF5Import<SC,LO,GO,NO> importer(sci.getSolution()->getBlock(0)->getMap(),fileName+"d_s");
+        HDF5Import<SC,LO,GO,NO> importerC(solutionChem->getMap(),fileName+"c");
+
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5(std::to_string(finalTime));
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedC = importerC.readVariablesHDF5(std::to_string(finalTime));
 
         Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaResults(new ExporterParaView<SC,LO,GO,NO>());
-        exParaResults->setup("Restart_Error", domainStructure->getMesh(), domainStructure->getFEType());
+        exParaResults->setup("Restart_Error_D", domainStructure->getMesh(), domainStructure->getFEType());
 
+        Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaResultsC(new ExporterParaView<SC,LO,GO,NO>());
+        exParaResultsC->setup("Restart_Error_C", domainChem->getMesh(), domainChem->getFEType());
 
-        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionV = sci.getSolution()->getBlock(0);
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionD = sci.getSolution()->getBlock(0);
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionC = solutionChem;
 
         // Adding solution to paraview exporter
-        exParaResults->addVariable(exportSolutionV, "d", "Vector", 3, domainStructure->getMapUnique());
+        exParaResults->addVariable(exportSolutionD, "d", "Vector", 3, domainStructure->getMapUnique());
         exParaResults->addVariable(solutionImported, "d_import", "Vector", 3,  domainStructure->getMapUnique());
+
+        exParaResultsC->addVariable(exportSolutionC, "c", "Scalar", 1, domainChem->getMapUnique());
+        exParaResultsC->addVariable(solutionImportedC, "c_import", "Scalar", 1,  domainChem->getMapUnique());
 
         // Calculating the error per node
         Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValues = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( sci.getSolution()->getBlock(0)->getMap() ) ); 
+        Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValuesC = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( solutionChem->getMap() ) ); 
+
         //this = alpha*A + beta*B + gamma*this
-        errorValues->update( 1., exportSolutionV, -1. ,solutionImported, 0.);
+        errorValues->update( 1., exportSolutionD, -1. ,solutionImported, 0.);
+        errorValuesC->update( 1., exportSolutionC, -1. ,solutionImportedC, 0.);
 
         // Taking abs norm
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbs = errorValues;
+        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbsC = errorValuesC;
 
         errorValues->abs(errorValuesAbs);
+        errorValuesC->abs(errorValuesAbsC);
 
-        Teuchos::Array<SC> norm(1); 
-        errorValues->normInf(norm);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
+        Teuchos::Array<SC> norm(1),normC(1); 
+        errorValues->normInf(norm);
+        errorValuesC->normInf(normC);
+
         double res = norm[0];
-        if(comm->getRank() ==0)
-            cout << " Inf Norm of Error of Solution " << res << endl;
+        if(comm->getRank() ==0){
+            cout << " Inf Norm of Error of Solution Displacement " << norm[0] << endl;
+            cout << " Inf Norm of Error of Solution Concentration " << normC[0] << endl;
+        }
 
         errorValues->norm2(norm);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
-        res = norm[0];
-        if(comm->getRank() ==0)
-            cout << " 2 Norm of Error of Solution " << res << endl;
+        errorValuesC->norm2(normC);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
 
-        double NormError = res;
+        res = norm[0];
+        if(comm->getRank() ==0){
+            cout << " 2 Norm of Error of Solution Concentration " << norm[0] << endl;
+            cout << " 2 Norm of Error of Solution Concentration " << normC[0] << endl;
+
+        }
+        double NormError = norm[0];
+        double NormErrorC = normC[0];
 
         sci.getSolution()->norm2(norm);
-        res = norm[0];
-        if(comm->getRank() ==0)
-            cout << " 2 rel. Norm to solution  " << NormError/res << endl;
 
+        res = norm[0];
+        if(comm->getRank() ==0){
+            cout << " 2 rel. Norm to solution displacement " << NormError/res << endl;
+            cout << " 2 rel. Norm to solution concentration " << NormErrorC/res << endl;
+        }
 
         // Adding error to paraview exporter
         exParaResults->addVariable(errorValuesAbs, "d-dImport", "Vector", 3,  domainStructure->getMapUnique());
+        exParaResultsC->addVariable(errorValuesAbsC, "c-cImport", "Scalar", 1,  domainChem->getMapUnique());
 
         exParaResults->save(0.0);
+        exParaResultsC->save(0.0);
 
     }
     TimeMonitor_Type::report(std::cout);

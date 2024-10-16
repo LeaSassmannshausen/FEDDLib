@@ -21,7 +21,7 @@ u_rep_(),
 reactionFunc_()
 {
  
-    this->addVariable( domain , FEType , "u" , 1);
+    this->addVariable( domain , FEType , "c" , 1);
     this->dim_ = this->getDomain(0)->getDimension();
 	
 	diffusionTensor_ = diffusionTensor;

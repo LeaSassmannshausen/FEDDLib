@@ -491,19 +491,23 @@ int main(int argc, char *argv[])
         
         ParameterListPtr_Type parameterListFluidAll(new Teuchos::ParameterList(*parameterListPrecFluidMono)) ;
         sublist(parameterListFluidAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Fluid") );
+        sublist(parameterListFluidAll, "Timestepping Parameter")->setParameters( parameterListProblem->sublist("Timestepping Parameter") );
         parameterListFluidAll->setParameters(*parameterListPrecFluidTeko);
 
         
-         ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListPrecStructure));
+        ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListPrecStructure));
         sublist(parameterListStructureAll, "Parameter Solid")->setParameters( parameterListStructure->sublist("Parameter Solid") );
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
+        sublist(parameterListStructureAll, "Timestepping Parameter")->setParameters( parameterListProblem->sublist("Timestepping Parameter") );
+
         parameterListStructureAll->setParameters(*parameterListPrecStructure);
 
      
         ParameterListPtr_Type parameterListChemAll(new Teuchos::ParameterList(*parameterListPrecChem));
         sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Chem") );
         sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
+        sublist(parameterListChemAll, "Timestepping Parameter")->setParameters( parameterListProblem->sublist("Timestepping Parameter") );
         sublist(parameterListChemAll, "Parameter Solid")->setParameters( parameterListStructure->sublist("Parameter Solid") );
         parameterListChemAll->setParameters(*parameterListSolverFSI);
         parameterListChemAll->setParameters(*parameterListPrecChem);
@@ -513,6 +517,8 @@ int main(int argc, char *argv[])
         parameterListSCIAll->setParameters(*parameterListProblem);
         sublist(parameterListSCIAll, "Parameter Solid")->setParameters( parameterListStructure->sublist("Parameter Solid") );
         sublist(parameterListSCIAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
+        sublist(parameterListSCIAll, "Timestepping Parameter")->setParameters( parameterListProblem->sublist("Timestepping Parameter") );
+
 
         
         parameterListStructureAll->setParameters(*parameterListPrecStructure);
@@ -1097,7 +1103,6 @@ int main(int argc, char *argv[])
         fsci.addBoundaries(bcFactory); // Dem Problem RW hinzufuegen
         fsci.problemSCI_->addBoundaries(bcFactorySCI);
         fsci.initializeProblem();
-        
         fsci.initializeGE();
         fsci.problemSCI_->initializeCE();
 
@@ -1133,8 +1138,8 @@ int main(int argc, char *argv[])
         HDF5Import<SC,LO,GO,NO> importerC(fsci.getSolution()->getBlock(4)->getMap(),fileName+"c");
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedC = importerC.readVariablesHDF5(std::to_string(finalTime));
 
-        HDF5Import<SC,LO,GO,NO> importerG(fsci.getSolution()->getBlock(3)->getMap(),fileName+"d_f");
-        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedG = importerG.readVariablesHDF5(std::to_string(finalTime));
+        // HDF5Import<SC,LO,GO,NO> importerG(fsci.getSolution()->getBlock(3)->getMap(),fileName+"d_f");
+        // Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImportedG = importerG.readVariablesHDF5(std::to_string(finalTime));
 
         // ---------------
         // Exporter
@@ -1151,8 +1156,8 @@ int main(int argc, char *argv[])
         Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaResultsChem(new ExporterParaView<SC,LO,GO,NO>());
         exParaResultsChem->setup("Restart_Error_c", domainChem->getMesh(), domainChem->getFEType());
 
-        Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaResultsGeo(new ExporterParaView<SC,LO,GO,NO>());
-        exParaResultsGeo->setup("Restart_Error_g", domainGeometry->getMesh(), domainGeometry->getFEType());
+        // Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaResultsGeo(new ExporterParaView<SC,LO,GO,NO>());
+        // exParaResultsGeo->setup("Restart_Error_g", domainGeometry->getMesh(), domainGeometry->getFEType());
 
         // Solutions
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionV = fsci.getSolution()->getBlock(0);
@@ -1163,24 +1168,24 @@ int main(int argc, char *argv[])
 
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionC = fsci.getSolution()->getBlock(4);
 
-        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionG =fsci.getSolution()->getBlock(3);
+        // Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionG =fsci.getSolution()->getBlock(3);
 
 
         // Adding solution to paraview exporter
         exParaResultsVel->addVariable(exportSolutionV, "v", "Vector", 3, domainFluidVelocity->getMapUnique());
         exParaResultsVel->addVariable(solutionImportedV, "v_import", "Vector", 3,  domainFluidVelocity->getMapUnique());
 
-        exParaResultsPres->addVariable(exportSolutionP, "p", "Vector", 1, domainFluidPressure->getMapUnique());
-        exParaResultsPres->addVariable(solutionImportedP, "p_import", "Vector", 1,  domainFluidPressure->getMapUnique());
+        exParaResultsPres->addVariable(exportSolutionP, "p", "Scalar", 1, domainFluidPressure->getMapUnique());
+        exParaResultsPres->addVariable(solutionImportedP, "p_import", "Scalar", 1,  domainFluidPressure->getMapUnique());
 
         exParaResultsStructure->addVariable(exportSolutionD, "d", "Vector", 3, domainStructure->getMapUnique());
         exParaResultsStructure->addVariable(solutionImportedD, "d_import", "Vector", 3,  domainStructure->getMapUnique());
 
-        exParaResultsChem->addVariable(exportSolutionC, "c", "Vector", 1, domainChem->getMapUnique());
-        exParaResultsChem->addVariable(solutionImportedC, "c_import", "Vector", 1,  domainChem->getMapUnique());
+        exParaResultsChem->addVariable(exportSolutionC, "c", "Scalar", 1, domainChem->getMapUnique());
+        exParaResultsChem->addVariable(solutionImportedC, "c_import", "Scalar", 1,  domainChem->getMapUnique());
 
-        exParaResultsGeo->addVariable(exportSolutionG, "g", "Vector", 3, domainGeometry->getMapUnique());
-        exParaResultsGeo->addVariable(solutionImportedG, "g_import", "Vector", 3,  domainGeometry->getMapUnique());
+        // exParaResultsGeo->addVariable(exportSolutionG, "g", "Vector", 3, domainGeometry->getMapUnique());
+        // exParaResultsGeo->addVariable(solutionImportedG, "g_import", "Vector", 3,  domainGeometry->getMapUnique());
 
         // -------------------------------------------------
         Teuchos::Array<SC> norm2(1), normInf(1),normSol2(1); 
@@ -1223,14 +1228,14 @@ int main(int argc, char *argv[])
         res = normSol2[0];
         if(comm->getRank() ==0){
             cout << " Inf Norm of Error of Pressure Solution " << normInf[0] << endl;
-            cout << " 2 Norm of Error of Pressreu Solution " << norm2[0] << endl;
+            cout << " 2 Norm of Error of Pressure Solution " << norm2[0] << endl;
             cout << " 2 rel. Error Norm Pressure  " << norm2[0]/res << endl;
         }
         if(comm->getRank() ==0)
             cout << " ---------------------- " << endl;
 
         // Adding error to paraview exporter
-        exParaResultsPres->addVariable(errorValuesAbsP, "p - p_Import", "Scalar", 3,  domainFluidPressure->getMapUnique());
+        exParaResultsPres->addVariable(errorValuesAbsP, "p - p_Import", "Scalar", 1,  domainFluidPressure->getMapUnique());
         exParaResultsPres->save(0.0);
 
         // ------------------------------
@@ -1246,9 +1251,9 @@ int main(int argc, char *argv[])
         fsci.getSolution()->getBlock(2)->norm2(normSol2);
         res = normSol2[0];
         if(comm->getRank() ==0){
-            cout << " Inf Norm of Error of Fluid Solution " << normInf[0] << endl;
-            cout << " 2 Norm of Error of FluidSolution " << norm2[0] << endl;
-            cout << " 2 rel. Norm Fluid  " << norm2[0]/res << endl;
+            cout << " Inf Norm of Error of displacement Solution " << normInf[0] << endl;
+            cout << " 2 Norm of Error of DisplacementSolution " << norm2[0] << endl;
+            cout << " 2 rel. Norm displacement  " << norm2[0]/res << endl;
         }
         if(comm->getRank() ==0)
             cout << " ---------------------- " << endl;
@@ -1260,7 +1265,7 @@ int main(int argc, char *argv[])
         // ------------------------------
         Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValuesC = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( fsci.getSolution()->getBlock(4)->getMap() ) ); 
         //this = alpha*A + beta*B + gamma*this
-        errorValuesC->update( 1., exportSolutionV, -1. ,solutionImportedC, 0.);
+        errorValuesC->update( 1., exportSolutionC, -1. ,solutionImportedC, 0.);
         // Taking abs norm
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbsC = errorValuesC;
         errorValuesC->abs(errorValuesAbsC);
@@ -1270,15 +1275,15 @@ int main(int argc, char *argv[])
         fsci.getSolution()->getBlock(4)->norm2(normSol2);
         res = normSol2[0];
         if(comm->getRank() ==0){
-            cout << " Inf Norm of Error of Fluid Solution " << normInf[0] << endl;
-            cout << " 2 Norm of Error of FluidSolution " << norm2[0] << endl;
-            cout << " 2 rel. Norm Fluid  " << norm2[0]/res << endl;
+            cout << " Inf Norm of Error of Chem Solution " << normInf[0] << endl;
+            cout << " 2 Norm of Error of ChemSolution " << norm2[0] << endl;
+            cout << " 2 rel. Norm Chem  " << norm2[0]/res << endl;
         }
         if(comm->getRank() ==0)
             cout << " ---------------------- " << endl;
 
         // Adding error to paraview exporter
-        exParaResultsChem->addVariable(errorValuesAbsC, "v - v_Import", "Scalar", 2,  domainChem->getMapUnique());
+        exParaResultsChem->addVariable(errorValuesAbsC, "v - v_Import", "Scalar", 1,  domainChem->getMapUnique());
         exParaResultsChem->save(0.0);
 
         // ------------------------------

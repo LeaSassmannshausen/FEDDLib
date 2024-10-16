@@ -301,7 +301,7 @@ namespace FEDD
 		if (this->globalElementID_ == 0)
 		{
 			cout << " ---------------------------------------------- " << endl;
-			cout << " AssembleFE_SCI_SMC: Advancing time in elements" << endl;
+			cout << " CheckingReorientationActiveGrowth in elements" << endl;
 			cout << " Growth " << growthBool_ << endl;
 			cout << " Active " << activeBool_ << endl;
 			cout << " Reorientation " << reorientationBool_ << endl;

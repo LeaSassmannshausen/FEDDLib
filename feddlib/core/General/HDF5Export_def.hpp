@@ -61,13 +61,13 @@ void HDF5Export<SC,LO,GO,NO>::writeVariablesHDF5(string varName,MultiVectorPtr_T
 
     hdf5exporter_->Write(varName,*u_export); // Writing u_export as variable 'varName' in file
     
-    if(writeVector->getMap()->getComm()->getRank() == 0 )
-        cout << " HDF5_Export:: Exporting to file " << outputFilename_ << " with variable name " << varName << endl;
-
     exporterTxt_->exportData("Exporting time step to " + outputFilename_ + " with varname ", varName);
 
     hdf5exporter_->Flush();
     
+    if(writeVector->getMap()->getComm()->getRank() == 0 )
+        cout << " HDF5_Export:: Exporting to file " << outputFilename_ << " with variable name " << varName << endl;
+
 }
 
 template<class SC,class LO,class GO,class NO>

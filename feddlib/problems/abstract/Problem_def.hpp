@@ -427,7 +427,7 @@ namespace FEDD
             bool initSolution = parameterList_->sublist("General").get("Initialize solution from external", false);
             bool restart = parameterList_->sublist("Timestepping Parameter").get("Restart",false);
 
-            if(initSolution){
+            if(initSolution && variableName_vec_[i] != "d_f" ){ // We do not import the geometry solution right now.
                 std::string fileName = parameterList_->sublist("General").get("File name import", "Solution");
                 std::string varName = std::to_string(0.0);
 
@@ -436,10 +436,12 @@ namespace FEDD
                 MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
                 solution_->addBlock(aImported,i);
             }
-            else if(restart)
+            else if(restart && variableName_vec_[i] != "d_f") // We do not import the geometry solution right now.
             {
                 std::string fileName = parameterList_->sublist("Timestepping Parameter").get("File name import", "Solution");
                 std::string varName = std::to_string(parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0));
+
+                cout << " Reading " << fileName+variableName_vec_[i] << endl;
 
                 MapConstPtr_Type map = solution_->getBlock(i)->getMap();
                 HDF5Import<SC,LO,GO,NO> importer(map,fileName+variableName_vec_[i]);
@@ -459,11 +461,11 @@ namespace FEDD
         
         if(safeSolution){
             if(HDF5exporterSolution_.size()==0){
-                std::string fileName =  parameterList_->sublist("General").get("File name export", "solution");
+                std::string fileName =  parameterList_->sublist("General").get("File name export", "Solution");
                 //HDF5exporterSolution_.resize(size);
                 for (UN i = 0; i < size; i++)
                 {
-                    HDF5Export<SC,LO,GO,NO> exporter(this->getSolution()->getBlock(i)->getMap(),fileName+std::to_string(i));
+                    HDF5Export<SC,LO,GO,NO> exporter(this->getSolution()->getBlock(i)->getMap(),fileName+variableName_vec_[i]);
                     HDF5exporterSolution_.push_back(exporter);
                 }
             }

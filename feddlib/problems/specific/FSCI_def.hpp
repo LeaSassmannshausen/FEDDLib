@@ -75,7 +75,6 @@ void FSCI<SC,LO,GO,NO>::assemble( std::string type ) const
         }
 
     //    P_.reset(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), 10 ) );
-        
         this->problemFluid_->assemble();
         
         this->problemSCI_->assemble();
@@ -590,6 +589,7 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
     if ( this->verbose_ )
         std::cout << "Warning: Wrong consideration of temporal discretization for multi-stage RK methods!" << std::endl;
     
+
     this->problemFluid_->calculateNonLinResidualVecWithMeshVelo( "reverse", time, this->u_minus_w_rep_, this->P_ );
     this->system_->addBlock( this->problemFluid_->getSystem()->getBlock( 0, 0 ), 0, 0 );
     
@@ -638,7 +638,6 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
         
     }*/
     // might also be called in the sub calculateNonLinResidualVec() methods which where used above
-    
     if (type == "reverse"){
         this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );
     }
@@ -646,9 +645,8 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
         this->residualVec_->scale(-1.);
         this->bcFactory_->setVectorMinusBC( this->residualVec_, this->solution_, time );
     } 
-
     this->setBoundariesRHS(this->timeSteppingTool_->currentTime());
-
+    // this->rhs_->getBlock(0)->print();
     /*bool plotResVector = this->getParameterList()->sublist("General").get("Plot Residual Vector",true);
     double range1 = this->getParameterList()->sublist("General").get("Plot Residual Vector Start",0.0);
     double range2 = this->getParameterList()->sublist("General").get("Plot Residual Vector End",1.0);

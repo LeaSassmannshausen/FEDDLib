@@ -46,7 +46,6 @@ A_(),
 pressureIDsLoc(new vec_int_Type(2)),
 u_rep_()
 {
-
     this->nonLinearTolerance_ = this->parameterList_->sublist("Parameter").get("relNonLinTol",1.0e-6);
     this->initNOXParameters();
 
@@ -783,6 +782,7 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::stri
     // This is ok for bdf with 1.0 scaling of the system. Would be wrong for Crank-Nicolson
     
     this->system_->apply( *this->solution_, *this->residualVec_ );
+
 //    this->residualVec_->getBlock(0)->writeMM("Ax.mm");
 //    this->rhs_->getBlock(0)->writeMM("nsRHS.mm");
     if (!type.compare("standard")){
@@ -795,10 +795,10 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::stri
         if ( !this->sourceTerm_.is_null() )
             this->residualVec_->update(1.,*this->sourceTerm_,1.);
     }
-    
     // this might be set again by the TimeProblem after addition of M*u
     this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );
-    
+    //this->residualVec_->getBlock(0)->print();
+
 //    this->residualVec_->getBlock(0)->writeMM("b_Ax.mm");
     
 }

@@ -50,7 +50,6 @@ materialModel_( parameterListSCI->sublist("Parameter").get("Structure Model","SC
     problemChem_->initializeProblem();
 
     //We initialize the subproblems. In the main routine, we need to call initializeFSI(). There, we first initialize the vectors of the FSI problem and then we set the pointers of the subproblems to the vectors of the full monolithic FSI system. This way all values are only saved once in the subproblems and can be used by the monolithic FSI system.
-    
     meshDisplacementNew_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ) );
     meshDisplacementOld_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ) );
     
@@ -231,6 +230,7 @@ void SCI<SC,LO,GO,NO>::solveChemistryProblem() const
     SmallMatrix<int> defChem(1);
     double dt = timeSteppingTool_->get_dt();
 
+    // Always bdf 1
     defChem[0][0] = 1;
     massCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(0) / dt;
     problemCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(1);
@@ -243,32 +243,6 @@ void SCI<SC,LO,GO,NO>::solveChemistryProblem() const
     this->setChemMassmatrix(massmatrix);
     // 1. Assemble Chemisty Problem
     this->problemTimeChem_->assemble();
-    /*MatrixPtr_Type A(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );       
-    MatrixPtr_Type B(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
-    MatrixPtr_Type BT(new Matrix_Type(this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow() ) );
-    MatrixPtr_Type C(new Matrix_Type( this->getDomain(1)->getMapUnique(),this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow() ));
-    // For implicit the system is ordered differently with solid block in 0,0 and diffusion in 1,1
-    
-    // As the implementation is based on a 2x2 System we use a tmp system for the actual assembly routine.
-    BlockMatrixPtr_Type systemTmp(new BlockMatrix_Type(2)); 
-    systemTmp->addBlock(A,0,0);
-    systemTmp->addBlock(BT,0,1);
-    systemTmp->addBlock(B,1,0);
-    systemTmp->addBlock(C,1,1);
-    MultiVectorConstPtr_Type c; 
-    if(chemistryExplicit_)
-        c= this->problemTimeChem_->getSolution()->getBlock(0);
-    else
-        c = this->solution_->getBlock(1);
-
-    c_rep_->importFromVector(c, true);
-
-    MultiVectorConstPtr_Type d = this->solution_->getBlock(0);
-    d_rep_->importFromVector(d, true); 
-    
-    this->feFactory_->assemblyAceDeformDiffu(this->dim_, this->getDomain(1)->getFEType(), this->getDomain(0)->getFEType(), 2, 1,this->dim_,c_rep_,d_rep_,systemTmp,this->residualVec_, this->parameterList_, "Jacobian", true);
-    
-    this->problemTimeChem_->getSystem()->addBlock(systemTmp->getBlock(1,1),0,0);*/
     // 2. Rhs
     this->computeChemRHSInTime();
 
@@ -287,6 +261,17 @@ void SCI<SC,LO,GO,NO>::solveChemistryProblem() const
 
     if (!exporterChem_.is_null())
             this->exporterChem_->save( this->timeSteppingTool_->currentTime() );
+
+    // If we want to safe/export the solution, we need to call the function here, as the chemistry problem is decoupled from the rest
+    // and does not encounter the usual export point within the time stepping loop
+    // BlockMultiVectorPtrArray_Type solution; solution.resize(1);
+    // solution[0] = Teuchos::rcp( new BlockMultiVector_Type( this->problemTimeChem_->getSolution()->getMap() ) );
+    // solution[0]->addBlock(this->problemTimeChem_->getSolution()->getBlock(0),0);
+
+    // cout << " Solve chemistry problem " << endl;
+
+    // //this->problemTimeChem_->checkForExportAndExport( solution,"Solution" );
+
 
 }
 template<class SC,class LO,class GO,class NO>
@@ -604,7 +589,7 @@ void SCI<SC,LO,GO,NO>::setFromPartialVectorsInit() const
         this->solution_->addBlock( this->problemStructureNonLin_->getSolution()->getBlockNonConst(0), 0);
         this->residualVec_->addBlock( this->problemStructureNonLin_->getResidualVector()->getBlockNonConst(0), 0 );
         this->rhs_->addBlock( this->problemStructureNonLin_->getRhs()->getBlockNonConst(0), 0 );
-        // this->previousSolution_->addBlock( this->problemStructureNonLin_->getPreviousSolution()->getBlockNonConst(0), 0 );
+        this->previousSolution_->addBlock( this->problemStructureNonLin_->getPreviousSolution()->getBlockNonConst(0), 0 );
         this->sourceTerm_->addBlock( this->problemStructureNonLin_->getSourceTerm()->getBlockNonConst(0), 0 );
     }
       
@@ -1053,6 +1038,9 @@ void SCI<SC,LO,GO,NO>::updateTime() const
     d_rep_->importFromVector(d, true); 
     this->feFactory_->advanceInTimeAssemblyFEElements(timeSteppingTool_->dt_, d_rep_, c_rep_ );    
 
+    this->problemTimeChem_->updateTime(timeSteppingTool_->t_);
+    this->problemTimeStructure_->updateTime(timeSteppingTool_->t_);
+
    // if(couplingType_ == "explicit")
    //     this->problemTimeStructure_->feFactory_->advanceInTimeAssemblyFEElements(timeSteppingTool_->dt_, d_rep_, c_rep_ );   
 }
@@ -1123,7 +1111,7 @@ void SCI<SC,LO,GO,NO>::initializeCE(){
 template<class SC,class LO,class GO,class NO>
 void SCI<SC,LO,GO,NO>::updateChemInTime() const
 {
-    int nmbBDF = timeSteppingTool_->getBDFNumber();
+    int nmbBDF = 1; //timeSteppingTool_->getBDFNumber();
 
     if(nmbBDF<2 && !this->parameterList_->sublist("General").get("Linearization","FixedPoint").compare("Extrapolation")) {
         if (timeSteppingTool_->currentTime()!=0.){

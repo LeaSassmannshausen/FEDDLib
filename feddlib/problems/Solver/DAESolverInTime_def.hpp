@@ -1659,7 +1659,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
 
     // Notwendige Parameter
     bool geometryExplicit = this->parameterList_->sublist("Parameter").get("Geometry Explicit",true);
-    bool chemistryExplicit_ =    parameterList_->sublist("Parameter").get("Chemistry Explicit",false);
+    bool chemistryExplicit_ = this->parameterList_->sublist("Parameter").get("Chemistry Explicit",false);
 
     //std::string couplingType = parameterList_->sublist("Parameter").get("Coupling Type","explicit");
 
@@ -1686,6 +1686,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
     }
 
     NonLinearSolver<SC, LO, GO, NO> nlSolver(parameterList_->sublist("General").get("Linearization","FixedPoint"));
+    bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
 
 
 //    {
@@ -1712,7 +1713,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
         timeSteppingTool_->dt_= dt;
         fsci->timeSteppingTool_->dt_ = dt;
         fsci->problemSCI_->timeSteppingTool_->dt_ = dt;
-        if(timeSteppingTool_->currentTime() <= 0. + 1e-12){
+
+        if(timeSteppingTool_->currentTime() <= 0. + 1e-12 ||( restart &&  timeSteppingTool_->currentTime() <= this->parameterList_->sublist("Timestepping Parameter").get("Time step",0.0) + 1e-12 )){
             timeSteppingTool_->dt_prev_= dt;        
             fsci->timeSteppingTool_->dt_prev_= dt;  
             fsci->problemSCI_->timeSteppingTool_->dt_prev_ = dt; 

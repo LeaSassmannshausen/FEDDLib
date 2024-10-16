@@ -41,6 +41,7 @@ public:
     typedef typename Problem_Type::MultiVectorConstPtr_Type MultiVectorConstPtr_Type;
     typedef typename Problem_Type::BlockMultiVector_Type BlockMultiVector_Type;
     typedef typename Problem_Type::BlockMultiVectorPtr_Type BlockMultiVectorPtr_Type;
+    // typedef Teuchos::Array<BlockMultiVectorPtr_Type> BlockMultiVectorPtrArray_Type;
 
     typedef typename Problem_Type::Domain_Type Domain_Type;
     typedef Teuchos::RCP<Domain_Type > DomainPtr_Type;
