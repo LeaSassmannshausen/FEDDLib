@@ -2074,8 +2074,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
 
         if (printData) {
             exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
-            exporterIterations->exportData( (*its)[0] );
-            exporterNewtonIterations->exportData( (*its)[1] );
+            exporterIterations->exportData(timeSteppingTool_->currentTime(), (*its)[0] );
+            exporterNewtonIterations->exportData(timeSteppingTool_->currentTime(), (*its)[1] );
+
         }
         if(printFlowRate){
             FE<SC,LO,GO,NO> fe;
