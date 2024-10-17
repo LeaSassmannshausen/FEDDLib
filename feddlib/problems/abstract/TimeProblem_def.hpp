@@ -906,7 +906,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionNewmarkPreviousStep(double dt, doub
 
             std::string fileName = "SolutionNewmark"; //parameterList_->sublist("Timestepping Parameter").get("File name import", "solution");
             double timeStep = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
-            double dt = parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
+            double dt = getPreviousTimeIncrement(); //parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
             int size = problem_->getSolution()->size();
 
             for(int j=0 ; j< 2 ; j++)
