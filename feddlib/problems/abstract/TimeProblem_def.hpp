@@ -769,11 +769,15 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionPreviousStep(){
                 std::string varName = std::to_string(extract);
                 for (UN i = 0; i < size; i++)
                 {
-                    MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
-                    HDF5Import<SC,LO,GO,NO> importer(map,fileName+problem_->getVariableName(i));
-                    MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
+                    if(problem_->getVariableName(i) != "d_f")
+                    {
+                        MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
+                        HDF5Import<SC,LO,GO,NO> importer(map,fileName+problem_->getVariableName(i));
+                        MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
 
-                    solutionPreviousTimesteps_[0]->addBlock(aImported,i);
+                        solutionPreviousTimesteps_[0]->addBlock(aImported,i);
+                    }
+                    
                 }
             }
             else{
@@ -825,10 +829,13 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps){
                     std::string varName = std::to_string(extract);
                     for (UN i = 0; i < size; i++)
                     {
-                        MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
-                        HDF5Import<SC,LO,GO,NO> importer(map,fileName+problem_->getVariableName(i));
-                        MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
-                        solutionPreviousTimesteps_[j]->addBlock(aImported,i);
+                        if(problem_->getVariableName(i) != "d_f")
+                        {
+                            MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
+                            HDF5Import<SC,LO,GO,NO> importer(map,fileName+problem_->getVariableName(i));
+                            MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
+                            solutionPreviousTimesteps_[j]->addBlock(aImported,i);
+                        }
                     }
                 }
                 else{
