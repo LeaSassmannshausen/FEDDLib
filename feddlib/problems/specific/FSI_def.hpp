@@ -1613,7 +1613,7 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
         } 
         else if(restart && timeStepRestart +1e-8 > timeSteppingTool_->currentTime() )
         {
-            if(verbose_)
+            if(this->verbose_)
                 cout << " WARNING: Absorbing boundary condition is computed but the initial values usally corresponding to T=0 now correspond to the restart time " << endl;
             double areaInlet_init = 0.;
             double areaOutlet_init = 0.;
