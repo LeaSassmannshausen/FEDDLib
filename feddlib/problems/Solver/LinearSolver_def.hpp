@@ -525,7 +525,13 @@ int LinearSolver<SC,LO,GO,NO>::solveBlock(TimeProblem_Type* timeProblem, BlockMu
 //    }
 
     ThyraLinOpConstPtr_Type thyraMatrix = timeProblem->getSystemCombined()->getThyraLinBlockOp();
+    timeProblem->getSystemCombined()->getBlock(0,0)->writeMM("systemCombinedFluid_"+std::to_string(timeProblem->time_));
+    timeProblem->getSystemCombined()->getBlock(2,2)->writeMM("systemCombinedStructure_"+std::to_string(timeProblem->time_));
+    timeProblem->getSystem()->getBlock(0,0)->writeMM("systemFluid_"+std::to_string(timeProblem->time_));
+    timeProblem->getSystem()->getBlock(2,2)->writeMM("systemStructure_"+std::to_string(timeProblem->time_));
+
 //    ThyraLinOpBlockConstPtr_Type thyraMatrixBlock = timeProblem->getSystemCombined()->getThyraLinBlockOp();
+
     Thyra::initializePreconditionedOp<SC>(*lowsFactory, thyraMatrix, thyraPrec.getConst(), solver.ptr());
     {
         

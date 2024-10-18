@@ -310,8 +310,7 @@ void FSCI<SC,LO,GO,NO>::reAssemble(std::string type) const
         if(this->verbose_)
             std::cout << "-- Reassembly (UpdateTime)" << '\n';
 
-        this->updateTime();
-        this->problemSCI_->reAssemble("UpdateTime");
+        updateTime();
 
         return;
     }
@@ -539,6 +538,16 @@ void FSCI<SC,LO,GO,NO>::reAssemble(std::string type) const
         this->system_->addBlock(  this->problemSCI_->getSystem()->getBlock(1,0), 4, 2 );
     }
 }
+// Damit die richtige timeSteppingTool_->currentTime() genommen wird.
+template<class SC,class LO,class GO,class NO>
+void FSCI<SC,LO,GO,NO>::updateTime() const
+{
+    timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
+    this->problemTimeFluid_->updateTime(timeSteppingTool_->t_);
+    this->problemSCI_->reAssemble("UpdateTime");
+
+}
+
 template<class SC,class LO,class GO,class NO>
 void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time) const
 {

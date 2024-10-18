@@ -1287,8 +1287,12 @@ void FSI<SC,LO,GO,NO>::setSolidMassmatrix( MatrixPtr_Type& massmatrix ) const
     double density = this->problemTimeStructure_->getParameterList()->sublist("Parameter").get("Density",1.0);
     int size = this->problemTimeStructure_->getSystem()->size();
 
-    if(timeSteppingTool_->currentTime() == 0.0)
+    bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
+    double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0); 
+ 
+    if(timeSteppingTool_->currentTime() == 0.0 || (restart &&  timeSteppingTool_->currentTime() -1.e-5 < timeStepRestart ))
     {
+        cout << " SOLID MASS MATRIX " << endl;
         this->problemTimeStructure_->systemMass_.reset(new BlockMatrix_Type(size));
         {
 
@@ -1311,6 +1315,7 @@ void FSI<SC,LO,GO,NO>::updateTime() const
 {
     timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
     this->problemTimeFluid_->updateTime(timeSteppingTool_->t_);
+    this->problemTimeStructure_->updateTime(timeSteppingTool_->t_);
 
 }
 

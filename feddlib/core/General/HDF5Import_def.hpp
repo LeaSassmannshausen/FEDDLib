@@ -62,6 +62,10 @@ typename HDF5Import<SC, LO, GO, NO>::MultiVectorPtr_Type HDF5Import<SC,LO,GO,NO>
 
     hdf5importer_->Flush();
 
+    if(u_import_Xpetra_->getMap()->getComm()->getRank() == 0 )
+        cout << " HDF5_Import:: Importing from file " << inputFilename_ << " with variable name " << varName << endl;
+
+
     return u_import_Xpetra_;
     
 }

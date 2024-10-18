@@ -119,7 +119,8 @@ public:
     // type = FixedPoint, Newton, ForTime, UpdateMeshDisplacement, SetPartialSolutions, SolveGeometryProblem,
     // UpdateTime, UpdateFluidInTime
 //    virtual void reAssemble(std::string type="FixedPoint") const;
-
+     // Hier wird timeSteppingTool_->t_ inkrementiert
+    void updateTime() const;
     // type = FluidMassmatrixAndRHS, StructureMassmatrixAndRHS
     // In der Funktion wird massmatrix und rhs resetet.
 

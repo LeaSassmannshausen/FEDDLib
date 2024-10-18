@@ -1107,7 +1107,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
             // Hier wird auch direkt ein Update der Loesung bei der Struktur gemacht.
             // Aehnlich zu "UpdateFluidInTime".
             
-            if(timeSteppingTool_->currentTime() == 0.0)
+            if(timeSteppingTool_->currentTime() == 0.0 || (restart &&  timeSteppingTool_->currentTime() -1.e-5 < timeStepRestart ))
             {
                 // We extract the underlying FSI problem
                 MatrixPtr_Type massmatrix;
@@ -1974,7 +1974,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
             // Hier wird auch direkt ein Update der Loesung bei der Struktur gemacht.
             // Aehnlich zu "UpdateFluidInTime".
             
-            if(timeSteppingTool_->currentTime() == 0.0)
+            double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0); 
+        
+            if(timeSteppingTool_->currentTime() == 0.0 || (restart &&  timeSteppingTool_->currentTime() -1.e-5 < timeStepRestart ))
             {
                 // We extract the underlying FSI problem
                 MatrixPtr_Type massmatrix;
@@ -2431,6 +2433,10 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
 //        fsi->setSolidMassmatrix( massmatrix );
 ////        this->problemTime_->assemble( massmatrix, "GetFluidMassmatrix" );
 //    }
+
+    bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
+    double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0); 
+        
     // ######################
     // Time loop
     // ######################
@@ -2446,7 +2452,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
         }
         timeSteppingTool_->dt_= dt;
         fsi->timeSteppingTool_->dt_ = dt;
-        if(timeSteppingTool_->currentTime() <= 0. + 1e-12){
+        if(timeSteppingTool_->currentTime() <= 0. + 1e-12 ||( restart &&  timeSteppingTool_->currentTime() -1e-10 <= timeStepRestart)){
             timeSteppingTool_->dt_prev_= dt;        
             fsi->timeSteppingTool_->dt_prev_= dt;  
             //fsci->problemFluid_->timeSteppingTool_->dt_prev_= dt; 
@@ -2650,7 +2656,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
             // Hier wird auch direkt ein Update der Loesung bei der Struktur gemacht.
             // Aehnlich zu "UpdateFluidInTime".
             
-            if(timeSteppingTool_->currentTime() == 0.0)
+            
+            if(timeSteppingTool_->currentTime() == 0.0 || (restart &&  timeSteppingTool_->currentTime() -1.e-5 < timeStepRestart ))
             {
                 // We extract the underlying FSI problem
                 MatrixPtr_Type massmatrix;
@@ -2739,8 +2746,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
 
         if (printData) {
             exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
-            exporterIterations->exportData( (*its)[0] );
-            exporterNewtonIterations->exportData( (*its)[1] );
+            exporterIterations->exportData(timeSteppingTool_->currentTime(), (*its)[0] );
+            exporterNewtonIterations->exportData(timeSteppingTool_->currentTime(), (*its)[1] );
         }
         if(printFlowRate){
             FE<SC,LO,GO,NO> fe;

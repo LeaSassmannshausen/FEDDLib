@@ -159,7 +159,7 @@
 
         <!-- Parameters to compare the computed solution to a reference solution-->
         
-        <Parameter name="File name import" type="string" value="referenceSolution/Solution"/>  <!-- general name of the import file which will be extended by a block id -->
+        <Parameter name="File name import" type="string" value="Solution"/>  <!-- general name of the import file which will be extended by a block id -->
         <Parameter name="Final time compare" type="double" value="4.0"/> <!-- Final time we compare to -->
 
 
