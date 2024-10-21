@@ -573,9 +573,6 @@ void NonLinearSolver<SC,LO,GO,NO>::solveNewton(TimeProblem_Type &problem, double
 
         problem.setBoundariesSystem();
 
-        problem.getSystem()->writeMM("Assembled");
-
-
         if (timestepping == "External"){//AceGen
             gmresIts += problem.solveAndUpdate( "ResidualAceGen", criterionValue );
         //    exporterTxt->exportData( criterionValue );

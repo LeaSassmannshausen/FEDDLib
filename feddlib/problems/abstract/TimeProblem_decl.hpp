@@ -238,9 +238,8 @@ public:
     Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> HDF5exporterDsVelocity_; // Verlocity for Newmark
     Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> HDF5exporterDsAcceleration_; // Acceleration for Newmark
     Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> HDF5exporterSolutionNewmark_; // Acceleration for Newmark
-
-    std::vector<Teuchos::RCP <HDF5Export<SC,LO,GO,NO>>> HDF5exporterDsSolution_; // Solution displacement
-    std::vector<Teuchos::RCP <HDF5Export<SC,LO,GO,NO>>> HDF5exporterFluidSolution_; // Solution displacement
+    
+    std::vector<Teuchos::RCP <HDF5Export<SC,LO,GO,NO>>> HDF5exporterRhs_; // Acceleration for Newmark
     std::vector<Teuchos::RCP <HDF5Export<SC,LO,GO,NO>>> HDF5exporterHistory_; // Solution displacement
     std::vector<Teuchos::RCP <HDF5Export<SC,LO,GO,NO>>> HDF5exporterSolution_; // Solution displacement
 
@@ -271,7 +270,6 @@ public:
     // Fuer FSI
     // ###########################
     BlockMatrixPtrArray_Type systemMassPreviousTimeSteps_;
-
     //#################
     void checkForExportAndExport(BlockMultiVectorPtrArray_Type solutionVec, string fileName);
 

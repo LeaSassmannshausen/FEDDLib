@@ -2723,7 +2723,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
         }
             
         double time = timeSteppingTool_->currentTime() +  timeSteppingTool_->dt_;
-        problemTime_->updateTime ( time );            
+        problemTime_->updateTime ( time );     
+        cout << " ----> Time updated <-----" << endl;       
         NonLinearSolver<SC, LO, GO, NO> nlSolver(parameterList_->sublist("General").get("Linearization","FixedPoint"));
 
         nlSolver.solve(*this->problemTime_, time, its);

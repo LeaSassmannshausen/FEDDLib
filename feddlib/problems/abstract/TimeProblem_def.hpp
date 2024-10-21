@@ -101,7 +101,7 @@ void TimeProblem<SC,LO,GO,NO>::reAssembleAndFill( BlockMatrixPtr_Type bMat, std:
 
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::combineSystems() const{
-    //std::cout << "combineSystems is called" << std::endl;
+    std::cout << "combineSystems is called for time " << time_ << std::endl;
     //std::cout << "combineSystems is called" << std::endl;
     BlockMatrixPtr_Type tmpSystem = problem_->getSystem();
     int size = tmpSystem->size();
@@ -136,6 +136,7 @@ void TimeProblem<SC,LO,GO,NO>::combineSystems() const{
     // }
 
     systemMass_->addMatrix( massParameters_, systemCombined_, zeros );
+
     tmpSystem->addMatrix( timeParameters_, systemCombined_, ones );
     
     for (int i=0; i<size; i++) {
@@ -198,22 +199,54 @@ void TimeProblem<SC,LO,GO,NO>::updateMultistepRhsFSI(vec_dbl_Type& coeff, int nm
 
     int size = massParameters_.size();
 
-    for (int i=0; i<nmbToUse; i++) {
-        SmallMatrix<SC> tmpMassParameter(size);
-        for (int r=0; r<size; r++) {
-            for (int s=0; s<size; s++) {
-                if (massParameters_[r][s]!=0.) {
-                    tmpMassParameter[r][s] = coeff[i];
-                }
+    BlockMultiVectorPtrArray_Type rhsPreviousTimesteps(nmbToUse);
 
-            }
+    bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
+    double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0); 
+        
+    // ######################
+    // Time loop
+    // ######################
+    if(restart &&  time_ -1e-10 <= timeStepRestart)
+    {
+        BlockMultiVectorPtr_Type tmpVector = Teuchos::rcp( new BlockMultiVector_Type( problem_->getRhs() ) );
+        for (UN i = 0; i < size; i++)
+        {
+            MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
+            HDF5Import<SC,LO,GO,NO> importer(map,"Rhs"+problem_->getVariableName(i));
+            std::string varName = std::to_string(timeStepRestart);
+
+            MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
+
+            tmpVector->addBlock(aImported,i);
+            
         }
-        BlockMultiVectorPtr_Type tmpVector
-            = Teuchos::rcp( new BlockMultiVector_Type( problem_->getRhs() ) );
-        BlockMultiVectorPtr_Type tmpBlockVector = solutionPreviousTimesteps_[i];
-        systemMassPreviousTimeSteps_[i]->apply( *tmpBlockVector, *tmpVector, tmpMassParameter );
+
         problem_->getRhs()->update( 1., tmpVector, 1. );
+
     }
+    else{
+        for (int i=0; i<nmbToUse; i++) {
+            SmallMatrix<SC> tmpMassParameter(size);
+            for (int r=0; r<size; r++) {
+                for (int s=0; s<size; s++) {
+                    if (massParameters_[r][s]!=0.) {
+                        tmpMassParameter[r][s] = coeff[i];
+                    }
+
+                }
+            }
+            BlockMultiVectorPtr_Type tmpVector
+                = Teuchos::rcp( new BlockMultiVector_Type( problem_->getRhs() ) );
+            BlockMultiVectorPtr_Type tmpBlockVector = solutionPreviousTimesteps_[i];
+            systemMassPreviousTimeSteps_[i]->apply( *tmpBlockVector, *tmpVector, tmpMassParameter );
+            problem_->getRhs()->update( 1., tmpVector, 1. );
+
+            rhsPreviousTimesteps[i] = tmpVector;
+        }
+    }
+
+    checkForExportAndExport(rhsPreviousTimesteps,"Rhs");
 
 }
 
@@ -362,7 +395,7 @@ void TimeProblem<SC,LO,GO,NO>::assembleMassSystem( ) const {
     double density = parameterList_->sublist("Parameter").get("Density",1.);
 
 
-    //cout << " TimeProblem:: assembleMassSystem() with prescribed density " << density << endl;
+    cout << " TimeProblem:: assembleMassSystem() for time t " << time_ << endl;
 
     int size = problem_->getSystem()->size();
     systemMass_->resize( size );
@@ -491,6 +524,7 @@ void TimeProblem<SC,LO,GO,NO>::calculateNonLinResidualVec( std::string type, dou
                 FSIPtr_Type fsi = Teuchos::rcp_dynamic_cast<FSI_Type>( this->problem_ );
                 fsi->setFluidMassmatrix( massmatrix );
                 this->systemMass_->addBlock( massmatrix, 0, 0 );
+                
             }
         }
         // we need to add M/dt*u_(t+1)^k (the last results of the nonlinear method) to the residualVec_
@@ -876,7 +910,6 @@ void TimeProblem<SC,LO,GO,NO>::updateSystemMassMultiPreviousStep(int nmbSteps){
     }
 
     systemMassPreviousTimeSteps_[0] = Teuchos::rcp( new BlockMatrix_Type( systemMass_ ) );
-    
 }
 
 
@@ -1585,15 +1618,15 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                             idVarname = 5;
                         cout << " Export for filename " << fileName << " and " <<  problem_->getVariableName(idVarname) << " with i=" << i << endl;
                         std::string varName =  std::to_string(time_); 
-                        this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i));  
+                        this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i));  // We use 0, because it was not updated yet with the newest solution
 
                         if(solutionVec.size() >1 && time_-dt > 0){
                             varName = std::to_string(time_-dt); // n-1
-                            this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[1]->getBlock(i)); // We use 0, because it was not updated yet with the newest solution
+                            this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[1]->getBlock(i)); 
                         }
                         if(solutionVec.size() >2 && time_-2*dt > 0){
                             varName = std::to_string(time_-2*dt); // n-2
-                            this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[2]->getBlock(i)); // We use 0, because it was not updated yet with the newest solution
+                            this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[2]->getBlock(i)); 
                         }
                         // if(this->comm_->getRank() == 0)
                         //     cout << " ---- Exporting specific time " << time_ << " and " <<  time_-dt << " and " <<  time_-2*dt << " --- " << endl;
@@ -1663,6 +1696,12 @@ Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> TimeProblem<SC,LO,GO,NO>::getExporter(str
            
         return HDF5exporterDsAcceleration_;
     }
+    else if(fileName =="Rhs"){
+        if(HDF5exporterRhs_.size()<1)
+            initExporter(fileName);
+           
+        return HDF5exporterRhs_.at(i); 
+    }
     else if(fileName =="Solution"){
         if(HDF5exporterSolution_.size() <1)
             initExporter(fileName);
@@ -1694,6 +1733,16 @@ void TimeProblem<SC,LO,GO,NO>::initExporter(string fileName  ){
 
     else if(fileName =="ds_Acceleration")
         HDF5exporterDsAcceleration_.reset(new HDF5Export<SC,LO,GO,NO>(problem_->getSolution()->getBlock(0)->getMap(),fileName)); // This happens for structure subproblems
+    
+    // This exporter is only used in FS(C)I simulations
+    else if(fileName =="Rhs"){
+        int size = this->getSolution()->size();
+        for (UN i = 0; i < size; i++)
+        {
+            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),fileName+problem_->getVariableName(i)));
+            HDF5exporterRhs_.push_back(exporter);
+        }
+    }
 
     else if(fileName =="Solution"){
         int size = this->getSolution()->size();

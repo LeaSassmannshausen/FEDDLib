@@ -115,6 +115,23 @@ exporterGeo_()
     
     meshDisplacementNew_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(4)->getMapVecFieldRepeated() ) );
     meshDisplacementOld_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(4)->getMapVecFieldRepeated() ) );
+    
+    // If we restart we need to initialize the old/previous geometry solution in meshDisplacementOld to correctly
+    // compute the mesh velocity
+    if(this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false))
+        exporterGeometry_.reset(new HDF5Export<SC,LO,GO,NO>(this->getDomain(4)->getMapVecFieldUnique(),"Solutiond_f"));
+
+    if(this->parameterList_->sublist("Timestepping Parameter").get("Restart", false))
+    {
+      Teuchos::RCP<HDF5Import<SC,LO,GO,NO>> importer =Teuchos::rcp(new HDF5Import<SC,LO,GO,NO>(this->getDomain(4)->getMapVecFieldUnique(),"Solutiond_f"));
+      double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
+      string varName = std::to_string(timeStepRestart);
+
+      MultiVectorConstPtr_Type meshDisplacementOld  = importer->readVariablesHDF5(varName); 
+      meshDisplacementOld_rep_->importFromVector(meshDisplacementOld, true);
+      meshDisplacementNew_rep_->importFromVector(meshDisplacementOld, true);
+    }
+
     u_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ) );
     w_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ) );
     u_minus_w_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ) );
@@ -473,6 +490,7 @@ void FSI<SC,LO,GO,NO>::reAssemble(std::string type) const
     {
         geometrySolution = this->solution_->getBlock(4);
     }
+    
     meshDisplacementNew_rep_->importFromVector(geometrySolution, true);
 
     *w_rep_ = *meshDisplacementNew_rep_;
@@ -480,11 +498,9 @@ void FSI<SC,LO,GO,NO>::reAssemble(std::string type) const
     w_rep_->scale( 1.0/dt );
 
     u_minus_w_rep_->update( -1.0, *w_rep_, 1.0 );
-
     // Selbiges fuer den Druck
     MultiVectorConstPtr_Type pressureSolution = this->solution_->getBlock(1);
     p_rep_->importFromVector(pressureSolution, true);
-
 
     // ###############
     // Neu-Assemblierung zu Beginn der neuen Zeititeration im Falle von geometrisch explizit,
@@ -501,9 +517,7 @@ void FSI<SC,LO,GO,NO>::reAssemble(std::string type) const
         {
             // ACHTUNG: Fluid-Loesung wird hier auf Null gesetzt, wegen initializeVectors().
             // Somit dann auch die problemTimeFluid_ wodurch eine falsche BDF2-RHS entsteht.
-            // Rufe im DAESolverInTime deswegen erneut setPartialSolutions() auf.
-            
-            
+            // Rufe im DAESolverInTime deswegen erneut setPartialSolutions() auf.            
             this->problemFluid_->assembleConstantMatrices(); // Die Steifikeitsmatrix wird weiter unten erst genutzt
             
             // Es ist P = P_
@@ -960,7 +974,6 @@ void FSI<SC,LO,GO,NO>::solveGeometryProblem() const
         if (!this->exporterGeo_.is_null())
             this->exporterGeo_->save( this->timeSteppingTool_->currentTime() );
         
-
     }
     
     
@@ -1094,6 +1107,7 @@ void FSI<SC,LO,GO,NO>::setFluidMassmatrix( MatrixPtr_Type& massmatrix ) const
 {
     //######################
     // Massematrix fuer FSI combineSystems(), ggf nichtlinear.
+    cout << " --------- Assembly Fluid Mass Matrix --------- " << endl;
     //######################
     double density = this->problemTimeFluid_->getParameterList()->sublist("Parameter").get("Density",1.e-0);
     int size = this->problemTimeFluid_->getSystem()->size();
@@ -1292,7 +1306,6 @@ void FSI<SC,LO,GO,NO>::setSolidMassmatrix( MatrixPtr_Type& massmatrix ) const
  
     if(timeSteppingTool_->currentTime() == 0.0 || (restart &&  timeSteppingTool_->currentTime() -1.e-5 < timeStepRestart ))
     {
-        cout << " SOLID MASS MATRIX " << endl;
         this->problemTimeStructure_->systemMass_.reset(new BlockMatrix_Type(size));
         {
 
@@ -1316,7 +1329,6 @@ void FSI<SC,LO,GO,NO>::updateTime() const
     timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
     this->problemTimeFluid_->updateTime(timeSteppingTool_->t_);
     this->problemTimeStructure_->updateTime(timeSteppingTool_->t_);
-
 }
 
 
@@ -1687,6 +1699,17 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
     
     }    
   
+}
+template<class SC,class LO,class GO,class NO>
+void FSI<SC,LO,GO,NO>::exportValuesOfInterest()
+{
+    
+    if(geometryExplicit_)
+    {
+        cout << " Export geometry " << endl;
+        string varName = std::to_string(this->timeSteppingTool_->currentTime());
+        exporterGeometry_->writeVariablesHDF5(varName,problemGeometry_->getSolution()->getBlock(0)); 
+    }
 }
 
 }
