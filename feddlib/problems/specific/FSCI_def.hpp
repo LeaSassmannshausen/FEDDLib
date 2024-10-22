@@ -965,11 +965,11 @@ template<class SC,class LO,class GO,class NO>
 void FSCI<SC,LO,GO,NO>::exportValuesOfInterest()
 {
     problemSCI_->exportValuesOfInterest();   
-    if(geometryExplicit_)
+    if(this->geometryExplicit_)
     {
         cout << " Export geometry " << endl;
         string varName = std::to_string(this->timeSteppingTool_->currentTime());
-        this->exporterGeometry_->writeVariablesHDF5(varName,problemGeometry_->getSolution()->getBlock(0)); 
+        this->exporterGeometry_->writeVariablesHDF5(varName,this->problemGeometry_->getSolution()->getBlock(0)); 
     }}
 
 template<class SC,class LO,class GO,class NO>
