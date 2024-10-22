@@ -101,7 +101,7 @@ void TimeProblem<SC,LO,GO,NO>::reAssembleAndFill( BlockMatrixPtr_Type bMat, std:
 
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::combineSystems() const{
-    std::cout << "combineSystems is called for time " << time_ << std::endl;
+    // std::cout << "combineSystems is called for time " << time_ << std::endl;
     //std::cout << "combineSystems is called" << std::endl;
     BlockMatrixPtr_Type tmpSystem = problem_->getSystem();
     int size = tmpSystem->size();
@@ -395,7 +395,7 @@ void TimeProblem<SC,LO,GO,NO>::assembleMassSystem( ) const {
     double density = parameterList_->sublist("Parameter").get("Density",1.);
 
 
-    cout << " TimeProblem:: assembleMassSystem() for time t " << time_ << endl;
+    // cout << " TimeProblem:: assembleMassSystem() for time t " << time_ << endl;
 
     int size = problem_->getSystem()->size();
     systemMass_->resize( size );
@@ -783,7 +783,7 @@ int TimeProblem<SC,LO,GO,NO>::solve( BlockMultiVectorPtr_Type rhs ){
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::updateSolutionPreviousStep(){
 
-    cout << "updateSolutionPreviousStep" << endl;
+    // cout << "updateSolutionPreviousStep" << endl;
 
     if (solutionPreviousTimesteps_.size()==0) // the case where this is not initialized
     {   
@@ -834,7 +834,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionPreviousStep(){
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps){
 
-    cout << "updateSolutionMultiPreviousStep(" << nmbSteps << ")" << endl;
+    // cout << "updateSolutionMultiPreviousStep(" << nmbSteps << ")" << endl;
     int size = solutionPreviousTimesteps_.size();
     if (size<nmbSteps &&  size > 0) {
         BlockMultiVectorPtr_Type toAddMVreset = Teuchos::rcp( new BlockMultiVector_Type( solutionPreviousTimesteps_[size-1] ) );
@@ -924,7 +924,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionNewmarkPreviousStep(double dt, doub
     // Da wir aber bereits im neuen Zeitschritt sind (vgl. Zeitpunkt des Aufrufs der Funktion), ist u_n = u_{n+1} und u_{n-1} = u_n.
     // Wir benoetigen solutionPreviousTimesteps_ mit zwei Eintraegen.
 
-    cout << " updateSolutionNewmarkPreviousStep " << endl;
+    // cout << " updateSolutionNewmarkPreviousStep " << endl;
 
     int size = solutionPreviousTimesteps_.size();
 
@@ -942,7 +942,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionNewmarkPreviousStep(double dt, doub
         {
             solutionPreviousTimesteps_.resize(2);
 
-            cout << " RESTART in updateSolutionNewmarkPreviousStep " << endl;
+            // cout << " RESTART in updateSolutionNewmarkPreviousStep " << endl;
 
             std::string fileName = "SolutionNewmark"; //parameterList_->sublist("Timestepping Parameter").get("File name import", "solution");
             double timeStep = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
@@ -1584,7 +1584,7 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
 
     if(safeAllSolution || checkPointing){
 
-        cout << " CHECKPOINTING IS ON " << time_ << endl;
+        // cout << " CHECKPOINTING IS ON " << time_ << endl;
         if(safeAllSolution){
             for (UN i = 0; i < size; i++)
             {

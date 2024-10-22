@@ -830,7 +830,7 @@ void FSI<SC,LO,GO,NO>::setFromPartialVectorsInit() const
     //Fluid velocity
     this->solution_->addBlock( this->problemFluid_->getSolution()->getBlockNonConst(0), 0 );
     this->residualVec_->addBlock( this->problemFluid_->getResidualVector()->getBlockNonConst(0), 0 );
-    this->residualVec_->addBlock( this->problemFluid_->getResidualVector()->getBlockNonConst(0), 0 );
+    this->previousSolution_->addBlock( this->problemFluid_->getPreviousSolution()->getBlockNonConst(0), 0 );
     this->rhs_->addBlock( this->problemFluid_->getRhs()->getBlockNonConst(0), 0 );
     this->sourceTerm_->addBlock( this->problemFluid_->getSourceTerm()->getBlockNonConst(0), 0 );
     
