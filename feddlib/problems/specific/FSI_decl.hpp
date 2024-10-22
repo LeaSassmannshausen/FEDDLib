@@ -248,6 +248,7 @@ public:
 
     bool geometryExplicit_;
     mutable ExporterPtr_Type exporterGeo_;
+    Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporterGeometry_; 
 
 private:
     std::string materialModel_;
@@ -261,7 +262,6 @@ private:
     mutable double flowRateOutlet_n_ =0.; // Current flowrate
     mutable double flowRateOutlet_n_1_ =0.; // flowrate from previous timestep
     mutable double pressureOutlet_ =0.;
-    Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporterGeometry_; 
     /*####################*/
 
 public:
