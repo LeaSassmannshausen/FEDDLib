@@ -965,6 +965,7 @@ template<class SC,class LO,class GO,class NO>
 void FSCI<SC,LO,GO,NO>::exportValuesOfInterest()
 {
     problemSCI_->exportValuesOfInterest();   
+    this->exportValuesOfInterest();
 }
 
 template<class SC,class LO,class GO,class NO>
