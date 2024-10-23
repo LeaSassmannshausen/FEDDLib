@@ -328,7 +328,7 @@ private:
 
     void initExporter(string fileName  );
     void initCheckPoints();
-    double getPreviousTimeIncrement();
+    double getPreviousTimeIncrement(double timeStep =-1.0);
     Teuchos::RCP<HDF5Export<SC, LO, GO, NO>> getExporter(string fileName, int i);
 
     std::vector<std::tuple<double,bool>> checkPointTupel_;

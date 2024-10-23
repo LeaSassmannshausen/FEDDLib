@@ -204,6 +204,7 @@ void TimeProblem<SC,LO,GO,NO>::updateMultistepRhsFSI(vec_dbl_Type& coeff, int nm
     bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
     double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0); 
         
+    
     // ######################
     // Time loop
     // ######################
@@ -793,7 +794,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionPreviousStep(){
         {
             std::string fileName = "Solution"; // The name of the solution need here always this
             double timeStep = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
-            double dt = getPreviousTimeIncrement(); //parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
+            double dt = getPreviousTimeIncrement(timeStep); //parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
             double extract = timeStep - dt;
             int size = problem_->getSolution()->size();
             
@@ -850,7 +851,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps){
 
             std::string fileName ="Solution";
             double timeStep = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
-            double dt = getPreviousTimeIncrement(); //parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
+            double dt = getPreviousTimeIncrement(timeStep); //parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
             int size = problem_->getSolution()->size();
 
             for(int j=0 ; j< nmbSteps ; j++)
@@ -946,7 +947,8 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionNewmarkPreviousStep(double dt, doub
 
             std::string fileName = "SolutionNewmark"; //parameterList_->sublist("Timestepping Parameter").get("File name import", "solution");
             double timeStep = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
-            double dt = getPreviousTimeIncrement(); //parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
+            double dt = getPreviousTimeIncrement(timeStep); //parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
+
             int size = problem_->getSolution()->size();
 
             for(int j=0 ; j< 2 ; j++)
@@ -1008,7 +1010,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionNewmarkPreviousStep(double dt, doub
         if(restart)
         {
             double timeStep = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
-            double dt = getPreviousTimeIncrement(); // parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
+            double dt = getPreviousTimeIncrement(timeStep); // parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
             int size = problem_->getSolution()->size();
           
             double extract = timeStep;//-dt; // We only need the previous time step
@@ -1610,7 +1612,6 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                     std::get<1>(checkPointTupel_[j])=true; // We export the checkpoint now
                     for (UN i = 0; i < size; i++)
                     {
-
                         LO idVarname = i;
                         if(problem_->getParameterList()->sublist("Parameter").get("FSCI", false) == true && i == 4 && 
                           !problem_->getParameterList()->sublist("Parameter").get("Chemistry Explicit", false) && 
@@ -1650,10 +1651,15 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
 
 }
 template<class SC,class LO,class GO,class NO>
-double TimeProblem<SC,LO,GO,NO>::getPreviousTimeIncrement(){
+double TimeProblem<SC,LO,GO,NO>::getPreviousTimeIncrement(double timeStep){
     double dt = parameterList_->sublist("Timestepping Parameter").get("dt", 0.0);
     
     int numSegments = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").get("Number of Segments",0);
+
+    double time=time_; // Generally this is set to the current time. 
+
+    if(timeStep > 0.)
+        time=timeStep; // In cases of restart, we can add the current timeStep or the to be imported timestep
 
  	for(int i=1; i <= numSegments; i++){
 
