@@ -793,7 +793,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionPreviousStep(){
         {
             std::string fileName = "Solution"; // The name of the solution need here always this
             double timeStep = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
-            double dt = parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
+            double dt = getPreviousTimeIncrement(); //parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
             double extract = timeStep - dt;
             int size = problem_->getSolution()->size();
             
@@ -850,7 +850,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps){
 
             std::string fileName ="Solution";
             double timeStep = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
-            double dt = parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
+            double dt = getPreviousTimeIncrement(); //parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
             int size = problem_->getSolution()->size();
 
             for(int j=0 ; j< nmbSteps ; j++)
@@ -1008,7 +1008,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionNewmarkPreviousStep(double dt, doub
         if(restart)
         {
             double timeStep = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
-            double dt = parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
+            double dt = getPreviousTimeIncrement(); // parameterList_->sublist("Timestepping Parameter").get("dt", 0.01);
             int size = problem_->getSolution()->size();
           
             double extract = timeStep;//-dt; // We only need the previous time step
