@@ -401,7 +401,9 @@ class FE {
                                 MapConstPtr_Type map2,
                                 bool callFillComplete = true);
 
-    
+    void postProcessing(int type, MultiVectorPtr_Type &postProcessingVec);
+
+
     /*! Bochev-Dohrmann stabilization for P1-P1 finite elements. Must be scaled with 1/nu for general Navier-Stokes problem. */
     void assemblyBDStabilization(int dim,
                                  std::string FEType,
