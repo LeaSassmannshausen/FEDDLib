@@ -948,9 +948,11 @@ void FSCI<SC,LO,GO,NO>::exportValuesOfInterest()
     problemSCI_->exportValuesOfInterest();   
     if(this->geometryExplicit_)
     {
-        std::cout << " Export geometry "<< std::endl;
-        std::string varName = std::to_string(this->timeSteppingTool_->currentTime());
-        this->exporterGeo_->writeVariablesHDF5(varName,this->problemGeometry_->getSolution()->getBlock(0)); 
+        TEUCHOS_TEST_FOR_EXCEPTION(true, std::runtime_error, "exportValuesOfInterest currently not available");
+
+        // std::cout << " Export geometry "<< std::endl;
+        // std::string varName = std::to_string(this->timeSteppingTool_->currentTime());
+        // this->exporterGeometry_->writeVariablesHDF5(varName,this->problemGeometry_->getSolution()->getBlock(0)); 
     }
 }
 
