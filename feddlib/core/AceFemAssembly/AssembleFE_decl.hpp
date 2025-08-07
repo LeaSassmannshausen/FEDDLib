@@ -224,6 +224,21 @@ namespace FEDD {
         */
         vec_dbl_Type getLocalconstOutputField() {return constOutputField_;}
 
+        /*!
+         \brief Set history values of element
+         \return values
+        */
+        void setLocalHistory(vec_dbl_Type history);
+
+        void setLocalHistoryUpdated(vec_dbl_Type historyUpdated);
+
+        /*!
+         \brief Get history values of element
+         \return values
+        */
+        vec_dbl_Type getLocalHistory() {return history_;};
+
+        vec_dbl_Type getLocalHistoryUpdated() {return historyUpdated_;};
 
     protected:
 
@@ -266,6 +281,11 @@ namespace FEDD {
         GO globalElementID_;
 
         vec2D_dbl_ptr_Type postProcessingData_; // Post processing data
+
+        vec_dbl_Type historyUpdated_;
+		vec_dbl_Type history_;
+        bool historyImported_;
+		int historyLength_;				// Length of history vector
 
         // This can be any postprocessing output field ddefined inside an element using converged solution
         vec_dbl_Type constOutputField_ ; // can be a vector with values on P1/ P2 nodes or just averaged element value

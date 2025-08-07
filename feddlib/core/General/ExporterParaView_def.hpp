@@ -243,6 +243,18 @@ void ExporterParaView<SC,LO,GO,NO>::addVariable(MultiVecConstPtr_Type &u,
 
 }
 
+
+template<class SC,class LO,class GO,class NO>
+void ExporterParaView<SC,LO,GO,NO>::updateVariables(MultiVecConstPtr_Type &u, std::string varName){
+
+    for (int i=0; i<this->variables_.size(); i++) {
+		if(this->varNames_[i] == varName){
+			this->variables_[i] = u;
+		}
+	}
+
+}
+
 template<class SC,class LO,class GO,class NO>
 void ExporterParaView<SC,LO,GO,NO>::save(double time){
 

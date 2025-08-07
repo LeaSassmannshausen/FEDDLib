@@ -6,9 +6,8 @@
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 #include "feddlib/core/General/ExporterParaView.hpp"
 #include "feddlib/core/General/ExporterTxt.hpp"
-
-
-
+#include "feddlib/problems/specific/SCI.hpp"
+#include "feddlib/problems/specific/FSCI.hpp"
 #include "NonLinearSolver.hpp"
 #include "TimeSteppingTools.hpp"
 
@@ -58,6 +57,13 @@ public:
     typedef FSI<SC,LO,GO,NO> FSIProblem_Type;
     typedef Teuchos::RCP<FSIProblem_Type> FSIProblemPtr_Type;
 
+    typedef FSCI<SC,LO,GO,NO> FSCIProblem_Type;
+    typedef Teuchos::RCP<FSCIProblem_Type> FSCIProblemPtr_Type;
+
+    typedef SCI<SC,LO,GO,NO> SCIProblem_Type;
+    typedef Teuchos::RCP<SCIProblem_Type> SCIProblemPtr_Type;
+
+
     typedef Domain<SC,LO,GO,NO> Domain_Type;
     typedef Teuchos::RCP<Domain_Type > DomainPtr_Type;
     typedef typename Domain_Type::Mesh_Type Mesh_Type;
@@ -101,6 +107,8 @@ public:
     // schreibe dann vor dem nlSolve() alles in das FSI-System hinein
     void advanceInTimeFSI();
 
+    void advanceInTimeSCI();
+
     void advanceInTimeLinearMultistep();
 
     void advanceInTimeNonLinearMultistep();
@@ -119,11 +127,17 @@ public:
     
     void exportTimestep(BlockMultiVectorPtr_Type& solShort);
 
+    void exportPostprocess(BlockMultiVectorPtr_Type postprocessVec,DomainConstPtr_Type domain,vec_string_Type exportNames);
+
     void setupExporter();
     
     void setupExporter(BlockMultiVectorPtr_Type& solShort);
 
+    void setupExporter(BlockMultiVectorPtr_Type postprocessVec, DomainConstPtr_Type domain, vec_string_Type exportNames);
+
     void closeExporter();
+
+    void closeExporterPostprocess();
 
     void addRhsDAE(SmallMatrix<double> coeff, BlockMatrixPtr_Type bMat, BlockMultiVectorPtr_Type vec);
 
@@ -159,6 +173,9 @@ public:
     MultiVectorConstPtrArray_Type export_solution_vector_;
     bool boolExporterSetup_;
 
+    std::vector<ExporterPtr_Type> exporter_vector_postprocess_;
+    //MultiVectorConstPtrArray_Type export_stress_vector_;
+    bool boolExporterSetupPostprocess_;
 private:
 
 #ifdef FEDD_TIMER

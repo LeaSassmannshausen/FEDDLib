@@ -124,7 +124,7 @@ void rhsYZ(double* x, double* res, double* parameters){
         force = parameters[1];
 
 
-    if(parameters[5] == 4  || parameters[5] == 5){
+    if(parameters[5] == 4 || parameters[5] == 5){
       	res[0] = force;
         res[1] = force;
         res[2] = force;
@@ -139,7 +139,7 @@ void rhsYZ(double* x, double* res, double* parameters){
 // 1 : force
 // 2 : loadStep (lambda)
 // 3 : LoadStep end time
-// 4 : Flag 
+// 5 : Flag 
 
 void rhsArtery(double* x, double* res, double* parameters){
 
@@ -150,14 +150,14 @@ void rhsArtery(double* x, double* res, double* parameters){
   	res[0] =0.;
     res[1] =0.;
     res[2] =0.;
-    
+
     if(parameters[0]+1.e-12 < TRamp)
         force = (parameters[0]+loadStepSize) * parameters[1] / TRamp ;
     else
         force = parameters[1];
 
 
-    if(parameters[5] == 5){
+    if(parameters[5] == 6){
       	res[0] = force;
         res[1] = force;
         res[2] = force;
@@ -492,8 +492,8 @@ int main(int argc, char *argv[])
     string xmlProblemFile = "parametersProblemSCI.xml";
     myCLP.setOption("problemfile",&xmlProblemFile,".xml file with Inputparameters.");    
     
-    string xmlProblemStructureFile = "parametersProblemStructure.xml";  
-    myCLP.setOption("problemfileStructure",&xmlProblemStructureFile,".xml file with Inputparameters.");    
+    // string xmlProblemStructureFile = "parametersProblemStructure.xml";  
+    // myCLP.setOption("problemfileStructure",&xmlProblemStructureFile,".xml file with Inputparameters.");    
  
     string xmlSolverFileSCI = "parametersSolverSCI.xml"; 
     myCLP.setOption("solverfileSCI",&xmlSolverFileSCI,".xml file with Inputparameters.");
@@ -522,7 +522,7 @@ int main(int argc, char *argv[])
     {
         ParameterListPtr_Type parameterListProblem = Teuchos::getParametersFromXmlFile(xmlProblemFile);
        
-        ParameterListPtr_Type parameterListProblemStructure = Teuchos::getParametersFromXmlFile(xmlProblemStructureFile);
+        // ParameterListPtr_Type parameterListProblemStructure = Teuchos::getParametersFromXmlFile(xmlProblemStructureFile);
         
         ParameterListPtr_Type parameterListSolverSCI = Teuchos::getParametersFromXmlFile(xmlSolverFileSCI);
 
@@ -552,11 +552,11 @@ int main(int argc, char *argv[])
         parameterListAll->setParameters(*parameterListSolverSCI);
         parameterListAll->setParameters(*parameterListPrec);
                     
-		parameterListAll->setParameters(*parameterListProblemStructure);
+		// parameterListAll->setParameters(*parameterListProblemStructure);
         
         ParameterListPtr_Type parameterListChemAll(new Teuchos::ParameterList(*parameterListPrecChem)) ;
-        sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Chem") );
-        sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
+        sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Diffusion") );
+        // sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
         parameterListChemAll->setParameters(*parameterListSolverSCI);
         parameterListChemAll->setParameters(*parameterListPrecChem);
 
@@ -564,8 +564,8 @@ int main(int argc, char *argv[])
         ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListPrec));
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         parameterListStructureAll->setParameters(*parameterListPrec);
-        parameterListStructureAll->setParameters(*parameterListProblem);
-        parameterListStructureAll->setParameters(*parameterListProblemStructure);
+        // parameterListStructureAll->setParameters(*parameterListProblem);
+        // parameterListStructureAll->setParameters(*parameterListProblemStructure);
 		
         TimePtr_Type totalTime(TimeMonitor_Type::getNewCounter("FEDD - main - Total Time"));
         TimePtr_Type buildMesh(TimeMonitor_Type::getNewCounter("FEDD - main - Build Mesh"));
@@ -764,8 +764,10 @@ int main(int argc, char *argv[])
             }
 			bcFactory->addBC(zeroDirichlet3D, 2, 0, domainStructure, "Dirichlet_Z", dim);
 			bcFactory->addBC(zeroDirichlet3D, 3, 0, domainStructure, "Dirichlet_Z", dim);
+            bcFactory->addBC(zeroDirichlet3D, 7, 0, domainStructure, "Dirichlet_Z", dim);
             bcFactory->addBC(zeroDirichlet3D, 8, 0, domainStructure, "Dirichlet_Z", dim);
-			bcFactory->addBC(zeroDirichlet3D, 9, 0, domainStructure, "Dirichlet_Z", dim);			
+			bcFactory->addBC(zeroDirichlet3D, 9, 0, domainStructure, "Dirichlet_Z", dim);	
+            bcFactory->addBC(zeroDirichlet3D, 10, 0, domainStructure, "Dirichlet_Z", dim);	
 			bcFactory->addBC(zeroDirichlet3D, 13, 0, domainStructure, "Dirichlet_X_Z", dim);
 			bcFactory->addBC(zeroDirichlet3D, 14, 0, domainStructure, "Dirichlet_Y_Z", dim);
 
@@ -773,40 +775,15 @@ int main(int argc, char *argv[])
 
 			bcFactoryStructure->addBC(zeroDirichlet3D, 2, 0, domainStructure, "Dirichlet_Z", dim);
 			bcFactoryStructure->addBC(zeroDirichlet3D, 3, 0, domainStructure, "Dirichlet_Z", dim);			
+            bcFactoryStructure->addBC(zeroDirichlet3D, 7, 0, domainStructure, "Dirichlet_Z", dim);
             bcFactoryStructure->addBC(zeroDirichlet3D, 8, 0, domainStructure, "Dirichlet_Z", dim);
 			bcFactoryStructure->addBC(zeroDirichlet3D, 9, 0, domainStructure, "Dirichlet_Z", dim);
+			bcFactoryStructure->addBC(zeroDirichlet3D, 10, 0, domainStructure, "Dirichlet_Z", dim);
 			bcFactoryStructure->addBC(zeroDirichlet3D, 13, 0, domainStructure, "Dirichlet_X_Z", dim);
 			bcFactoryStructure->addBC(zeroDirichlet3D, 14, 0, domainStructure, "Dirichlet_Y_Z", dim);
 
         }
-        // else if(dim==3 && bcType=="Plaque"){
-        //     if(verbose){
-        //         std::cout << " \t Boundary Condition type Plaque. This boundary condition is for artery like geometries containing plaque. " << std::endl;
-        //         std::cout << " \t \t z=0 and z=c plane are held in z-direction. Important this geometry spans/runs in z direction. " << std::endl;
-        //         std::cout << " \t \t Two or more additional points are held in x and y direction each." << std::endl;
-        //         std::cout << " \t \t Internal surface force is applied." << std::endl;
-        //         std::cout << " \t \t The parameters for the different material are set through parametersProblemStructure" << std::endl;
-        //     }
-		// 	bcFactory->addBC(zeroDirichlet3D, 2, 0, domainStructure, "Dirichlet_Z", dim);
-		// 	bcFactory->addBC(zeroDirichlet3D, 3, 0, domainStructure, "Dirichlet_Z", dim);
-        //     bcFactory->addBC(zeroDirichlet3D, 8, 0, domainStructure, "Dirichlet_Z", dim);
-		// 	bcFactory->addBC(zeroDirichlet3D, 9, 0, domainStructure, "Dirichlet_Z", dim);
-        //     bcFactory->addBC(zeroDirichlet3D, 10, 0, domainStructure, "Dirichlet_Z", dim); // Plaque surface
-		// 	bcFactory->addBC(zeroDirichlet3D, 11, 0, domainStructure, "Dirichlet_Z", dim); // plaque surface
-		// 	bcFactory->addBC(zeroDirichlet3D, 13, 0, domainStructure, "Dirichlet_X_Z", dim);
-		// 	bcFactory->addBC(zeroDirichlet3D, 14, 0, domainStructure, "Dirichlet_Y_Z", dim);
-			
-
-		// 	bcFactoryStructure->addBC(zeroDirichlet3D, 2, 0, domainStructure, "Dirichlet_Z", dim);
-		// 	bcFactoryStructure->addBC(zeroDirichlet3D, 3, 0, domainStructure, "Dirichlet_Z", dim);			
-        //     bcFactoryStructure->addBC(zeroDirichlet3D, 8, 0, domainStructure, "Dirichlet_Z", dim);
-		// 	bcFactoryStructure->addBC(zeroDirichlet3D, 9, 0, domainStructure, "Dirichlet_Z", dim);
-        //      bcFactoryStructure->addBC(zeroDirichlet3D, 10, 0, domainStructure, "Dirichlet_Z", dim);
-		// 	bcFactoryStructure->addBC(zeroDirichlet3D, 11, 0, domainStructure, "Dirichlet_Z", dim);
-		// 	bcFactoryStructure->addBC(zeroDirichlet3D, 13, 0, domainStructure, "Dirichlet_X_Z", dim);
-		// 	bcFactoryStructure->addBC(zeroDirichlet3D, 14, 0, domainStructure, "Dirichlet_Y_Z", dim);
-
-        // }
+    
        
         // die bcFactory; vgl. z.B. Timeproblem::updateMultistepRhs()
         if (!sci.problemStructure_.is_null())
@@ -865,7 +842,6 @@ int main(int argc, char *argv[])
                    
         if(dim==3 && bcType=="Cube")
         {
-
             std::vector<double> parameter_vec(1, parameterListAll->sublist("Parameter").get("Inflow Start Time",0.));
             bcFactory->addBC(inflowChem, 0, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
             bcFactory->addBC(inflowChem, 1, 1, domainChem, "Dirichlet", 1, parameter_vec); // inflow of Chem
@@ -881,43 +857,17 @@ int main(int argc, char *argv[])
         }
         else if(dim==3 && bcType=="Artery"){
            std::vector<double> parameter_vec(1, parameterListAll->sublist("Parameter").get("Inflow Start Time",0.));
-           bcFactory->addBC(inflowChem, 5, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-		   bcFactory->addBC(inflowChem, 13, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-		   bcFactory->addBC(inflowChem, 14, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-		   bcFactory->addBC(inflowChem, 7, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-		   bcFactory->addBC(inflowChem, 10, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+        //    bcFactory->addBC(inflowChem, 5, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+		//    bcFactory->addBC(inflowChem, 13, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+		//    bcFactory->addBC(inflowChem, 14, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+		//    bcFactory->addBC(inflowChem, 7, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+		   bcFactory->addBC(inflowChem, 11, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
 		   
-           bcFactoryChem->addBC(inflowChem, 5, 0, domainChem, "Dirichlet", 1,parameter_vec);
-           bcFactoryChem->addBC(inflowChem, 13, 0, domainChem, "Dirichlet", 1,parameter_vec);
-           bcFactoryChem->addBC(inflowChem, 14, 0, domainChem, "Dirichlet", 1,parameter_vec);
-           bcFactoryChem->addBC(inflowChem, 7, 0, domainChem, "Dirichlet", 1,parameter_vec);
-           bcFactoryChem->addBC(inflowChem, 10, 0, domainChem, "Dirichlet", 1,parameter_vec);
-        }
-        else if(dim==3 && bcType=="Artery Full"){
-           std::vector<double> parameter_vec(1, parameterListAll->sublist("Parameter").get("Inflow Start Time",0.));
-           
-            bcFactory->addBC(inflowChem, 5, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-            bcFactory->addBC(inflowChem, 8, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-            bcFactory->addBC(inflowChem, 9, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-
-		   
-           bcFactoryChem->addBC(inflowChem, 5, 0, domainChem, "Dirichlet", 1,parameter_vec);
-           bcFactoryChem->addBC(inflowChem, 8, 0, domainChem, "Dirichlet", 1,parameter_vec);
-           bcFactoryChem->addBC(inflowChem, 9, 0, domainChem, "Dirichlet", 1,parameter_vec);
-         
-        }
-        else if(dim==3 && bcType=="Plaque"){
-           std::vector<double> parameter_vec(1, parameterListAll->sublist("Parameter").get("Inflow Start Time",0.));
-           
-            bcFactory->addBC(inflowChem, 5, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-            bcFactory->addBC(inflowChem, 8, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-            bcFactory->addBC(inflowChem, 9, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-
-		   
-           bcFactoryChem->addBC(inflowChem, 5, 0, domainChem, "Dirichlet", 1,parameter_vec);
-           bcFactoryChem->addBC(inflowChem, 8, 0, domainChem, "Dirichlet", 1,parameter_vec);
-           bcFactoryChem->addBC(inflowChem, 9, 0, domainChem, "Dirichlet", 1,parameter_vec);
-         
+        //    bcFactoryChem->addBC(inflowChem, 5, 0, domainChem, "Dirichlet", 1,parameter_vec);
+        //    bcFactoryChem->addBC(inflowChem, 13, 0, domainChem, "Dirichlet", 1,parameter_vec);
+        //    bcFactoryChem->addBC(inflowChem, 14, 0, domainChem, "Dirichlet", 1,parameter_vec);
+        //    bcFactoryChem->addBC(inflowChem, 7, 0, domainChem, "Dirichlet", 1,parameter_vec);
+           bcFactoryChem->addBC(inflowChem, 11, 0, domainChem, "Dirichlet", 1,parameter_vec);
         }
 
         if (verbose)

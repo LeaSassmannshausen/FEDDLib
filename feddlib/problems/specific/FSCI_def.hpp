@@ -895,16 +895,6 @@ void FSCI<SC,LO,GO,NO>::setChemMassmatrix( MatrixPtr_Type& massmatrix ) const
 
 }
 
-
-template<class SC,class LO,class GO,class NO>
-void FSCI<SC,LO,GO,NO>::evalModelImpl(const Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
-                                     const Thyra::ModelEvaluatorBase::OutArgs<SC> &outArgs
-                                    ) const
-{
-    TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error, "implement NOX for steady FSCI.");
-    std::string type = this->parameterList_->sublist("General").get("Preconditioner Method","Monolithic");
-}
-
 template<class SC,class LO,class GO,class NO>
 void FSCI<SC,LO,GO,NO>::getValuesOfInterest( vec_dbl_Type& values ){    
 }
@@ -960,7 +950,7 @@ void FSCI<SC,LO,GO,NO>::exportValuesOfInterest()
     {
         std::cout << " Export geometry "<< std::endl;
         std::string varName = std::to_string(this->timeSteppingTool_->currentTime());
-        this->exporterGeometry_->writeVariablesHDF5(varName,this->problemGeometry_->getSolution()->getBlock(0)); 
+        this->exporterGeo_->writeVariablesHDF5(varName,this->problemGeometry_->getSolution()->getBlock(0)); 
     }
 }
 

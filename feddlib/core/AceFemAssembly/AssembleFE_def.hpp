@@ -31,6 +31,9 @@ solution_(0)
 	
 	checkParameters();
 
+	historyImported_=false; // If we restart from a previous solution, we also ne to import the history values.
+
+
 /// Element Numbering for triangular elements:
 /*!
     - Triangle numbering
@@ -146,6 +149,20 @@ vec2D_dbl_Type AssembleFE<SC,LO,GO,NO>::getNodesRefConfig( ){
 
 };
 
+
+template <class SC, class LO, class GO, class NO>
+void AssembleFE<SC, LO, GO, NO>::setLocalHistory(vec_dbl_Type history) {
+	  TEUCHOS_TEST_FOR_EXCEPTION(history.size() != history_.size(), std::runtime_error, "Input history and current history have different length. History input " << history.size() << " history current " <<history_.size() );
+    this->history_ = history;
+    historyImported_=true;
+};
+
+template <class SC, class LO, class GO, class NO>
+void AssembleFE<SC, LO, GO, NO>::setLocalHistoryUpdated(vec_dbl_Type history) {
+	  TEUCHOS_TEST_FOR_EXCEPTION(history.size() != historyUpdated_.size(), std::runtime_error, "Input history and current history have different length. History input " << history.size() << " history current " <<historyUpdated_.size() );
+    this->historyUpdated_ = history;
+  
+};
 
 }
 #endif

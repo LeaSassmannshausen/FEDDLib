@@ -128,6 +128,8 @@ public:
                      int dofPerNode,
                      MapConstPtrConst_Type& mapUnique=Teuchos::null);
     
+    void updateVariables(MultiVecConstPtr_Type &u, std::string varName);
+
     void save(double time);
     
     void save(double time, double dt);

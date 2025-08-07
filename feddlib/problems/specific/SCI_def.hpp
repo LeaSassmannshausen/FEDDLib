@@ -140,8 +140,8 @@ void SCI<SC,LO,GO,NO>::assemble( std::string type ) const
         if (this->residualVec_.is_null())
             this->residualVec_.reset(new BlockMultiVector_Type(2));
         
-        MatrixPtr_Type B(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
-        MatrixPtr_Type C(new Matrix_Type(this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow() ) );
+        MatrixPtr_Type B(new Matrix_Type(this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow() ) );
+        MatrixPtr_Type C(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
         MatrixPtr_Type D(new Matrix_Type( this->getDomain(1)->getMapUnique(),this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow() ));
 
         // For implicit the system is ordered differently with solid block in 0,0 and diffusion in 1,1

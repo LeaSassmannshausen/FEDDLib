@@ -711,7 +711,7 @@ void FE<SC,LO,GO,NO>::assemblyAceDeformDiffu(int dim,
 	tuple_disk_vec_ptr_Type problemDiskChem = Teuchos::rcp(new tuple_disk_vec_Type(0));
     problemDiskChem->push_back(chem);
 
-	std::string SCIModel = params->sublist("Parameter").get("Structure Model","SCI_simple");
+	std::string SCIModel = params->sublist("Parameter").get("Structure Model","SCI_NH");
 
 	if(assemblyFEElements_.size()== 0){
        	initAssembleFEElements(SCIModel,problemDisk,elementsChem, params,pointsRep,domainVec_.at(FElocSolid)->getElementMap());
@@ -755,9 +755,6 @@ void FE<SC,LO,GO,NO>::assemblyAceDeformDiffu(int dim,
         std::cout << " Determinante " << detB << std::endl;*/
         // ------------------------
 
-
-
-
 		if(assembleMode == "Jacobian"){
 			assemblyFEElements_[T]->assembleJacobian();
 
@@ -765,10 +762,7 @@ void FE<SC,LO,GO,NO>::assemblyAceDeformDiffu(int dim,
            // elementMatrix->print();
 			assemblyFEElements_[T]->advanceNewtonStep(); // n genereal non linear solver step
 			
-			addFeBlockMatrix(A, elementMatrix, elementsSolid->getElement(T), elementsSolid->getElement(T), mapSolid, mapChem, problemDisk);
-
-          
-
+			addFeBlockMatrix(A, elementMatrix, elementsSolid->getElement(T), elementsChem->getElement(T), mapSolid, mapChem, problemDisk);
 		}
 		if(assembleMode == "Rhs"){
 		    assemblyFEElements_[T]->assembleRHS();
@@ -783,13 +777,8 @@ void FE<SC,LO,GO,NO>::assemblyAceDeformDiffu(int dim,
             elTmp->getMassMatrix(elementMatrix);
             //elementMatrix->print();
    			addFeBlock(A, elementMatrix, elementsChem->getElement(T), mapChem, 0, 0, problemDiskChem);
-
-
         }
-
-        
-
-			
+	
 	}
 	if ( assembleMode == "Jacobian"){
 		A->getBlock(0,0)->fillComplete();
@@ -922,6 +911,53 @@ void FE<SC, LO, GO, NO>::postProcessing(int type, MultiVectorPtr_Type &postProce
         else
             arrayUni[i]  =0.;    
 }
+
+template <class SC, class LO, class GO, class NO>
+void FE<SC, LO, GO, NO>::setHistoryValues(LO T, vec_dbl_Type history)
+{
+    assemblyFEElements_[T]->setLocalHistory(history);
+    assemblyFEElements_[T]->setLocalHistoryUpdated(history);
+
+}
+
+template <class SC, class LO, class GO, class NO>
+typename FE<SC, LO, GO, NO>::BlockMultiVectorPtr_Type FE<SC, LO, GO, NO>::getHistoryValues()
+{
+    // We are only concerned with element information. We dont need any communication for that
+    MapConstPtr_Type elementMap = this->domainVec_[0]->getElementMap();
+
+    UN numHistoryValues;
+    if(assemblyFEElements_.size()>0)
+        numHistoryValues = 34; //assemblyFEElements_[0]->getHistoryLength()/4; // 34*4 
+
+    std::cout << " Num History Values " << numHistoryValues << std::endl;
+    // Multiplicity of nodes (nodes being in more then one element) with weights from interpolation between gausspoints an node points
+    BlockMultiVectorPtr_Type historyElements =  Teuchos::rcp( new BlockMultiVector_Type(4) );
+    MultiVectorPtr_Type historyElements_1 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues) );
+    MultiVectorPtr_Type historyElements_2 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues) );
+    MultiVectorPtr_Type historyElements_3 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues) );
+    MultiVectorPtr_Type historyElements_4 = Teuchos::rcp( new MultiVector_Type(elementMap,numHistoryValues) );
+
+    historyElements->addBlock(historyElements_1,0);
+    historyElements->addBlock(historyElements_2,1);
+    historyElements->addBlock(historyElements_3,2);
+    historyElements->addBlock(historyElements_4,3);
+
+    // Iterating over all elements
+    for (UN T=0; T<assemblyFEElements_.size(); T++) {
+        vec_dbl_Type historyElement = assemblyFEElements_[T]->getLocalHistory();  
+        for(int gp =0; gp<4; gp++){
+            for(int i=0; i< numHistoryValues ; i++){
+                Teuchos::ArrayRCP<SC>  arrayMultiRep = historyElements->getBlock(gp)->getDataNonConst(i);
+                arrayMultiRep[T] = historyElement[i+gp*numHistoryValues];
+
+            }
+        }
+
+    }
+    return historyElements;
+}
+
 // Check the order of chemistry and solid in system matrix
 template <class SC, class LO, class GO, class NO>
 void FE<SC,LO,GO,NO>::assemblyAceDeformDiffuBlock(int dim,
@@ -8300,7 +8336,6 @@ void FE<SC,LO,GO,NO>::assemblyNonlinearSurfaceIntegralExternal(int dim,
     std::vector<double> valueFunc(dim);
 
     SC* paramsFunc = &(funcParameter[0]);
-
     // The second last entry is a placeholder for the surface element flag. It will be set below
     for (UN T=0; T<elements->numberElements(); T++) {
         FiniteElement fe = elements->getElement( T );
@@ -8330,7 +8365,7 @@ void FE<SC,LO,GO,NO>::assemblyNonlinearSurfaceIntegralExternal(int dim,
                 func( &p1[0], &valueFunc[0], paramsFunc);
   
                 if(valueFunc[0] != 0.){
-                    
+
                     double *residuumVector;
                     double **stiffMat;
 
@@ -8394,7 +8429,7 @@ void FE<SC,LO,GO,NO>::assemblyNonlinearSurfaceIntegralExternal(int dim,
             }
         }
     }
-    //f->scale(-1.);
+    // f->scale(-1.);
     Kext->fillComplete(domainVec_.at(FEloc)->getMapVecFieldUnique(),domainVec_.at(FEloc)->getMapVecFieldUnique());
     // Kext->writeMM("K_ext1");
 }
@@ -8456,9 +8491,9 @@ void FE<SC,LO,GO,NO>::assemblySurfaceIntegral(int dim,
     vec2D_dbl_ptr_Type phi;
     vec_dbl_ptr_Type weights = Teuchos::rcp(new vec_dbl_Type(0));
 
-    UN degFunc = funcParameter[funcParameter.size()-1] + 1.e-14; // Degree from function set/determined externally
-    UN deg = Helper::determineDegree( dim-1, FEType, Helper::Deriv0) + degFunc;
-
+    // UN degFunc = funcParameter[funcParameter.size()-1] + 1.e-14; // Degree from function set/determined externally
+    UN deg = Helper::determineDegree( dim-1, FEType, Helper::Deriv0); // + degFunc;
+    // std::cout << " Deg " << deg << " degfunc " << degFunc << std::endl;
     Helper::getPhi(phi, weights, dim-1, FEType, deg);
 
     vec2D_dbl_ptr_Type quadPoints;
