@@ -198,6 +198,7 @@ void TimeProblem<SC,LO,GO,NO>::updateMultistepRhsFSI(vec_dbl_Type& coeff, int nm
         BlockMultiVectorPtr_Type tmpVector
             = Teuchos::rcp( new BlockMultiVector_Type( problem_->getRhs() ) );
         BlockMultiVectorPtr_Type tmpBlockVector = solutionPreviousTimesteps_[i];
+        // Difference to normal/other function is the changing mass matrix!
         systemMassPreviousTimeSteps_[i]->apply( *tmpBlockVector, *tmpVector, tmpMassParameter );
         problem_->getRhs()->update( 1., tmpVector, 1. );
     }
