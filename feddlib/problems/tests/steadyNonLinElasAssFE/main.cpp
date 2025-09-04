@@ -268,14 +268,14 @@ int main(int argc, char *argv[])
             // bcFactory->addBC(zeroDirichlet2D, 9, 0, domain, "Dirichlet_X_Z", dim);
 
 
-            bcFactory->addBC(zeroDirichlet3D, 14, 2, domain, "Dirichlet_Y_Z", dim); // inflow/outflow strip fixed in y direction
-            bcFactory->addBC(zeroDirichlet3D, 13, 2, domain, "Dirichlet_X_Z", dim); // inflow/outflow strip fixed in y direction
-            bcFactory->addBC(zeroDirichlet3D, 7, 2, domain, "Dirichlet_Z", dim); // inlet fixed in Z direction
-            bcFactory->addBC(zeroDirichlet3D, 8, 2, domain, "Dirichlet_Z", dim); // outlet fixed in Z direction
-            bcFactory->addBC(zeroDirichlet3D, 9, 2, domain, "Dirichlet_Z", dim); // inlet ring in Z direction
-            bcFactory->addBC(zeroDirichlet3D, 1, 2, domain, "Dirichlet_Z", dim); // outer ring of inlet area
-            bcFactory->addBC(zeroDirichlet3D, 2, 2, domain, "Dirichlet_Z", dim); // outer ring of outlet area
-            bcFactory->addBC(zeroDirichlet3D, 10, 2, domain, "Dirichlet_Z", dim); // outlet ring in Z direction
+            bcFactory->addBC(zeroDirichlet3D, 14, 0, domain, "Dirichlet_Y_Z", dim); // inflow/outflow strip fixed in y direction
+            bcFactory->addBC(zeroDirichlet3D, 13, 0, domain, "Dirichlet_X_Z", dim); // inflow/outflow strip fixed in y direction
+            bcFactory->addBC(zeroDirichlet3D, 7, 0, domain, "Dirichlet_Z", dim); // inlet fixed in Z direction
+            bcFactory->addBC(zeroDirichlet3D, 8, 0, domain, "Dirichlet_Z", dim); // outlet fixed in Z direction
+            bcFactory->addBC(zeroDirichlet3D, 9, 0, domain, "Dirichlet_Z", dim); // inlet ring in Z direction
+            bcFactory->addBC(zeroDirichlet3D, 1, 0, domain, "Dirichlet_Z", dim); // outer ring of inlet area
+            bcFactory->addBC(zeroDirichlet3D, 2, 0, domain, "Dirichlet_Z", dim); // outer ring of outlet area
+            bcFactory->addBC(zeroDirichlet3D, 10, 0, domain, "Dirichlet_Z", dim); // outlet ring in Z direction
 
         
 		}
