@@ -144,7 +144,21 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
         fUnique->exportFromVector( f, true, "Add" );
 
         this->residualVec_->addBlock( fUnique, 0 );
+
         this->system_->addBlock( W, 0, 0 );
+
+        if(useInterface){
+            this->residualVec_->getBlock(0)->writeMM("residual_vec_interface");
+            this->system_->getBlock(0,0)->writeMM("system_interface");
+            u_rep_->writeMM("solution_interface");
+        }
+        else
+        {
+            this->residualVec_->getBlock(0)->writeMM("residual_vec");
+            this->system_->getBlock(0,0)->writeMM("system");
+            u_rep_->writeMM("solution");
+
+        }
 
         if(loadStepping_) 
             assembleSourceTermLoadstepping();

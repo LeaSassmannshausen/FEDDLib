@@ -110,6 +110,24 @@ void rhsYZ(double* x, double* res, double* parameters){
     return;
 }
 
+void rhsInterface(double* x, double* res, double* parameters){
+    // parameters[0] is the time, not needed here
+    double force = parameters[1];
+    
+    res[0] =0.;
+    res[1] =0.;
+    res[2] =0.;
+
+
+    if(parameters[3] == 6){
+      	res[0] = force;
+        res[1] = force;
+        res[2] = force;
+    }
+ 
+    return;
+}
+
 
 typedef unsigned UN;
 typedef default_sc SC;
@@ -206,7 +224,7 @@ int main(int argc, char *argv[])
         ParameterListPtr_Type pListPartitioner = sublist( parameterListProblem, "Mesh Partitioner" );
         MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
         
-        partitionerP1.readAndPartition();
+        partitionerP1.readAndPartition(15);
         if (FEType=="P2") {
             Teuchos::RCP<Domain<SC,LO,GO,NO> > domainP2;
             domainP2.reset( new Domain_Type( comm, dim ) );
@@ -241,13 +259,24 @@ int main(int argc, char *argv[])
             bcFactory->addBC(zeroDirichlet2D, 1, 0, domain, "Dirichlet", dim);
         else if (dim == 3){
                       
-            bcFactory->addBC(zeroDirichlet, 1, 0, domain, "Dirichlet_X", dim);
-            bcFactory->addBC(zeroDirichlet, 2, 0, domain, "Dirichlet_Y", dim);
-            bcFactory->addBC(zeroDirichlet, 3, 0, domain, "Dirichlet_Z", dim);
-            bcFactory->addBC(zeroDirichlet3D, 0, 0, domain, "Dirichlet", dim);
-            bcFactory->addBC(zeroDirichlet2D, 7, 0, domain, "Dirichlet_X_Y", dim);
-            bcFactory->addBC(zeroDirichlet2D, 8, 0, domain, "Dirichlet_Y_Z", dim);
-            bcFactory->addBC(zeroDirichlet2D, 9, 0, domain, "Dirichlet_X_Z", dim);
+            // bcFactory->addBC(zeroDirichlet, 1, 0, domain, "Dirichlet_X", dim);
+            // bcFactory->addBC(zeroDirichlet, 2, 0, domain, "Dirichlet_Y", dim);
+            // bcFactory->addBC(zeroDirichlet, 3, 0, domain, "Dirichlet_Z", dim);
+            // bcFactory->addBC(zeroDirichlet3D, 0, 0, domain, "Dirichlet", dim);
+            // bcFactory->addBC(zeroDirichlet2D, 7, 0, domain, "Dirichlet_X_Y", dim);
+            // bcFactory->addBC(zeroDirichlet2D, 8, 0, domain, "Dirichlet_Y_Z", dim);
+            // bcFactory->addBC(zeroDirichlet2D, 9, 0, domain, "Dirichlet_X_Z", dim);
+
+
+            bcFactory->addBC(zeroDirichlet3D, 14, 2, domain, "Dirichlet_Y_Z", dim); // inflow/outflow strip fixed in y direction
+            bcFactory->addBC(zeroDirichlet3D, 13, 2, domain, "Dirichlet_X_Z", dim); // inflow/outflow strip fixed in y direction
+            bcFactory->addBC(zeroDirichlet3D, 7, 2, domain, "Dirichlet_Z", dim); // inlet fixed in Z direction
+            bcFactory->addBC(zeroDirichlet3D, 8, 2, domain, "Dirichlet_Z", dim); // outlet fixed in Z direction
+            bcFactory->addBC(zeroDirichlet3D, 9, 2, domain, "Dirichlet_Z", dim); // inlet ring in Z direction
+            bcFactory->addBC(zeroDirichlet3D, 1, 2, domain, "Dirichlet_Z", dim); // outer ring of inlet area
+            bcFactory->addBC(zeroDirichlet3D, 2, 2, domain, "Dirichlet_Z", dim); // outer ring of outlet area
+            bcFactory->addBC(zeroDirichlet3D, 10, 2, domain, "Dirichlet_Z", dim); // outlet ring in Z direction
+
         
 		}
             
@@ -261,7 +290,7 @@ int main(int argc, char *argv[])
         if (dim==2)
             NonLinElasAssFE.addRhsFunction( rhs2D );
         else if(dim==3)
-            NonLinElasAssFE.addRhsFunction( rhsYZ );
+            NonLinElasAssFE.addRhsFunction( rhsInterface );// rhsYZ
         
         NonLinElasAssFE.addParemeterRhs( force );
         NonLinElasAssFE.addParemeterRhs( degree );
@@ -290,7 +319,7 @@ int main(int argc, char *argv[])
         if (dim==2)
             NonLinElas.addRhsFunction( rhs2D );
         else if(dim==3)
-            NonLinElas.addRhsFunction( rhsYZ );
+            NonLinElas.addRhsFunction( rhsInterface ); // rhsYZ
 
         
         
