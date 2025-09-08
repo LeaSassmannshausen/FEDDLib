@@ -52,9 +52,9 @@ public:
     /* --------------------------------------------------------------------------------- */
     CommConstPtr_Type		comm_;
     ParameterListPtr_Type parameterList_;
-    int                 butcherTableNmb_;
+    // int                 butcherTableNmb_;
     int                 BDFNmb_;
-    timeSteppingType    tsType_;
+    timeSteppingType    tsType_; // adaptive or non-adaptive
     double 	tEnd_;
     double 	dt_;
     double 	t_;
@@ -71,13 +71,13 @@ public:
     double  error_;
     double  error_prev_;
     /* Butcher table information*/
-    int 	stages_;
-    bool    stifflyAcc_;
-    bool    stifflyAccEmbedded_;
-    vec2D_dbl_ptr_Type  butcherTable_;
-    vec_dbl_ptr_Type    BDFInformation_;
-    vec_dbl_ptr_Type 	b_embedded_;
-    vec_dbl_ptr_Type 	gamma_vec_;
+    // int 	stages_;
+    // bool    stifflyAcc_;
+    // bool    stifflyAccEmbedded_;
+    // vec2D_dbl_ptr_Type  butcherTable_;
+    vec_dbl_ptr_Type    BDFInformation_; // BDF Scheme
+    // vec_dbl_ptr_Type 	b_embedded_;
+    // vec_dbl_ptr_Type 	gamma_vec_;
     bool 	verbose_;
     ExporterTxtPtr_Type exporterTxtTime_;
     ExporterTxtPtr_Type exporterTxtDt_;

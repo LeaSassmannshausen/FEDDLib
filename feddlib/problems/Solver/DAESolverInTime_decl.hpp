@@ -93,9 +93,9 @@ public:
 
     void advanceWithLoadStepping();
 
-    void advanceInTimeLinear();
+    // void advanceInTimeLinear();
 
-    void advanceInTimeNonLinear();
+    // void advanceInTimeNonLinear();
 
     // Newmark-Verfahren (fuer lineare Probleme)
     void advanceInTimeLinearNewmark();
@@ -153,9 +153,9 @@ public:
 
     void getMassCoefficients(SmallMatrix<double> &massCoeff);
     
-    void getMultiStageCoefficients(SmallMatrix<double> &problemCoeff, int stage, int stagePrior, bool forRhs = false);
+    // void getMultiStageCoefficients(SmallMatrix<double> &problemCoeff, int stage, int stagePrior, bool forRhs = false);
     
-    void buildMultiStageRhs( int stage, Teuchos::Array<BlockMatrixPtr_Type>& matrixPrevStages, BlockMultiVectorPtrArray_Type& solutionPrevStages );
+    // void buildMultiStageRhs( int stage, Teuchos::Array<BlockMatrixPtr_Type>& matrixPrevStages, BlockMultiVectorPtrArray_Type& solutionPrevStages );
     
     CommConstPtr_Type comm_;
     bool verbose_;

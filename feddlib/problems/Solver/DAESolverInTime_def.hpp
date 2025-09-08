@@ -153,16 +153,16 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTime(){
                 advanceWithLoadStepping();
             }
         }
-        if (!parameterList_->sublist("Timestepping Parameter").get("Class","Singlestep").compare("Singlestep")) {
-            NonLinProbPtr_Type nonLinProb = Teuchos::rcp_dynamic_cast<NonLinProb_Type>(problem_);
-            if (nonLinProb.is_null()) {
-                advanceInTimeLinear();
-            }
-            else{
-                advanceInTimeNonLinear();
-            }
-        }
-        else if(!parameterList_->sublist("Timestepping Parameter").get("Class","Singlestep").compare("Newmark"))
+        // if (!parameterList_->sublist("Timestepping Parameter").get("Class","Singlestep").compare("Singlestep")) {
+        //     NonLinProbPtr_Type nonLinProb = Teuchos::rcp_dynamic_cast<NonLinProb_Type>(problem_);
+        //     if (nonLinProb.is_null()) {
+        //         advanceInTimeLinear();
+        //     }
+        //     else{
+        //         advanceInTimeNonLinear();
+        //     }
+        // }
+        if(!parameterList_->sublist("Timestepping Parameter").get("Class","Singlestep").compare("Newmark"))
         {
             NonLinProbPtr_Type nonLinProb = Teuchos::rcp_dynamic_cast<NonLinProb_Type>(problem_);
             if (nonLinProb.is_null()) {
@@ -198,136 +198,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTime(){
     
 }
 
-template<class SC,class LO,class GO,class NO>
-void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeLinear(){
 
-    
-    bool print = parameterList_->sublist("General").get("ParaViewExport",false);
-    if (print)
-        exportTimestep();
-    bool fullImplicitPressure = false;
-    int size = timeStepDef_.size();
-    double dt = 0.0;
-    while (timeSteppingTool_->continueTimeStepping()) {
-        problemTime_->updateTime ( timeSteppingTool_->currentTime() );
-        dt = timeSteppingTool_->get_dt();
-        problemTime_->updateSolutionPreviousStep();
-        
-        Teuchos::Array<BlockMatrixPtr_Type> bMatNonLin_vec_allstages;
-        BlockMultiVectorPtrArray_Type	solutionRK_stages;
-        BlockMultiVectorPtrArray_Type	sourceTermRK_stages;
-        
-        for (int s=0; s<timeSteppingTool_->getNmbStages(); s++) {
-            double time = timeSteppingTool_->currentTime() + dt * timeSteppingTool_->getButcherTableC(s);
-            if (verbose_)
-                std::cout << "Currently in stage " << s+1 << " of "<< timeSteppingTool_->getNmbStages() << std::endl;
-            
-            problemTime_->updateRhs();/*apply (mass matrix / dt) to u_t*/
-            if ( problemTime_->hasSourceTerm() ){
-                TEUCHOS_TEST_FOR_EXCEPTION(true, std::runtime_error, "Fix source term.");
-                problemTime_->assembleSourceTerm( time );
-            }
-            
-            if (s==0 && timeSteppingTool_->getButcherTableCoefficient(s , s) == 0.0) {
-                /* solution of last time step is later added to rk solution vector */
-            }
-            else if (s==0 && timeSteppingTool_->getButcherTableCoefficient(s , s) != 0.0) {
-                TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Not implemented butcher table!");
-            }
-            else{
-                for (int s_prior=0; s_prior<s; s_prior++) {
-                    SmallMatrix<double> coeff(size);
-                    for (int i=0; i<size; i++) {
-                        for (int j=0; j<size; j++) {
-                            if (timeStepDef_[i][j]>0) {
-                                if (i==0 && j==1 && fullImplicitPressure) {
-                                    coeff[i][j] = 0;
-                                }
-                                else{
-                                    coeff[i][j] = - timeSteppingTool_->getButcherTableCoefficient(s , s_prior);
-                                }
-                            }
-                        }
-                    }
-                    if (problemTime_->hasSourceTerm())
-                        this->addRhsDAE(coeff, sourceTermRK_stages[s_prior] );
-                    
-                    this->addRhsDAE( coeff, problemTime_->getSystem(), solutionRK_stages[s_prior] );
-                    
-                }
-                
-                SmallMatrix<double> massCoeff(size);
-                SmallMatrix<double> problemCoeff(size);
-                double coeffSourceTerm = 0.;
-                for (int i=0; i<size; i++) {
-                    for (int j=0; j<size; j++) {
-                        if (timeStepDef_[i][j]>0 && i==j) {
-                            massCoeff[i][j] = 1. / dt;
-                        }
-                        else if (timeStepDef_[i][j]==2) /*force off-diagnonal mass matrix*/
-                            massCoeff[i][j] = 1. / dt;
-                        else{
-                            massCoeff[i][j] = 0.;
-                        }
-                    }
-                }
-                for (int i=0; i<size; i++) {
-                    for (int j=0; j<size; j++){
-                        if (timeStepDef_[i][j]>0){
-                            if (i==0 && j==1 && fullImplicitPressure) {
-                                problemCoeff[i][j] = 1.;
-                                coeffSourceTerm = timeSteppingTool_->getButcherTableCoefficient(s , s); // ACHTUNG FUER SOURCE TERM, DER NICHT IN DER ZEIT
-                            }
-                            else{
-                                problemCoeff[i][j] = timeSteppingTool_->getButcherTableCoefficient(s , s);
-                                coeffSourceTerm = timeSteppingTool_->getButcherTableCoefficient(s , s); // ACHTUNG FUER SOURCE TERM, DER NICHT IN DER ZEIT DISKRETISIERT WIRD!
-                            }
-                        }
-                        else{
-                            problemCoeff[i][j] = 1.;
-                        }
-                    }
-                }
-                
-                if (problemTime_->hasSourceTerm())
-                    addSourceTermToRHS(coeffSourceTerm);
-                
-                problemTime_->setTimeParameters(massCoeff, problemCoeff);
-                problemTime_->combineSystems();
-                problemTime_->setBoundaries(time);
-                
-                problemTime_->solve();
-
-            }
-            
-            if (s+1 == timeSteppingTool_->getNmbStages()) {
-                BlockMultiVectorPtr_Type tmpSolution = Teuchos::rcp( new BlockMultiVector_Type ( problemTime_->getSolution() ) );
-                solutionRK_stages.push_back(tmpSolution);
-                BlockMultiVectorPtr_Type tmpSolutionPtr = problemTime_->getSolution();
-                BlockMatrixPtr_Type tmpMassSystem = problemTime_->getMassSystem();
-                timeSteppingTool_->calculateSolution( tmpSolutionPtr, solutionRK_stages, tmpMassSystem);
-            }
-            else{
-                solutionRK_stages.push_back( problemTime_->getSolution() );
-                if ( problemTime_->hasSourceTerm() )
-                    sourceTermRK_stages.push_back( problemTime_->getSourceTerm() );
-            }
-        }
-        
-        timeSteppingTool_->advanceTime(true/*output info*/);
-        
-        if (print)
-            exportTimestep();
-    }
-    
-    if (print) {
-        closeExporter();
-    }
-    if (parameterList_->sublist("NSParameter").get("Calculate Coefficients",false)) {
-        TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "close txt exporters here.");
-    }
-
-}
 template<class SC,class LO,class GO,class NO>
 void DAESolverInTime<SC,LO,GO,NO>::getMassCoefficients(SmallMatrix<double> &massCoeff){
     int size = timeStepDef_.size();
@@ -343,189 +214,6 @@ void DAESolverInTime<SC,LO,GO,NO>::getMassCoefficients(SmallMatrix<double> &mass
     }
 }
 
-template<class SC,class LO,class GO,class NO>
-void DAESolverInTime<SC,LO,GO,NO>::getMultiStageCoefficients(SmallMatrix<double> &problemCoeff, int stage, int stagePrior, bool forRhs){
-    int size = timeStepDef_.size();
-    problemCoeff.resize(size);
-    
-    for (int i=0; i<size; i++) {
-        for (int j=0; j<size; j++) {
-            if (timeStepDef_[i][j]>0)
-                problemCoeff[i][j] = timeSteppingTool_->get_dt()* timeSteppingTool_->getButcherTableCoefficient(stage , stagePrior);
-            else{
-                if (forRhs)
-                    problemCoeff[i][j] = 0.;
-                else
-                    problemCoeff[i][j] = 1.;
-            }
-        }
-    }
-}
-
-template<class SC,class LO,class GO,class NO>
-void DAESolverInTime<SC,LO,GO,NO>::buildMultiStageRhs( int stage, Teuchos::Array<BlockMatrixPtr_Type>& matrixPrevStages, BlockMultiVectorPtrArray_Type& solutionPrevStages ){
-    
-    int size = timeStepDef_.size();
-    SmallMatrix<double> massCoeff(size);
-    SmallMatrix<double> problemCoeff(size);
-    
-    getMassCoefficients(massCoeff);
-    
-    problemTime_->setTimeParameters(massCoeff, problemCoeff);//problemCoeff not needed here
-    problemTime_->updateRhs();/*apply (mass matrix / dt) to u_t*/
-    
-    bool fullImplicitPressure = parameterList_->sublist("Timestepping Parameter").get("Full implicit pressure",false);
-    for (int prevStage=0; prevStage<stage; prevStage++) {
-        
-        getMultiStageCoefficients(problemCoeff, stage, prevStage, true);
-        if (fullImplicitPressure && size>1 )
-            problemCoeff[0][1] = 0.;
-        
-        problemCoeff.scale(-1.);
-
-        TEUCHOS_TEST_FOR_EXCEPTION(problemTime_->hasSourceTerm(), std::logic_error, "Using source term must be implemented for single-step methods.");
-//                        addRhsDAE(coeff,beNL_vec_allstages.at(s_prior), solutionRK_stages.at(s_prior), sourceTermRK_stages.at(s_prior));
-        addRhsDAE( problemCoeff, matrixPrevStages[prevStage], solutionPrevStages[prevStage] );
-
-    }
-}
-
-
-
-template<class SC,class LO,class GO,class NO>
-void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinear(){
-
-    bool print = parameterList_->sublist("General").get("ParaViewExport",false);
-    BlockMultiVectorPtr_Type solShort;
-    if (print){
-        if (parameterList_->sublist("Timestepping Parameter").get("Print Solution Short",false)) {
-            solShort = Teuchos::rcp(new BlockMultiVector_Type (problemTime_->getSolution()) );
-            exportTimestep(solShort);
-        }
-        else{
-            exportTimestep();
-        }
-    }
-    
-    // Navier-Stokes treatment of pressure
-    bool fullImplicitPressure = parameterList_->sublist("Timestepping Parameter").get("Full implicit pressure",false);
-    bool semiImplicitPressure = parameterList_->sublist("Timestepping Parameter").get("Semi implicit pressure",false);
-    bool correctPressure = parameterList_->sublist("Timestepping Parameter").get("Correct pressure",false);
-    int size = timeStepDef_.size();
-    SmallMatrix<double> massCoeff(size);
-    SmallMatrix<double> problemCoeff(size);
-    double dt = 0.0;
-    int timeit = 0;
-    while (timeSteppingTool_->continueTimeStepping()) {
-        
-        dt = timeSteppingTool_->get_dt();
-        // Which values should we use for extrapolation? u_m and u_m-1 (current implementation) or should we use most recent U_i-1 of multi stages
-        if(!parameterList_->sublist("General").get("Linearization","FixedPoint").compare("Extrapolation")) {
-            if (timeSteppingTool_->currentTime()!=0.)
-                problemTime_->updateSolutionMultiPreviousStep(2); //2nd order
-            else
-                problemTime_->updateSolutionMultiPreviousStep(1);
-        }
-        else{
-            problemTime_->updateSolutionPreviousStep();
-        }
-        
-        
-//        BlockMultiVectorPtrArray_Type	sourceTermRK_stages;
-
-        TEUCHOS_TEST_FOR_EXCEPTION(timeSteppingTool_->getButcherTableCoefficient(0 , 0) != 0.0, std::logic_error, "Not implemented butchertable! First stage should have 0 diagonal value");
-        if (verbose_)
-            std::cout << "Currently in stage " << 1 << " of "<< timeSteppingTool_->getNmbStages() <<" (dummy stage)"<< std::endl;
-        // Multistage stepping, in general we use at least 2 stages (implicit Euler and Crank-Nicolson)
-        Teuchos::Array<BlockMatrixPtr_Type> matrixPrevStages;
-        BlockMultiVectorPtrArray_Type       solutionPrevStages;
-        
-        BlockMatrixPtr_Type blockMatrix = Teuchos::rcp( new BlockMatrix_Type( problemTime_->getSystem()->size() ) );
-        problemTime_->reAssembleAndFill( blockMatrix ); // Reassemble FixedPoint
-        
-        matrixPrevStages.push_back( blockMatrix );
-        
-        BlockMultiVectorPtr_Type sol =
-            Teuchos::rcp( new BlockMultiVector_Type( problemTime_->getSolution() ) );
-        solutionPrevStages.push_back( sol );
-        
-        for (int stage=1; stage<timeSteppingTool_->getNmbStages(); stage++) {
-            double time = timeSteppingTool_->currentTime() + dt * timeSteppingTool_->getButcherTableC(stage);
-            problemTime_->updateTime( time );
-            if (verbose_)
-                std::cout << "Currently in stage " << stage+1 << " of "<< timeSteppingTool_->getNmbStages() << std::endl;
-            
-            buildMultiStageRhs( stage, matrixPrevStages, solutionPrevStages );
-                                    
-            TEUCHOS_TEST_FOR_EXCEPTION(problemTime_->hasSourceTerm(), std::logic_error, "Using source term must be implemented for single-step methods.");
-//                problemTime_->AssembleSourceTerm(time);
-            
-
-            SmallMatrix<double> massCoeff(size);
-            SmallMatrix<double> problemCoeff(size);
-                        
-            getMassCoefficients(massCoeff);
-            getMultiStageCoefficients(problemCoeff, stage, stage, false);
-            if (fullImplicitPressure && size>1 )
-                problemCoeff[0][1] = timeSteppingTool_->get_dt();
-                                                       
-            problemTime_->setTimeParameters(massCoeff, problemCoeff);
-
-            NonLinearSolver<SC, LO, GO, NO> nlSolver(parameterList_->sublist("General").get("Linearization","FixedPoint"));
-            nlSolver.solve(*problemTime_,time);
-            
-            if (correctPressure) {
-                TEUCHOS_TEST_FOR_EXCEPTION( !fullImplicitPressure && !semiImplicitPressure, std::logic_error,"There is no pressure that can be corrected." );
-                
-                MultiVectorPtr_Type sol = problemTime_->getSolution()->getBlockNonConst(1);
-                MultiVectorConstPtr_Type solLast = problemTime_->getSolutionPreviousTimestep()->getBlock(1);
-                timeSteppingTool_->correctPressure( sol, solLast );
-                if (verbose_)
-                    std::cout << "Pressure corrected." << std::endl;
-            }
-            
-            if (stage+1 == timeSteppingTool_->getNmbStages()) {
-                // save last solution
-                BlockMultiVectorPtr_Type tmpSolution = Teuchos::rcp( new BlockMultiVector_Type ( problemTime_->getSolution() ) );
-                
-                solutionPrevStages.push_back( tmpSolution );
-                BlockMultiVectorPtr_Type tmpSolutionPtr = problemTime_->getSolution();
-                BlockMatrixPtr_Type tmpMassSystem = problemTime_->getMassSystem();
-                timeSteppingTool_->calculateSolution( tmpSolutionPtr, solutionPrevStages, tmpMassSystem, solShort);
-            }
-            else{
-                BlockMatrixPtr_Type blockMatrix = Teuchos::rcp( new BlockMatrix_Type( problemTime_->getSystem()->size() ) );
-                problemTime_->reAssembleAndFill( blockMatrix );
-                matrixPrevStages.push_back( blockMatrix );
-                
-                BlockMultiVectorPtr_Type sol =
-                    Teuchos::rcp( new BlockMultiVector_Type( problemTime_->getSolution() ) );
-                solutionPrevStages.push_back( sol );
-                
-                TEUCHOS_TEST_FOR_EXCEPTION(problemTime_->hasSourceTerm(), std::logic_error, "Using source term must be implemented for single-step methods.");
-//                    sourceTermRK_stages.push_back(*problemTime_->GetSourceTerm());
-            }
-        }
-        timeSteppingTool_->advanceTime(true/*output info*/);
-        timeit++;
-        if (print) {
-            exportTimestep();
-        }
-        if (parameterList_->sublist("NSParameter").get("Calculate Coefficients",false)) {
-            vec_dbl_ptr_Type values(new vec_dbl_Type(4));
-            TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Drag and Lift are not implemented.");
-//            nonLinearProblem_->ComputeDragLift(values);
-        }
-    }
-
-    if (print) {
-        closeExporter();
-    }
-    if (parameterList_->sublist("NSParameter").get("Calculate Coefficients",false)) {
-        TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "close txt exporters here.");
-    }
-
-}
 
 // TODO: Irgendwann einmal fuer St. Venant-Kirchoff oder so programmieren.
 // Erstmal nicht wichtig
@@ -952,28 +640,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     SmallMatrix<double> problemCoeffChem(sizeChem);
     double coeffSourceTermChem = 0.0;
 
-    /*for (int i=0; i<sizeChem; i++) {
-        for (int j=0; j<sizeChem; j++) {
-            if (timeStepDef_[i][j]>0 && i==j) {
-                massCoeffChem[i][j] = timeSteppingTool_->getInformationBDF(0) / dt;
-            }
-            else{
-                massCoeffChem[i][j] = 0.0;
-            }
-        }
-    }
-    for (int i=0; i<sizeChem; i++) {
-        for (int j=0; j<sizeChem; j++){
-            if (timeStepDef_[i][j]>0){
-                problemCoeffChem[i][j] = timeSteppingTool_->getInformationBDF(1);
-                coeffSourceTermChem = timeSteppingTool_->getInformationBDF(1);
-            }
-            else{
-                problemCoeffChem[i][j] = 1.;
-            }
-        }
-    }*/
-    
     massCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(0) / dt; // 3/(2\Delta t)
     problemCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(1); // 1
     coeffSourceTermChem = timeSteppingTool_->getInformationBDF(1); // 1
@@ -986,43 +652,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     SmallMatrix<double> problemCoeffStructure(sizeStructure);
     double coeffSourceTermStructure = 0.0; // Koeffizient fuer den Source-Term (= rechte Seite der DGL); mit Null initialisieren
 
-    // Koeffizient vor der Massematrix
-    /*for(int i = 0; i < sizeStructure; i++)
-    {
-        for(int j = 0; j < sizeStructure; j++)
-        {
-            // Falls in dem Block von timeStepDef_ zeitintegriert werden soll.
-            // i == j, da vektorwertige Massematrix blockdiagonal ist
-            if(timeStepDef_[i + sizeChem][j + sizeChem] > 0  && i == j) // Weil: (c, d_s,...) und timeStepDef_ von FSI
-            {
-               // Vorfaktor der Massematrix in der LHS
-                massCoeffStructure[i][j] = 1.0/(dt*dt*beta);
-            }
-            else
-            {
-                massCoeffStructure[i][j] = 0.;
-            }
-        }
-    }*/
-    
-    // Die anderen beiden Koeffizienten
-    /*for(int i = 0; i < sizeStructure; i++)
-    {
-        for(int j = 0; j < sizeStructure; j++)
-        {
-            if(timeStepDef_[i + sizeChem][j + sizeChem] > 0 )
-            {
-                problemCoeffStructure[i][j] =  1.0;
-                // Der Source Term ist schon nach der Assemblierung mit der Dichte \rho skaliert worden
-                coeffSourceTermStructure = 1.0; // ACHTUNG FUER SOURCE TERM, DER NICHT IN DER ZEIT DISKRETISIERT WIRD!
-            }
-            else // Die steady-Systemmatrix ist nicht zwingend blockdiagonal
-            {
-                problemCoeffStructure[i][j] = 1.0;
-            }
-        }
-    }*/
-
     massCoeffStructure[0][0] = 1./(dt*dt*beta);
     problemCoeffStructure[0][0] =  1.0;
     coeffSourceTermStructure = 1.0; // ACHTUNG FUER SOURCE TERM, DER NICHT IN DER ZEIT DISKRETISIERT WIRD!
@@ -1034,24 +663,16 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     // ######################
     SmallMatrix<double> massCoeffSCI(sizeSCI);
     SmallMatrix<double> problemCoeffSCI(sizeSCI);
-    for (int i = 0; i < sizeStructure; i++)
-    {
-        for (int j = 0; j < sizeStructure; j++)
-        {
-            massCoeffSCI[i][j] = massCoeffStructure[i][j];
-            problemCoeffSCI[i][j] = problemCoeffStructure[i][j];
-        }
-    }
+
+    massCoeffSCI[0][0] = massCoeffStructure[i][j];
+    problemCoeffSCI[0][0] = problemCoeffStructure[i][j];
+       
 
     if(!chemistryExplicit_){
-        for (int i = 0; i < sizeChem; i++)
-        {
-            for (int j = 0; j < sizeChem; j++)
-            {
-                massCoeffSCI[i + sizeStructure][j + sizeStructure] = massCoeffChem[i][j];
-                problemCoeffSCI[i + sizeStructure][j + sizeStructure] = problemCoeffChem[i][j];
-            }
-        }
+
+        massCoeffSCI[1][1] = massCoeffChem[i][j];
+        problemCoeffSCI[1][1] = problemCoeffChem[i][j];
+           
     }
    
     this->problemTime_->setTimeParameters(massCoeffSCI, problemCoeffSCI);
@@ -2482,3 +2103,320 @@ void DAESolverInTime<SC,LO,GO,NO>::checkTimeSteppingDef(){
 }
 }
 #endif
+
+
+// template<class SC,class LO,class GO,class NO>
+// void DAESolverInTime<SC,LO,GO,NO>::getMultiStageCoefficients(SmallMatrix<double> &problemCoeff, int stage, int stagePrior, bool forRhs){
+//     int size = timeStepDef_.size();
+//     problemCoeff.resize(size);
+    
+//     for (int i=0; i<size; i++) {
+//         for (int j=0; j<size; j++) {
+//             if (timeStepDef_[i][j]>0)
+//                 problemCoeff[i][j] = timeSteppingTool_->get_dt()* timeSteppingTool_->getButcherTableCoefficient(stage , stagePrior);
+//             else{
+//                 if (forRhs)
+//                     problemCoeff[i][j] = 0.;
+//                 else
+//                     problemCoeff[i][j] = 1.;
+//             }
+//         }
+//     }
+// }
+
+// template<class SC,class LO,class GO,class NO>
+// void DAESolverInTime<SC,LO,GO,NO>::buildMultiStageRhs( int stage, Teuchos::Array<BlockMatrixPtr_Type>& matrixPrevStages, BlockMultiVectorPtrArray_Type& solutionPrevStages ){
+    
+//     int size = timeStepDef_.size();
+//     SmallMatrix<double> massCoeff(size);
+//     SmallMatrix<double> problemCoeff(size);
+    
+//     getMassCoefficients(massCoeff);
+    
+//     problemTime_->setTimeParameters(massCoeff, problemCoeff);//problemCoeff not needed here
+//     problemTime_->updateRhs();/*apply (mass matrix / dt) to u_t*/
+    
+//     bool fullImplicitPressure = parameterList_->sublist("Timestepping Parameter").get("Full implicit pressure",false);
+//     for (int prevStage=0; prevStage<stage; prevStage++) {
+        
+//         getMultiStageCoefficients(problemCoeff, stage, prevStage, true);
+//         if (fullImplicitPressure && size>1 )
+//             problemCoeff[0][1] = 0.;
+        
+//         problemCoeff.scale(-1.);
+
+//         TEUCHOS_TEST_FOR_EXCEPTION(problemTime_->hasSourceTerm(), std::logic_error, "Using source term must be implemented for single-step methods.");
+// //                        addRhsDAE(coeff,beNL_vec_allstages.at(s_prior), solutionRK_stages.at(s_prior), sourceTermRK_stages.at(s_prior));
+//         addRhsDAE( problemCoeff, matrixPrevStages[prevStage], solutionPrevStages[prevStage] );
+
+//     }
+// }
+
+
+
+// template<class SC,class LO,class GO,class NO>
+// void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinear(){
+
+//     bool print = parameterList_->sublist("General").get("ParaViewExport",false);
+//     BlockMultiVectorPtr_Type solShort;
+//     if (print){
+//         if (parameterList_->sublist("Timestepping Parameter").get("Print Solution Short",false)) {
+//             solShort = Teuchos::rcp(new BlockMultiVector_Type (problemTime_->getSolution()) );
+//             exportTimestep(solShort);
+//         }
+//         else{
+//             exportTimestep();
+//         }
+//     }
+    
+//     // Navier-Stokes treatment of pressure
+//     bool fullImplicitPressure = parameterList_->sublist("Timestepping Parameter").get("Full implicit pressure",false);
+//     bool semiImplicitPressure = parameterList_->sublist("Timestepping Parameter").get("Semi implicit pressure",false);
+//     bool correctPressure = parameterList_->sublist("Timestepping Parameter").get("Correct pressure",false);
+//     int size = timeStepDef_.size();
+//     SmallMatrix<double> massCoeff(size);
+//     SmallMatrix<double> problemCoeff(size);
+//     double dt = 0.0;
+//     int timeit = 0;
+//     while (timeSteppingTool_->continueTimeStepping()) {
+        
+//         dt = timeSteppingTool_->get_dt();
+//         // Which values should we use for extrapolation? u_m and u_m-1 (current implementation) or should we use most recent U_i-1 of multi stages
+//         if(!parameterList_->sublist("General").get("Linearization","FixedPoint").compare("Extrapolation")) {
+//             if (timeSteppingTool_->currentTime()!=0.)
+//                 problemTime_->updateSolutionMultiPreviousStep(2); //2nd order
+//             else
+//                 problemTime_->updateSolutionMultiPreviousStep(1);
+//         }
+//         else{
+//             problemTime_->updateSolutionPreviousStep();
+//         }
+        
+        
+// //        BlockMultiVectorPtrArray_Type	sourceTermRK_stages;
+
+//         TEUCHOS_TEST_FOR_EXCEPTION(timeSteppingTool_->getButcherTableCoefficient(0 , 0) != 0.0, std::logic_error, "Not implemented butchertable! First stage should have 0 diagonal value");
+//         if (verbose_)
+//             std::cout << "Currently in stage " << 1 << " of "<< timeSteppingTool_->getNmbStages() <<" (dummy stage)"<< std::endl;
+//         // Multistage stepping, in general we use at least 2 stages (implicit Euler and Crank-Nicolson)
+//         Teuchos::Array<BlockMatrixPtr_Type> matrixPrevStages;
+//         BlockMultiVectorPtrArray_Type       solutionPrevStages;
+        
+//         BlockMatrixPtr_Type blockMatrix = Teuchos::rcp( new BlockMatrix_Type( problemTime_->getSystem()->size() ) );
+//         problemTime_->reAssembleAndFill( blockMatrix ); // Reassemble FixedPoint
+        
+//         matrixPrevStages.push_back( blockMatrix );
+        
+//         BlockMultiVectorPtr_Type sol =
+//             Teuchos::rcp( new BlockMultiVector_Type( problemTime_->getSolution() ) );
+//         solutionPrevStages.push_back( sol );
+        
+//         for (int stage=1; stage<timeSteppingTool_->getNmbStages(); stage++) {
+//             double time = timeSteppingTool_->currentTime() + dt * timeSteppingTool_->getButcherTableC(stage);
+//             problemTime_->updateTime( time );
+//             if (verbose_)
+//                 std::cout << "Currently in stage " << stage+1 << " of "<< timeSteppingTool_->getNmbStages() << std::endl;
+            
+//             buildMultiStageRhs( stage, matrixPrevStages, solutionPrevStages );
+                                    
+//             TEUCHOS_TEST_FOR_EXCEPTION(problemTime_->hasSourceTerm(), std::logic_error, "Using source term must be implemented for single-step methods.");
+// //                problemTime_->AssembleSourceTerm(time);
+            
+
+//             SmallMatrix<double> massCoeff(size);
+//             SmallMatrix<double> problemCoeff(size);
+                        
+//             getMassCoefficients(massCoeff);
+//             getMultiStageCoefficients(problemCoeff, stage, stage, false);
+//             if (fullImplicitPressure && size>1 )
+//                 problemCoeff[0][1] = timeSteppingTool_->get_dt();
+                                                       
+//             problemTime_->setTimeParameters(massCoeff, problemCoeff);
+
+//             NonLinearSolver<SC, LO, GO, NO> nlSolver(parameterList_->sublist("General").get("Linearization","FixedPoint"));
+//             nlSolver.solve(*problemTime_,time);
+            
+//             if (correctPressure) {
+//                 TEUCHOS_TEST_FOR_EXCEPTION( !fullImplicitPressure && !semiImplicitPressure, std::logic_error,"There is no pressure that can be corrected." );
+                
+//                 MultiVectorPtr_Type sol = problemTime_->getSolution()->getBlockNonConst(1);
+//                 MultiVectorConstPtr_Type solLast = problemTime_->getSolutionPreviousTimestep()->getBlock(1);
+//                 timeSteppingTool_->correctPressure( sol, solLast );
+//                 if (verbose_)
+//                     std::cout << "Pressure corrected." << std::endl;
+//             }
+            
+//             if (stage+1 == timeSteppingTool_->getNmbStages()) {
+//                 // save last solution
+//                 BlockMultiVectorPtr_Type tmpSolution = Teuchos::rcp( new BlockMultiVector_Type ( problemTime_->getSolution() ) );
+                
+//                 solutionPrevStages.push_back( tmpSolution );
+//                 BlockMultiVectorPtr_Type tmpSolutionPtr = problemTime_->getSolution();
+//                 BlockMatrixPtr_Type tmpMassSystem = problemTime_->getMassSystem();
+//                 timeSteppingTool_->calculateSolution( tmpSolutionPtr, solutionPrevStages, tmpMassSystem, solShort);
+//             }
+//             else{
+//                 BlockMatrixPtr_Type blockMatrix = Teuchos::rcp( new BlockMatrix_Type( problemTime_->getSystem()->size() ) );
+//                 problemTime_->reAssembleAndFill( blockMatrix );
+//                 matrixPrevStages.push_back( blockMatrix );
+                
+//                 BlockMultiVectorPtr_Type sol =
+//                     Teuchos::rcp( new BlockMultiVector_Type( problemTime_->getSolution() ) );
+//                 solutionPrevStages.push_back( sol );
+                
+//                 TEUCHOS_TEST_FOR_EXCEPTION(problemTime_->hasSourceTerm(), std::logic_error, "Using source term must be implemented for single-step methods.");
+// //                    sourceTermRK_stages.push_back(*problemTime_->GetSourceTerm());
+//             }
+//         }
+//         timeSteppingTool_->advanceTime(true/*output info*/);
+//         timeit++;
+//         if (print) {
+//             exportTimestep();
+//         }
+//         if (parameterList_->sublist("NSParameter").get("Calculate Coefficients",false)) {
+//             vec_dbl_ptr_Type values(new vec_dbl_Type(4));
+//             TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Drag and Lift are not implemented.");
+// //            nonLinearProblem_->ComputeDragLift(values);
+//         }
+//     }
+
+//     if (print) {
+//         closeExporter();
+//     }
+//     if (parameterList_->sublist("NSParameter").get("Calculate Coefficients",false)) {
+//         TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "close txt exporters here.");
+//     }
+
+// }
+
+
+// template<class SC,class LO,class GO,class NO>
+// void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeLinear(){
+
+    
+//     bool print = parameterList_->sublist("General").get("ParaViewExport",false);
+//     if (print)
+//         exportTimestep();
+//     bool fullImplicitPressure = false;
+//     int size = timeStepDef_.size();
+//     double dt = 0.0;
+//     while (timeSteppingTool_->continueTimeStepping()) {
+//         problemTime_->updateTime ( timeSteppingTool_->currentTime() );
+//         dt = timeSteppingTool_->get_dt();
+//         problemTime_->updateSolutionPreviousStep();
+        
+//         Teuchos::Array<BlockMatrixPtr_Type> bMatNonLin_vec_allstages;
+//         BlockMultiVectorPtrArray_Type	solutionRK_stages;
+//         BlockMultiVectorPtrArray_Type	sourceTermRK_stages;
+        
+//         for (int s=0; s<timeSteppingTool_->getNmbStages(); s++) {
+//             double time = timeSteppingTool_->currentTime() + dt * timeSteppingTool_->getButcherTableC(s);
+//             if (verbose_)
+//                 std::cout << "Currently in stage " << s+1 << " of "<< timeSteppingTool_->getNmbStages() << std::endl;
+            
+//             problemTime_->updateRhs();/*apply (mass matrix / dt) to u_t*/
+//             if ( problemTime_->hasSourceTerm() ){
+//                 TEUCHOS_TEST_FOR_EXCEPTION(true, std::runtime_error, "Fix source term.");
+//                 problemTime_->assembleSourceTerm( time );
+//             }
+            
+//             if (s==0 && timeSteppingTool_->getButcherTableCoefficient(s , s) == 0.0) {
+//                 /* solution of last time step is later added to rk solution vector */
+//             }
+//             else if (s==0 && timeSteppingTool_->getButcherTableCoefficient(s , s) != 0.0) {
+//                 TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Not implemented butcher table!");
+//             }
+//             else{
+//                 for (int s_prior=0; s_prior<s; s_prior++) {
+//                     SmallMatrix<double> coeff(size);
+//                     for (int i=0; i<size; i++) {
+//                         for (int j=0; j<size; j++) {
+//                             if (timeStepDef_[i][j]>0) {
+//                                 if (i==0 && j==1 && fullImplicitPressure) {
+//                                     coeff[i][j] = 0;
+//                                 }
+//                                 else{
+//                                     coeff[i][j] = - timeSteppingTool_->getButcherTableCoefficient(s , s_prior);
+//                                 }
+//                             }
+//                         }
+//                     }
+//                     if (problemTime_->hasSourceTerm())
+//                         this->addRhsDAE(coeff, sourceTermRK_stages[s_prior] );
+                    
+//                     this->addRhsDAE( coeff, problemTime_->getSystem(), solutionRK_stages[s_prior] );
+                    
+//                 }
+                
+//                 SmallMatrix<double> massCoeff(size);
+//                 SmallMatrix<double> problemCoeff(size);
+//                 double coeffSourceTerm = 0.;
+//                 for (int i=0; i<size; i++) {
+//                     for (int j=0; j<size; j++) {
+//                         if (timeStepDef_[i][j]>0 && i==j) {
+//                             massCoeff[i][j] = 1. / dt;
+//                         }
+//                         else if (timeStepDef_[i][j]==2) /*force off-diagnonal mass matrix*/
+//                             massCoeff[i][j] = 1. / dt;
+//                         else{
+//                             massCoeff[i][j] = 0.;
+//                         }
+//                     }
+//                 }
+//                 for (int i=0; i<size; i++) {
+//                     for (int j=0; j<size; j++){
+//                         if (timeStepDef_[i][j]>0){
+//                             if (i==0 && j==1 && fullImplicitPressure) {
+//                                 problemCoeff[i][j] = 1.;
+//                                 coeffSourceTerm = timeSteppingTool_->getButcherTableCoefficient(s , s); // ACHTUNG FUER SOURCE TERM, DER NICHT IN DER ZEIT
+//                             }
+//                             else{
+//                                 problemCoeff[i][j] = timeSteppingTool_->getButcherTableCoefficient(s , s);
+//                                 coeffSourceTerm = timeSteppingTool_->getButcherTableCoefficient(s , s); // ACHTUNG FUER SOURCE TERM, DER NICHT IN DER ZEIT DISKRETISIERT WIRD!
+//                             }
+//                         }
+//                         else{
+//                             problemCoeff[i][j] = 1.;
+//                         }
+//                     }
+//                 }
+                
+//                 if (problemTime_->hasSourceTerm())
+//                     addSourceTermToRHS(coeffSourceTerm);
+                
+//                 problemTime_->setTimeParameters(massCoeff, problemCoeff);
+//                 problemTime_->combineSystems();
+//                 problemTime_->setBoundaries(time);
+                
+//                 problemTime_->solve();
+
+//             }
+            
+//             if (s+1 == timeSteppingTool_->getNmbStages()) {
+//                 BlockMultiVectorPtr_Type tmpSolution = Teuchos::rcp( new BlockMultiVector_Type ( problemTime_->getSolution() ) );
+//                 solutionRK_stages.push_back(tmpSolution);
+//                 BlockMultiVectorPtr_Type tmpSolutionPtr = problemTime_->getSolution();
+//                 BlockMatrixPtr_Type tmpMassSystem = problemTime_->getMassSystem();
+//                 timeSteppingTool_->calculateSolution( tmpSolutionPtr, solutionRK_stages, tmpMassSystem);
+//             }
+//             else{
+//                 solutionRK_stages.push_back( problemTime_->getSolution() );
+//                 if ( problemTime_->hasSourceTerm() )
+//                     sourceTermRK_stages.push_back( problemTime_->getSourceTerm() );
+//             }
+//         }
+        
+//         timeSteppingTool_->advanceTime(true/*output info*/);
+        
+//         if (print)
+//             exportTimestep();
+//     }
+    
+//     if (print) {
+//         closeExporter();
+//     }
+//     if (parameterList_->sublist("NSParameter").get("Calculate Coefficients",false)) {
+//         TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "close txt exporters here.");
+//     }
+
+// }

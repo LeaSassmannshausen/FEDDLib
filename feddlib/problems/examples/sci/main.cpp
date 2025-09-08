@@ -289,7 +289,7 @@ void rhsHeartBeatArtery(double* x, double* res, double* parameters){
     } 
   
     double forceDirection = force/fabs(force);
-    if(parameters[5]==5){
+    if(parameters[5]==6){
         res[0] =lambda*force;//+forceDirection*Q;
         res[1] =lambda*force;//+forceDirection*Q;
         res[2] =lambda*force;//+forceDirection*Q;        
@@ -769,9 +769,7 @@ int main(int argc, char *argv[])
 			bcFactory->addBC(zeroDirichlet3D, 9, 0, domainStructure, "Dirichlet_Z", dim);	
             bcFactory->addBC(zeroDirichlet3D, 10, 0, domainStructure, "Dirichlet_Z", dim);	
 			bcFactory->addBC(zeroDirichlet3D, 13, 0, domainStructure, "Dirichlet_X_Z", dim);
-			bcFactory->addBC(zeroDirichlet3D, 14, 0, domainStructure, "Dirichlet_Y_Z", dim);
-
-			
+			bcFactory->addBC(zeroDirichlet3D, 14, 0, domainStructure, "Dirichlet_Y_Z", dim);	
 
 			bcFactoryStructure->addBC(zeroDirichlet3D, 2, 0, domainStructure, "Dirichlet_Z", dim);
 			bcFactoryStructure->addBC(zeroDirichlet3D, 3, 0, domainStructure, "Dirichlet_Z", dim);			
