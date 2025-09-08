@@ -877,7 +877,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         
         //this->problemTime_->computeValuesOfInterestAndExport();
 
-        timeSteppingTool_->advanceTime(false);//output info);
+        timeSteppingTool_->advanceTime(false);//output info
 
         // Should be some place else
         //if(couplingType=="explicit" )
