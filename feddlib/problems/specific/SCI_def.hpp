@@ -27,6 +27,8 @@ materialModel_( parameterListSCI->sublist("Parameter").get("Structure Model","SC
 
     this->initNOXParameters();
     
+    timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter") , this->comm_));
+
     //std::string linearization = parameterListSCI->sublist("General").get("Linearization","FixedPoint");
     
     //TEUCHOS_TEST_FOR_EXCEPTION( !(linearization == "Newton"|| linearization == "NOX")  && materialModel_ != "linear", std::runtime_error, "Nonlinear material models can only be used with Newton's method or FixedPoint (nonlinear material Jacobian will still be used).");
@@ -153,7 +155,6 @@ void SCI<SC,LO,GO,NO>::assemble( std::string type ) const
         systemTmp->addBlock(C,1,0);
         systemTmp->addBlock(D,1,1);
 
-        timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter") , this->comm_));
 
         this->setupSubTimeProblems(this->problemChem_->getParameterList(), this->problemStructureNonLin_->getParameterList());
 

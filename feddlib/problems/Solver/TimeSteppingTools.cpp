@@ -108,9 +108,39 @@ exporterTxtError_(),
 beta_(0.25),
 gamma_(0.5)
 {
+
+    // In case we have different time intervalls we need to extract that from the parameter list:
+    
+    numSegments_ = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").get("Number of Segments",0);
+
+    if(numSegments_ >0 ){
+        vec2D_dbl_Type timeParametersVec(0,vec_dbl_Type(2));
+
+        for(int i=1; i <= numSegments_; i++){
+
+            double startTime = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("Start Time",0.);
+            double dtTmp = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("dt",0.1);
+            
+            vec_dbl_Type segment = {startTime,dtTmp};
+            timeParametersVec.push_back(segment);
+        }
+        timeParametersVec_ = timeParametersVec;
+    }
+
     setParameter();
 }
 
+void TimeSteppingTools::updateParameter(){
+    // We save the previous dt
+    dt_prev_ = dt_;
+    for(int i=0; i<numSegments_-1 ; i++){
+        if(t_ < timeParametersVec_[i+1][0] && t_+1.0e-12 > timeParametersVec_[i][0] ){
+            dt_=timeParametersVec_[i][1];
+            i=numSegments_;//break
+        }
+    }
+
+}
 void TimeSteppingTools::setParameter(){
     
     tEnd_ 	= parameterList_->get("Final time",1.);
@@ -120,7 +150,7 @@ void TimeSteppingTools::setParameter(){
     beta_ = parameterList_->get("beta",0.25);
     gamma_ = parameterList_->get("gamma",0.5);
 
-    if (!parameterList_->get("Class","Singlestep").compare("Singlestep")) {
+    // if (!parameterList_->get("Class","Singlestep").compare("Singlestep")) {
         // butcherTableNmb_ = parameterList_->get("Butcher table",0);
         // if ( !parameterList_->get("Timestepping type","non-adaptive").compare("adaptive") ) {
         //     tsType_ = ADAPTIVE;
@@ -151,14 +181,14 @@ void TimeSteppingTools::setParameter(){
 
         // setTableInformationRK();
 
-        TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Singlestep / RK methods are deprecated.");
+    //     TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Singlestep / RK methods are deprecated.");
 
-    }
-    else if(!parameterList_->get("Class","Singlestep").compare("Multistep")){
+    // }
+    // else if(!parameterList_->get("Class","Singlestep").compare("Multistep")){
         tsType_ = NON_ADAPTIVE;
         BDFNmb_ = parameterList_->get("BDF",1);
         setInformationBDF();
-    }
+    // }
 }
 
 double TimeSteppingTools::currentTime(){

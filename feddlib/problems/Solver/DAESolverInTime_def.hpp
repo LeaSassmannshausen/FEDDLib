@@ -614,13 +614,11 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     else{
         TEUCHOS_TEST_FOR_EXCEPTION( loadStepSize != timeSteppingTool_->dt_, std::runtime_error, "Load Step Size and dt appear different" );
     }
-    double dt;
-    for(int i=0; i<numSegments-1 ; i++){
-        if(timeSteppingTool_->currentTime() < timeParametersVec[i+1][0] && timeSteppingTool_->currentTime()+1.0e-12 > timeParametersVec[i][0] ){
-            dt=timeParametersVec[i][1];
-            timeSteppingTool_->dt_ = dt;
-        }
-    }
+
+    timeSteppingTool_->updateParameter();
+
+    double dt = timeSteppingTool_->dt_;
+    
     // Notwendige Parameter
     int sizeSCI = timeStepDef_.size();
 
@@ -628,7 +626,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     int sizeChem = 1; //  c
     int sizeStructure = 1; // d_s
 
-    dt = timeSteppingTool_->get_dt();
     double beta = timeSteppingTool_->get_beta();
     double gamma = timeSteppingTool_->get_gamma();
     int nmbBDF = timeSteppingTool_->getBDFNumber();
@@ -701,35 +698,42 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
 
     while(timeSteppingTool_->continueTimeStepping())
     {
-        for(int i=0; i<numSegments ; i++){
-            if(timeSteppingTool_->currentTime()+1.0e-12 > timeParametersVec[i][0])
-                dt=timeParametersVec[i][1];
-        }
-        timeSteppingTool_->dt_= dt;
-        sci->timeSteppingTool_->dt_ = dt;
-        if(restart){
-            if(timeSteppingTool_->currentTime() <= timeStepRestart + 1e-12){
-                timeSteppingTool_->dt_prev_= dt;        
-                sci->timeSteppingTool_->dt_prev_= dt;        
-            }
-            else{
-                timeSteppingTool_->dt_prev_= timeSteppingTool_->dt_;
-                this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
-                sci->timeSteppingTool_->dt_prev_ = timeSteppingTool_->dt_;
-            }
+        
+        timeSteppingTool_->updateParameter();
+        // for(int i=0; i<numSegments ; i++){
+        //     if(timeSteppingTool_->currentTime()+1.0e-12 > timeParametersVec[i][0])
+        //         dt=timeParametersVec[i][1];
+        // }
+        dt = timeSteppingTool_->dt_;
 
-        }
-        else{
-            if(timeSteppingTool_->currentTime() <= 0. + 1e-12){
-                timeSteppingTool_->dt_prev_= dt;        
-                sci->timeSteppingTool_->dt_prev_= dt;        
-            }
-            else{
-                timeSteppingTool_->dt_prev_= timeSteppingTool_->dt_;
-                this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
-                sci->timeSteppingTool_->dt_prev_ = timeSteppingTool_->dt_;
-            }
-        }
+        if(timeSteppingTool_->currentTime()>0)
+            this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
+        
+        // Update der Parameter in timeSteppingTool (z.B. dt)
+        sci->timeSteppingTool_->updateParameter();
+        // if(restart){
+        //     if(timeSteppingTool_->currentTime() <= timeStepRestart + 1e-12){
+        //         timeSteppingTool_->dt_prev_= dt;        
+        //         sci->timeSteppingTool_->dt_prev_= dt;        
+        //     }
+        //     else{
+        //         timeSteppingTool_->dt_prev_= timeSteppingTool_->dt_;
+        //         this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
+        //         sci->timeSteppingTool_->dt_prev_ = timeSteppingTool_->dt_;
+        //     }
+
+        // }
+        // else{
+        //     if(timeSteppingTool_->currentTime() <= 0. + 1e-12){
+        //         timeSteppingTool_->dt_prev_= dt;        
+        //         sci->timeSteppingTool_->dt_prev_= dt;        
+        //     }
+        //     else{
+        //         timeSteppingTool_->dt_prev_= timeSteppingTool_->dt_;
+        //         this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
+        //         sci->timeSteppingTool_->dt_prev_ = timeSteppingTool_->dt_;
+        //     }
+        // }
         
 
         timeSteppingTool_->printInfo();
@@ -741,12 +745,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         if(!chemistryExplicit_){
             if(timeSteppingTool_->currentTime() > 0. + 1.e-12) 
             {
-                for (int i = 0; i < sizeChem; i++)
-                {
-                    for (int j = 0; j < sizeChem; j++){
-                        massCoeffSCI[i+sizeStructure][j+sizeStructure] = massCoeffChem[i][j];
-                    }
-                }
+                massCoeffSCI[1][1] = massCoeffChem[0][0];                 
                 this->problemTime_->setTimeParameters(massCoeffSCI, problemCoeffSCI);
             }
         }
@@ -819,7 +818,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         // in diesem Zeitschritt.
         {
                 //Do we need this, if BDF for FSI is used correctly? We still need it to save the mass matrices
-            if(couplingType=="explicit")// || structureModel=="SCI_sophisticated")
+            if(couplingType=="explicit")
                 this->problemTime_->assemble("UpdateChemInTime");
         }        
 
@@ -841,16 +840,10 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         // Use BDF1 Parameters for first system
         if (timeSteppingTool_->currentTime() == 0.) {
             if(!chemistryExplicit_){
-                for (int i = 0; i < sizeChem; i++)
-                {
-                    for (int j = 0; j < sizeChem; j++){
-                        if (massCoeffSCI[i+sizeStructure][j+sizeStructure] != 0.){
-                            massCoeffSCI[i+sizeStructure][j+sizeStructure] = 1./dt ;
-                        }
-                    }
+                if (massCoeffSCI[1][1] != 0.){
+                    massCoeffSCI[1][1] = 1./dt ;
                 }
-            
-            this->problemTime_->setTimeParameters(massCoeffSCI, problemCoeffSCI);
+                this->problemTime_->setTimeParameters(massCoeffSCI, problemCoeffSCI);
             }
         }
 
@@ -876,13 +869,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         if(!chemistryExplicit_)
         {
             if (timeSteppingTool_->currentTime() <= dt+1.e-10) 
-            {
-                for (int i = 0; i < sizeChem; i++)
-                {
-                    for (int j = 0; j < sizeChem; j++){
-                        massCoeffSCI[i+sizeStructure][j+sizeStructure] = massCoeffChem[i][j];
-                    }
-                }
+            { 
+                massCoeffSCI[1][1] = massCoeffChem[0][0];                   
                 this->problemTime_->setTimeParameters(massCoeffSCI, problemCoeffSCI);
             }
         }
@@ -900,30 +888,30 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
             exporterIterations->exportData(timeSteppingTool_->currentTime(), (*its)[0] );
             exporterNewtonIterations->exportData(timeSteppingTool_->currentTime(), (*its)[1] );
 
-            vec_dbl_Type d_s(0);
-            double norm=0.;
+            // vec_dbl_Type d_s(0);
+            // double norm=0.;
 
-            std::string name = parameterList_->sublist("General").get("Physic","Structure");             
-            if(valueCorner != -1){
+            // std::string name = parameterList_->sublist("General").get("Physic","Structure");             
+            // if(valueCorner != -1){
 
-                if(name == "Structure"){
-                    for(int i=0; i< problemTime_->dimension_ ; i++)
-                        d_s.push_back(problemTime_->getSolution()->getBlock(0)->getDataNonConst(0)[problemTime_->dimension_*valueCorner+i]);
+            //     if(name == "Structure"){
+            //         for(int i=0; i< problemTime_->dimension_ ; i++)
+            //             d_s.push_back(problemTime_->getSolution()->getBlock(0)->getDataNonConst(0)[problemTime_->dimension_*valueCorner+i]);
                     
-                    for(int i=0; i< problemTime_->dimension_ ; i++)
-                        norm += pow(d_s[i],2);
-                    norm = sqrt(norm);
-                }
-                else{
-                    norm = problemTime_->getSolution()->getBlock(1)->getDataNonConst(0)[valueCorner];
-                }
+            //         for(int i=0; i< problemTime_->dimension_ ; i++)
+            //             norm += pow(d_s[i],2);
+            //         norm = sqrt(norm);
+            //     }
+            //     else{
+            //         norm = problemTime_->getSolution()->getBlock(1)->getDataNonConst(0)[valueCorner];
+            //     }
 
 
-            }
+            // }
 
-			Teuchos::reduceAll<int, double> ( *this->comm_, Teuchos::REDUCE_MAX, norm , Teuchos::outArg (norm));
+			// Teuchos::reduceAll<int, double> ( *this->comm_, Teuchos::REDUCE_MAX, norm , Teuchos::outArg (norm));
 
-            exporterCornerValue->exportData(norm);
+            // exporterCornerValue->exportData(norm);
 
 
         }

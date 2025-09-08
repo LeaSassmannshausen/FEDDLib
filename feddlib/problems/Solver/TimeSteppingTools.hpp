@@ -83,6 +83,13 @@ public:
     ExporterTxtPtr_Type exporterTxtDt_;
     ExporterTxtPtr_Type exporterTxtError_;
 
+    // Vector for different time intervalls
+    vec2D_dbl_Type timeParametersVec_;
+    int numSegments_;
+    
+    /* --------------------------------------------------------------------------------- */
+    // Informationen zum Runge-Kutta Verfahren
+    // RK-Type: 0: ERK, 1: DIRK, 2: SDIRK
     int RKType_;
     // Newmark-Variablen
     double beta_;
@@ -96,7 +103,7 @@ public:
 
     void setParameter();
 
-    void setTableInformationRK();
+    // void setTableInformationRK();
 
     void setInformationBDF();
 
@@ -107,6 +114,8 @@ public:
     int getBDFNumber();
 
     double currentTime();
+
+    void updateParameter();
 
     bool continueTimeStepping();
 
@@ -120,11 +129,11 @@ public:
 
     void printInfo();
 
-    int getNmbStages();
+    // int getNmbStages();
 
-    double getButcherTableCoefficient(int row , int col);
+    // double getButcherTableCoefficient(int row , int col);
 
-    double getButcherTableC(int row);
+    // double getButcherTableC(int row);
 
     double get_dt();
 
