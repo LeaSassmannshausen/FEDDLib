@@ -111,15 +111,14 @@ gamma_(0.5)
 
     // In case we have different time intervalls we need to extract that from the parameter list:
     
-    numSegments_ = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").get("Number of Segments",0);
-
+    numSegments_ = parameterList->sublist("Timestepping Intervalls").get("Number of Segments",0);
     if(numSegments_ >0 ){
         vec2D_dbl_Type timeParametersVec(0,vec_dbl_Type(2));
 
         for(int i=1; i <= numSegments_; i++){
 
-            double startTime = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("Start Time",0.);
-            double dtTmp = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("dt",0.1);
+            double startTime = parameterList_->sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("Start Time",0.);
+            double dtTmp = parameterList_->sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("dt",0.1);
             
             vec_dbl_Type segment = {startTime,dtTmp};
             timeParametersVec.push_back(segment);
