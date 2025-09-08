@@ -322,8 +322,8 @@ void TimeSteppingTools::printInfo(){
         std::cout <<  std::endl;
         std::cout << " --------------------------------------------------------------" << std::endl;
         std::cout << " -------- Time step " << currentTime() << std::endl;
-        std::cout << "        - dt     = " << get_dt() << "\t calculated dt = " << dt_adaptive_ << std::endl;
-        std::cout << "        - r_m = " << error_ << "  r_m_prev_ = " << error_prev_ << std::endl;
+        std::cout << " -------- dt     = " << get_dt() << "\t  dt_prev = " << get_dt_prev() << std::endl;
+        // std::cout << "        - r_m = " << error_ << "  r_m_prev_ = " << error_prev_ << std::endl;
 //        std::cout << "        - rho*tm^2/tm_1 = " <<rho * dt*dt / dt_prev_ << std::endl;
 //        std::cout << "        - TOL*rm-1 / (rm^2) = "<<TOLRK*(r_m_prev_)/((r_m_)*(r_m_)) << "  (...)^1/p = " << std::pow(TOLRK*(r_m_prev_)/((r_m_)*(r_m_)),1./p) << std::endl;
         std::cout << " --------------------------------------------------------------" << std::endl;
