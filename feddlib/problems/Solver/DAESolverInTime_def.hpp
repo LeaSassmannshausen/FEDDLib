@@ -563,15 +563,15 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         exporterIterations = Teuchos::rcp(new ExporterTxt());
         exporterIterations->setup( "linearIterations" + suffix, this->comm_ );
 
-        exporterCornerValue = Teuchos::rcp(new ExporterTxt());
-        exporterCornerValue->setup( "cornerValue" + suffix, this->comm_ );
+        // exporterCornerValue = Teuchos::rcp(new ExporterTxt());
+        // exporterCornerValue->setup( "cornerValue" + suffix, this->comm_ );
 
-        MapConstPtr_Type map = problemTime_->getDomain(0)->getMapUnique();
-        vec2D_dbl_ptr_Type points = problemTime_->getDomain(0)->getPointsUnique();
+        // MapConstPtr_Type map = problemTime_->getDomain(0)->getMapUnique();
+        // vec2D_dbl_ptr_Type points = problemTime_->getDomain(0)->getPointsUnique();
 
-        valueCorner = map->getLocalElement(idExport);
-        if(valueCorner != -1)
-            std::cout <<" Value corner local ID " << valueCorner  << " with node values " << points->at(valueCorner).at(0) << " " << points->at(valueCorner).at(1) << " " << points->at(valueCorner).at(2)  << std::endl;
+        // valueCorner = map->getLocalElement(idExport);
+        // if(valueCorner != -1)
+        //     std::cout <<" Value corner local ID " << valueCorner  << " with node values " << points->at(valueCorner).at(0) << " " << points->at(valueCorner).at(1) << " " << points->at(valueCorner).at(2)  << std::endl;
 
 
     }
