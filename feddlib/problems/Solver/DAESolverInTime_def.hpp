@@ -664,14 +664,14 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     SmallMatrix<double> massCoeffSCI(sizeSCI);
     SmallMatrix<double> problemCoeffSCI(sizeSCI);
 
-    massCoeffSCI[0][0] = massCoeffStructure[i][j];
-    problemCoeffSCI[0][0] = problemCoeffStructure[i][j];
+    massCoeffSCI[0][0] = massCoeffStructure[0][0];
+    problemCoeffSCI[0][0] = problemCoeffStructure[0][0];
        
 
     if(!chemistryExplicit_){
 
-        massCoeffSCI[1][1] = massCoeffChem[i][j];
-        problemCoeffSCI[1][1] = problemCoeffChem[i][j];
+        massCoeffSCI[1][1] = massCoeffChem[0][0];
+        problemCoeffSCI[1][1] = problemCoeffChem[0][0];
            
     }
    

@@ -367,7 +367,7 @@ void rhsHeartBeatArteryPulse(double* x, double* res, double* parameters){
     } 
   
     double forceDirection = force/fabs(force);
-    if(parameters[5]==5){
+    if(parameters[5]==6){
         res[0] =lambda*force;//+forceDirection*Q;
         res[1] =lambda*force;//+forceDirection*Q;
         res[2] =lambda*force;//+forceDirection*Q;        
