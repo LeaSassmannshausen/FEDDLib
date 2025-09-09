@@ -706,8 +706,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         // }
         dt = timeSteppingTool_->dt_;
 
-        sci->timeSteppingTool_->updateParameter();
-
         if(timeSteppingTool_->currentTime()>0)
             this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
         
@@ -879,7 +877,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         //this->problemTime_->computeValuesOfInterestAndExport();
 
         timeSteppingTool_->advanceTime(false);//output info
-        sci->timeSteppingTool_->advanceTime(false);
 
         // Should be some place else
         //if(couplingType=="explicit" )
