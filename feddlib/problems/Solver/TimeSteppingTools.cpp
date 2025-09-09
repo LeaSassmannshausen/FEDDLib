@@ -136,7 +136,7 @@ void TimeSteppingTools::updateParameter(){
         if(t_ < timeParametersVec_[i+1][0] && t_+1.0e-12 > timeParametersVec_[i][0] ){
             dt_=timeParametersVec_[i][1];
             i=numSegments_;//break
-            std::cout << " updated to " << dt_ << " at time " << t_ << std::endl;
+            // std::cout << " updated to " << dt_ << " at time " << t_ << std::endl;
         }
     }
 
@@ -348,6 +348,7 @@ void TimeSteppingTools::setupTxtExporter(){
 
 double TimeSteppingTools::getInformationBDF(int i){
     TEUCHOS_TEST_FOR_EXCEPTION(i+1>BDFInformation_->size() || i<0, std::logic_error, "Wrong bdf table access!");
+    setInformationBDF();
     return BDFInformation_->at(i);
 }
 
@@ -364,10 +365,17 @@ void TimeSteppingTools::setInformationBDF(){
             // BDFInformation_->at(1) = 2.; //Aun+2
             // BDFInformation_->at(2) = 4.; //Mun+1/dt
             // BDFInformation_->at(3) = -1.; //Mun
-            BDFInformation_->at(0) = 1.5; //Mun+2/dt
-            BDFInformation_->at(1) = 1.0; //Aun+2
-            BDFInformation_->at(2) = 2.0; //Mun+1/dt
-            BDFInformation_->at(3) = -0.5; //Mun/dt
+            // BDFInformation_->at(0) = 1.5; //Mun+2/dt
+            // BDFInformation_->at(1) = 1.0; //Aun+2
+            // BDFInformation_->at(2) = 2.0; //Mun+1/dt
+            // BDFInformation_->at(3) = -0.5; //Mun/dt
+            // Implenting the coeffiennt for varying time step size
+            double omega_n = dt_ / dt_prev_;
+            BDFInformation_->at(0) = (1.+2.*omega_n)/(1.+omega_n);
+            BDFInformation_->at(1) = 1.;
+            BDFInformation_->at(2) = BDFInformation_->at(0) *  (1.+omega_n) * (1.+omega_n)/ (1.+2.*omega_n);
+            BDFInformation_->at(3) = - BDFInformation_->at(0) * (omega_n * omega_n) / (1.+2.*omega_n);
+            std::cout << " BDF2 with variable time step size: " << BDFInformation_->at(0) << " " << BDFInformation_->at(1) << " " << BDFInformation_->at(2) << " " << BDFInformation_->at(3) << std::endl;
             break;
         default:
             break;

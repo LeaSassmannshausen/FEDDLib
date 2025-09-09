@@ -935,7 +935,7 @@ void SCI<SC,LO,GO,NO>::updateTime() const
     timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_;
     timeSteppingTool_->updateParameter();
 
-    std::cout << " ###### Timestep in SCI dt_prev" << timeSteppingTool_->dt_prev_ << " dt= " << timeSteppingTool_->dt_ <<" time= " << timeSteppingTool_->t_ << " ####### " << std::endl;
+    // std::cout << " ###### Timestep in SCI dt_prev" << timeSteppingTool_->dt_prev_ << " dt= " << timeSteppingTool_->dt_ <<" time= " << timeSteppingTool_->t_ << " ####### " << std::endl;
 
     MultiVectorConstPtr_Type c; 
     if(chemistryExplicit_)
