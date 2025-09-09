@@ -706,11 +706,12 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         // }
         dt = timeSteppingTool_->dt_;
 
+        sci->timeSteppingTool_->updateParameter();
+
         if(timeSteppingTool_->currentTime()>0)
             this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
         
         // Update der Parameter in timeSteppingTool (z.B. dt)
-        sci->timeSteppingTool_->updateParameter();
         // if(restart){
         //     if(timeSteppingTool_->currentTime() <= timeStepRestart + 1e-12){
         //         timeSteppingTool_->dt_prev_= dt;        
