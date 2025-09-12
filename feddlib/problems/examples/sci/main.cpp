@@ -238,7 +238,7 @@ void rhsHeartBeatCube(double* x, double* res, double* parameters){
 // 2 : loadStepSize
 // 3 : LoadStep end time
 // 4 : Flag 
-void rhsHeartBeatArtery(double* x, double* res, double t, const double* parameters){
+void rhsHeartBeatArtery(double* x, double* res, double* parameters){
 
     res[0] =0.;
     res[1] =0.;
@@ -248,6 +248,7 @@ void rhsHeartBeatArtery(double* x, double* res, double t, const double* paramete
     double loadStepSize = parameters[2];
     double TRamp = parameters[3];
     double heartBeatStart = parameters[4];
+    double t = parameters[0];
     
 	double a0    = 11.693284502463376;
 	double a [20] = {1.420706949636449,-0.937457438404759,0.281479818173732,-0.224724363786734,0.080426469802665,0.032077024077824,0.039516941555861, 
