@@ -107,6 +107,8 @@ public:
     // schreibe dann vor dem nlSolve() alles in das FSI-System hinein
     void advanceInTimeFSI();
 
+    void advanceInTimeFSCI();
+
     void advanceInTimeSCI();
 
     void advanceInTimeLinearMultistep();

@@ -59,6 +59,30 @@ void PrecOpFaCSI<SC,LO,GO,NO>::setGE(ThyraLinOpPtr_Type C1,
 }
 
 template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setGE(ThyraLinOpPtr_Type C1,
+                                     ThyraLinOpPtr_Type C1T,
+                                     ThyraLinOpPtr_Type C2,
+                                     ThyraLinOpPtr_Type sciInv,
+                                     ThyraLinOpPtr_Type sciS,
+                                     ThyraLinOpPtr_Type sciC,
+                                     ThyraLinOpPtr_Type fInv,
+                                     ThyraLinOpPtr_Type fF,
+                                     ThyraLinOpPtr_Type fBT){
+
+    setC1(C1);
+    setC1T(C1T);
+    setC2(C2);
+    setSCIC(sciC);
+    setSCIS(sciS);
+    setSCIInv(sciInv);
+    setFluidInv(fInv);
+    setFluidF(fF);
+    setFluidBT(fBT);
+
+    initializeWithSCI();
+}
+
+template<class SC, class LO, class GO, class NO>
 void PrecOpFaCSI<SC,LO,GO,NO>::setGI(ThyraLinOpPtr_Type C1,
                                      ThyraLinOpPtr_Type C1T,
                                      ThyraLinOpPtr_Type C2,
@@ -109,6 +133,27 @@ void PrecOpFaCSI<SC,LO,GO,NO>::setGIShape(ThyraLinOpPtr_Type C1,
     initialize();
 }
     
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setCE(ThyraLinOpPtr_Type C1,
+                                     ThyraLinOpPtr_Type C1T,
+                                     ThyraLinOpPtr_Type C2,
+                                     ThyraLinOpPtr_Type sciInv,
+                                     ThyraLinOpPtr_Type sciS,
+                                     ThyraLinOpPtr_Type fInv,
+                                     ThyraLinOpPtr_Type fF,
+                                     ThyraLinOpPtr_Type fBT){
+
+    setC1(C1);
+    setC1T(C1T);
+    setC2(C2);
+    setSCIS(sciS);
+    setSCIInv(sciInv);
+    setFluidInv(fInv);
+    setFluidF(fF);
+    setFluidBT(fBT);
+
+    initializeWithSCI();
+}
     
 template<class SC, class LO, class GO, class NO>
 void PrecOpFaCSI<SC,LO,GO,NO>::setC1(ThyraLinOpPtr_Type C1){
@@ -151,6 +196,18 @@ template<class SC, class LO, class GO, class NO>
 void PrecOpFaCSI<SC,LO,GO,NO>::setFluidBT(ThyraLinOpPtr_Type fBT){
     fBT_ = fBT;
 }
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setSCIInv(ThyraLinOpPtr_Type sciInv){
+    sciInv_ = sciInv;
+}
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setSCIC(ThyraLinOpPtr_Type sciC){
+    sciC_ = sciC;
+}
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setSCIS(ThyraLinOpPtr_Type sciS){
+    sciS_ = sciS;
+}
     
 template<class SC, class LO, class GO, class NO>
 void PrecOpFaCSI<SC,LO,GO,NO>::initialize(){
@@ -171,6 +228,49 @@ void PrecOpFaCSI<SC,LO,GO,NO>::initialize(){
     if ( !gInv_.is_null() ) {
         vectorSpacesRange.push_back( gInv_->range() );
         vectorSpacesDomain.push_back( gInv_->domain() );
+    }
+    //     defaultProductRange_;
+    //    Teuchos::RCP<const Thyra::DefaultProductVectorSpace<SC> > defaultProductDomain_;
+    
+    Teuchos::RCP<const Thyra::DefaultProductVectorSpace<SC> > pR = Thyra::productVectorSpace<SC>( vectorSpacesRange );
+    Teuchos::RCP<const Thyra::DefaultProductVectorSpace<SC> > pD = Thyra::productVectorSpace<SC>( vectorSpacesDomain );
+//    Teuchos::RCP<const Thyra::VectorSpaceBase<SC> > pVSR = Teuchos::rcp_dynamic_cast<const Thyra::VectorSpaceBase<SC> >(pR);
+//    Teuchos::RCP<const Thyra::VectorSpaceBase<SC> > pVSD = Teuchos::rcp_dynamic_cast<const Thyra::VectorSpaceBase<SC> >(pD);
+//    
+//    this->defaultProductRange_ = Thyra::multiVectorProductVectorSpace<SC>( pVSR , 1);
+//    this->defaultProductDomain_ = Thyra::multiVectorProductVectorSpace<SC>( pVSD, 1);
+    
+    this->defaultProductRange_ = pR;
+    this->defaultProductDomain_ = pD;
+}
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::initializeWithSCI(){
+
+    //std::cout << "  ########## Init PrecOpFaCSCI ########### " << std::endl;
+
+    TEUCHOS_TEST_FOR_EXCEPTION(fInv_.is_null(), std::runtime_error,"Can not initialize FaCSCI preconditioner: Fluid preconditioner not set.");
+    TEUCHOS_TEST_FOR_EXCEPTION(sciInv_.is_null(), std::runtime_error,"Can not initialize FaCSCI preconditioner: Structure preconditioner not set.");
+    TEUCHOS_TEST_FOR_EXCEPTION(C1_.is_null(), std::runtime_error,"Can not initialize FaCSCI preconditioner: C1 not set.");
+    Teuchos::Array< Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > > vectorSpacesRange( 4 );
+    Teuchos::Array< Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > > vectorSpacesDomain( 4 );
+    vectorSpacesRange[0] = fF_->range();
+    vectorSpacesRange[1] = fBT_->domain();
+    vectorSpacesRange[2] = sciS_->range();
+    vectorSpacesRange[3] = C1_->range();
+    
+    vectorSpacesDomain[0] = fF_->domain();
+    vectorSpacesDomain[1] = fBT_->domain();
+    vectorSpacesDomain[2] = sciS_->domain();
+    vectorSpacesDomain[3] = C1T_->domain();
+
+    if ( !gInv_.is_null() ) {
+        vectorSpacesRange.push_back( gInv_->range() );
+        vectorSpacesDomain.push_back( gInv_->domain() );
+    }
+    if(!sciC_.is_null()){
+        vectorSpacesRange.push_back( sciC_->range() );
+        vectorSpacesDomain.push_back( sciC_->domain() );     
     }
     //     defaultProductRange_;
     //    Teuchos::RCP<const Thyra::DefaultProductVectorSpace<SC> > defaultProductDomain_;
@@ -245,390 +345,189 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         assign(Y_fp.ptr(), *X_fp);
         assign(Y_s.ptr(), *X_s);
         assign(Y_l.ptr(), *X_l);
-        
-//        Teuchos::RCP< Thyra::TpetraMultiVector< SC, LO, GO, NO > > YsTpetra =
-//        Teuchos::rcp_dynamic_cast< Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( Y_s );
-//
-//        
-////        std::cout << "Ys pri:" << std::endl;
-////        YsTpetra->getConstTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-////        comm_->barrier();    comm_->barrier();    comm_->barrier();
-////
-//        Teuchos::RCP< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > XsTpetra =
-//            Teuchos::rcp_dynamic_cast< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( X_s );
-//        Teuchos::RCP< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > XfvT =
-//            Teuchos::rcp_dynamic_cast< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( X_fv );
-//        Teuchos::RCP< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > XfpT =
-//            Teuchos::rcp_dynamic_cast< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( X_fp );
-//        Teuchos::RCP< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > XlT =
-//            Teuchos::rcp_dynamic_cast< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( X_l );
-//        std::cout << "Xs:" << std::endl;
-//        XsTpetra->getConstTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-//        comm_->barrier();    comm_->barrier();    comm_->barrier();
-//        std::cout << "Xfv:" << std::endl;
-//        XfvT->getConstTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-//        comm_->barrier();    comm_->barrier();    comm_->barrier();
-//        std::cout << "Xfp:" << std::endl;
-//        XfpT->getConstTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-//        comm_->barrier();    comm_->barrier();    comm_->barrier();
-//        std::cout << "Xl:" << std::endl;
-//        XlT->getConstTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-//        comm_->barrier();    comm_->barrier();    comm_->barrier();
-//
-//
-//        
-//        if (useSolidPreconditioner_)
-//            sInv_->apply(NOTRANS, *X_s, Y_s.ptr(), 1., 0.);
-//        else
-//            assign(Y_s.ptr(), *X_s);
-//        
-//        
-////        std::cout << "Ys after:" << std::endl;
-////        YsTpetra->getConstTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-////        comm_->barrier();    comm_->barrier();    comm_->barrier();
-//
-//        
-//        if (productRangeFluid_.is_null()) {
-//            Teuchos::Array< Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > > vectorSpacesRangeFluid( 2 );
-//            
-//            vectorSpacesRangeFluid[0] = X_fv->range();
-//            vectorSpacesRangeFluid[1] = X_fp->range();
-//            
-//            productRangeFluid_ = Thyra::productVectorSpace<SC>( vectorSpacesRangeFluid );
-//        }
-//        
-//        Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > X_fluid( 2 );
-//        Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_fluid( 2 );
-//        
-//        X_fluid[0] = Y_fv;
-//        X_fluid[1] = Y_fp;
-//        
-//        Y_fluid[0] = Y_fv;
-//        Y_fluid[1] = Y_fp;
-//        
-//
-//        
-//        //    std::cout << "Y_fp before mono" << std::endl;
-//        //    Y_fp->describe(*out,Teuchos::VERB_EXTREME);
-//        //    comm_->barrier();    comm_->barrier();    comm_->barrier();
-//        
-//        if (useFluidPreconditioner_){
-//            
-//            if (fluidPrecMonolithic_) {
-//                Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > fMonoVS = fInv_->domain();
-//                
-//                if ( X_fmono_.is_null() ){
-//                    X_fmono_ = createMembers( fMonoVS, X_fluid[0]->domain()->dim() );
-//                    Y_fmono_ = createMembers( fMonoVS, Y_fluid[0]->domain()->dim() );
-//                }
-//                //We can/should speedup this process
-//                copyToMono(X_fluid);
-//                fInv_->apply(NOTRANS, *X_fmono_, Y_fmono_.ptr(), 1., 0.);
-//                copyFromMono(Y_fluid);
-//            }
-//            else{
-//                Teuchos::RCP< Thyra::ProductMultiVectorBase<SC> > prodX_f = Thyra::defaultProductMultiVector<SC>( productRangeFluid_, X_fluid );
-//                Teuchos::RCP< Thyra::ProductMultiVectorBase<SC> > prodY_f = Thyra::defaultProductMultiVector<SC>( productRangeFluid_, Y_fluid );
-//                
-//                Teuchos::RCP< MultiVectorBase<SC> > X_f = Teuchos::rcp_dynamic_cast<MultiVectorBase< SC > >(prodX_f);
-//                Teuchos::RCP< MultiVectorBase<SC> > Y_f = Teuchos::rcp_dynamic_cast<MultiVectorBase< SC > >(prodY_f);
-//                
-//                fInv_->apply(NOTRANS, *X_f, Y_f.ptr(), 1., 0.);
-//            }
-//        }
-//        else{
-//            assign(Y_fv.ptr(), *X_fv);
-//            assign(Y_fp.ptr(), *X_fp);
-//        }
-//        
-//        Teuchos::RCP< Thyra::TpetraMultiVector< SC, LO, GO, NO > > YfvTpetra =
-//        Teuchos::rcp_dynamic_cast< Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( Y_fv );
-//        Teuchos::RCP< Thyra::TpetraMultiVector< SC, LO, GO, NO > > YfpTpetra =
-//        Teuchos::rcp_dynamic_cast< Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( Y_fp );
-//
-////        std::cout << "Yfv after:" << std::endl;
-////        YfvTpetra->getTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-////        comm_->barrier();    comm_->barrier();    comm_->barrier();
-////
-////        std::cout << "Yfp after:" << std::endl;
-////        YfpTpetra->getTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-////        comm_->barrier();    comm_->barrier();    comm_->barrier();
-//
-//        
-//        assign(Y_l.ptr(), *X_l);
-//        
-////        Y_fv->describe(*out,Teuchos::VERB_EXTREME);
-////        Y_fp->describe(*out,Teuchos::VERB_EXTREME);
-//
-//        
-////        Y_l->describe(*out,Teuchos::VERB_EXTREME);
-        
+                
     }
     else{
-    Teuchos::RCP<const Thyra::ProductMultiVectorBase<SC> > X
-        = Teuchos::rcp_dynamic_cast<const Thyra::ProductMultiVectorBase<SC> > ( rcpFromRef(X_in) );
+        Teuchos::RCP<const Thyra::ProductMultiVectorBase<SC> > X
+            = Teuchos::rcp_dynamic_cast<const Thyra::ProductMultiVectorBase<SC> > ( rcpFromRef(X_in) );
 
-    Teuchos::RCP< Thyra::ProductMultiVectorBase<SC> > Y
-        = Teuchos::rcp_dynamic_cast< Thyra::ProductMultiVectorBase<SC> > ( rcpFromPtr(Y_inout) );
+        Teuchos::RCP< Thyra::ProductMultiVectorBase<SC> > Y
+            = Teuchos::rcp_dynamic_cast< Thyra::ProductMultiVectorBase<SC> > ( rcpFromPtr(Y_inout) );
 
-    
-//    Teuchos::RCP<const Thyra::ProductMultiVectorBase<SC> >
-//    X = Thyra::castOrCreateSingleBlockProductMultiVector<SC>( this->defaultProductDomain_, rcpFromRef(X_in) );
-//    Teuchos::RCP<Thyra::ProductMultiVectorBase<SC> >
-//    Y = Thyra::nonconstCastOrCreateSingleBlockProductMultiVector<SC>( this->defaultProductRange_, rcpFromPtr(Y_inout) );
-    Y_inout->assign(0.);
-//    std::cout << "Xin" << std::endl;
-//    X_in.describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-//    
-//    std::cout << "Xrcp" << std::endl;
-//    X->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-//    std::cout << "Y_inoutin" << std::endl;
-//    Y_inout->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-    Teuchos::RCP< const MultiVectorBase< SC > > X_s = X->getMultiVectorBlock(2);
-    Teuchos::RCP< MultiVectorBase< SC > > Y_s = Y->getNonconstMultiVectorBlock(2);
         
+        Y_inout->assign(0.);
+
+        // SOLID PART
+        Teuchos::RCP< const MultiVectorBase< SC > > X_s = X->getMultiVectorBlock(2);
+        Teuchos::RCP< MultiVectorBase< SC > > Y_s = Y->getNonconstMultiVectorBlock(2);
+            
+        Teuchos::RCP< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > XsTpetra =
+        Teuchos::rcp_dynamic_cast< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( X_s );
+    
         
-    Teuchos::RCP< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > XsTpetra =
-    Teuchos::rcp_dynamic_cast< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( X_s );
-//    XsTpetra->getConstTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
+        // apply solid preconditioner
+        if (useSolidPreconditioner_){
+            if(!sInv_.is_null())
+                sInv_->apply(NOTRANS, *X_s, Y_s.ptr(), 1., 0.);
+            else{
+                if(!sciC_.is_null()){
+                    //std::cout << "FACSCI:: Implicit Case " << std::endl;
+                    Teuchos::RCP< const MultiVectorBase< SC > > X_chem = X->getMultiVectorBlock(4);
+                    Teuchos::RCP< MultiVectorBase< SC > > Y_chem = Y->getNonconstMultiVectorBlock(4);
+                    assign(Y_chem.ptr(), *X_chem);
+                    Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > X_sci( 2 );
+                    Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_sci( 2 );
 
-//    std::cout << "Xs" << std::endl;
-//    X_s->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-    
-//    typedef Thyra::TpetraVector< SC, LO, GO, NO > TpetraVector_Type;
-//    typedef Teuchos::RCP<TpetraVector_Type> TpetraVectorPtr_Type;
-//    typedef Teuchos::RCP<const TpetraVector_Type> TpetraVectorConstPtr_Type;
-//    
-//    TpetraVectorConstPtr_Type tpetraThyraXs = Teuchos::rcp_dynamic_cast<const TpetraVector_Type>( X_s );
-//    
-//    std::cout << "Xs tpetra:" << std::endl;
-//    tpetraThyraXs->getConstTpetraVector()->describe(*out,Teuchos::VERB_EXTREME);
-//
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-    
-    
-    // apply solid preconditioner
-    if (useSolidPreconditioner_)
-        sInv_->apply(NOTRANS, *X_s, Y_s.ptr(), 1., 0.);
-    else
-        assign(Y_s.ptr(), *X_s);
-    
-//    std::cout << "Ys" << std::endl;
-//    Y_s->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-    Teuchos::RCP< const MultiVectorBase< SC > > X_g;
-    Teuchos::RCP< MultiVectorBase< SC > > Y_g;
-    // apply geometry preconditioner
-    if ( !gInv_.is_null() ) {
-        X_g = X->getMultiVectorBlock(4);
-        Y_g = Y->getNonconstMultiVectorBlock(4);
+                    X_sci[0] = Y_s;
+                    X_sci[1] = Y_chem;
 
-        assign(Y_g.ptr(), *X_g);
+                    Y_sci[0] = Y_s;
+                    Y_sci[1] = Y_chem;
+                    Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > sciMonoVS = sciInv_->domain();
+                    // std::cout << " Initi X_scimono_ " << std::endl;
+                    if ( X_scimono_.is_null() ){
+                        X_scimono_ = createMembers( sciMonoVS, X_sci[0]->domain()->dim() );
+                        Y_scimono_ = createMembers( sciMonoVS, Y_sci[0]->domain()->dim() );
+                    }
+                    //We can/should speedup this process
+                // std::cout << " Copy to mono " << std::endl;
 
-        C4_->apply(NOTRANS, *Y_s, Y_g.ptr(), -1., 1.);
-        
-        gInv_->apply(NOTRANS, *Y_g, Y_g.ptr(), 1., 0.);
-    }
-    
-    Teuchos::RCP< const MultiVectorBase< SC > > X_l = X->getMultiVectorBlock(3);
-    Teuchos::RCP< MultiVectorBase< SC > > Y_l = Y->getNonconstMultiVectorBlock(3);
+                    copyToMonoSCI(X_sci);
+                    //std::cout << " Apply " << std::endl;
 
-    assign(Y_l.ptr(), *X_l);
-//    std::cout << "Yl pre c2 apply" << std::endl;
-//    Y_l->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-    
-    C2_->apply( NOTRANS, *Y_s, Y_l.ptr(), -1., 1. );
-//    C2_->apply( NOTRANS, *Y_s, Y_l.ptr(), 1., 0. );
-//    std::cout << "Yl after c2 apply" << std::endl;
-//    Y_l->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-//    scale(-1., Y_l.ptr());
-//    update(1., *X_l, Y_l.ptr());
-//    std::cout << "Yl2" << std::endl;
-//    Y_l->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-    
-    Teuchos::RCP< const MultiVectorBase< SC > > X_fv = X->getMultiVectorBlock(0);
-    Teuchos::RCP< MultiVectorBase< SC > > Y_fv = Y->getNonconstMultiVectorBlock(0);
-    assign(Y_fv.ptr(), *X_fv);
-    //    if (Z_fv_.is_null())
-//        Z_fv_ = X_fv->clone_mv();
-//    else
-    
-    
-
-    
-    Teuchos::RCP< const MultiVectorBase< SC > > X_fp = X->getMultiVectorBlock(1);
-    Teuchos::RCP< MultiVectorBase< SC > > Y_fp = Y->getNonconstMultiVectorBlock(1);
-    assign(Y_fp.ptr(), *X_fp);
-//    if (Z_fp_.is_null())
-//        Z_fp_ = X_fv->clone_mv();
-//    else
-//        assign(Z_fp_.ptr(), *X_fp);
-    
-//    std::cout << "zp" << std::endl;
-//    Z_fp->describe(*out,Teuchos::VERB_EXTREME);
-//        comm_->barrier();    comm_->barrier();    comm_->barrier();
-//    std::cout << "Y-fp set:" << std::endl;
-//    Y_fp->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-    if (!shape_v_.is_null() && !shape_p_.is_null()) {
-        shape_v_->apply(NOTRANS, *Y_g, Y_fv.ptr(), -1., 1.);
-        shape_p_->apply(NOTRANS, *Y_g, Y_fp.ptr(), -1., 1.);
-    }
-    
-    
-    if (Z_fv_.is_null())
-        Z_fv_ = Y_fv->clone_mv();
-    else
-        assign(Z_fv_.ptr(), *Y_fv);
-    
-//    std::cout << "Z_fv_ set:" << std::endl;
-//    Z_fv_->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-//
-//    std::cout << "Z_fp_ set:" << std::endl;
-//    Y_fp->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-
-    
-    // fluid condensation
-    if (tmp_l_.is_null())
-        tmp_l_ = Y_l->clone_mv();
-
-    C1_->apply(NOTRANS, *Y_fv, tmp_l_.ptr(), 1., 0);
-    C1T_->apply(NOTRANS, *tmp_l_, Y_fv.ptr(), -1., 1.);
-    
-    C1T_->apply(NOTRANS, *Y_l, Y_fv.ptr(), 1., 1.);
-    
-//    std::cout << "W_fv" << std::endl;
-//    Y_fv->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-    
-    if (productRangeFluid_.is_null()) {
-        Teuchos::Array< Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > > vectorSpacesRangeFluid( 2 );
-        
-        vectorSpacesRangeFluid[0] = X_fv->range();
-        vectorSpacesRangeFluid[1] = X_fp->range();
-        
-        productRangeFluid_ = Thyra::productVectorSpace<SC>( vectorSpacesRangeFluid );
-    }
-    
-    Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > X_fluid( 2 );
-    Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_fluid( 2 );
-
-    X_fluid[0] = Y_fv;
-    X_fluid[1] = Y_fp;
-
-    Y_fluid[0] = Y_fv;
-    Y_fluid[1] = Y_fp;
-
-    
-//    std::cout << "Y_fp before mono" << std::endl;
-//    Y_fp->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-    
-    if (useFluidPreconditioner_){
-    
-        if (fluidPrecMonolithic_) {
-            Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > fMonoVS = fInv_->domain();
-
-            if ( X_fmono_.is_null() ){
-                X_fmono_ = createMembers( fMonoVS, X_fluid[0]->domain()->dim() );
-                Y_fmono_ = createMembers( fMonoVS, Y_fluid[0]->domain()->dim() );
+                    sciInv_->apply(NOTRANS, *X_scimono_, Y_scimono_.ptr(), 1., 0.);
+                    copyFromMonoSCI(Y_sci); 
+                }
+                else{
+                    sciInv_->apply(NOTRANS, *X_s, Y_s.ptr(), 1., 0.);        
+                }  
             }
-            //We can/should speedup this process
-            copyToMono(X_fluid);
-            fInv_->apply(NOTRANS, *X_fmono_, Y_fmono_.ptr(), 1., 0.);
-            copyFromMono(Y_fluid);
+
         }
         else{
-            Teuchos::RCP< Thyra::ProductMultiVectorBase<SC> > prodX_f = Thyra::defaultProductMultiVector<SC>( productRangeFluid_, X_fluid );
-            Teuchos::RCP< Thyra::ProductMultiVectorBase<SC> > prodY_f = Thyra::defaultProductMultiVector<SC>( productRangeFluid_, Y_fluid );
-            
-            Teuchos::RCP< MultiVectorBase<SC> > X_f = Teuchos::rcp_dynamic_cast<MultiVectorBase< SC > >(prodX_f);
-            Teuchos::RCP< MultiVectorBase<SC> > Y_f = Teuchos::rcp_dynamic_cast<MultiVectorBase< SC > >(prodY_f);
-            
-            fInv_->apply(NOTRANS, *X_f, Y_f.ptr(), 1., 0.);
+            assign(Y_s.ptr(), *X_s);
+            if(!sciC_.is_null()){
+                Teuchos::RCP< const MultiVectorBase< SC > > X_chem = X->getMultiVectorBlock(4);
+                Teuchos::RCP< MultiVectorBase< SC > > Y_chem = Y->getNonconstMultiVectorBlock(4);
+                assign(Y_chem.ptr(), *X_chem);
+            }
+
         }
-    }
-    else{
+
+        Teuchos::RCP< const MultiVectorBase< SC > > X_g;
+        Teuchos::RCP< MultiVectorBase< SC > > Y_g;
+        // apply geometry preconditioner
+        if ( !gInv_.is_null() ) {
+            X_g = X->getMultiVectorBlock(4);
+            Y_g = Y->getNonconstMultiVectorBlock(4);
+
+            assign(Y_g.ptr(), *X_g);
+
+            C4_->apply(NOTRANS, *Y_s, Y_g.ptr(), -1., 1.);
+            
+            gInv_->apply(NOTRANS, *Y_g, Y_g.ptr(), 1., 0.);
+        }
+        
+        Teuchos::RCP< const MultiVectorBase< SC > > X_l = X->getMultiVectorBlock(3);
+        Teuchos::RCP< MultiVectorBase< SC > > Y_l = Y->getNonconstMultiVectorBlock(3);
+
+        assign(Y_l.ptr(), *X_l);
+        
+        C2_->apply( NOTRANS, *Y_s, Y_l.ptr(), -1., 1. );
+          
+        Teuchos::RCP< const MultiVectorBase< SC > > X_fv = X->getMultiVectorBlock(0);
+        Teuchos::RCP< MultiVectorBase< SC > > Y_fv = Y->getNonconstMultiVectorBlock(0);
         assign(Y_fv.ptr(), *X_fv);
+
+        Teuchos::RCP< const MultiVectorBase< SC > > X_fp = X->getMultiVectorBlock(1);
+        Teuchos::RCP< MultiVectorBase< SC > > Y_fp = Y->getNonconstMultiVectorBlock(1);
         assign(Y_fp.ptr(), *X_fp);
-    }
 
-//    std::cout << "Y_fv after mono" << std::endl;
-//    Y_fv->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-//    std::cout << "Y_fp after mono" << std::endl;
-//    Y_fp->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
+        if (!shape_v_.is_null() && !shape_p_.is_null()) {
+            shape_v_->apply(NOTRANS, *Y_g, Y_fv.ptr(), -1., 1.);
+            shape_p_->apply(NOTRANS, *Y_g, Y_fp.ptr(), -1., 1.);
+        }
+        
+        
+        if (Z_fv_.is_null())
+            Z_fv_ = Y_fv->clone_mv();
+        else
+            assign(Z_fv_.ptr(), *Y_fv);
+        
+        // fluid condensation
+        if (tmp_l_.is_null())
+            tmp_l_ = Y_l->clone_mv();
 
+        C1_->apply(NOTRANS, *Y_fv, tmp_l_.ptr(), 1., 0);
+        C1T_->apply(NOTRANS, *tmp_l_, Y_fv.ptr(), -1., 1.);
+        
+        C1T_->apply(NOTRANS, *Y_l, Y_fv.ptr(), 1., 1.);
+        
+    //    std::cout << "W_fv" << std::endl;
+    //    Y_fv->describe(*out,Teuchos::VERB_EXTREME);
+    //    comm_->barrier();    comm_->barrier();    comm_->barrier();
+        
+        if (productRangeFluid_.is_null()) {
+            Teuchos::Array< Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > > vectorSpacesRangeFluid( 2 );
+            
+            vectorSpacesRangeFluid[0] = X_fv->range();
+            vectorSpacesRangeFluid[1] = X_fp->range();
+            
+            productRangeFluid_ = Thyra::productVectorSpace<SC>( vectorSpacesRangeFluid );
+        }
+        
+        Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > X_fluid( 2 );
+        Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_fluid( 2 );
 
-    fBT_->apply(NOTRANS, *Y_fp, Z_fv_.ptr(), -1., 1.);
+        X_fluid[0] = Y_fv;
+        X_fluid[1] = Y_fp;
 
-//    std::cout << "W_fv after BT" << std::endl;
-//    W_fv->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
+        Y_fluid[0] = Y_fv;
+        Y_fluid[1] = Y_fp;
+
+        
+    //    std::cout << "Y_fp before mono" << std::endl;
+    //    Y_fp->describe(*out,Teuchos::VERB_EXTREME);
+    //    comm_->barrier();    comm_->barrier();    comm_->barrier();
+        
+        if (useFluidPreconditioner_){
+        
+            if (fluidPrecMonolithic_) {
+                Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > fMonoVS = fInv_->domain();
+
+                if ( X_fmono_.is_null() ){
+                    X_fmono_ = createMembers( fMonoVS, X_fluid[0]->domain()->dim() );
+                    Y_fmono_ = createMembers( fMonoVS, Y_fluid[0]->domain()->dim() );
+                }
+                //We can/should speedup this process
+                copyToMono(X_fluid);
+                fInv_->apply(NOTRANS, *X_fmono_, Y_fmono_.ptr(), 1., 0.);
+                copyFromMono(Y_fluid);
+            }
+            else{
+                Teuchos::RCP< Thyra::ProductMultiVectorBase<SC> > prodX_f = Thyra::defaultProductMultiVector<SC>( productRangeFluid_, X_fluid );
+                Teuchos::RCP< Thyra::ProductMultiVectorBase<SC> > prodY_f = Thyra::defaultProductMultiVector<SC>( productRangeFluid_, Y_fluid );
+                
+                Teuchos::RCP< MultiVectorBase<SC> > X_f = Teuchos::rcp_dynamic_cast<MultiVectorBase< SC > >(prodX_f);
+                Teuchos::RCP< MultiVectorBase<SC> > Y_f = Teuchos::rcp_dynamic_cast<MultiVectorBase< SC > >(prodY_f);
+                
+                fInv_->apply(NOTRANS, *X_f, Y_f.ptr(), 1., 0.);
+            }
+        }
+        else{
+            assign(Y_fv.ptr(), *X_fv);
+            assign(Y_fp.ptr(), *X_fp);
+        }
+
     
-    fF_->apply(NOTRANS, *Y_fv, Z_fv_.ptr(), -1., 1.);
+        fBT_->apply(NOTRANS, *Y_fp, Z_fv_.ptr(), -1., 1.);
+       
+        fF_->apply(NOTRANS, *Y_fv, Z_fv_.ptr(), -1., 1.);
 
-//    std::cout << "W_fv after F" << std::endl;
-//    W_fv->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-    
-//    std::cout << "W_fv after update" << std::endl;
-//    Z_fv_->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-    
-    C1_->apply(NOTRANS, *Z_fv_, Y_l.ptr(), 1., 0.);
-    
-//    std::cout << "Y_l after C1" << std::endl;
-//    Y_l->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-//    std::cout << "Y_inoutout" << std::endl;
-//    Y_inout->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
-//    std::cout << "FaCSI done!" << std::endl;
-//    TEUCHOS_TEST_FOR_EXCEPTION(true, std::runtime_error,"End of FaCSI apply.");
-        
-        
-        
-//        Teuchos::RCP< MultiVectorBase< SC > > Y_fv = Y->getNonconstMultiVectorBlock(0);
-//        Teuchos::RCP< MultiVectorBase< SC > > Y_fp = Y->getNonconstMultiVectorBlock(1);
-//        Teuchos::RCP< MultiVectorBase< SC > > Y_s = Y->getNonconstMultiVectorBlock(2);
-//        Teuchos::RCP< MultiVectorBase< SC > > Y_l = Y->getNonconstMultiVectorBlock(3);
-
-        Teuchos::RCP< Thyra::TpetraMultiVector< SC, LO, GO, NO > > Y_fvT =
-        Teuchos::rcp_dynamic_cast< Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( Y_fv );
-        Teuchos::RCP< Thyra::TpetraMultiVector< SC, LO, GO, NO > > Y_fpT =
-        Teuchos::rcp_dynamic_cast< Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( Y_fp );
-        Teuchos::RCP< Thyra::TpetraMultiVector< SC, LO, GO, NO > > Y_sT =
-            Teuchos::rcp_dynamic_cast< Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( Y_s );
-        Teuchos::RCP< Thyra::TpetraMultiVector< SC, LO, GO, NO > > Y_lT =
-        Teuchos::rcp_dynamic_cast< Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( Y_l );
-
-//        std::cout << "Yfv:" << std::endl;
-//        Y_fvT->getConstTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-//        comm_->barrier();    comm_->barrier();    comm_->barrier();
-//        std::cout << "Yfp:" << std::endl;
-//        Y_fpT->getConstTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-//        comm_->barrier();    comm_->barrier();    comm_->barrier();
-//        std::cout << "Ys:" << std::endl;
-//        Y_sT->getConstTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-//        comm_->barrier();    comm_->barrier();    comm_->barrier();
-//        std::cout << "Yl:" << std::endl;
-//        Y_lT->getConstTpetraMultiVector()->describe(*out,Teuchos::VERB_EXTREME);
-//        comm_->barrier();    comm_->barrier();    comm_->barrier();
-
-        
-        
-        
+          
+        C1_->apply(NOTRANS, *Z_fv_, Y_l.ptr(), 1., 0.);
+           
+            
     }
 }
 // private
@@ -706,6 +605,82 @@ void PrecOpFaCSI<SC,LO,GO,NO>::copyFromMono(Teuchos::Array< Teuchos::RCP< Thyra:
         
     }    
 }
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::copyToMonoSCI( Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > X_sci ) const{
+    
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_d = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(X_sci[0]->range());
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_c = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(X_sci[1]->range());
+    
+    const LO localOffset_d = mpiVS_d->localOffset();
+    const LO localSubDim_d = mpiVS_d->localSubDim();
+    
+    const LO localOffset_c = mpiVS_c->localOffset();
+    const LO localSubDim_c = mpiVS_c->localSubDim();
+    
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_d =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( X_sci[0] ,Range1D(localOffset_d,localOffset_d+localSubDim_d-1) ) );
+    
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_c =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( X_sci[1] ,Range1D(localOffset_c,localOffset_c+localSubDim_c-1) ) );
+    
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_mono = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(X_scimono_->range());
+    
+    const LO localOffset_mono = mpiVS_mono->localOffset();
+    const LO localSubDim_mono = mpiVS_mono->localSubDim();
+    
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_sci =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( X_scimono_ ,Range1D(localOffset_mono,localOffset_mono+localSubDim_mono-1) ) );
+
+    for (int j=0; j<X_sci[0]->domain()->dim(); j++) {
+        
+        for (LO i=0; i < localSubDim_d; i++)
+            (*thyData_sci)(i,j) = (*thyData_d)(i,j);
+        
+        for (LO i=0; i<localSubDim_c; i++)
+            (*thyData_sci)( i + localSubDim_d, j ) = (*thyData_c)(i,j);
+
+    }
+}
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::copyFromMonoSCI(Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_sci) const{
+    
+
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_d = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(Y_sci[0]->range());
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_c = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(Y_sci[1]->range());
+    
+    const LO localOffset_d = mpiVS_d->localOffset();
+    const LO localSubDim_d = mpiVS_d->localSubDim();
+    
+    const LO localOffset_c = mpiVS_c->localOffset();
+    const LO localSubDim_c = mpiVS_c->localSubDim();
+    
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_d =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( Y_sci[0] ,Range1D(localOffset_d,localOffset_d+localSubDim_d-1) ) );
+    
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_c =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( Y_sci[1] ,Range1D(localOffset_c,localOffset_c+localSubDim_c-1) ) );
+    
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_mono = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(Y_scimono_->range());
+    
+    const LO localOffset_mono = mpiVS_mono->localOffset();
+    const LO localSubDim_mono = mpiVS_mono->localSubDim();
+    
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_sci =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( Y_scimono_ ,Range1D(localOffset_mono,localOffset_mono+localSubDim_mono-1) ) );
+    
+    for (int j=0; j<Y_sci[0]->domain()->dim(); j++) {
+        
+        for (LO i=0; i < localSubDim_d; i++)
+            (*thyData_d)(i,j) = (*thyData_sci)(i,j);
+        
+        for (LO i=0; i<localSubDim_c; i++)
+            (*thyData_c)(i,j) = (*thyData_sci)( i + localSubDim_d, j );
+        
+    }    
+}
+
 
 }
 

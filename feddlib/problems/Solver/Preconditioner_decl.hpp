@@ -11,6 +11,7 @@
 #include "feddlib/problems/Solver/PrecBlock2x2.hpp"
 #include "feddlib/problems/specific/LaplaceBlocks.hpp"
 #include "feddlib/problems/specific/FSI.hpp"
+#include "feddlib/problems/specific/FSCI.hpp"
 #include "Xpetra_ThyraUtils.hpp"
 #include <Thyra_PreconditionerBase.hpp>
 #include <Thyra_DefaultPreconditioner_decl.hpp>
@@ -130,6 +131,8 @@ public:
 
     void buildPreconditionerFaCSI( std::string type );
 
+    void buildPreconditionerFaCSCI(std::string type);
+
     void buildPreconditionerBlock2x2();
 
     void setFaCSIBCFactory( BCConstPtr_Type bcFactory ){ faCSIBCFactory_ = bcFactory; }
@@ -161,9 +164,11 @@ private:
     ThyraLinOpPtr_Type precFluid_;
     ThyraLinOpPtr_Type precStruct_;
     ThyraLinOpPtr_Type precGeo_;
+    ThyraLinOpPtr_Type precSCI_;
     MinPrecProblemPtr_Type probFluid_;
     MinPrecProblemPtr_Type probSolid_;
     MinPrecProblemPtr_Type probGeo_;
+    MinPrecProblemPtr_Type probSCI_;
     BCConstPtr_Type faCSIBCFactory_;
 
     // For Stokes-type block diagonal and triangular precondtioner
