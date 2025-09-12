@@ -238,7 +238,7 @@ void rhsHeartBeatCube(double* x, double* res, double* parameters){
 // 2 : loadStepSize
 // 3 : LoadStep end time
 // 4 : Flag 
-void rhsHeartBeatArtery(double* x, double* res, double* parameters){
+void rhsHeartBeatArtery(double* x, double* res, double t, const double* parameters){
 
     res[0] =0.;
     res[1] =0.;
