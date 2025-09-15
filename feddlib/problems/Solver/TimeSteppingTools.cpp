@@ -376,7 +376,7 @@ void TimeSteppingTools::setInformationBDF(){
             BDFInformation_->at(1) = 1.;
             BDFInformation_->at(2) = 1+omega_n ; // BDFInformation_->at(0) *  (1.+omega_n) * (1.+omega_n)/ (1.+2.*omega_n);
             BDFInformation_->at(3) = - omega_n * omega_n / (1+omega_n) ; // BDFInformation_->at(0) * (omega_n * omega_n) / (1.+2.*omega_n);
-            std::cout << " BDF2 with variable time step size: " << BDFInformation_->at(0) << " " << BDFInformation_->at(1) << " " << BDFInformation_->at(2) << " " << BDFInformation_->at(3) << std::endl;
+            // std::cout << " BDF2 with variable time step size: " << BDFInformation_->at(0) << " " << BDFInformation_->at(1) << " " << BDFInformation_->at(2) << " " << BDFInformation_->at(3) << std::endl;
             break;
         default:
             break;
