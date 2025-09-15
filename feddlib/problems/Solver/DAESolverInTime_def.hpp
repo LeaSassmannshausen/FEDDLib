@@ -1216,6 +1216,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
 //        fsi->setSolidMassmatrix( massmatrix );
 ////        this->problemTime_->assemble( massmatrix, "GetFluidMassmatrix" );
 //    }
+
+    vec_dbl_Type linearIterations(0);
+    vec_dbl_Type newtonIterations(0);
     // ######################
     // Time loop
     // ######################
@@ -1406,7 +1409,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
         if (printData) {
             exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
             exporterIterations->exportData( (*its)[0] );
+            linearIterations.push_back((*its)[0]);
             exporterNewtonIterations->exportData( (*its)[1] );
+            newtonIterations.push_back((*its)[1]);
         }
         if (printExtraData) {
             vec_dbl_Type v(3,-9999.);
@@ -1451,10 +1456,25 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
     }
 
     comm_->barrier();
-    if (printExtraData) {
+    if (printData) {
         exporterTimeTxt->closeExporter();
         exporterIterations->closeExporter();
         exporterNewtonIterations->closeExporter();
+
+        double sumLinear=0., sumNewton=0.;
+        for(int i=0; i < linearIterations.size(); i++){
+            sumLinear += linearIterations[i];
+            sumNewton += newtonIterations[i];
+        }
+        sumLinear = sumLinear / linearIterations.size();
+        sumNewton = sumNewton / newtonIterations.size();
+
+        if (verbose_) {
+            std::cout << " ######################################################## "<< std::endl;
+            std::cout << " Average linear iteration count over all time steps:  " << sumLinear << std::endl;
+            std::cout << " Average Newton iteration count over all time steps:  " << sumNewton << std::endl;
+            std::cout << " ######################################################## \n"<< std::endl;
+        }
     }
     
     if (printExtraData) {
