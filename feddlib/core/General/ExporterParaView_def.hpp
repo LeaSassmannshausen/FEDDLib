@@ -155,7 +155,7 @@ void ExporterParaView<SC,LO,GO,NO>::setup(std::string filename,
         }
     }
     else  {
-        TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Wrong FEType, choose either P0 or P1 or P1-disc or P2 or P2-CR or Q1 or Q2 or Q2-20. Subdomain export with P0 - Export stopped");
+        TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Wrong FEType, choose either P0 or P1 or P1-disc or P2 or P2-CR or Q1 or Q2 or Q2-20. Requested "<< FEType_ );
     }
     
     nmbPointsGlob_ = mesh->getMapUnique()->getGlobalNumElements();

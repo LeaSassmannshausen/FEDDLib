@@ -379,24 +379,29 @@ int main(int argc, char *argv[])
         
         ParameterListPtr_Type parameterListFluidAll(new Teuchos::ParameterList(*parameterListPrecFluidMono)) ;
         sublist(parameterListFluidAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Fluid") );
+        sublist(parameterListFluidAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
+
         parameterListFluidAll->setParameters(*parameterListPrecFluidTeko);
 
         
          ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListPrecStructure));
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
+        sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
         parameterListStructureAll->setParameters(*parameterListPrecStructure);
 
      
         ParameterListPtr_Type parameterListChemAll(new Teuchos::ParameterList(*parameterListPrecChem));
         sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Diffusion") );
+        sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
+
         parameterListChemAll->setParameters(*parameterListSolverFSI);
         parameterListChemAll->setParameters(*parameterListPrecChem);
 
 
         ParameterListPtr_Type parameterListSCIAll(new Teuchos::ParameterList(*parameterListPrecStructure));
         parameterListSCIAll->setParameters(*parameterListProblem);
-        sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
-        sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Diffusion") );
+        sublist(parameterListSCIAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
+        sublist(parameterListSCIAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Diffusion") );
         sublist(parameterListSCIAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
         
         parameterListStructureAll->setParameters(*parameterListPrecStructure);
@@ -406,6 +411,7 @@ int main(int argc, char *argv[])
         ParameterListPtr_Type parameterListGeometry(new Teuchos::ParameterList(*parameterListPrecGeometry));
         parameterListGeometry->setParameters(*parameterListSolverGeometry);
         sublist(parameterListGeometry, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Geometry") );
+        sublist(parameterListGeometry, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
 
         // we only compute the preconditioner for the geometry problem once
         sublist( parameterListGeometry, "General" )->set( "Preconditioner Method", "MonolithicConstPrec" );
@@ -656,11 +662,11 @@ int main(int argc, char *argv[])
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5("solution");
         inflowProfile = solutionImported;
                     
-        std::vector<double> parameter_vec(1, parameterListProblem->sublist("Parameter").get("Max Velocity",1.));
+        std::vector<double> parameter_vec(1, parameterListProblem->sublist("Parameter Fluid").get("Max Velocity",1.));
         parameter_vec.push_back(1.0); // We scaled the solution beforehand, so we dont need the actual maxValue any more and replace it with 1.
-        parameter_vec.push_back( parameterListProblem->sublist("Parameter").get("Max Ramp Time",2.) );   
-        parameter_vec.push_back(parameterListProblem->sublist("Parameter").get("Flowrate",3.0)); 
-        parameter_vec.push_back( parameterListProblem->sublist("Parameter").get("Heart Beat Start",1.) );
+        parameter_vec.push_back( parameterListProblem->sublist("Parameter Fluid").get("Max Ramp Time",2.) );   
+        parameter_vec.push_back(parameterListProblem->sublist("Parameter Fluid").get("Flowrate",3.0)); 
+        parameter_vec.push_back( parameterListProblem->sublist("Parameter Fluid").get("Heart Beat Start",1.) );
 
 
         
@@ -751,9 +757,9 @@ int main(int argc, char *argv[])
         // bcFactoryGeometry->addBC(zeroDirichlet3D, 6, 0, domainGeometry, "Dirichlet", dim); // interface
         if (preconditionerMethod == "FaCSCI" ) //|| preconditionerMethod == "FaCSI-Teko")
         {
-                bcFactoryFluidInterface->addBC(zeroDirichlet3D, 6, 0, domainFluidVelocity, "Dirichlet", dim);
-                bcFactoryFluidInterface->addBC(zeroDirichlet3D, 9, 0, domainFluidVelocity, "Dirichlet", dim);
-                bcFactoryFluidInterface->addBC(zeroDirichlet3D, 10, 0, domainFluidVelocity, "Dirichlet", dim);
+            bcFactoryFluidInterface->addBC(zeroDirichlet3D, 6, 0, domainFluidVelocity, "Dirichlet", dim);
+            bcFactoryFluidInterface->addBC(zeroDirichlet3D, 9, 0, domainFluidVelocity, "Dirichlet", dim);
+            bcFactoryFluidInterface->addBC(zeroDirichlet3D, 10, 0, domainFluidVelocity, "Dirichlet", dim);
         }
 
         fsci.problemGeometry_->addBoundaries(bcFactoryGeometry);
@@ -764,7 +770,7 @@ int main(int argc, char *argv[])
 
         Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactoryChem( new BCBuilder<SC,LO,GO,NO>( ) ); 
         {
-            std::vector<double> parameter_vec(1, parameterListAll->sublist("Parameter").get("Inflow Start Time",0.));
+            std::vector<double> parameter_vec(1, parameterListAll->sublist("Parameter Diffusion").get("Inflow Start Time",10000.));
             // Diffusion happening at inner wall (the one connected to fluid)
             /*bcFactory->addBC(inflowChem, 6,4, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
             bcFactoryChem->addBC(inflowChem, 6, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem

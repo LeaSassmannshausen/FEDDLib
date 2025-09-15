@@ -1074,6 +1074,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
     int sizeFluid = 2; // u_f  + p
     int sizeStructure = 1; // d_s
 
+    timeSteppingTool_->updateParameter(); // We update the paramters in case of adaptive time stepping
+    
     double dt = timeSteppingTool_->get_dt();
     double beta = timeSteppingTool_->get_beta();
     double gamma = timeSteppingTool_->get_gamma();
@@ -1558,26 +1560,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
         exporterDisplYTxt->setup( "displ_y" + suffix, this->comm_ , targetRank);
         
     }
-    vec2D_dbl_Type timeParametersVec(0,vec_dbl_Type(2));
     
-    int numSegments = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").get("Number of Segments",0);
-
- 	for(int i=1; i <= numSegments; i++){
-
-        double startTime = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("Start Time",0.);
-        double dtTmp = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("dt",0.1);
-        
-        vec_dbl_Type segment = {startTime,dtTmp};
-        timeParametersVec.push_back(segment);
-    }
-    double dt;
-    for(int i=0; i<numSegments ; i++){
-        if(timeSteppingTool_->currentTime()+1.0e-12 > timeParametersVec[i][0]){
-            dt=timeParametersVec[i][1];
-            timeSteppingTool_->dt_ = dt;
-        }
-
-    }
 
     // Notwendige Parameter
     bool geometryExplicit = this->parameterList_->sublist("Parameter").get("Geometry Explicit",true);
@@ -1592,7 +1575,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
     int sizeStructure = 1; // d_s
     int sizeChem =1; // c
 
-    dt = timeSteppingTool_->get_dt();
+    timeSteppingTool_->updateParameter(); // We update the paramters in case of adaptive time stepping or different intervalls
+    
+    double dt = timeSteppingTool_->get_dt();
     double beta = timeSteppingTool_->get_beta();
     double gamma = timeSteppingTool_->get_gamma();
     int nmbBDF = timeSteppingTool_->getBDFNumber();
@@ -2496,8 +2481,8 @@ void DAESolverInTime<SC,LO,GO,NO>::setupExporter(){
         bool exportThisBlock  = true;
         if(this->parameterList_->sublist("Parameter").get("FSI",false) == true  )
             exportThisBlock = (i != 3);
-       else if(this->parameterList_->sublist("Parameter").get("FSCI",false) == true)
-            exportThisBlock = (i != 4);
+        else if(this->parameterList_->sublist("Parameter").get("FSCI",false) == true)
+            exportThisBlock = (i != 3);
 
         if(exportThisBlock)
         {
@@ -2535,7 +2520,8 @@ void DAESolverInTime<SC,LO,GO,NO>::setupExporter(BlockMultiVectorPtr_Type& solSh
     for (int i=0; i<timeStepDef_.size(); i++) {
         // \lambda in FSI, koennen wir nicht exportieren, weil keine Elementliste dafuer vorhanden
         bool exportThisBlock  = true;
-        exportThisBlock = !(this->parameterList_->sublist("Parameter").get("FSI",false) && i == 3);
+        exportThisBlock = !((this->parameterList_->sublist("Parameter").get("FSI",false) ||this->parameterList_->sublist("Parameter").get("FSCI",false))  && i == 3);
+        std::cout << "exportThisBlock " << exportThisBlock << std::endl;
         if(exportThisBlock)
         {
             ExporterPtr_Type exporterPtr(new Exporter_Type());
