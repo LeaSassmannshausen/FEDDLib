@@ -6763,11 +6763,11 @@ void FE<SC,LO,GO,NO>::assemblyAdditionalConvection(int dim,
                                   std::string FEType,
                                   MatrixPtr_Type &A,
                                   MultiVectorPtr_Type w,
-                                  bool callFillComplete)
+                                  bool callFillComplete,
+                                  int FEloc)
 {
 
     TEUCHOS_TEST_FOR_EXCEPTION(FEType == "P0",std::logic_error, "Not implemented for P0");
-    int FEloc = this->checkFE(dim,FEType);
 
     DomainConstPtr_Type domain = domainVec_.at(FEloc);
     ElementsPtr_Type elements = domain->getElementsC();
@@ -6872,9 +6872,10 @@ void FE<SC,LO,GO,NO>::assemblyAdditionalConvection(int dim,
 
                     glob_j = dim * map->getGlobalElement(elements->getElement(T).getNode(j));
                     glob_i = dim * map->getGlobalElement(elements->getElement(T).getNode(i));
-                    indices[0] = glob_j;
 
+                    indices[0] = glob_j;
                     A->insertGlobalValues(glob_i, indices(), value());
+
                     glob_j++;
                     indices[0] = glob_j;
                     A->insertGlobalValues(glob_i+1, indices(), value());
@@ -6953,6 +6954,7 @@ void FE<SC,LO,GO,NO>::assemblyAdditionalConvection(int dim,
 
                     glob_j = dim * map->getGlobalElement(elements->getElement(T).getNode(j));
                     glob_i = dim * map->getGlobalElement(elements->getElement(T).getNode(i));
+                
                     indices[0] = glob_j;
                     A->insertGlobalValues(glob_i, indices(), value());
                     glob_j++;
@@ -6967,6 +6969,7 @@ void FE<SC,LO,GO,NO>::assemblyAdditionalConvection(int dim,
         }
         if (callFillComplete)
         {
+            std::cout << " Call FillComplete " << std::endl;
             A->fillComplete();
         }
     }

@@ -439,7 +439,7 @@ void FSCI<SC,LO,GO,NO>::reAssemble(std::string type) const
             // Es ist P = P_
             this->P_.reset(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
 
-            this->feFactory_->assemblyAdditionalConvection( this->dim_, this->domain_FEType_vec_.at(0), this->P_, this->w_rep_, true );
+            this->feFactory_->assemblyAdditionalConvection( this->dim_, this->domain_FEType_vec_.at(0), this->P_, this->w_rep_, true, 0 );
             this->P_->resumeFill();
             this->P_->scale(density);
             this->P_->scale(-1.0);

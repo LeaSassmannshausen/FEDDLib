@@ -449,7 +449,7 @@ class FE {
                                       std::string FEType,
                                       MatrixPtr_Type &A,
                                       MultiVectorPtr_Type w,
-                                      bool callFillComplete = true);
+                                      bool callFillComplete = true, int FELoc = 0);
 
     // Das ist Assemblierungsroutine fuer die Kopplungsbloecke C1, C2 und C3 und deren Transponierte.
     // Die entsprechende Skalierung wird hinterher in dem Problem gemacht. Hier wird die entsprechende
