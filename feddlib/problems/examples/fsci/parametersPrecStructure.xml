@@ -49,7 +49,7 @@
                             <Parameter name="Option" type="string" value="2.2"/>
                             <Parameter name="Rotations" type="bool" value="true"/>
                         </ParameterList>  
-                        <ParameterList name="1">
+                        <ParameterList name="2">
                             <Parameter name="Exclude" type="string" value="0"/>
                             <Parameter name="Use For Coarse Space" type="bool" value="true"/>
                             <Parameter name="Option" type="string" value="1"/>
