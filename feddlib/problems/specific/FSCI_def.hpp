@@ -395,14 +395,14 @@ void FSCI<SC,LO,GO,NO>::reAssemble(std::string type) const
     this->u_minus_w_rep_->importFromVector(fluidSolution, true); //    u_minus_w_rep_ = *u_rep_;
 
     MultiVectorConstPtr_Type geometrySolution;
-    if(this->geometryExplicit_)
-    {
+    // if(this->geometryExplicit_)
+    // {
         geometrySolution = this->problemGeometry_->getSolution()->getBlock(0);
-    }
-    else
-    {
-        geometrySolution = this->solution_->getBlock(5);
-    }
+    // }
+    // else
+    // {
+    //     geometrySolution = this->solution_->getBlock(5);
+    // }
     this->meshDisplacementNew_rep_->importFromVector(geometrySolution, true);
 
     *this->w_rep_ = *this->meshDisplacementNew_rep_;
@@ -476,7 +476,7 @@ void FSCI<SC,LO,GO,NO>::reAssemble(std::string type) const
                 std::cout << "-- Reassembly GE (Newton) ... full reassembly" << '\n';
             }
             
-            this->problemFluid_->reAssemble( "Newton" );
+            this->problemFluid_->reAssemble("Newton");
             //if (materialModel_ != "linear")
             this->problemSCI_->reAssemble("Newton");
             
@@ -569,25 +569,25 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
     
     this->u_minus_w_rep_->update(-1.0, *this->w_rep_, 1.0);
     
-    if (!this->geometryExplicit_) {
+    // if (!this->geometryExplicit_) {
         
-        this->P_.reset(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
-        double density = this->problemTimeFluid_->getParameterList()->sublist("Parameter").get("Density",1.e-0);
+    //     this->P_.reset(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+    //     double density = this->problemTimeFluid_->getParameterList()->sublist("Parameter").get("Density",1.e-0);
         
-        this->feFactory_->assemblyAdditionalConvection( this->dim_, this->domain_FEType_vec_.at(0), this->P_, this->w_rep_, true );
-        this->P_->resumeFill();
-        this->P_->scale(density);
-        this->P_->scale(-1.0);
-        this->P_->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
+    //     this->feFactory_->assemblyAdditionalConvection( this->dim_, this->domain_FEType_vec_.at(0), this->P_, this->w_rep_, true );
+    //     this->P_->resumeFill();
+    //     this->P_->scale(density);
+    //     this->P_->scale(-1.0);
+    //     this->P_->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
         
-        this->problemFluid_->assembleConstantMatrices();
+    //     this->problemFluid_->assembleConstantMatrices();
         
-        this->system_->addBlock( this->problemFluid_->system_->getBlock(0,1), 0, 1 );
-        this->system_->addBlock( this->problemFluid_->system_->getBlock(1,0), 1, 0 );
-        TEUCHOS_TEST_FOR_EXCEPTION(this->problemFluid_->system_->blockExists(1,1) , std::runtime_error, "Stabilization is used. Account for it.");
-    }
-    if ( this->verbose_ )
-        std::cout << "Warning: Wrong consideration of temporal discretization for multi-stage RK methods!" << std::endl;
+    //     this->system_->addBlock( this->problemFluid_->system_->getBlock(0,1), 0, 1 );
+    //     this->system_->addBlock( this->problemFluid_->system_->getBlock(1,0), 1, 0 );
+    //     TEUCHOS_TEST_FOR_EXCEPTION(this->problemFluid_->system_->blockExists(1,1) , std::runtime_error, "Stabilization is used. Account for it.");
+    // }
+    // if ( this->verbose_ )
+    //     std::cout << "Warning: Wrong consideration of temporal discretization for multi-stage RK methods!" << std::endl;
     
 
     this->problemFluid_->calculateNonLinResidualVecWithMeshVelo( "reverse", time, this->u_minus_w_rep_, this->P_ );

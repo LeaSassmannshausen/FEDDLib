@@ -146,6 +146,10 @@ u_rep_()
     if(this->parameterList_->sublist("General").get("Augmented Lagrange",false))  
         augmentedLagrange_ = true;
 
+    // Establish the non zero pattern of the system matrix in (0,0) block
+    NNZ_A_.reset(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+    establishNNZPattern();
+
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -361,12 +365,18 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
     }
 
     if (this->verbose_)
-        std::cout << " Call Reassemble FixedPoint and Newton to allocate the Matrix pattern " << std::endl;
+        std::cout << " Allocate the Matrix pattern " << std::endl;
     
     // This was moved here from 'create_W_op'.
     // Here it will definetly be called before create_W_op and create_W_prec is called.
-    this->reAssemble("FixedPoint");
-    this->reAssemble("Newton");
+    //A_->print();
+    MatrixPtr_Type A_withNNZ = Teuchos::rcp( new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+    A_->addMatrix(1.,A_withNNZ,0.);
+    NNZ_A_->addMatrix(1.,A_withNNZ,1.);
+
+    A_withNNZ->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
+    this->system_->addBlock( A_withNNZ, 0, 0 );
+    //A_withNNZ->print(); 
 
     if (this->verbose_)
         std::cout << "done -- " << std::endl;
@@ -625,6 +635,38 @@ void NavierStokes<SC,LO,GO,NO>::reAssemble(std::string type) const {
     ANW->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique() );
 
     this->system_->addBlock( ANW, 0, 0 );
+ 
+    if (this->verbose_)
+        std::cout << "done -- " << std::endl;
+}
+
+
+template<class SC,class LO,class GO,class NO>
+void NavierStokes<SC,LO,GO,NO>::establishNNZPattern() const {
+
+   
+    if (this->verbose_)
+        std::cout << "-- Establish NNZ Pattern Navier-Stokes ... " << std::flush;
+    
+    MatrixPtr_Type ANW = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+        
+    MultiVectorPtr_Type zeroVec = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated(), 1 ) );
+    zeroVec->putScalar(0.0);
+
+    MatrixPtr_Type N = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+    this->feFactory_->assemblyAdvectionVecField( this->dim_, this->domain_FEType_vec_.at(0), N, zeroVec, true );
+    
+    // A_->addMatrix(1.,ANW,0.);
+    N->addMatrix(1.,ANW,0.);
+     
+    MatrixPtr_Type W = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+    this->feFactory_->assemblyAdvectionInUVecField( this->dim_, this->domain_FEType_vec_.at(0), W, zeroVec, true );
+ 
+    W->addMatrix(1.,ANW,1.);
+    
+    ANW->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique() );
+
+    NNZ_A_= ANW;
  
     if (this->verbose_)
         std::cout << "done -- " << std::endl;

@@ -84,6 +84,8 @@ public:
     
     virtual void reAssemble(MatrixPtr_Type& massmatrix, std::string type ) const;
 
+    void establishNNZPattern() const;
+
     virtual void reAssembleExtrapolation(BlockMultiVectorPtrArray_Type previousSolutions);
 
     virtual void calculateNonLinResidualVec(std::string type="standard", double time=0.) const; //standard or reverse
@@ -99,6 +101,7 @@ public:
     /*####################*/
 
     mutable MatrixPtr_Type 	A_;
+    mutable MatrixPtr_Type 	NNZ_A_;
     vec_int_ptr_Type pressureIDsLoc;
     MultiVectorPtr_Type u_rep_;
 
