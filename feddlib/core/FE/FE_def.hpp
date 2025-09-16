@@ -6969,7 +6969,6 @@ void FE<SC,LO,GO,NO>::assemblyAdditionalConvection(int dim,
         }
         if (callFillComplete)
         {
-            std::cout << " Call FillComplete " << std::endl;
             A->fillComplete();
         }
     }
