@@ -390,7 +390,7 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
                         Y_scimono_ = createMembers( sciMonoVS, Y_sci[0]->domain()->dim() );
                     }
                     //We can/should speedup this process
-                // std::cout << " Copy to mono " << std::endl;
+                   // std::cout << " Copy to mono " << std::endl;
 
                     copyToMonoSCI(X_sci);
                     //std::cout << " Apply " << std::endl;
