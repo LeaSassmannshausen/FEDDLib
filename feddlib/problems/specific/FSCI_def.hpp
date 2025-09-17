@@ -604,7 +604,7 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
     }
     MultiVectorPtr_Type residualFluidVelocityFSCI =
         Teuchos::rcp_const_cast<MultiVector_Type>( this->residualVec_->getBlock(0) );
-    this->problemSCI_->getResidualVector()->getBlockNonConst(0)->scale(-1.);
+    // this->problemSCI_->getResidualVector()->getBlockNonConst(0)->scale(-1.);
 
     MultiVectorPtr_Type residualSolidFSCI =
         Teuchos::rcp_const_cast<MultiVector_Type>( this->residualVec_->getBlock(2) );
@@ -617,7 +617,7 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
 
     MultiVectorPtr_Type residualCouplingFSCI =
         Teuchos::rcp_const_cast<MultiVector_Type>( this->residualVec_->getBlock(3) );
-    residualCouplingFSCI->update( 1. , *this->rhs_->getBlock(3), 0. ); // change to -1 for standard
+    residualCouplingFSCI->update( -1. , *this->rhs_->getBlock(3), 0. ); // change to -1 for standard
     
   //Now we need to add the coupling blocks
     this->system_->getBlock(0,3)->apply( *this->solution_->getBlock(3) , *residualFluidVelocityFSCI, Teuchos::NO_TRANS, -1., 1. );
