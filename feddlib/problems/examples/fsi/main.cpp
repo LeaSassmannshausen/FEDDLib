@@ -373,7 +373,7 @@ int main(int argc, char *argv[])
 
         parameterListStructureAll->setParameters(*parameterListPrecStructure);
 
-        std::string meshName = parameterListProblem->sublist("Parameter Fluid").get("Mesh Name Inflow","fsi_fluid_length_0_5_mm");
+        std::string meshName = parameterListProblem->sublist("Parameter Fluid").get("Mesh Name Inflow","fsi_fluid_2mm");
 
         
         // Fuer das Geometrieproblem, falls GE

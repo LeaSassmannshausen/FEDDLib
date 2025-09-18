@@ -170,12 +170,11 @@ void SCI<SC,LO,GO,NO>::assemble( std::string type ) const
         else
             c = this->solution_->getBlock(1);
 
+        c_rep_->importFromVector(c, true);
+
         MultiVectorConstPtr_Type d = this->solution_->getBlock(0);
         d_rep_->importFromVector(d, true); 
     
-        BlockMultiVectorPtr_Type blockSol = Teuchos::rcp( new BlockMultiVector_Type(2) );
-        blockSol->addBlock(d_rep_,0);
-        blockSol->addBlock(c_rep_,1);
         this->feFactory_->assemblyAceDeformDiffu(this->dim_, this->getDomain(1)->getFEType(), this->getDomain(0)->getFEType(), 2, 1,this->dim_,c_rep_,d_rep_,systemTmp,this->residualVec_, this->parameterList_, "Jacobian", true/*call fillComplete*/);
 
         if(chemistryExplicit_){
@@ -405,9 +404,6 @@ void SCI<SC,LO,GO,NO>::reAssemble(std::string type) const
         MultiVectorConstPtr_Type d = this->solution_->getBlock(0);
         d_rep_->importFromVector(d, true); 
     
-        //BlockMultiVectorPtr_Type blockSol = Teuchos::rcp( new BlockMultiVector_Type(2) );
-        //blockSol->addBlock(d_rep_,0);
-        //blockSol->addBlock(c_rep_,1);
         this->feFactory_->assemblyAceDeformDiffu(this->dim_, this->getDomain(1)->getFEType(), this->getDomain(0)->getFEType(), 2, 1,this->dim_,c_rep_,d_rep_,systemTmp,this->residualVec_, this->parameterList_, "Jacobian", true/*call fillComplete*/);
         //this->feFactory_->globalAssembly(materialModel_, this->dim_, 2, blockSol, this->system_, this->residualVec_,this->parameterList_,"Jacobian",true);
 

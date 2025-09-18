@@ -807,7 +807,9 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
     // adding C_3 ^T * \lambda to solid residual
     this->system_->getBlock(2,3)->apply( *this->solution_->getBlock(3) , *residualSolidFSI, Teuchos::NO_TRANS, -1., 1. ); 
      
-     // adding C_1 * u to coupling/lambda 
+    residualSolidFSI->print();
+
+    // adding C_1 * u to coupling/lambda 
     this->system_->getBlock(3,0)->apply( *this->solution_->getBlock(0) , *residualCouplingFSI, Teuchos::NO_TRANS, -1., 1. ); 
     
     // adding C_2 * d_s to coupling/lambda 
