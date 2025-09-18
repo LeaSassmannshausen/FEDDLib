@@ -364,7 +364,6 @@ int LinearSolver<SC,LO,GO,NO>::solveBlock(TimeProblem_Type* timeProblem, BlockMu
         
         problem->getSolution()->fromThyraProdMultiVector( thyraX );
     }
-    problem->getSolution()->getBlock(2)->print();
     return its;
 }
 
