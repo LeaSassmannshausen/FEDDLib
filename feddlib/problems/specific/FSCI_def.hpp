@@ -630,6 +630,7 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
     
     this->system_->getBlock(3,2)->apply( *this->solution_->getBlock(2) , *residualCouplingFSCI, Teuchos::NO_TRANS, -1., 1. );
 
+    this->solution_->getBlock(2)->print();
    /* if (!this->geometryExplicit_) {
         
         MultiVectorPtr_Type residualGeometryFSCI =
