@@ -624,7 +624,7 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
     
     this->system_->getBlock(2,3)->apply( *this->solution_->getBlock(3) , *residualSolidFSCI, Teuchos::NO_TRANS, -1., 1. );
     
-    residualSolidFSCI->print();
+    this->solution_->getBlock(3)->print();
 
     this->system_->getBlock(3,0)->apply( *this->solution_->getBlock(0) , *residualCouplingFSCI, Teuchos::NO_TRANS, -1., 1. );
     
