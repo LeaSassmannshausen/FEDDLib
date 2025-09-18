@@ -360,9 +360,10 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         // SOLID PART
         Teuchos::RCP< const MultiVectorBase< SC > > X_s = X->getMultiVectorBlock(2);
         Teuchos::RCP< MultiVectorBase< SC > > Y_s = Y->getNonconstMultiVectorBlock(2);
-            
-        Teuchos::RCP< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > XsTpetra =
-        Teuchos::rcp_dynamic_cast< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( X_s );
+        assign(Y_s.ptr(), *X_s);  
+    
+        // Teuchos::RCP< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > XsTpetra =
+        // Teuchos::rcp_dynamic_cast< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( X_s );
     
         
         // apply solid preconditioner
@@ -371,7 +372,7 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
                 sInv_->apply(NOTRANS, *X_s, Y_s.ptr(), 1., 0.);
             else{
                 if(!sciC_.is_null()){
-                    //std::cout << "FACSCI:: Implicit Case " << std::endl;
+                    std::cout << "FACSCI:: Implicit Case " << std::endl;
                     Teuchos::RCP< const MultiVectorBase< SC > > X_chem = X->getMultiVectorBlock(4);
                     Teuchos::RCP< MultiVectorBase< SC > > Y_chem = Y->getNonconstMultiVectorBlock(4);
                     assign(Y_chem.ptr(), *X_chem);
