@@ -353,6 +353,7 @@ double TimeSteppingTools::getInformationBDF(int i){
 }
 
 void TimeSteppingTools::setInformationBDF(){
+    // Solving Ordinary Differential Equations I - E. Hairer, S. P. Nørsett, G. Wanner  Equation (5.14) -> BDF 2 Formula
     BDFInformation_.reset(new vec_dbl_Type(BDFNmb_+2));
     double omega_n = dt_ / dt_prev_;
     switch (BDFNmb_) {
