@@ -192,17 +192,17 @@ void parabolicInflow(double* x, double* res, double t, const double* parameters)
 void flowrate3D(double* x, double* res, double t, const double* parameters)
 {
     // parameters[0] is the maxium desired velocity
-    // parameters[1] rampTime
-    // parameters[2] radius
+    // parameters[1] radius
+    // parameters[2] ramptime
     // parameters[3] flowrate
     // parameters[4] heartbeat start
 
     // we use x[0] for the laplace solution in the considered point. Therefore, point coordinates are missing
     double heartBeatStart = parameters[4];
 
-    if(t < parameters[1])
+    if(t < parameters[2])
     {
-        res[0] = parameters[3] * 0.5 * ( ( 1 - cos( M_PI*t/parameters[1]) ));
+        res[0] = parameters[3] * 0.5 * ( ( 1 - cos( M_PI*t/parameters[2]) ));
     }
     else if(t > heartBeatStart)
     {
@@ -238,6 +238,7 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
         res[0] = parameters[3] ;
 
     }
+
 
     return;
 }

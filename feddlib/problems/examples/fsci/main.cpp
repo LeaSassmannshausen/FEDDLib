@@ -181,40 +181,14 @@ void parabolicInflow(double* x, double* res, double t, const double* parameters)
     return;
 }
 
-// void flowrate3D(double* x, double* res, double t, const double* parameters)
-// {
-//     // parameters[0] is the maxium desired velocity
-//     // parameters[1] rampTime
-//     // parameters[2] radius of intlet
-//     // parameters[3] flowrate
-
-//     // The center point of the inlet is (0,0,0)   
-
-//     // Distance from center
-//     double Q = 0.;
-//     if(t < parameters[1])
-//     {
-       
-//         Q = parameters[3] * 0.5*( 1. - cos( M_PI*t/parameters[1] ));
-//     }
-//     else
-//     {
-//         Q = parameters[3];
-//     }
-
-//     res[0] = Q;
-//     return;
-// }
 
 
 void flowrate3D(double* x, double* res, double t, const double* parameters)
 {
     // parameters[0] is the maxium desired velocity
     // parameters[1] rampTime
-    // parameters[2] radius
-    // parameters[3] flowrate
-    // parameters[4] heartbeat start
-
+    // parameters[2] flowrate
+    // parameters[3] heartbeat start
     // we use x[0] for the laplace solution in the considered point. Therefore, point coordinates are missing
     double heartBeatStart = parameters[3];
 
@@ -256,6 +230,7 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
         res[0] = parameters[2] ;
 
     }
+
 
     return;
 }
@@ -663,7 +638,7 @@ int main(int argc, char *argv[])
         inflowProfile = solutionImported;
                     
         std::vector<double> parameter_vec(1, parameterListProblem->sublist("Parameter Fluid").get("Max Velocity",1.));
-        parameter_vec.push_back( parameterListProblem->sublist("Parameter Fluid").get("Max Ramp Time",2.) );   
+        parameter_vec.push_back( parameterListProblem->sublist("Parameter Fluid").get("Max Ramp Time",0.1) );   
         parameter_vec.push_back(parameterListProblem->sublist("Parameter Fluid").get("Flowrate",3.0)); 
         parameter_vec.push_back( parameterListProblem->sublist("Parameter Fluid").get("Heart Beat Start",1.) );
 
@@ -678,7 +653,6 @@ int main(int argc, char *argv[])
 
         // Fluid-RW
         {
-            bool zeroPressure = parameterListProblem->sublist("Parameter Fluid").get("Set Outflow Pressure to Zero",false);
             Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactoryFluid( new BCBuilder<SC,LO,GO,NO>( ) );
 
             bcFactory->addBC(parabolicInflow3D, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec,inflowProfile,true, flowrate3D); // inflow 
