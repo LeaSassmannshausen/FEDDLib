@@ -216,11 +216,11 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
     // parameters[4] heartbeat start
 
     // we use x[0] for the laplace solution in the considered point. Therefore, point coordinates are missing
-    double heartBeatStart = parameters[4];
+    double heartBeatStart = parameters[3];
 
     if(t < parameters[1])
     {
-        res[0] = parameters[3] * 0.5 * ( ( 1 - cos( M_PI*t/parameters[1]) ));
+        res[0] = parameters[2] * 0.5 * ( ( 1 - cos( M_PI*t/parameters[1]) ));
     }
     else if(t > heartBeatStart)
     {
@@ -248,12 +248,12 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
         Q -= 0.026039341343493;
         Q = (Q - 2.85489)/(7.96908-2.85489);
 
-        res[0] =  parameters[3] + parameters[3]* Q  - 0.13 ;
+        res[0] =  parameters[2] + parameters[2]* Q  - 0.13 ;
         
     }
     else
     {
-        res[0] = parameters[3] ;
+        res[0] = parameters[2] ;
 
     }
 
@@ -663,7 +663,6 @@ int main(int argc, char *argv[])
         inflowProfile = solutionImported;
                     
         std::vector<double> parameter_vec(1, parameterListProblem->sublist("Parameter Fluid").get("Max Velocity",1.));
-        parameter_vec.push_back(1.0); // We scaled the solution beforehand, so we dont need the actual maxValue any more and replace it with 1.
         parameter_vec.push_back( parameterListProblem->sublist("Parameter Fluid").get("Max Ramp Time",2.) );   
         parameter_vec.push_back(parameterListProblem->sublist("Parameter Fluid").get("Flowrate",3.0)); 
         parameter_vec.push_back( parameterListProblem->sublist("Parameter Fluid").get("Heart Beat Start",1.) );
