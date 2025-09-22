@@ -113,7 +113,10 @@
         <Parameter name="Export Data" type="bool" value="true"/>
         <Parameter name="Export Extra Data" type="bool" value="false"/>
         <Parameter name="Export Flow Rate" type="bool" value="true"/>
-        
+
+        <Parameter name="Flag Inlet Fluid" type="int" value="5"/>
+        <Parameter name="Flag Outlet Fluid" type="int" value="4"/>
+
         <Parameter name="Preconditioner Method" type="string" value="FaCSI"/><!-- Monolithic, FaCSI, FaCSI-Teko, FaCSI-Block -->
         <Parameter name="Use Fluid Preconditioner" type="bool" value="true"/>
         <Parameter name="Use Solid Preconditioner" type="bool" value="true"/>
