@@ -60,7 +60,55 @@ void zeroDirichlet3D(double* x, double* res, double t, const double* parameters)
 //     res[0] = Q;
 //     return;
 // }
+void flowrate3DNeg(double* x, double* res, double t, const double* parameters)
+{
+    // parameters[0] is the maxium desired velocity
+    // parameters[1] rampTime
+    // parameters[2] flowrate
+    // we use x[0] for the laplace solution in the considered point. Therefore, point coordinates are missing
+    double heartBeatStart = parameters[3];
 
+    if(t < parameters[1])
+    {
+        res[0] = -parameters[2] * 0.5 * ( ( 1 - cos( M_PI*t/parameters[1]) ));
+    }
+    else if(t > heartBeatStart)
+    {
+    
+        double a0    = 11.693284502463376;
+        double a [20] = {1.420706949636449,-0.937457438404759,0.281479818173732,-0.224724363786734,0.080426469802665,0.032077024077824,0.039516941555861, 
+            0.032666881040235,-0.019948718147876,0.006998975442773,-0.033021060067630,-0.015708267688123,-0.029038419813160,-0.003001255512608,-0.009549531539299, 
+            0.007112349455861,0.001970095816773,0.015306208420903,0.006772571935245,0.009480436178357};
+        double b [20] = {-1.325494054863285,0.192277311734674,0.115316087615845,-0.067714675760648,0.207297536049255,-0.044080204999886,0.050362628821152,-0.063456242820606,
+            -0.002046987314705,-0.042350454615554,-0.013150127522194,-0.010408847105535,0.011590255438424,0.013281630639807,0.014991955865968,0.016514327477078, 
+            0.013717154383988,0.012016806933609,-0.003415634499995,0.003188511626163};
+                    
+        double Q = 0.5*a0;
+        
+
+        double t_min = t - fmod(t,1.0)+heartBeatStart-std::floor(t); ; //FlowConditions::t_start_unsteady;
+        double t_max = t_min + 1.0; // One heartbeat lasts 1.0 second    
+        double y = M_PI * ( 2.0*( t-t_min ) / ( t_max - t_min ) -1.0)  ;
+        
+        for(int i=0; i< 20; i++)
+            Q += (a[i]*std::cos((i+1.)*y) + b[i]*std::sin((i+1.)*y) ) ;
+        
+        
+        // Remove initial offset due to FFT
+        Q -= 0.026039341343493;
+        Q = (Q - 2.85489)/(7.96908-2.85489);
+
+        res[0] =  -(parameters[2] + parameters[2]* Q *1.6563 - 0.13) ;
+        
+    }
+    else
+    {
+        res[0] = -parameters[2] ;
+
+    }
+
+    return;
+}
 
 void flowrate3D(double* x, double* res, double t, const double* parameters)
 {
@@ -133,6 +181,30 @@ void flowrate3DLinear(double* x, double* res, double t, const double* parameters
     }
 
     res[0] = Q;
+    return;
+}
+
+void flowrate3DLinearNeg(double* x, double* res, double t, const double* parameters)
+{
+    // parameters[0] is the maxium desired velocity
+    // parameters[1] rampTime
+    // parameters[3] flowrate
+
+    // The center point of the inlet is (0,0,0)   
+
+    // Distance from center
+    double Q = 0.;
+    if(t < parameters[1])
+    {
+       
+        Q = parameters[2] *  t / parameters[1];
+    }
+    else
+    {
+        Q = parameters[2];
+    }
+
+    res[0] = -Q;
     return;
 }
 
@@ -520,20 +592,21 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                 
                 
                 if (rampType == "cos") {                   
-                    bcFactory->addBC(parabolicInflow3D, 5, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3D); // inflow ring
+                    bcFactory->addBC(parabolicInflow3D, 5, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3DNeg); // inflow ring
                     //bcFactory->addBC(parabolicInflow3DArtery, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace); // inflow
-                    bcFactoryFluid->addBC(parabolicInflow3D, 5, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3D); // inflow ring
+                    bcFactoryFluid->addBC(parabolicInflow3D, 5, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3DNeg); // inflow ring
                     //bcFactoryFluid->addBC(parabolicInflow3DArtery, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace); // inflow                  
                 }
                 else if(rampType == "linear"){
                 
-                    bcFactory->addBC(parabolicInflow3D, 5, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3DLinear); // inflow 
+                    bcFactory->addBC(parabolicInflow3D, 5, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3DLinearNeg); // inflow 
                     //bcFactory->addBC(parabolicInflow3DLinArtery, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace); // inflow ring
-                    bcFactoryFluid->addBC(parabolicInflow3D, 5, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3DLinear); // inflow
+                    bcFactoryFluid->addBC(parabolicInflow3D, 5, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3DLinearNeg); // inflow
                     //bcFactoryFluid->addBC(parabolicInflow3DLinArtery, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace); // inflow ring               
                 }        
                                 
-    
+        
+
                 
                 // Fuer die Teil-TimeProblems brauchen wir bei TimeProblems
                 // die bcFactory; vgl. z.B. Timeproblem::updateMultistepRhs()
