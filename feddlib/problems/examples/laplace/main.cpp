@@ -205,14 +205,14 @@ int main(int argc, char *argv[]) {
             laplace.setBoundaries();
             laplace.solve();
         }
-        bcFactory->addBC(zeroBC, 5, 0, domain, "Dirichlet", 1);
+        bcFactory->addBC(zeroBC, 4, 0, domain, "Dirichlet", 1);
         bcFactory->addBC(zeroBC, 15, 0, domain, "Dirichlet", 1);
               
         bcFactory->setRHS( laplace.getSolution(), 0.);
         SC maxValue = laplace.getSolution()->getBlockNonConst(0)->getMax();  
         laplace.getSolution()->getBlockNonConst(0)->scale(1/maxValue);
 
-        HDF5Export<SC,LO,GO,NO> exporter(laplace.getSolution()->getBlock(0)->getMap(), "laplace_parabolic_fluidBenchmark4_"+FEType); //  Map and file name
+        HDF5Export<SC,LO,GO,NO> exporter(laplace.getSolution()->getBlock(0)->getMap(), "laplace_parabolic_artery_neg_"+FEType); //  Map and file name
         exporter.writeVariablesHDF5("solution",laplace.getSolution()->getBlock(0)); // VariableName and Variable
         bool boolExportSolution = true;
 

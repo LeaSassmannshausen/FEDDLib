@@ -136,29 +136,6 @@ void flowrate3DLinear(double* x, double* res, double t, const double* parameters
     return;
 }
 
-void flowrate3DLinearNeg(double* x, double* res, double t, const double* parameters)
-{
-    // parameters[0] is the maxium desired velocity
-    // parameters[1] rampTime
-    // parameters[3] flowrate
-
-    // The center point of the inlet is (0,0,0)   
-
-    // Distance from center
-    double Q = 0.;
-    if(t < parameters[1])
-    {
-       
-        Q = parameters[2] *  t / parameters[1];
-    }
-    else
-    {
-        Q = parameters[2];
-    }
-
-    res[0] = -Q;
-    return;
-}
 
 void parabolicInflow3D(double* x, double* res, double t, const double* parameters)
 {
@@ -547,11 +524,10 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                  MultiVectorConstPtr_Type solutionLaplace;
                 // string meshNumber = parameterListProblem->sublist("Mesh Partitioner").get("Mesh Number","2");
 
-                HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_artery_"+discType);
+                HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_artery_neg_"+discType);
                 Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5("solution");
                 solutionLaplace = solutionImported; // This must me normalized to 1!!
 
-                bool zeroPressure = parameterListProblem->sublist("Parameter Fluid").get("Set Outflow Pressure to Zero",false);
                 Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactoryFluid( new BCBuilder<SC,LO,GO,NO>( ) );
                                
                 //bcFactory->addBC(zeroDirichlet3D, 1, 0, domainFluidVelocity, "Dirichlet", dim); // wall
