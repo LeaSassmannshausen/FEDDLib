@@ -529,7 +529,7 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                 //bcFactory->addBC(zeroDirichlet3D, 1, 0, domainFluidVelocity, "Dirichlet", dim); // wall
                  string rampType = parameterListProblem->sublist("Parameter Fluid").get("Ramp type","cos");
                 
-                int flagInlet =this->parameterList_->sublist("General").get("Flag Inlet Fluid", 4);
+                int flagInlet =parameterListProblem->sublist("General").get("Flag Inlet Fluid", 4);
 
                 if(flagInlet==5){
                     
