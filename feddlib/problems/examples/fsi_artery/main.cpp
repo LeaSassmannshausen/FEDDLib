@@ -553,16 +553,14 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                 }
                 else if(flagInlet ==4){
                     bool realArtery = parameterListProblem->sublist("Parameter Fluid").get("Real artery",false);
-                    HDF5Import<SC,LO,GO,NO> importer;
+                    Teuchos::RCP<HDF5Import<SC,LO,GO,NO>> importer;
                     if(realArtery){
-                        HDF5Import<SC,LO,GO,NO> importer2(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_artery_"+discType);
-                        importer = importer2;
+                        importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_artery_"+discType));
                     }
                     else{ 
-                        HDF5Import<SC,LO,GO,NO> importer2(domainFluidVelocity->getMapUnique() ," laplace_parabolic_fsi_fluid_5mm_"+discType);
-                        importer = importer2;
+                        importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ," laplace_parabolic_fsi_fluid_5mm_"+discType));
                     }
-                    Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5("solution");
+                    Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer->readVariablesHDF5("solution");
                     solutionLaplace = solutionImported; // This must me normalized to 1!!
                     if (rampType == "cos") {                   
                         bcFactory->addBC(parabolicInflow3D, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3D); // inflow ring
