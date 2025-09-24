@@ -210,7 +210,7 @@ int main(int argc, char *argv[]) {
               
         bcFactory->setRHS( laplace.getSolution(), 0.);
         SC maxValue = laplace.getSolution()->getBlockNonConst(0)->getMax();  
-        laplace.getSolution()->getBlockNonConst(0)->scale(1/maxValue);
+        laplace.getSolution()->getBlockNonConst(0)->scale(1./maxValue);
 
         HDF5Export<SC,LO,GO,NO> exporter(laplace.getSolution()->getBlock(0)->getMap(), "laplace_parabolic_fsi_fluid_5mm_"+FEType); //  Map and file name
         exporter.writeVariablesHDF5("solution",laplace.getSolution()->getBlock(0)); // VariableName and Variable

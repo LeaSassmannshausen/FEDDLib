@@ -558,8 +558,9 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                         importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_artery_"+discType));
                     }
                     else{ 
-                        importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ," laplace_parabolic_fsi_fluid_5mm_"+discType));
-                    }
+                        importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_fsi_fluid_5mm_"+discType));
+                    }                                                                                               
+
                     Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer->readVariablesHDF5("solution");
                     solutionLaplace = solutionImported; // This must me normalized to 1!!
                     if (rampType == "cos") {                   
