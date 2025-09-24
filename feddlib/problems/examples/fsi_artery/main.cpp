@@ -518,6 +518,7 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
             // Struktur: 7 = linke (z=0) Seite, 8 = rechte (z=L) seite. 13,14 einzelne Freiheitsgrade festgehalten in x,y Richtung
             // Interface: 6 , 9 , 10  
             // #####################
+            bool fullInterfaceBC = parameterListProblem->sublist("Parameter").get("BC on Interface",false);
 
             // Fluid-RW
             {
@@ -551,7 +552,14 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                     }
                 }
                 else if(flagInlet ==4){
-                    HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_artery_"+discType);
+                    bool realArtery = parameterListProblem->sublist("Parameter Fluid").get("Real artery",false);
+
+                    if(realArtery){
+                        HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_artery_"+discType);
+                    }
+                    else 
+                        HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique() ," laplace_parabolic_fsi_fluid_5mm_"+discType);
+
                     Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5("solution");
                     solutionLaplace = solutionImported; // This must me normalized to 1!!
                     if (rampType == "cos") {                   
@@ -569,7 +577,11 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                     }
                 }
 
-                                
+                if(fullInterfaceBC)
+                {
+                    bcFactory->addBC(zeroDirichlet3D, 9, 0, domainFluidVelocity, "Dirichlet_Z", dim); // interface
+                    bcFactoryFluid->addBC(zeroDirichlet3D, 9, 0, domainFluidVelocity, "Dirichlet_Z", dim); // interface
+                }
         
 
                 
@@ -585,13 +597,20 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                 bcFactory->addBC(zeroDirichlet3D, 13, 2, domainStructure, "Dirichlet_X_Z", dim); // inflow/outflow strip fixed in y direction
                 bcFactory->addBC(zeroDirichlet3D, 7, 2, domainStructure, "Dirichlet_Z", dim); // inlet fixed in Z direction
                 bcFactory->addBC(zeroDirichlet3D, 8, 2, domainStructure, "Dirichlet_Z", dim); // outlet fixed in Z direction
-                // bcFactory->addBC(zeroDirichlet3D, 9, 2, domainStructure, "Dirichlet_Z", dim); // inlet ring in Z direction
-                // bcFactory->addBC(zeroDirichlet3D, 10, 2, domainStructure, "Dirichlet_Z", dim); // outlet ring in Z direction
-
+                 if(fullInterfaceBC)
+                {
+                    bcFactory->addBC(zeroDirichlet3D, 9, 2, domainStructure, "Dirichlet_Z", dim); // inlet ring in Z direction
+                    bcFactory->addBC(zeroDirichlet3D, 10, 2, domainStructure, "Dirichlet_Z", dim); // outlet ring in Z direction
+                }
                 bcFactoryStructure->addBC(zeroDirichlet3D, 14, 0, domainStructure, "Dirichlet_Y_Z", dim); 
                 bcFactoryStructure->addBC(zeroDirichlet3D, 13, 0, domainStructure, "Dirichlet_X_Z", dim); 
                 bcFactoryStructure->addBC(zeroDirichlet3D, 7, 0, domainStructure, "Dirichlet_Z", dim);           
                 bcFactoryStructure->addBC(zeroDirichlet3D, 8, 0, domainStructure, "Dirichlet_Z", dim); 
+                 if(fullInterfaceBC)
+                {
+                    bcFactoryStructure->addBC(zeroDirichlet3D, 9, 0, domainStructure, "Dirichlet_Z", dim); // inlet ring in Z direction
+                    bcFactoryStructure->addBC(zeroDirichlet3D, 10, 0, domainStructure, "Dirichlet_Z", dim); // outlet ring in Z direction
+                }
                 // bcFactoryStructure->addBC(zeroDirichlet3D, 9, 0, domainStructure, "Dirichlet_Z", dim);  
                 // bcFactoryStructure->addBC(zeroDirichlet3D, 10, 0, domainStructure, "Dirichlet_Z", dim); 
              
