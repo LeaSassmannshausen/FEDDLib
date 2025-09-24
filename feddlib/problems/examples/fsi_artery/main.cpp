@@ -388,9 +388,11 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                         pListPartitioner->set("Build Surface List",true);
                     }
                     MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
-                    
-                    partitionerP1.readAndPartition(15,"mm",true); // We convert the mesh of this test from mm to cm!! 
-                    
+                    if(parameterListProblem->sublist("Parameter Fluid").get("Real artery",false))
+                        partitionerP1.readAndPartition(15,"mm",true); // We convert the mesh of this test from mm to cm!! 
+                    else
+                        partitionerP1.readAndPartition(15);
+
                     if (!discType.compare("P2")){
                         domainP2fluid->buildP2ofP1Domain( domainP1fluid );
                         domainP2struct->buildP2ofP1Domain( domainP1struct );
