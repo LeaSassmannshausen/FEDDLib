@@ -33,8 +33,8 @@
         <!-- ######################################## -->
     </ParameterList>
     <ParameterList name="Parameter Diffusion"> 
-        <Parameter name="Inflow Start Time" type="double" value="3.0"/><!-- Start of diffusion process -->
-        <Parameter name="D0" type="double" value="1.0e-3"/>
+        <Parameter name="Inflow Start Time" type="double" value="5.0"/><!-- Start of diffusion process -->
+        <Parameter name="D0" type="double" value="1.0e-3"/> <!-- Diffusion coeffient in  -->
         <!-- ######################################## -->
     </ParameterList>
 
@@ -45,13 +45,13 @@
         <Parameter name="Density" type="double" value="1.03e-03"/><!-- kg/cm³ -->
         <Parameter name="Symmetric gradient" type="bool" value="true"/>
 
-        <Parameter name="MeanVelocity" type="double" value="118.28"/><!--2d:2.0, Richter 3d: 1.0-->
-        <Parameter name="Max Ramp Time" type="double" value="0.1"/>
+        <Parameter name="MeanVelocity" type="double" value="118.28"/><!--2d:2.0, Richter 3d: 1.0 - not used anyway!-->
+        <Parameter name="Max Ramp Time" type="double" value="0.2"/>
         <Parameter name="Heart Beat Start" type="double" value="1.0"/><!-- Start of heart beat -->
         <Parameter name="Flowrate" type="double" value="3"/><!-- For Absorbing BC-->
   
         <Parameter name="Pressure Boundary Condition" type="string" value="Absorbing Paper"/>         <!-- Resistance , Absorbing , Absorbing Resistance-->
-        <Parameter name="Unsteady Start" type="double" value="0.2"/><!-- Start of 'unsteady' phase -->
+        <Parameter name="Unsteady Start" type="double" value="1.0"/><!-- Start of 'unsteady' phase -->
         <Parameter name="Average Flowrate" type="bool" value="true"/>
         <Parameter name="BC Ramp" type="double" value="0.0"/>
         <Parameter name="Normal Scale" type="double" value="-1.0"/>
@@ -133,7 +133,7 @@
         <Parameter name="Class" type="string" value="Multistep"/>
         <Parameter name="Timestepping type" type="string" value="non-adaptive"/><!--non-adaptive,adaptive:not working for BDF2-->
     
-        <Parameter name="Final time" type="double" value="5.0"/>
+        <Parameter name="Final time" type="double" value="11.0"/>
         <Parameter name="dt" type="double" value="0.005"/>
         <Parameter name="beta" type="double" value="0.25"/> <!-- newmark method parameter-->
         <Parameter name="gamma" type="double" value="0.5"/> <!-- newmark method parameter-->
