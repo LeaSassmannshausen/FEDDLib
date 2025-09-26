@@ -99,6 +99,10 @@ public:
 
     void initializePreconditioner( std::string type="Monolithic" );
 
+    void setPressureProjection(BlockMultiVectorPtr_Type pressureProjection) const;
+
+    BlockMultiVectorPtr_Type getPressureProjection(){return pressureProjection_;}
+
     void buildPreconditionerMonolithic( );
 
     void buildPreconditionerMonolithicFSI( );
@@ -191,6 +195,7 @@ private:
     mutable MatrixPtr_Type pcdOperatorMatrixPtr_; // PCD
     mutable ThyraLinOpConstPtr_Type pcdOperator_; // PCD
 
+    mutable BlockMultiVectorPtr_Type pressureProjection_;
     // For construction in the FEDDLib
     MinPrecProblemPtr_Type probLaplace_;
     MinPrecProblemPtr_Type probMass_;

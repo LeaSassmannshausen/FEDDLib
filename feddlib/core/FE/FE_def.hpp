@@ -4929,6 +4929,71 @@ void FE<SC,LO,GO,NO>::assemblyStress(int dim,
 }
 
 
+/// @brief Assembling \int p \dx = 0. Thus, we need the integral part for the mean pressure value. 
+/// @param dim Dimension
+/// @param FEType FEType
+/// @param a Matrix Ptr with resulting assembly
+template <class SC, class LO, class GO, class NO>
+void FE<SC,LO,GO,NO>::assemblyPressureMeanValue( int dim,
+                                   std::string FEType,
+                                   MultiVectorPtr_Type  a)
+    {
+
+    TEUCHOS_TEST_FOR_EXCEPTION(FEType == "P0",std::logic_error, "Not implemented for P0");
+
+    TEUCHOS_TEST_FOR_EXCEPTION( a.is_null(), std::runtime_error, "Multivector is null." );
+
+    UN FEloc;
+    FEloc = checkFE(dim,FEType);
+
+    ElementsPtr_Type elements = domainVec_.at(FEloc)->getElementsC();
+
+    vec2D_dbl_ptr_Type pointsRep = domainVec_.at(FEloc)->getPointsRepeated();
+
+    vec2D_dbl_ptr_Type phi;
+    vec_dbl_ptr_Type weights = Teuchos::rcp(new vec_dbl_Type(0));
+
+    UN deg = 2; 
+
+    vec2D_dbl_ptr_Type quadPoints;
+    Helper::getQuadratureValues(dim, deg, quadPoints, weights, FEType); // quad points for rhs values
+
+    Helper::getPhi(phi, weights, dim, FEType, deg);
+
+    SC detB;
+    SC absDetB;
+    SmallMatrix<SC> B(dim);
+   
+    // Repeated version we assemble
+    MultiVectorPtr_Type a_rep = Teuchos::rcp( new MultiVector_Type( domainVec_.at(FEloc)->getMapRepeated(), 1 ) );
+    a_rep->putScalar(0.);
+	Teuchos::ArrayRCP< SC > values_a = a_rep->getDataNonConst(0);
+
+    for (UN T=0; T<elements->numberElements(); T++) {
+
+        Helper::buildTransformation(elements->getElement(T).getVectorNodeList(), pointsRep, B, FEType);
+        detB = B.computeDet( );
+        absDetB = std::fabs(detB);
+		
+        for (UN i=0; i < phi->at(0).size(); i++) {
+            Teuchos::Array<SC> value( 1, 0. );
+            for (UN w=0; w<weights->size(); w++){
+                value[0] += weights->at(w) * phi->at(w).at(i)*1.0; // We integrate the 1 function over the elements
+            }
+            value[0] *= absDetB;
+            //value[0] = 10.;
+            LO row = (LO) elements->getElement(T).getNode(i);
+
+            values_a[row] += value[0];
+        }
+    }
+
+    // Adding it together in the unique vector
+    a->putScalar(0.);
+    a->exportFromVector( a_rep, true, "Add" );  
+}
+
+
 template <class SC, class LO, class GO, class NO>
 double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
                                               std::string FEType,

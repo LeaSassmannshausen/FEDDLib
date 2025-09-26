@@ -44,6 +44,8 @@
     <ParameterList name="Parameter Fluid">
         <Parameter name="Preconditioner Type" type="string" value="PCD"/><!--only relevant for block preconditioner for fluid -->
 
+        <Parameter name="Use Pressure Projection" type="bool" value="true"/>    <!-- use pressure projection to correct pressure in P2-P1 case-->
+
         <Parameter name="Real artery" type="bool" value="false"/> <!-- use realistic aretery (true) or idealized model (false) -->
 
         <Parameter name="Ramp type" type="string" value="cos"/><!--cos, linear -->
