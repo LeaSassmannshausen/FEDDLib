@@ -325,7 +325,7 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
         int 		dim				= parameterListProblem->sublist("Parameter").get("Dimension",3);        
         std::string      discType        = parameterListProblem->sublist("Parameter").get("Discretization","P2");
         int         n;
-        string		meshName    	= parameterListProblem->sublist("Parameter").get("Mesh 1 Name","fsi_fluid_2_mm.mesh");
+        string		meshName    	= parameterListProblem->sublist("Mesh Partitioner").get("Mesh 1 Name","fsi_fluid_2mm.mesh");
         meshName =     meshName.substr(0, meshName.size() - 5);
      
         TimePtr_Type totalTime(TimeMonitor_Type::getNewCounter("FEDD - main - Total Time"));

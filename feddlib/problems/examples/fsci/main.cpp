@@ -393,7 +393,7 @@ int main(int argc, char *argv[])
 
             
         int 		dim				= parameterListProblem->sublist("Parameter").get("Dimension",2);
-        string		meshName    	= parameterListProblem->sublist("Parameter").get("Mesh 1 Name","fsi_fluid_2_mm.mesh");
+        string		meshName    	= parameterListProblem->sublist("Mesh Partitioner").get("Mesh 1 Name","fsi_fluid_2mm.mesh");
         meshName =     meshName.substr(0, meshName.size() - 5);
 
         string      discType        = parameterListProblem->sublist("Parameter").get("Discretization","P2");
