@@ -1002,7 +1002,7 @@ void FE<SC,LO,GO,NO>::assemblyAceDeformDiffuBlock(int dim,
 
 	MapConstPtr_Type mapSolid = domainVec_.at(FElocSolid)->getMapRepeated();
 
-	vec_dbl_Type solution_c;
+	vec_dbl_Type solution_c(10,0.0); // We always use c=0, as it is not needed for the solid block assembly when we want just the material component
 	vec_dbl_Type solution_d;
 
 	vec_dbl_ptr_Type rhsVec;
@@ -1053,7 +1053,7 @@ void FE<SC,LO,GO,NO>::assemblyAceDeformDiffuBlock(int dim,
     for (UN T=0; T<assemblyFEElements_.size(); T++) {
 		vec_dbl_Type solution(0);
 
-		solution_c = getSolution(elementsChem->getElement(T).getVectorNodeList(), c_rep,dofsChem);
+		// solution_c = getSolution(elementsChem->getElement(T).getVectorNodeList(), c_rep,dofsChem);
 		solution_d = getSolution(elementsSolid->getElement(T).getVectorNodeList(), d_rep,dofsSolid);
 
         // First Solid, then Chemistry
