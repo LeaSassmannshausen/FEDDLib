@@ -132,7 +132,7 @@ namespace FEDD
 		double *residuum = neoHookeElement.getResiduum();
 
 		for (int i = 0; i < 40; i++)
-			(*this->rhsVec_)[i] = residuum[i];
+			(*this->rhsVec_)[i] = -residuum[i];
 
 
 #endif
@@ -191,7 +191,7 @@ namespace FEDD
 		{
 			for (UN j = 0; j < this->dofsElement_; j++)
 			{
-				(*elementMatrix)[i][j] = stiffnessMatrix[i][j];
+				(*elementMatrix)[i][j] = -stiffnessMatrix[i][j];
 			}
 		}
 #endif
