@@ -274,6 +274,8 @@ int main(int argc, char *argv[])
         
         ParameterListPtr_Type parameterListFluidAll(new Teuchos::ParameterList(*parameterListPrecFluidMono)) ;
         sublist(parameterListFluidAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Fluid") );
+        sublist(parameterListFluidAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
+
         parameterListFluidAll->setParameters(*parameterListPrecFluidTeko);
 
         
