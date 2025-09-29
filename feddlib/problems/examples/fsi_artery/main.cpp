@@ -325,7 +325,9 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
         int 		dim				= parameterListProblem->sublist("Parameter").get("Dimension",3);        
         std::string      discType        = parameterListProblem->sublist("Parameter").get("Discretization","P2");
         int         n;
-
+        string		meshName    	= parameterListProblem->sublist("Parameter").get("Mesh 1 Name","fsi_fluid_2_mm.mesh");
+        meshName =     meshName.substr(0, meshName.size() - 5);
+     
         TimePtr_Type totalTime(TimeMonitor_Type::getNewCounter("FEDD - main - Total Time"));
         TimePtr_Type buildMesh(TimeMonitor_Type::getNewCounter("FEDD - main - Build Mesh"));
 
@@ -560,7 +562,7 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                         importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_artery_"+discType));
                     }
                     else{ 
-                        importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_fsi_fluid_5mm_"+discType));
+                        importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_"+meshName+"_"+discType));
                     }                                                                                               
 
                     Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer->readVariablesHDF5("solution");

@@ -393,8 +393,9 @@ int main(int argc, char *argv[])
 
             
         int 		dim				= parameterListProblem->sublist("Parameter").get("Dimension",2);
-        string		meshType    	= parameterListProblem->sublist("Parameter").get("Mesh Type","unstructured");
-        
+        string		meshName    	= parameterListProblem->sublist("Parameter").get("Mesh 1 Name","fsi_fluid_2_mm.mesh");
+        meshName =     meshName.substr(0, meshName.size() - 5);
+
         string      discType        = parameterListProblem->sublist("Parameter").get("Discretization","P2");
         string preconditionerMethod = parameterListProblem->sublist("General").get("Preconditioner Method","Monolithic");
         int         n;
@@ -633,7 +634,7 @@ int main(int argc, char *argv[])
         //#############################################
         MultiVectorConstPtr_Type inflowProfile;
                       
-        HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_parabolic_fsi_fluid_2mm_P2"); // We only considers this geometry for now
+        HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_"+meshName+"_P2"); // We only considers this geometry for now
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5("solution");
         inflowProfile = solutionImported;
                     
