@@ -8,9 +8,9 @@
         <Parameter name="FSI" type="bool" value="true"/>
         <Parameter name="Geometry Explicit" type="bool" value="true"/>
 
-        <Parameter name="relNonLinTol" type="double" value="1.0e-6"/>
-        <Parameter name="absNonLinTol" type="double" value="1.0e-6"/>
-        <Parameter name="updateTol" type="double" value="1.0e-6"/>
+        <Parameter name="relNonLinTol" type="double" value="1.0e-8"/>
+        <Parameter name="absNonLinTol" type="double" value="1.0e-5"/>
+        <Parameter name="updateTol" type="double" value="1.0e-5"/>
         <Parameter name="Combo" type="string" value="OR"/>
         <Parameter name="Use update tol" type="bool" value="true"/>
         <Parameter name="Use WRMS" type="bool" value="false"/>
@@ -19,7 +19,7 @@
         <Parameter name="newtonLimit" type="int" value="3"/>
         <Parameter name="Rebuild Preconditioner every Newton Iteration" type="bool" value="true"/>
         <!--  -->
-     
+        <Parameter name="Use Pressure Projection" type="bool" value="true"/>    <!-- use pressure projection to correct pressure in P2-P1 case-->
 
         <Parameter name="MaxNonLinIts" type="int" value="20"/>
 
@@ -29,14 +29,10 @@
         <Parameter name="Material model" type="string" value="Neo-Hooke"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
         <Parameter name="Density" type="double"   value="1.0e-03"/><!-- kg/cm³ -->
         <!-- Parameters NH4 Neo Hooke Model from 'Comparison of arterial wall models in fluid–structure interaction simulations' -->
-        <Parameter name="Mu" type="double" value="1476.5"/><!-- 1kg⋅cm/s² * 1/cm²-->
-        <Parameter name="Mu1" type="double" value="1476.5"/><!-- 1kg⋅cm/s² * 1/cm²-->
-        <Parameter name="Mu2" type="double" value="1476.5"/><!-- 1kg⋅cm/s² * 1/cm²-->
-
-        <Parameter name="E" type="double" value="4400.0"/> <!-- 1kg⋅cm/s² * 1/cm² -->
-        <Parameter name="E1" type="double" value="4400.0"/><!-- 1kg⋅cm/s² * 1/cm²-->
-        <Parameter name="E2" type="double" value="4400.0"/><!-- 1kg⋅cm/s² * 1/cm²-->
-
+        <Parameter name="Mu" type="double" value="1476.5"/><!-- 1kg⋅cm/s² * 1/cm², NH2: 671.0, NH3: 1275.2, NH4: 1476.5 -->
+      
+        <Parameter name="E" type="double" value="4400.0"/> <!-- 1kg⋅cm/s² * 1/cm², NH2: 2000, NH3: 3800, NH4: 4400 -->
+      
         <Parameter name="c1" type="double" value="0.25"/>
         <Parameter name="Poisson Ratio" type="double" value="0.49"/>
     </ParameterList>
@@ -45,6 +41,8 @@
         <Parameter name="Ramp type" type="string" value="cos"/><!--cos, linear -->
         <Parameter name="Max Velocity" type="double" value="118.28"/><!--2d:2.0, Richter 3d: 1.0-->
         <Parameter name="Max Ramp Time" type="double" value="0.1"/>
+
+        <Parameter name="Use Pressure Projection" type="bool" value="true"/>    <!-- use pressure projection to correct pressure in P2-P1 case-->
 
         <Parameter name="Flowrate" type="double" value="3."/><!-- For Absorbing BC-->
 
