@@ -1408,9 +1408,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
         
         if (printData) {
             exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
-            exporterIterations->exportData( (*its)[0] );
+            exporterIterations->exportData( timeSteppingTool_->currentTime(),(*its)[0] );
             linearIterations.push_back((*its)[0]);
-            exporterNewtonIterations->exportData( (*its)[1] );
+            exporterNewtonIterations->exportData( timeSteppingTool_->currentTime(),(*its)[1] );
             newtonIterations.push_back((*its)[1]);
         }
         if (printExtraData) {
