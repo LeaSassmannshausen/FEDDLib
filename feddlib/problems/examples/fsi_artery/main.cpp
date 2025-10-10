@@ -419,6 +419,7 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
 
                     domainFluidVelocity->exportNodeFlags("Fluid");
                     domainStructure->exportNodeFlags("Solid");
+                    domainStructure->exportElementFlags("Solid");
 
                     // Calculate distances is done in: identifyInterfaceParallelAndDistance
                     domainP1fluid->identifyInterfaceParallelAndDistance(domainP1struct, idsInterface);

@@ -5107,7 +5107,7 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
     double h_x = 0.;
 
     if(funcParameter[0] < unsteadyStart)
-        h_x=  std::pow( (std::sqrt(density)/(2*std::sqrt(2)) * flowRateUse/A_bar + std::sqrt(beta*std::sqrt(areaOutlet_init))),2) - beta*std::sqrt(areaOutlet_init);
+        h_x=  std::pow( (std::sqrt(density)/(2*std::sqrt(2)) * flowRateInlet/A_bar + std::sqrt(beta*std::sqrt(areaOutlet_init))),2) - beta*std::sqrt(areaOutlet_init); // In the so called steady phase we also try to use the inlet flowrate
     else
         h_x=  std::pow( (std::sqrt(density)/(2*std::sqrt(2)) * flowRateUse/areaOutlet + std::sqrt(beta*std::sqrt(areaOutlet_T))),2) - beta*std::sqrt(areaOutlet_T) + p_ref;
 

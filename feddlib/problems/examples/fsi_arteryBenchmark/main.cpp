@@ -496,7 +496,7 @@ int main(int argc, char *argv[])
                 MultiVectorConstPtr_Type solutionLaplace;
                 string meshNumber = parameterListProblem->sublist("Mesh Partitioner").get("Mesh Number","2");
 
-                HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_fluidBenchmark"+ meshNumber+"_"+discType);
+                HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_fluidBenchmark"+meshNumber+"_"+discType);
                 Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5("solution");
                 solutionLaplace = solutionImported; // This must me normalized to 1!!
 
