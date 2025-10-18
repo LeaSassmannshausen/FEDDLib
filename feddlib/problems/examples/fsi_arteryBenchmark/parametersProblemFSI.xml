@@ -22,6 +22,7 @@
         <Parameter name="Use Pressure Projection" type="bool" value="true"/>    <!-- use pressure projection to correct pressure in P2-P1 case-->
 
         <Parameter name="MaxNonLinIts" type="int" value="20"/>
+        <Parameter name="Cancel MaxNonLinIts" type="bool" value="true"/>
 
         <Parameter name="Criterion" type="string" value="Update"/><!-- Criterion for nonlinear solve, Residual or Update: Residual is the norm of the nonlinear residual; Update is the norm of the update -->
     </ParameterList>
