@@ -1347,7 +1347,8 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
 
     
     }    
-    if(pressureRB == "Pressure Boundary Condition")
+    
+    if(pressureRB == "Pressure Flowrate")
     {
         MultiVectorPtr_Type FERhs = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
         MultiVectorConstPtr_Type u = this->solution_->getBlock(0);

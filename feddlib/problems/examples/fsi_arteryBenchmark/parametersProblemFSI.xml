@@ -51,7 +51,7 @@
         <Parameter name="Density" type="double" value="1.3e-03"/><!-- kg/cm³ -->
         <Parameter name="Symmetric gradient" type="bool" value="true"/>
 
-        <Parameter name="Pressure Boundary Condition" type="string" value="Absorbing Paper"/>         <!-- Resistance , Absorbing , Absorbing Resistance-->
+        <Parameter name="Pressure Boundary Condition" type="string" value="Absorbing Paper"/>         <!-- Pressure Flowrate, Resistance , Absorbing , Absorbing Resistance-->
         <Parameter name="Unsteady Start" type="double" value="0.2"/><!-- Start of 'unsteady' phase -->
         <Parameter name="Average Flowrate" type="bool" value="true"/>
         <Parameter name="BC Ramp" type="double" value="0.0"/>

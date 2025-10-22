@@ -22,7 +22,7 @@
         <!--  -->
         <Parameter name="Use Pressure Projection" type="bool" value="true"/>    <!-- use pressure projection to correct pressure in P2-P1 case-->
 
-        <Parameter name="MaxNonLinIts" type="int" value="10"/>
+        <Parameter name="MaxNonLinIts" type="int" value="20"/>
         <Parameter name="Cancel MaxNonLinIts" type="bool" value="true"/>
 
         <Parameter name="Criterion" type="string" value="Update"/><!-- Criterion for nonlinear solve, Residual or Update: Residual is the norm of the nonlinear residual; Update is the norm of the update -->
@@ -60,7 +60,7 @@
         <Parameter name="Density" type="double" value="1.03e-03"/><!-- kg/cm³ -->
         <Parameter name="Symmetric gradient" type="bool" value="true"/>
 
-        <Parameter name="Pressure Boundary Condition" type="string" value="Absorbing Paper"/>         <!-- Resistance , Absorbing , Absorbing Resistance-->
+        <Parameter name="Pressure Boundary Condition" type="string" value="Absorbing Paper"/>         <!-- Pressure Flowrate, Resistance , Absorbing , Absorbing Resistance-->
         <Parameter name="Unsteady Start" type="double" value="0.2"/><!-- Start of 'unsteady' phase -->
         <Parameter name="Average Flowrate" type="bool" value="true"/>
         <Parameter name="BC Ramp" type="double" value="0.0"/>
