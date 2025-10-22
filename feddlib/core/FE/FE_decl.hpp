@@ -161,17 +161,10 @@ class FE {
                                 RhsFunc_Type func, 
                                 ParameterListPtr_Type params, 
                                 int FEloc=0);
-    double assemblyAbsorbingBoundary(int dim, 
-                                std::string FEType, 
-                                MultiVectorPtr_Type f, 
-                                MultiVectorPtr_Type u_rep, 
-                                vec_dbl_Type flowRate_vec, 
-                                std::vector<SC>& funcParameter, 
-                                RhsFunc_Type func, 
-                                double areaOutlet_init, 
-                                double areaOutlet_T, 
-                                ParameterListPtr_Type params, 
-                                int FEloc=0);
+    double assemblyPressureBoundary(int dim, std::string FEType, MultiVectorPtr_Type f, MultiVectorPtr_Type u_rep, ParameterListPtr_Type params, int FEloc);
+    
+    double assemblyAbsorbingBoundary(int dim, std::string FEType, MultiVectorPtr_Type f, MultiVectorPtr_Type u_rep, vec_dbl_Type flowRate_vec, std::vector<SC> &funcParameter, RhsFunc_Type func,
+                                     double areaOutlet_init, double areaOutlet_T, ParameterListPtr_Type params, int FEloc = 0);
 
     void assemblyPressureMeanValue(int dim, std::string FEType, MultiVectorPtr_Type a);
 

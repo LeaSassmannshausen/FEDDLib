@@ -1216,12 +1216,12 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
         // Die Skalierung mit der Dichte erfolgt schon in der Assemblierungsfunktion!
         
         // addSourceTermToRHS() aus DAESolverInTime
-        double coeffSourceTermStructure = 1.0;
+        double coeffSourceTerm = 1.0; // 1 for BDF 1/2 
        // BlockMultiVectorPtr_Type tmpSourceterm = Teuchos::rcp(new BlockMultiVector_Type(1)) ;
        // tmpSourceterm->addBlock(this->sourceTerm_->getBlockNonConst(1),0);
 
             
-        this->problemTimeFluid_->getRhs()->getBlockNonConst(0)->update(coeffSourceTermStructure, *this->sourceTerm_->getBlockNonConst(0), 1.);
+        this->problemTimeFluid_->getRhs()->getBlockNonConst(0)->update(coeffSourceTerm, *this->sourceTerm_->getBlockNonConst(0), 1.);
         this->rhs_->addBlock( this->problemTimeFluid_->getRhs()->getBlockNonConst(0), 0 );
 
         if(this->verbose_)
@@ -1336,10 +1336,10 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
             exporterBoundaryCondition_->exportData( "FlowrateOutlet_Previous_Timestep", flowRateOutlet_n_1_ );
         }
         // addSourceTermToRHS() aus DAESolverInTime
-        double coeffSourceTermStructure = 1.0;
+        double coeffSourceTerm = 1.0;  // 1 for BDF 1/2 
        
             
-        this->problemTimeFluid_->getRhs()->getBlockNonConst(0)->update(coeffSourceTermStructure, *this->sourceTerm_->getBlockNonConst(0), 1.);
+        this->problemTimeFluid_->getRhs()->getBlockNonConst(0)->update(coeffSourceTerm, *this->sourceTerm_->getBlockNonConst(0), 1.);
         this->rhs_->addBlock( this->problemTimeFluid_->getRhs()->getBlockNonConst(0), 0 );
 
         if(this->verbose_)
@@ -1347,6 +1347,29 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
 
     
     }    
+    if(pressureRB == "Pressure Boundary Condition")
+    {
+        MultiVectorPtr_Type FERhs = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
+        MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
+        u_rep_->importFromVector(u, true); 
+
+
+        pressureOutlet_ = this->feFactory_->assemblyPressureBoundary (this->dim_, this->getDomain(0)->getFEType(),FERhs, u_rep_, this->parameterList_,0);                                                                       
+
+
+        this->sourceTerm_->getBlockNonConst(0)->exportFromVector( FERhs, false, "Add" );
+        
+        // addSourceTermToRHS() aus DAESolverInTime
+        double coeffSourceTerm = 1.0;  // 1 for BDF 1/2 
+            
+        this->problemTimeFluid_->getRhs()->getBlockNonConst(0)->update(coeffSourceTerm, *this->sourceTerm_->getBlockNonConst(0), 1.);
+        this->rhs_->addBlock( this->problemTimeFluid_->getRhs()->getBlockNonConst(0), 0 );
+
+        if(this->verbose_)
+            std::cout << "  .. done " << std::endl;
+
+
+    }
   
 }
 
