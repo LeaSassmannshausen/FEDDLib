@@ -620,6 +620,7 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh2D(std::string FEType,
     buildElementsClass(elementsVec, elementFlag);
 
 }
+
 template <class SC, class LO, class GO, class NO>
 void MeshStructured<SC,LO,GO,NO>::buildMesh3DTube(std::string FEType,
                                                  int N,

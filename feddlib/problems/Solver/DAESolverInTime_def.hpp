@@ -1485,10 +1485,10 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearMultistep(){
         sumNewton = sumNewton / newtonIterations.size();
 
         if (verbose_) {
-            cout << " ############################################ "<< endl;
+            cout << " ######################################################## "<< endl;
             cout << " Average linear iteration count over all time steps:  " << sumLinear << endl;
             cout << " Average Newton iteration count over all time steps:  " << sumNewton << endl;
-            cout << " ############################################ "<< endl;
+            cout << " ######################################################## \n"<< endl;
         }
     
     }
