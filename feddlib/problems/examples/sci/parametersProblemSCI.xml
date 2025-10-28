@@ -99,15 +99,14 @@
         <Parameter name="gamma" type="double" value="0.5"/> <!-- newmark method parameter-->
         <ParameterList name="Timestepping Intervalls">
             <Parameter name="Number of Segments" type="int" value="2"/>
-                <ParameterList name="1">
-                    <Parameter name="Start Time" type="double" value="0."/>
-                    <Parameter name="dt" type="double" value="0.05"/>
-                </ParameterList>
-                <ParameterList name="2">
-                    <Parameter name="Start Time" type="double" value="1."/>
-                    <Parameter name="dt" type="double" value="0.5"/>
-                </ParameterList>
-            </ParameterList> 
+            <ParameterList name="1">
+                <Parameter name="Start Time" type="double" value="0."/>
+                <Parameter name="dt" type="double" value="0.05"/>
+            </ParameterList>
+            <ParameterList name="2">
+                <Parameter name="Start Time" type="double" value="1."/>
+                <Parameter name="dt" type="double" value="0.5"/>
+            </ParameterList>
         </ParameterList>
     </ParameterList>
 </ParameterList>

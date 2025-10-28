@@ -601,7 +601,6 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
     this->residualVec_->addBlock(  this->problemSCI_->getResidualVector()->getBlockNonConst(0) , 2);
     if(!chemistryExplicit_) {
         //this->problemSCI_->getResidualVector()->getBlockNonConst(1)->scale(-1.);
-        this->residualVec_->print();
         this->residualVec_->addBlock(this->problemSCI_->getResidualVector()->getBlockNonConst(1), 4);
     }
     MultiVectorPtr_Type residualFluidVelocityFSCI =

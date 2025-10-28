@@ -527,7 +527,7 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
 
             // Fluid-RW
             {
-                 MultiVectorConstPtr_Type solutionLaplace;
+                MultiVectorConstPtr_Type solutionLaplace;
                 // string meshNumber = parameterListProblem->sublist("Mesh Partitioner").get("Mesh Number","2");
 
                 Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactoryFluid( new BCBuilder<SC,LO,GO,NO>( ) );
