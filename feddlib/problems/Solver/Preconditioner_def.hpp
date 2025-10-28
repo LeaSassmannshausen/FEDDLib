@@ -1035,6 +1035,13 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerFaCSI( std::string type )
             std::cout << "\t### FaCSI standard ###" << std::endl;
     }
 
+    //Setup fluid problem
+    if (probFluid_.is_null()){
+        probFluid_ = Teuchos::rcp( new MinPrecProblem_Type( pLFluid, timeProblem_->getComm() ) );
+        DomainConstPtr_vec_Type fluidDomains = steadyFSI->getFluidProblem()->getDomainVector();
+        probFluid_->initializeDomains( fluidDomains );
+        probFluid_->initializeLinSolverBuilder( timeProblem_->getLinearSolverBuilder() );
+    }
     BlockMatrixPtr_Type fluidSystem = Teuchos::rcp( new BlockMatrix_Type(2) );
     
     // We build copies of the fluid system with homogenous Dirichlet boundary conditions on the interface
