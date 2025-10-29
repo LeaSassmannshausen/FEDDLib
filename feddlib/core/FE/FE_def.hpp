@@ -494,13 +494,13 @@ void FE<SC,LO,GO,NO>::assemblyNonLinearElasticity(int dim,
 
  	SmallMatrixPtr_Type elementMatrix;
     vec_dbl_Type solution_d;
-    solution_d.reserve(dofs * numNodes);
+    // solution_d.reserve(dofs * numNodes);
 
 	vec_dbl_ptr_Type rhsVec;
 
 	for (UN T=0; T<assemblyFEElements_.size(); T++) {
 
-		getSolutionInto(elements->getElement(T).getVectorNodeList(), d_rep,dofs,solution_d);
+		solution_d = getSolution(elements->getElement(T).getVectorNodeList(), d_rep,dofs);
 
 		assemblyFEElements_[T]->updateSolution(solution_d);
 
