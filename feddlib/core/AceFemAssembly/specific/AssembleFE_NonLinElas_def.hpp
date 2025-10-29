@@ -47,7 +47,7 @@ hp_(10)
 
 	this->rhsVec_.reset( new vec_dbl_Type ( dofsElement_,0.) );
 
-	elementMatrix_,reset(new SmallMatrix_Type( dofsElement_)); // Matrix we fill with entries.
+	elementMatrix_.reset(new SmallMatrix_Type( dofsElement_)); // Matrix we fill with entries.
 
 }
 
