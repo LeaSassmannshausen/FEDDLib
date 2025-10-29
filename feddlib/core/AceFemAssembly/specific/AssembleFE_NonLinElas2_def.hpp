@@ -45,6 +45,7 @@ hp_(10)
 
 	dofsElement_ = dofs_*numNodes_; // "Dimension of return matrix"
 
+	this->rhsVec_.reset( new vec_dbl_Type ( dofsElement_,0.) );
 }
 
 /*!
