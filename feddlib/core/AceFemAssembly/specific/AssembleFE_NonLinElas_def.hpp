@@ -22,7 +22,7 @@ namespace FEDD {
 template <class SC, class LO, class GO, class NO>
 AssembleFE_NonLinElas<SC,LO,GO,NO>::AssembleFE_NonLinElas(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type params,tuple_disk_vec_ptr_Type tuple):
 AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params,tuple),
- v_(1066),
+ v_(1060),
 d_(2),
 ul_(30),
 ul0_(30),
