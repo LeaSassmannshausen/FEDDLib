@@ -21,7 +21,7 @@ namespace FEDD {
 */
 template <class SC, class LO, class GO, class NO>
  AssembleFE_NonLinElas2<SC,LO,GO,NO>:: AssembleFE_NonLinElas2(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type params,tuple_disk_vec_ptr_Type tuple):
-AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params,tuple)
+AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params,tuple),
  v_(1066),
 d_(2),
 ul_(30),
@@ -145,7 +145,7 @@ void  AssembleFE_NonLinElas2<SC,LO,GO,NO>::assembleRHS() {
 	std::fill(p_.begin(), p_.end(), 0.0);
 	std::fill(ht_.begin(), ht_.end(), 0.0);
 	std::fill(hp_.begin(), hp_.end(), 0.0);
-	
+
 	d[0] = this->E_; // TODO: Check order if there is a problem
 	d[1] = this->poissonRatio_;
 
