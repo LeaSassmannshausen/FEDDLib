@@ -121,7 +121,7 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
         
     #ifdef FEDD_HAVE_ACEGENINTERFACE
         bool useInterface = this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true);
-        if(this->getFEType(0) =="P2" && useInterface){
+        if(this->getFEType(0) =="P2" && useInterface && this->dim_ == 3 && material_model != "Saint-Venant-Kirchhoff"){
             this->system_->addBlock( W, 0, 0 );  
            
             f->putScalar(0.);   
@@ -257,9 +257,11 @@ template<class SC,class LO,class GO,class NO>
 void NonLinElasticity<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time) const{
     
     this->reAssemble("Newton-Residual");
+    std::string material_model = this->parameterList_->sublist("Parameter").get("Material model","Neo-Hooke");
+    bool useInterface = this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true);
 
 #ifdef FEDD_HAVE_ACEGENINTERFACE
-    if(this->getFEType(0) =="P2" && this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true)){
+    if(this->getFEType(0) =="P2" && useInterface && this->dim_ == 3 && material_model!= "Saint-Venant-Kirchhoff"){
         if(this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true ){
             this->feFactory_->assemblyAceDeformDiffuBlock(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(0)->getFEType(), 2, 1,this->dim_,concentration_,u_rep_,this->system_,0,0,this->residualVec_,0, this->parameterList_, "Rhs", true/*call fillComplete*/);
         }            

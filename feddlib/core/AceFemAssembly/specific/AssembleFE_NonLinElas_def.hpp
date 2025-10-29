@@ -45,6 +45,8 @@ hp_(10)
 
 	dofsElement_ = dofs_*numNodes_; // "Dimension of return matrix"
 
+	this->rhsVec_.reset( new vec_dbl_Type ( dofsElement_,0.) );
+
 }
 
 /*!
@@ -177,7 +179,8 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assembleRHS() {
 
 
 	// std::cout << "[DEBUG] SKR-Rhs Calls after this line!" << std::endl;
-	skr2(v_.data(), d_.data(), ul_.data(), ul0_.data(), xl_.data(), s_.data(), p_.data(), ht_.data(), hp_.data());
+	//skr3(&v[0],&d[0],&ul[0],&ul0[0],&xl[0],&s[0],&p[0],&ht[0],&hp[0]); // Fortran subroutine call modifies s and p
+	skr2(&v_[0],&d_[0],&ul_[0],&ul0_[0],&xl_[0],&s_[0],&p_[0],&ht_[0],&hp_[0]); // Fortran subroutine call modifies s and p
 	// std::cout << "[DEBUG] SKR-Rhs Call successful!" << std::endl;
 
 	for(int i=0; i< p_.size(); i++)
