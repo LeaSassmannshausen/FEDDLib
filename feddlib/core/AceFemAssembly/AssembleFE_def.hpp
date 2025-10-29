@@ -12,6 +12,8 @@ rhsVec_(0),
 jacobian_(0),
 solution_(0)
 {
+
+	std::cout << "AssembleFE Constructor called." << std::endl;
 	flag_=flag;
 	nodesRefConfig_ = nodesRefConfig;
 

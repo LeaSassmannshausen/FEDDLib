@@ -78,15 +78,15 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assemblyNonLinElas(SmallMatrixPtr_Type 
 	/// Writing entries in the element matrix for nodes 1,2..n , n=numNodes_
 	/// 1_x 1_y 1_z 2_x 2_y 2_z .... n_x n_y n_z 
 	
-	std::vector<double> v(1060); //Working vector, size defined by AceGen-FEAP
-	std::vector<double> d(2); // Material parameters
-	std::vector<double> ul(30); // The solution vector(or displacement in this case)
-	std::vector<double> ul0(30); // Currently unused but must be passed to match FEAP template
-	std::vector<double> xl(30); // Nodal Positions in reference coordinates
-	std::vector<double> s(900); // Element Stiffness Matrix [Output from skr]
-	std::vector<double> p(30); // Residual vector [Output from skr]
-	std::vector<double> ht(10); // History parameters currently unused
-	std::vector<double> hp(10); // History parameters currently unused
+	// std::vector<double> v(1060); //Working vector, size defined by AceGen-FEAP
+	// std::vector<double> d(2); // Material parameters
+	// std::vector<double> ul(30); // The solution vector(or displacement in this case)
+	// std::vector<double> ul0(30); // Currently unused but must be passed to match FEAP template
+	// std::vector<double> xl(30); // Nodal Positions in reference coordinates
+	// std::vector<double> s(900); // Element Stiffness Matrix [Output from skr]
+	// std::vector<double> p(30); // Residual vector [Output from skr]
+	// std::vector<double> ht(10); // History parameters currently unused
+	// std::vector<double> hp(10); // History parameters currently unused
 
 	d[0] = this->E_; // TODO: Check order if there is a problem
 	d[1] = this->poissonRatio_;
@@ -106,7 +106,7 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assemblyNonLinElas(SmallMatrixPtr_Type 
 		p[i]=0.0;
 
 	// std::cout << "[DEBUG] SKR-Jacobian Calls after this line!" << std::endl;
-	skr2(&v[0],&d[0],&ul[0],&ul0[0],&xl[0],&s[0],&p[0],&ht[0],&hp[0]); // Fortran subroutine call modifies s and p
+	skr2(v.data(), d.data(), ul.data(), ul0.data(), xl.data(), s.data(), p.data(), ht.data(), hp.data());
 	// std::cout << "[DEBUG] SKR-Jacobian Call successful!" << std::endl;
 	// Note: FEAP/Fortran returns matrices unrolled in column major form. This must be converted for use here.
 
@@ -132,18 +132,18 @@ template <class SC, class LO, class GO, class NO>
 void AssembleFE_NonLinElas<SC,LO,GO,NO>::assembleRHS() {
 
 	// [Efficiency] Need to know which is called first: assembleRHS() or assembleJacobian(), so that multiple calls to skr() may be avoided.
-	this->rhsVec_.reset( new vec_dbl_Type ( dofsElement_,0.) );
+	//this->rhsVec_.reset( new vec_dbl_Type ( dofsElement_,0.) );
 
 	// Note skr() computes both elementMatrix_ and rhsVec_
-	std::vector<double> v(1060); //Working vector, size defined by AceGen-FEAP
-	std::vector<double> d(2); // Material parameters
-	std::vector<double> ul(30); // The solution vector(or displacement in this case)
-	std::vector<double> ul0(30); // Currently unused but must be passed to match FEAP template
-	std::vector<double> xl(30); // Nodal Positions in reference coordinates
-	std::vector<double> s(900); // Element Stiffness Matrix [Output from skr]
-	std::vector<double> p(30); // Residual vector [Output from skr]
-	std::vector<double> ht(10); // History parameters currently unused
-	std::vector<double> hp(10); // History parameters currently unused
+	// std::vector<double> v(1060); //Working vector, size defined by AceGen-FEAP
+	// std::vector<double> d(2); // Material parameters
+	// std::vector<double> ul(30); // The solution vector(or displacement in this case)
+	// std::vector<double> ul0(30); // Currently unused but must be passed to match FEAP template
+	// std::vector<double> xl(30); // Nodal Positions in reference coordinates
+	// std::vector<double> s(900); // Element Stiffness Matrix [Output from skr]
+	// std::vector<double> p(30); // Residual vector [Output from skr]
+	// std::vector<double> ht(10); // History parameters currently unused
+	// std::vector<double> hp(10); // History parameters currently unused
 
 	d[0] = this->E_; // TODO: Check order if there is a problem
 	d[1] = this->poissonRatio_;
@@ -165,7 +165,7 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assembleRHS() {
 		p[i]=0.0;
 
 	// std::cout << "[DEBUG] SKR-Rhs Calls after this line!" << std::endl;
-	skr2(&v[0],&d[0],&ul[0],&ul0[0],&xl[0],&s[0],&p[0],&ht[0],&hp[0]); // Fortran subroutine call modifies s and p
+	skr2(v.data(), d.data(), ul.data(), ul0.data(), xl.data(), s.data(), p.data(), ht.data(), hp.data());
 	// std::cout << "[DEBUG] SKR-Rhs Call successful!" << std::endl;
 
 	for(int i=0; i< p.size(); i++)
