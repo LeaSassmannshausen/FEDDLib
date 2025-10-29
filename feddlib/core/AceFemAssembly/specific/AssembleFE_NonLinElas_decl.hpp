@@ -67,6 +67,7 @@ class AssembleFE_NonLinElas : public AssembleFE<SC,LO,GO,NO> {
 
 	int dofsElement_; // "Dimension of return matrix"
 
+	SmallMatrixPtr_Type elementMatrix_; // Matrix we fill with entries.
 	// Working Vectors
 	std::vector<double> v_;   // working vector (AceGen)
 	std::vector<double> d_;   // material parameters
