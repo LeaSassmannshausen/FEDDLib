@@ -67,15 +67,15 @@ class  AssembleFE_NonLinElas2 : public AssembleFE<SC,LO,GO,NO> {
 	int dofsElement_; // "Dimension of return matrix"
 
 	// Working Vectors
-	std::vector<double> v(1066); //Working vector, size defined by AceGen-FEAP
-	std::vector<double> d(2); // Material parameters
-	std::vector<double> ul(30); // The solution vector(or displacement in this case)
-	std::vector<double> ul0(30); // Currently unused but must be passed to match FEAP template
-	std::vector<double> xl(30); // Nodal Positions in reference coordinates
-	std::vector<double> s(900); // Element Stiffness Matrix [Output from skr]
-	std::vector<double> p(30); // Residual vector [Output from skr]
-	std::vector<double> ht(10); // History parameters currently unused
-	std::vector<double> hp(10); // History parameters currently unused
+	std::vector<double> v_;   // working vector (AceGen)
+	std::vector<double> d_;   // material parameters
+	std::vector<double> ul_;  // displacement vector
+	std::vector<double> ul0_; // unused
+	std::vector<double> xl_;  // nodal coordinates
+	std::vector<double> s_;   // stiffness matrix
+	std::vector<double> p_;   // residual vector
+	std::vector<double> ht_;  // history parameters
+	std::vector<double> hp_;  // history parameters
 
 
  };

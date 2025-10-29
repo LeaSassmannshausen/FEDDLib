@@ -22,6 +22,15 @@ namespace FEDD {
 template <class SC, class LO, class GO, class NO>
  AssembleFE_NonLinElas2<SC,LO,GO,NO>:: AssembleFE_NonLinElas2(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type params,tuple_disk_vec_ptr_Type tuple):
 AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params,tuple)
+ v_(1066),
+d_(2),
+ul_(30),
+ul0_(30),
+xl_(30),
+s_(900),
+p_(30),
+ht_(10),
+hp_(10)
 {
 	/// Extracting values from ParameterList params:
 	E_ = this->params_->sublist("Parameter").get("E",1000.0); // the last value is the dafault value, in case no parameter is set
@@ -78,7 +87,11 @@ void  AssembleFE_NonLinElas2<SC,LO,GO,NO>::assemblyNonLinElas(SmallMatrixPtr_Typ
 	/// Writing entries in the element matrix for nodes 1,2..n , n=numNodes_
 	/// 1_x 1_y 1_z 2_x 2_y 2_z .... n_x n_y n_z 
 	// this->rhsVec_.reset( new vec_dbl_Type ( dofsElement_,0.) );
-
+	std::fill(v_.begin(), v_.end(), 0.0);
+	std::fill(s_.begin(), s_.end(), 0.0);
+	std::fill(p_.begin(), p_.end(), 0.0);
+	std::fill(ht_.begin(), ht_.end(), 0.0);
+	std::fill(hp_.begin(), hp_.end(), 0.0);
 
 	d[0] = this->E_; // TODO: Check order if there is a problem
 	d[1] = this->poissonRatio_;
@@ -127,7 +140,12 @@ void  AssembleFE_NonLinElas2<SC,LO,GO,NO>::assembleRHS() {
 
 	// [Efficiency] Need to know which is called first: assembleRHS() or assembleJacobian(), so that multiple calls to skr() may be avoided.
 	// Note skr() computes both elementMatrix_ and rhsVec_
-
+	std::fill(v_.begin(), v_.end(), 0.0);
+	std::fill(s_.begin(), s_.end(), 0.0);
+	std::fill(p_.begin(), p_.end(), 0.0);
+	std::fill(ht_.begin(), ht_.end(), 0.0);
+	std::fill(hp_.begin(), hp_.end(), 0.0);
+	
 	d[0] = this->E_; // TODO: Check order if there is a problem
 	d[1] = this->poissonRatio_;
 
