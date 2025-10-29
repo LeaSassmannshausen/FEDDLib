@@ -467,10 +467,7 @@ void FE<SC,LO,GO,NO>::assemblyNonLinearElasticity(int dim,
 
 	MapConstPtr_Type map = domainVec_.at(0)->getMapRepeated();
 
-	vec_dbl_Type solution(0);
-	vec_dbl_Type solution_d;
 
-	vec_dbl_ptr_Type rhsVec;
 
 	/// Tupel construction follows follwing pattern:
 	/// std::string: Physical Entity (i.e. Velocity) , std::string: Discretisation (i.e. "P2"), int: Degrees of Freedom per Node, int: Number of Nodes per element)
@@ -489,8 +486,6 @@ void FE<SC,LO,GO,NO>::assemblyNonLinearElasticity(int dim,
         nonLinElasModell = "NonLinearElasticity";
 
     //std::cout << " ######## Assembly Modell: " << nonLinElasModell << " ############ " <<  std::endl;
-
-
 	if(assemblyFEElements_.size()== 0)
 	 	initAssembleFEElements(nonLinElasModell,problemDisk,elements, params,pointsRep,domainVec_.at(0)->getElementMap());
 	else if(assemblyFEElements_.size() != elements->numberElements())
@@ -498,14 +493,17 @@ void FE<SC,LO,GO,NO>::assemblyNonLinearElasticity(int dim,
 	
 
  	SmallMatrixPtr_Type elementMatrix;
+    vec_dbl_Type solution_d;
+    solution_d.reserve(dofs * numNodes);
+
+	vec_dbl_ptr_Type rhsVec;
+
 	for (UN T=0; T<assemblyFEElements_.size(); T++) {
-		vec_dbl_Type solution(0);
+        solution_d.clear();
 
-		solution_d = getSolution(elements->getElement(T).getVectorNodeList(), d_rep,dofs);
+		getSolutionInto(elements->getElement(T).getVectorNodeList(), d_rep,dofs,solution_d);
 
-		solution.insert( solution.end(), solution_d.begin(), solution_d.end() );
-
-		assemblyFEElements_[T]->updateSolution(solution);
+		assemblyFEElements_[T]->updateSolution(solution_d);
 
         assemblyFEElements_[T]->assembleJacobian();
         elementMatrix = assemblyFEElements_[T]->getJacobian();              
@@ -1505,10 +1503,10 @@ void FE<SC,LO,GO,NO>::addFeBlock(BlockMatrixPtr_Type &A, SmallMatrixPtr_Type ele
 
 		Teuchos::Array<SC> value( numNodes1, 0. );
         Teuchos::Array<GO> columnIndices( numNodes1, 0 );
-
+        GO rowID;
 		for (UN i=0; i < numNodes1 ; i++) {
 			for(int di=0; di<dofs1; di++){
-				GO rowID =GO (dofs1* mapRow->getGlobalElement( element.getNode(i) )+di);
+				rowID =GO (dofs1* mapRow->getGlobalElement( element.getNode(i) )+di);
 				for(int d=0; d<dofs1; d++){
 					for (UN j=0; j < columnIndices.size(); j++){
 		                columnIndices[j] = GO ( dofs1 * mapRow->getGlobalElement( element.getNode(j) ) + d );
@@ -1593,6 +1591,27 @@ vec_dbl_Type FE<SC,LO,GO,NO>::getSolution(vec_LO_Type localIDs, MultiVectorPtr_T
 	}
 
     return solution;
+}
+
+/*!
+
+ \brief Returns entries of u of element
+
+@param[in] localIDs
+@param[in] points
+@param[out] coordinates 
+
+*/
+
+template <class SC, class LO, class GO, class NO>
+void FE<SC,LO,GO,NO>::getSolutionInto(vec_LO_Type localIDs, MultiVectorPtr_Type u_rep, int dofsVelocity, vec_dbl_Type& solution ){
+
+    Teuchos::ArrayRCP<SC>  uArray = u_rep->getDataNonConst(0);
+	
+	for(int i=0; i < localIDs.size() ; i++){
+		for(int d=0; d<dofsVelocity; d++)
+			solution[i*dofsVelocity+d] = uArray[localIDs[i]*dofsVelocity+d];
+	}
 }
 
 

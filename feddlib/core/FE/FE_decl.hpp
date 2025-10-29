@@ -742,6 +742,7 @@ private:
 
 	vec2D_dbl_Type getCoordinates(vec_LO_Type localIDs, vec2D_dbl_ptr_Type points);
 	vec_dbl_Type getSolution(vec_LO_Type localIDs, MultiVectorPtr_Type u_rep, int dofsVelocity);
+    void getSolutionInto(vec_LO_Type localIDs, MultiVectorPtr_Type u_rep, int dofsVelocity, vec_dbl_Type& solution );
 
     //Start of AceGen code
     /*! AceGen code for 3D Neo-Hooke material model
