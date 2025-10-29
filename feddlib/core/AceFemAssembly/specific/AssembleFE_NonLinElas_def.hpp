@@ -64,7 +64,7 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assembleJacobian() {
 
 	assemblyNonLinElas(elementMatrix_); // Function that fills the matrix. We pass though a pointer that will be filled.
 
-	this->jacobian_ = elementMatrix ; // We init the jacobian matrix with the matrix we just build.
+	this->jacobian_ = elementMatrix_ ; // We init the jacobian matrix with the matrix we just build.
 }
 
 /*!
