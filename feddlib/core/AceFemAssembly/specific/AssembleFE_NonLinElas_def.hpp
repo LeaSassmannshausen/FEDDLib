@@ -103,25 +103,20 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assemblyNonLinElas(SmallMatrixPtr_Type 
 	std::fill(ht_.begin(), ht_.end(), 0.0);
 	std::fill(hp_.begin(), hp_.end(), 0.0);
 
-	d[0] = this->E_; // TODO: Check order if there is a problem
-	d[1] = this->poissonRatio_;
+	d_[0] = this->E_; // TODO: Check order if there is a problem
+	d_[1] = this->poissonRatio_;
 
 	for(int i=0;i<30;i++)
-		ul[i] = (*this->solution_)[i]; // What is the order? I need it in the form (u1,v1,w1,u2,v2,w2,...)
+		ul_[i] = (*this->solution_)[i]; // What is the order? I need it in the form (u1,v1,w1,u2,v2,w2,...)
 
 	int count = 0;
 	for(int i=0;i<this->numNodes_;i++)
 		for(int j=0;j<this->dofs_;j++){
-			xl[count] = this->getNodesRefConfig()[i][j];
+			xl_[count] = this->getNodesRefConfig()[i][j];
 			count++;}	
 
-	for(int i=0;i<s.size();i++)
-		s[i]=0.0;
-	for(int i=0;i<p.size();i++)
-		p[i]=0.0;
-
 	// std::cout << "[DEBUG] SKR-Jacobian Calls after this line!" << std::endl;
-	skr2(v.data(), d.data(), ul.data(), ul0.data(), xl.data(), s.data(), p.data(), ht.data(), hp.data());
+	skr2(v_.data(), d_.data(), ul_.data(), ul0_.data(), xl_.data(), s_.data(), p_.data(), ht_.data(), hp_.data());
 	// std::cout << "[DEBUG] SKR-Jacobian Call successful!" << std::endl;
 	// Note: FEAP/Fortran returns matrices unrolled in column major form. This must be converted for use here.
 
@@ -131,7 +126,7 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assemblyNonLinElas(SmallMatrixPtr_Type 
 
     for (UN i=0; i < this->dofsElement_; i++) {
         for (UN j=0; j < this->dofsElement_; j++) {
-            (*elementMatrix)[i][j] = -s[this->dofsElement_*j+i]; // Rolling into a matrix using column major (m*j+i)
+            (*elementMatrix)[i][j] = -s_[this->dofsElement_*j+i]; // Rolling into a matrix using column major (m*j+i)
         }
     }
 
@@ -166,31 +161,27 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assembleRHS() {
 	std::fill(ht_.begin(), ht_.end(), 0.0);
 	std::fill(hp_.begin(), hp_.end(), 0.0);
 
-	d[0] = this->E_; // TODO: Check order if there is a problem
-	d[1] = this->poissonRatio_;
+	d_[0] = this->E_; // TODO: Check order if there is a problem
+	d_[1] = this->poissonRatio_;
 
 	for(int i=0;i<30;i++){
-		ul[i] = (*this->solution_)[i];
+		ul_[i] = (*this->solution_)[i];
 	}
 
 	int count = 0;
 	for(int i=0;i<this->numNodes_;i++)
 		for(int j=0;j<this->dofs_;j++){
-			xl[count] = this->getNodesRefConfig()[i][j];
+			xl_[count] = this->getNodesRefConfig()[i][j];
 			count++;}
 
-	// Initialize arrays to 0
-	for(int i=0;i<s.size();i++)
-		s[i]=0.0;
-	for(int i=0;i<p.size();i++)
-		p[i]=0.0;
+
 
 	// std::cout << "[DEBUG] SKR-Rhs Calls after this line!" << std::endl;
-	skr2(v.data(), d.data(), ul.data(), ul0.data(), xl.data(), s.data(), p.data(), ht.data(), hp.data());
+	skr2(v_.data(), d_.data(), ul_.data(), ul0_.data(), xl_.data(), s_.data(), p_.data(), ht_.data(), hp_.data());
 	// std::cout << "[DEBUG] SKR-Rhs Call successful!" << std::endl;
 
-	for(int i=0; i< p.size(); i++)
-		(*this->rhsVec_)[i] = -p[i];
+	for(int i=0; i< p_.size(); i++)
+		(*this->rhsVec_)[i] = -p_[i];
 }
 template <class SC, class LO, class GO, class NO>
 void AssembleFE_NonLinElas<SC,LO,GO,NO>:: updateParameter(std::string type, double value){

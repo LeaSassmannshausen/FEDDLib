@@ -77,7 +77,6 @@ class  AssembleFE_NonLinElas2 : public AssembleFE<SC,LO,GO,NO> {
 	std::vector<double> ht_;  // history parameters
 	std::vector<double> hp_;  // history parameters
 
-
  };
 
 }

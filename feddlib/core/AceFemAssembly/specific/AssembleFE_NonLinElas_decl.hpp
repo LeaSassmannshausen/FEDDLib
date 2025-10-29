@@ -81,8 +81,6 @@ class AssembleFE_NonLinElas : public AssembleFE<SC,LO,GO,NO> {
 
  };
 
- };
-
 }
 #endif
 
