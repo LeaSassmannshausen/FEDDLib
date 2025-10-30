@@ -21,6 +21,12 @@ namespace FEDD
                                                                                  nonLinearTolerance_(1.e-6),
                                                                                  coeff_(0)
     {
+
+         // Memory Logger:
+        MPI_Comm rawComm = MPI_COMM_SELF; // default in case it’s serial
+        Teuchos::RCP<const Teuchos::MpiComm<int>> mpiComm = Teuchos::rcp_dynamic_cast<const Teuchos::MpiComm<int>>(comm);
+        rawComm = *(mpiComm->getRawMpiComm());
+        memoryLogger_ = Teuchos::rcp(new MemoryLogger(rawComm, "memory_usage"));
     }
 
     template <class SC, class LO, class GO, class NO>
@@ -30,6 +36,12 @@ namespace FEDD
                                                                                                                        nonLinearTolerance_(1.e-6),
                                                                                                                        coeff_(0)
     {
+         // Memory Logger:
+        MPI_Comm rawComm = MPI_COMM_SELF; // default in case it’s serial
+        Teuchos::RCP<const Teuchos::MpiComm<int>> mpiComm = Teuchos::rcp_dynamic_cast<const Teuchos::MpiComm<int>>(comm);
+        rawComm = *(mpiComm->getRawMpiComm());
+        memoryLogger_ = Teuchos::rcp(new MemoryLogger(rawComm, "memory_usage"));
+
     }
     template <class SC, class LO, class GO, class NO>
     NonLinearProblem<SC, LO, GO, NO>::~NonLinearProblem()

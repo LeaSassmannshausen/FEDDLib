@@ -4,6 +4,7 @@
 #include "Problem.hpp"
 #include <Thyra_StateFuncModelEvaluatorBase.hpp>
 
+#include "feddlib/core/General/MemoryLogger.hpp"
 
 /*!
  Declaration of NonLinearProblem
@@ -59,6 +60,7 @@ public:
     typedef Thyra::LinearOpBase<SC> ThyraOp_Type;
     typedef Tpetra::Operator<SC,LO,GO,NO> TpetraOp_Type;
     typedef Thyra::BlockedLinearOpBase<SC> ThyraBlockOp_Type;
+
 
     NonLinearProblem(CommConstPtr_Type comm);
 
@@ -155,7 +157,8 @@ private:
     Teuchos::RCP<const ThyraVecSpace_Type> fSpace_;
 
     Teuchos::RCP<ThyraVec_Type> x0_;
-
+    Teuchos::RCP<MemoryLogger> memoryLogger_;    
+    
     virtual void evalModelImpl(
                        const ::Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
                        const ::Thyra::ModelEvaluatorBase::OutArgs<SC> &outArgs

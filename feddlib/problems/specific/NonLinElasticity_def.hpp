@@ -17,27 +17,6 @@ using Teuchos::REDUCE_SUM;
 using Teuchos::outArg;
 
 namespace FEDD {
- template<class SC,class LO,class GO,class NO>
-void NonLinElasticity<SC,LO,GO,NO>::print_mem_usage() {
-    struct rusage r;
-    getrusage(RUSAGE_SELF, &r);
-    std::cout << "Memory: " << (r.ru_maxrss / 1024.0) << " MB" << std::endl;
-}
-template<class SC,class LO,class GO,class NO>
-double NonLinElasticity<SC,LO,GO,NO>::get_global_memory_usage() {
-    double local_mem = get_mem_usage_mb();
-    double total_mem;
-   	reduceAll<int, double> (*this->getComm(), REDUCE_SUM, local_mem, outArg (total_mem));
-    
-    return total_mem;
-}
-
-template<class SC,class LO,class GO,class NO>
-double NonLinElasticity<SC,LO,GO,NO>::get_mem_usage_mb() {
-    struct rusage r;
-    getrusage(RUSAGE_SELF, &r);
-    return r.ru_maxrss / 1024.0; // MB
-}
 
 
 
@@ -67,6 +46,7 @@ u_rep_()
 
     timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter") , this->comm_));
 
+   
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -138,7 +118,6 @@ void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
 template<class SC,class LO,class GO,class NO>
 void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
     std::string material_model = this->parameterList_->sublist("Parameter").get("Material model","Neo-Hooke");
-    double prev_mem = get_mem_usage_mb();
     if (this->verbose_)
         std::cout << "-- Reassembly nonlinear elasticity with material model " << material_model <<" ("<<type <<") ... " << std::flush;
     
@@ -202,13 +181,15 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
         std::cout << "done -- " << std::endl;
 
 
-    double current_mem = get_mem_usage_mb();
-    std::cout << "Processor " << this->getComm()->getRank() << " ΔMem: " << current_mem - prev_mem << " MB" << std::endl;
-    print_mem_usage();
-    this->globalMemoryVector_.push_back(get_global_memory_usage());
-
+    // double current_mem = get_mem_usage_mb();
+    // std::cout << "Processor " << this->getComm()->getRank() << " ΔMem: " << current_mem - prev_mem << " MB" << std::endl;
+    // print_mem_usage();
+    if(this->parameterList_->sublist("General").get("Track Memory",false)){
+        this->globalMemoryVector_.push_back(this->memoryLogger_->get_global_memory_usage());
+        this->memoryLogger_->log(this->newtonStep_, this->timeSteppingTool_->currentTime());
+    }
 }
-    
+
 template<class SC,class LO,class GO,class NO>
 void NonLinElasticity<SC,LO,GO,NO>::reAssemble( MatrixPtr_Type& massmatrix, std::string type ) const
 {

@@ -22,6 +22,7 @@ SET(General_HEADERS
 	General/HDF5Export_def.hpp
 	General/HDF5Import.cpp
 	General/HDF5Export.cpp
+	General/MemoryLogger.hpp
 CACHE INTERNAL "")
 
 SET(General_SOURCES
