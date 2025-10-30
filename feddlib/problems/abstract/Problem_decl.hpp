@@ -225,6 +225,8 @@ public:
     PreconditionerPtr_Type preconditioner_;
     LinSolverBuilderPtr_Type linearSolverBuilder_;
 
+    vec_dbl_Type globalMemoryVector_;
+
     bool verbose_;
 
     std::vector<RhsFunc_Type>   rhsFuncVec_; // RHS functions of different blocks

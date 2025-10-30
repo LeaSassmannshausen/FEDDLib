@@ -34,6 +34,15 @@ namespace FEDD
     template <class SC, class LO, class GO, class NO>
     NonLinearProblem<SC, LO, GO, NO>::~NonLinearProblem()
     {
+        if(this->globalMemoryVector_.size()>0){
+            if(this->getComm()->getRank() ==0){
+                std::cout << "Global memory usage during NonLinearProblem:" <<std::endl;
+                for(UN i=0; i<this->globalMemoryVector_.size(); i++){
+                    std::cout << "Step " << i << " memory use " << this->globalMemoryVector_[i] << " MB" <<std::endl;
+                }
+            }
+            this->globalMemoryVector_.clear();
+        }
     }
 
     template <class SC, class LO, class GO, class NO>

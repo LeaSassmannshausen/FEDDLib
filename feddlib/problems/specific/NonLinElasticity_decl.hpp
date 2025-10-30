@@ -41,7 +41,13 @@ public:
     typedef typename NonLinearProblem_Type::BlockMultiVectorPtrArray_Type BlockMultiVectorPtrArray_Type;
     
     //@}
-    
+
+    void print_mem_usage();
+
+    double get_global_memory_usage();
+
+    double get_mem_usage_mb();
+
     //! @name Constructor/Destructor
     //@{
     NonLinElasticity( const DomainConstPtr_Type  &domain, std::string FEType, ParameterListPtr_Type parameterList );

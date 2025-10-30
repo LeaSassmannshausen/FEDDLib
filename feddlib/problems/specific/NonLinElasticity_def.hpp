@@ -1,6 +1,9 @@
 #ifndef NonLinElasticity_def_hpp
 #define NonLinElasticity_def_hpp
 #include "NonLinElasticity_decl.hpp"
+#include <sys/resource.h>
+#include <iostream>
+
 /*!
  Definition of NonLinElasticity
  
@@ -9,9 +12,37 @@
  @version 1.0
  @copyright CH
  */
-
+using Teuchos::reduceAll;
+using Teuchos::REDUCE_SUM;
+using Teuchos::outArg;
 
 namespace FEDD {
+ template<class SC,class LO,class GO,class NO>
+void NonLinElasticity<SC,LO,GO,NO>::print_mem_usage() {
+    struct rusage r;
+    getrusage(RUSAGE_SELF, &r);
+    std::cout << "Memory: " << (r.ru_maxrss / 1024.0) << " MB" << std::endl;
+}
+template<class SC,class LO,class GO,class NO>
+double NonLinElasticity<SC,LO,GO,NO>::get_global_memory_usage() {
+    double local_mem = get_mem_usage_mb();
+    double total_mem;
+   	reduceAll<int, double> (*this->getComm(), REDUCE_SUM, local_mem, outArg (total_mem));
+    
+    return total_mem;
+}
+
+template<class SC,class LO,class GO,class NO>
+double NonLinElasticity<SC,LO,GO,NO>::get_mem_usage_mb() {
+    struct rusage r;
+    getrusage(RUSAGE_SELF, &r);
+    return r.ru_maxrss / 1024.0; // MB
+}
+
+
+
+
+
 template<class SC,class LO,class GO,class NO>
 NonLinElasticity<SC,LO,GO,NO>::NonLinElasticity(const DomainConstPtr_Type  &domain, std::string FEType, ParameterListPtr_Type parameterList):
 NonLinearProblem<SC,LO,GO,NO>( parameterList, domain->getComm() ),
@@ -107,7 +138,7 @@ void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
 template<class SC,class LO,class GO,class NO>
 void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
     std::string material_model = this->parameterList_->sublist("Parameter").get("Material model","Neo-Hooke");
-
+    double prev_mem = get_mem_usage_mb();
     if (this->verbose_)
         std::cout << "-- Reassembly nonlinear elasticity with material model " << material_model <<" ("<<type <<") ... " << std::flush;
     
@@ -131,7 +162,7 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
                 this->feFactory_->assemblyAceDeformDiffuBlock(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(0)->getFEType(), 2, 1,this->dim_,concentration_,u_rep_,this->system_,0,0,this->residualVec_,0, this->parameterList_, "Jacobian", true/*call fillComplete*/);
             else 
                 this->feFactory_->assemblyNonLinearElasticity(this->dim_, this->getDomain(0)->getFEType(),2, this->dim_, u_rep_, this->system_, this->residualVec_, this->parameterList_,true);
-            
+
         }
         else 
             this->feFactory_->assemblyElasticityJacobianAndStressAceFEM(this->dim_, this->getDomain(0)->getFEType(), W, f, u_rep_, this->parameterList_, C_);
@@ -169,6 +200,13 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
     }
     if (this->verbose_)
         std::cout << "done -- " << std::endl;
+
+
+    double current_mem = get_mem_usage_mb();
+    std::cout << "Processor " << this->getComm()->getRank() << " ΔMem: " << current_mem - prev_mem << " MB" << std::endl;
+    print_mem_usage();
+    this->globalMemoryVector_.push_back(get_global_memory_usage());
+
 }
     
 template<class SC,class LO,class GO,class NO>

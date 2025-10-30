@@ -35,6 +35,7 @@ namespace FEDD
                                                                dofsPerNode_vec_(),
                                                                sourceTerm_(),
                                                                rhsFuncVec_(),
+                                                               globalMemoryVector_(0),
                                                                parasSourceFunc_(0)
 #ifdef FEDD_TIMER
                                                                ,
@@ -64,6 +65,7 @@ namespace FEDD
                                                                                                      dofsPerNode_vec_(),
                                                                                                      sourceTerm_(),
                                                                                                      rhsFuncVec_(),
+                                                                                                     globalMemoryVector_(0),
                                                                                                      parasSourceFunc_(0)
 #ifdef FEDD_TIMER
                                                                                                      ,
