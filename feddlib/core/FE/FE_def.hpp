@@ -492,25 +492,25 @@ void FE<SC,LO,GO,NO>::assemblyNonLinearElasticity(int dim,
 	     TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error, "Number Elements not the same as number assembleFE elements." );
 	
 
- 	SmallMatrixPtr_Type elementMatrix;
-    vec_dbl_Type solution_d;
+ 	// SmallMatrixPtr_Type elementMatrix;
+    vec_dbl_Type solution_d(dofs * numNodes);
     // solution_d.reserve(dofs * numNodes);
 
 	vec_dbl_ptr_Type rhsVec;
 
 	for (UN T=0; T<assemblyFEElements_.size(); T++) {
 
-		solution_d = getSolution(elements->getElement(T).getVectorNodeList(), d_rep,dofs);
+		getSolutionInto(elements->getElement(T).getVectorNodeList(), d_rep,dofs,solution_d);
 
 		assemblyFEElements_[T]->updateSolution(solution_d);
 
         assemblyFEElements_[T]->assembleJacobian();
-        elementMatrix = assemblyFEElements_[T]->getJacobian();              
-        addFeBlock(A, elementMatrix, elements->getElement(T), map, 0, 0, problemDisk);
+        // elementMatrix = assemblyFEElements_[T]->getJacobian();              
+        addFeBlock(A, assemblyFEElements_[T]->getJacobian(), elements->getElement(T), map, 0, 0, problemDisk);
 
         assemblyFEElements_[T]->assembleRHS();
-        rhsVec = assemblyFEElements_[T]->getRHS(); 
-        addFeBlockMv(resVec, rhsVec, elements->getElement(T),  dofs);
+        // rhsVec = assemblyFEElements_[T]->getRHS(); 
+        addFeBlockMv(resVec, assemblyFEElements_[T]->getRHS(), elements->getElement(T),  dofs);
 
         assemblyFEElements_[T]->advanceNewtonStep();
 
@@ -1581,12 +1581,10 @@ vec2D_dbl_Type FE<SC,LO,GO,NO>::getCoordinates(vec_LO_Type localIDs, vec2D_dbl_p
 template <class SC, class LO, class GO, class NO>
 vec_dbl_Type FE<SC,LO,GO,NO>::getSolution(vec_LO_Type localIDs, MultiVectorPtr_Type u_rep, int dofsVelocity){
 
-    Teuchos::ArrayRCP<SC>  uArray = u_rep->getDataNonConst(0);
-	
 	vec_dbl_Type solution(0);
 	for(int i=0; i < localIDs.size() ; i++){
 		for(int d=0; d<dofsVelocity; d++)
-			solution.push_back(uArray[localIDs[i]*dofsVelocity+d]);
+			solution.push_back(u_rep->getDataNonConst(0)[localIDs[i]*dofsVelocity+d]);
 	}
 
     return solution;
@@ -1605,11 +1603,10 @@ vec_dbl_Type FE<SC,LO,GO,NO>::getSolution(vec_LO_Type localIDs, MultiVectorPtr_T
 template <class SC, class LO, class GO, class NO>
 void FE<SC,LO,GO,NO>::getSolutionInto(vec_LO_Type localIDs, MultiVectorPtr_Type u_rep, int dofsVelocity, vec_dbl_Type& solution ){
 
-    Teuchos::ArrayRCP<SC>  uArray = u_rep->getDataNonConst(0);
-	
+    // Teuchos::ArrayRCP<SC>  uArray = u_rep->getDataNonConst(0);	
 	for(int i=0; i < localIDs.size() ; i++){
 		for(int d=0; d<dofsVelocity; d++)
-			solution[i*dofsVelocity+d] = uArray[localIDs[i]*dofsVelocity+d];
+			solution[i*dofsVelocity+d] = u_rep->getDataNonConst(0)[localIDs[i]*dofsVelocity+d];
 	}
 }
 
