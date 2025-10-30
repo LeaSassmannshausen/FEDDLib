@@ -55,6 +55,8 @@ class  AssembleFE_NonLinElas2 : public AssembleFE<SC,LO,GO,NO> {
     friend class AssembleFEFactory<SC,LO,GO,NO>; // Must have for specfic classes
 
 	
+	SmallMatrixPtr_Type elementMatrix_; // Matrix we fill with entries.
+
 	double E_ ; 
    	double lambda_;
 	double poissonRatio_;

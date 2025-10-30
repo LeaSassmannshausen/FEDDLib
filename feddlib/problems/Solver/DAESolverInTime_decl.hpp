@@ -10,6 +10,7 @@
 #include "feddlib/problems/specific/FSCI.hpp"
 #include "NonLinearSolver.hpp"
 #include "TimeSteppingTools.hpp"
+#include <sys/resource.h>
 
 /*!
  Declaration of DAESolverInTime
@@ -192,6 +193,9 @@ private:
     TimePtr_Type reassmbleForTimeTimer_;
     TimePtr_Type reassmbleUpdateFluidInTimeTimer_;
 #endif
+    void print_mem_usage();
+
+
 };
 }
 #endif

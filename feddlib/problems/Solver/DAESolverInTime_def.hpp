@@ -129,6 +129,13 @@ void DAESolverInTime<SC,LO,GO,NO>::defineTimeStepping(SmallMatrix<int> &timeStep
 }
 
 template<class SC,class LO,class GO,class NO>
+void DAESolverInTime<SC,LO,GO,NO>::print_mem_usage() {
+    struct rusage r;
+    getrusage(RUSAGE_SELF, &r);
+    std::cout << "Memory: " << (r.ru_maxrss / 1024.0) << " MB" << std::endl;
+}
+
+template<class SC,class LO,class GO,class NO>
 void DAESolverInTime<SC,LO,GO,NO>::advanceInTime(){
 
     TEUCHOS_TEST_FOR_EXCEPTION(problemTime_.is_null(), std::logic_error, "Mass system is null.");
@@ -1404,6 +1411,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
         this->problemTime_->computeValuesOfInterestAndExport();
 
         timeSteppingTool_->advanceTime(false/*output info*/);
+       
+        // We output the memory usage per time step
+        this->print_mem_usage();
         // this->problemTime_->assemble("UpdateTime"); // Zeit in FSI inkrementieren
         
         if (printData) {

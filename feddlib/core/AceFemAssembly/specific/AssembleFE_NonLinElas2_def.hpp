@@ -46,6 +46,9 @@ hp_(10)
 	dofsElement_ = dofs_*numNodes_; // "Dimension of return matrix"
 
 	this->rhsVec_.reset( new vec_dbl_Type ( dofsElement_,0.) );
+
+	this->elementMatrix_.reset(new SmallMatrix_Type( dofsElement_)); // Matrix we fill with entries.
+
 }
 
 /*!
@@ -60,11 +63,9 @@ template <class SC, class LO, class GO, class NO>
 void  AssembleFE_NonLinElas2<SC,LO,GO,NO>::assembleJacobian() {
 
 
-	SmallMatrixPtr_Type elementMatrix =Teuchos::rcp( new SmallMatrix_Type( dofsElement_)); // Matrix we fill with entries.
+	assemblyNonLinElas(elementMatrix_); // Function that fills the matrix. We pass though a pointer that will be filled.
 
-	assemblyNonLinElas(elementMatrix); // Function that fills the matrix. We pass though a pointer that will be filled.
-
-	this->jacobian_ = elementMatrix ; // We init the jacobian matrix with the matrix we just build.
+	this->jacobian_ = elementMatrix_ ; // We init the jacobian matrix with the matrix we just build.
 }
 
 /*!
