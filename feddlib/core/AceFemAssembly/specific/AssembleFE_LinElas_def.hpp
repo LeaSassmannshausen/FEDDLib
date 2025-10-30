@@ -35,6 +35,8 @@ AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params,tuple)
 
 	dofsElement_ = dofs_*numNodes_; // "Dimension of return matrix"
 
+	this->solution_.reset( new vec_dbl_Type (dofsElement_,0.) );
+
 }
 
 /*!

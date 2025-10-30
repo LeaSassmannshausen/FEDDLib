@@ -45,7 +45,7 @@ AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params,tuple)
     density_ = this->params_->sublist("Parameter").get("Density",1.);
 
 	dofsElement_ = dofsElementVelocity_+ dofsElementPressure_;
-
+   	this->solution_.reset( new vec_dbl_Type (dofsElement_,0.) );
 	SmallMatrix_Type coeff(2);
 	coeff[0][0]=1.; coeff[0][1] = 1.; coeff[1][0] = 1.; coeff[1][1] = 1.; // we keep it constant like this for now. For BDF time disc. okay.
 	coeff_ = coeff;

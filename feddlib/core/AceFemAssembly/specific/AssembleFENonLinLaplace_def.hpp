@@ -32,6 +32,7 @@ AssembleFENonLinLaplace<SC, LO, GO, NO>::AssembleFENonLinLaplace(
     // Same as this->getNodesRefConfig().size();
     this->numNodes_ = std::get<3>(this->diskTuple_->at(0));
     this->dofsElement_ = this->numNodes_ * this->dofs_;
+   	this->solution_.reset( new vec_dbl_Type (dofsElement_,0.) );
     // Specifying rhs func here for now
     // Should be done in main when possible
     this->rhsFunc_ = rhsFunc;

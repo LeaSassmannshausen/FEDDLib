@@ -36,7 +36,7 @@ namespace FEDD
         ////******************* If we have an analytical formula we could also just use Paraview Postprocessing tools to compute the viscosity **********************************
         dofsElementViscosity_ = this->dofsPressure_ * this->numNodesVelocity_; // So it is a scalar quantity but as it depend on the velocity it is defined at the nodes of the velocity
         this->constOutputField_ = vec_dbl_Type(dofsElementViscosity_);         ////**********************************************************************************
-
+    
         // Reading through parameterlist
         shearThinningModel = params->sublist("Material").get("ShearThinningModel", "");
         // New: We have to check which material model we use
@@ -57,6 +57,9 @@ namespace FEDD
         }
         else
             TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "No specific implementation for your material model request. Valid are:Carreau-Yasuda, Power-Law, Dimless-Carreau");
+
+        this->dofsElement_ = this->dofsElementVelocity_ + this->numNodesPressure_; // Velocity DOFs + Pressure DOFs
+      	this->solution_.reset( new vec_dbl_Type (dofsElement_,0.) );
 
     }
 

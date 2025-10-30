@@ -36,6 +36,8 @@ namespace FEDD
 		solution_n_.resize(60, 0.);
 		solution_n1_.resize(60, 0.);
 
+		this->solution_.reset( new vec_dbl_Type (dofsElement_,0.) );
+
 		/*timeParametersVec_.resize(0, vec_dbl_Type(2));
 		numSegments_ = this->params_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").get("Number of Segments",0);
 
