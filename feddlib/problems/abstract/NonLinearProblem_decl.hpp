@@ -140,6 +140,9 @@ public:
 #endif
     Teuchos::RCP<Thyra::PreconditionerBase<SC> > create_W_prec() const;
 
+    // Tool to log memory usage
+    Teuchos::RCP<MemoryLogger> memoryLogger_;    
+
 
 private:
     mutable bool precInitOnly_; //Help variable to signal that we constructed the initial preconditioner 
@@ -157,7 +160,6 @@ private:
     Teuchos::RCP<const ThyraVecSpace_Type> fSpace_;
 
     Teuchos::RCP<ThyraVec_Type> x0_;
-    Teuchos::RCP<MemoryLogger> memoryLogger_;    
     
     virtual void evalModelImpl(
                        const ::Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,
