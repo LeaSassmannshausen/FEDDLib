@@ -49,7 +49,7 @@ hp_(10)
 
 	this->elementMatrix_.reset(new SmallMatrix_Type( dofsElement_)); // Matrix we fill with entries.
 
-	// this->solution_.reset( new vec_dbl_Type (dofsElement_,0.) );
+	this->solution_.reset( new vec_dbl_Type (dofsElement_,0.) );
 }
 
 /*!
