@@ -59,7 +59,7 @@ namespace FEDD
             TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "No specific implementation for your material model request. Valid are:Carreau-Yasuda, Power-Law, Dimless-Carreau");
 
         this->dofsElement_ = this->dofsElementVelocity_ + this->numNodesPressure_; // Velocity DOFs + Pressure DOFs
-      	this->solution_.reset( new vec_dbl_Type (dofsElement_,0.) );
+      	this->solution_.reset( new vec_dbl_Type (this->dofsElement_,0.) );
 
     }
 
