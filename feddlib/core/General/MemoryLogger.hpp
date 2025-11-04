@@ -11,7 +11,8 @@ namespace FEDD {
 class MemoryLogger {
 public:
     MemoryLogger(MPI_Comm comm, const std::string &basename = "memlog")
-        : comm_(comm)
+        : comm_(comm),
+        basename(basename)
     {
         MPI_Comm_rank(comm_, &rank_);
         MPI_Comm_size(comm_, &size_);
@@ -69,6 +70,7 @@ private:
     MPI_Comm comm_;
     int rank_, size_;
     std::ofstream file_;
+    std::string basename;
 
     // Peak resident set size (ru_maxrss) – kilobytes → MB
     static double getPeakRSS() {
