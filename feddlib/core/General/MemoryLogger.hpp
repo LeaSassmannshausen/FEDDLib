@@ -16,11 +16,6 @@ public:
         MPI_Comm_rank(comm_, &rank_);
         MPI_Comm_size(comm_, &size_);
 
-        // Create per-rank log file, e.g. memlog_rank000.csv
-        char fname[256];
-        sprintf(fname, "%s_rank%03d.csv", basename.c_str(), rank_);
-        file_.open(fname, std::ios::out);
-        file_ << "Time step, Newton step,current_MB,peak_MB" << std::endl;
     }
 
     ~MemoryLogger() {
@@ -30,6 +25,16 @@ public:
 
     // Call this once per time step
     void log(int step,double timeStep=0.0) {
+
+        // Create per-rank log file, e.g. memlog_rank000.csv
+        if(file_.is_open()==false)
+        {
+            char fname[256];
+            sprintf(fname, "%s_rank%03d.csv", basename.c_str(), rank_);
+            file_.open(fname, std::ios::out);
+            file_ << "Time step, Newton step,current_MB,peak_MB" << std::endl;
+        }
+
         double current = getCurrentRSS();
         double peak = getPeakRSS();
 
