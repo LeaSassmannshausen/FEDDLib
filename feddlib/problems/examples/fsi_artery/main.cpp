@@ -523,7 +523,7 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
             // Struktur: 7 = linke (z=0) Seite, 8 = rechte (z=L) seite. 13,14 einzelne Freiheitsgrade festgehalten in x,y Richtung
             // Interface: 6 , 9 , 10  
             // #####################
-            bool fullInterfaceBC = parameterListProblem->sublist("Parameter").get("BC on Interface",false);
+            bool fullInterfaceBC = parameterListProblem->sublist("Parameter").get("BC on Interface",true);
 
             // Fluid-RW
             {
