@@ -672,7 +672,7 @@ int main(int argc, char *argv[])
                             inflowProfile = blockFluidDummy->getBlock(0);
                         }
                         else{
-                            HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_parabolic_"+meshName+"_"+discType);
+                            HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_"+meshName+"_"+discType);
                             Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5("solution");
                             inflowProfile = solutionImported;
                         }
