@@ -8,7 +8,8 @@
         
         <Parameter name="FSI" type="bool" value="true"/>
         <Parameter name="Geometry Explicit" type="bool" value="true"/>
-        
+        <Parameter name="Use AceGen Interface" type="bool" value="true"/>
+
         <Parameter name="relNonLinTol" type="double" value="1.0e-8"/>
         <Parameter name="absNonLinTol" type="double" value="1.0e-8"/>
         <Parameter name="Combo" type="string" value="OR"/>

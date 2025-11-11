@@ -225,7 +225,7 @@ public:
     PreconditionerPtr_Type preconditioner_;
     LinSolverBuilderPtr_Type linearSolverBuilder_;
 
-    vec_dbl_Type globalMemoryVector_;
+    mutable vec_dbl_Type globalMemoryVector_;
 
     bool verbose_;
 

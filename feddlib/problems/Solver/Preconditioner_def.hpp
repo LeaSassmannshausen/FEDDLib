@@ -468,7 +468,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
             if(!pressureProjection_.is_null() && ( dofsPerNodeVector.size() > 1 || dofsPerNodeVector[0] == 1) ){
                 pressureProjection_->merge(); // We merge the projection vector, as FROSch does not distinguish between blocks
 
-                Teuchos::RCP< Tpetra::MultiVector<SC,LO,GO,NO> > vectorTpetra =  pressureProjection_->getMergedVector()->getTpetraMultiVectorNonConst();
+                Teuchos::RCP< Tpetra::MultiVector<SC,LO,GO,NO> > vectorTpetra =  pressureProjection_->getMergedVectorNonConst()->getTpetraMultiVectorNonConst();
                 Teuchos::RCP< Xpetra::TpetraMultiVector<SC,LO,GO,NO> > vectorXpetraTpetra = Teuchos::rcp(new Xpetra::TpetraMultiVector<SC,LO,GO,NO>(vectorTpetra));
                 Teuchos::RCP< Xpetra::MultiVector<SC,LO,GO,NO> > vectorXpetra = Teuchos::rcp_dynamic_cast<Xpetra::MultiVector<SC,LO,GO,NO>>(vectorXpetraTpetra);
 

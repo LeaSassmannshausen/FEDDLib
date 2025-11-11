@@ -413,7 +413,7 @@ void NavierStokes<SC,LO,GO,NO>::updateConvectionDiffusionOperator() const{
     if ( !this->parameterList_->sublist("Teko Parameters").sublist("Preconditioner Types").sublist("Teko").get("Inverse Type","SIMPLE").compare("PCD") 
                 || !this->parameterList_->sublist("General").get("Preconditioner Method","Monolithic").compare("PCD")) 
     {
-        std::cout << "NavierStokes<SC,LO,GO,NO>::updateConvectionDiffusionOperator() set to TRUE" << std::endl;
+        // std::cout << "NavierStokes<SC,LO,GO,NO>::updateConvectionDiffusionOperator() set to TRUE" << std::endl;
         NAVIER_STOKES_START(ReassemblePCD," Reassembling Matrix for PCD ");
       
         MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
