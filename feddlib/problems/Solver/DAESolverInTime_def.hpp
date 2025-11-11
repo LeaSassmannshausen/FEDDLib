@@ -2500,15 +2500,18 @@ void DAESolverInTime<SC,LO,GO,NO>::setupExporter(){
     for (int i=0; i<timeStepDef_.size(); i++) {
         // \lambda in FSI, koennen wir nicht exportieren, weil keine Elementliste dafuer vorhanden
         bool exportThisBlock  = true;
-        if(this->parameterList_->sublist("Parameter").get("FSI",false) == true  )
-            exportThisBlock = (i != 3);
-        else if(this->parameterList_->sublist("Parameter").get("FSCI",false) == true)
-            exportThisBlock = (i != 3);
+        exportThisBlock = !((this->parameterList_->sublist("Parameter").get("FSI",false) ||this->parameterList_->sublist("Parameter").get("FSCI",false))  && i == 3);
 
         if(exportThisBlock)
         {
             ExporterPtr_Type exporterPtr(new Exporter_Type());
             MultiVectorConstPtr_Type exportVector = problemTime_->getSolution()->getBlock(i);
+
+            // In case of FSCI and Geometry Explicit, we skip i=4 because it contains the d_f variable information. The chemistry is contained in i=5
+            if(this->parameterList_->sublist("Parameter").get("FSCI",false)==true && this->parameterList_->sublist("Parameter").get("Geometry Explicit",false)==true)
+                if(i==4 )
+                     i=5; // we skip i=4 because in this case it contains the d_f variable information. The chemistry is contained in i=5
+                
 
             DomainConstPtr_Type dom = problemTime_->getDomain(i);
 
@@ -2530,6 +2533,8 @@ void DAESolverInTime<SC,LO,GO,NO>::setupExporter(){
 
             exporter_vector_.push_back(exporterPtr);
             export_solution_vector_.push_back(exportVector);
+
+            std::cout << "Exporter setup for variable " << varName << " and i " << i << std::endl;
         }
     }
     boolExporterSetup_ = true;
@@ -2542,7 +2547,6 @@ void DAESolverInTime<SC,LO,GO,NO>::setupExporter(BlockMultiVectorPtr_Type& solSh
         // \lambda in FSI, koennen wir nicht exportieren, weil keine Elementliste dafuer vorhanden
         bool exportThisBlock  = true;
         exportThisBlock = !((this->parameterList_->sublist("Parameter").get("FSI",false) ||this->parameterList_->sublist("Parameter").get("FSCI",false))  && i == 3);
-        std::cout << "exportThisBlock " << exportThisBlock << std::endl;
         if(exportThisBlock)
         {
             ExporterPtr_Type exporterPtr(new Exporter_Type());
