@@ -623,7 +623,7 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
   //Now we need to add the coupling blocks
     this->system_->getBlock(0,3)->apply( *this->solution_->getBlock(3) , *residualFluidVelocityFSCI, Teuchos::NO_TRANS, -1., 1. );
     
-    this->system_->getBlock(2,3)->apply( *this->solution_->getBlock(3) , *residualSolidFSCI, Teuchos::NO_TRANS, -1., 1. ); // Here -1 was changed to 1
+    this->system_->getBlock(2,3)->apply( *this->solution_->getBlock(3) , *residualSolidFSCI, Teuchos::NO_TRANS, -1., -1. ); // Here -1 was changed to 1
     
     // this->solution_->getBlock(3)->print();
 
