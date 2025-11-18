@@ -559,12 +559,9 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                 else if(flagInlet ==4){
                     bool realArtery = parameterListProblem->sublist("Parameter Fluid").get("Real artery",false);
                     Teuchos::RCP<HDF5Import<SC,LO,GO,NO>> importer;
-                    if(realArtery){
-                        importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_artery_"+discType));
-                    }
-                    else{ 
-                        importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_"+meshName+"_"+discType));
-                    }                                                                                               
+
+                    importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_"+meshName+"_"+discType));
+                                                                                                             
 
                     Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer->readVariablesHDF5("solution");
                     solutionLaplace = solutionImported; // This must me normalized to 1!!

@@ -596,11 +596,11 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
     // we need to account for the coupling in the residuals
     this->problemSCI_->calculateNonLinResidualVec( "reverse", time );
 
-    //this->problemSCI_->getResidualVector()->getBlockNonConst(0)->scale(-1.0);
+    // this->problemSCI_->getResidualVector()->getBlockNonConst(0)->scale(-1.0);
     
     this->residualVec_->addBlock(  this->problemSCI_->getResidualVector()->getBlockNonConst(0) , 2);
     if(!chemistryExplicit_) {
-        this->problemSCI_->getResidualVector()->getBlockNonConst(1)->scale(-1.);
+        // this->problemSCI_->getResidualVector()->getBlockNonConst(1)->scale(-1.);
         this->residualVec_->addBlock(this->problemSCI_->getResidualVector()->getBlockNonConst(1), 4);
     }
     MultiVectorPtr_Type residualFluidVelocityFSCI =
@@ -623,7 +623,7 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
   //Now we need to add the coupling blocks
     this->system_->getBlock(0,3)->apply( *this->solution_->getBlock(3) , *residualFluidVelocityFSCI, Teuchos::NO_TRANS, -1., 1. );
     
-    this->system_->getBlock(2,3)->apply( *this->solution_->getBlock(3) , *residualSolidFSCI, Teuchos::NO_TRANS, 1., -1. ); // Here -1 was changed to 1
+    this->system_->getBlock(2,3)->apply( *this->solution_->getBlock(3) , *residualSolidFSCI, Teuchos::NO_TRANS, -1., 1. ); // Here -1 was changed to 1
     
     // this->solution_->getBlock(3)->print();
 
