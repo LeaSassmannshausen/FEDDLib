@@ -17,6 +17,7 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(data_fsiArtery
 	 laplace_parabolic_arterie_with_plaque_initma_media_adventitia_fluid_fine_P2.h5
 	 arterie_with_plaque_initma_media_adventitia_solid_fine_2000k.mesh
 	arterie_with_plaque_initma_media_adventitia_fluid_fine_900k.mesh
+	laplace_parabolic_arterie_with_plaque_initma_media_adventitia_fluid_fine_900k_P2.h5
 	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
 	DEST_FILES parametersPrecGE.xml parametersPrecGI.xml parametersPrecGeometry.xml  
 	parametersProblemFSI.xml parametersSolverFSI.xml parametersSolverGeometry.xml 
@@ -29,6 +30,7 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(data_fsiArtery
 	laplace_parabolic_arterie_with_plaque_initma_media_adventitia_fluid_fine_P2.h5
 	arterie_with_plaque_initma_media_adventitia_solid_fine_2000k.mesh
 	arterie_with_plaque_initma_media_adventitia_fluid_fine_900k.mesh
+	laplace_parabolic_arterie_with_plaque_initma_media_adventitia_fluid_fine_900k_P2.h5
 
 	EXEDEPS fsi_artery
 )
