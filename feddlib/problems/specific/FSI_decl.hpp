@@ -1,6 +1,7 @@
 #ifndef FSI_decl_hpp
 #define FSI_decl_hpp
 #include "feddlib/problems/abstract/TimeProblem.hpp"
+#include "feddlib/problems/abstract/MinPrecProblem.hpp"
 #include "feddlib/problems/specific/NavierStokes.hpp"
 #include "feddlib/problems/specific/LinElas.hpp"
 #include "feddlib/problems/specific/NonLinElasticity.hpp"
@@ -12,6 +13,8 @@ namespace FEDD{
 
 template <class SC , class LO , class GO , class NO >
 class TimeProblem;
+template <class SC , class LO , class GO , class NO >
+class MinPrecProblem;
 template <class SC , class LO , class GO , class NO >
 class Geometry;
 template <class SC , class LO , class GO , class NO >
@@ -41,7 +44,8 @@ public:
     typedef typename Problem_Type::Domain_Type Domain_Type;
     typedef Teuchos::RCP<Domain_Type > DomainPtr_Type;
     typedef typename Problem_Type::DomainConstPtr_Type DomainConstPtr_Type;
-    
+    typedef std::vector<DomainConstPtr_Type> DomainConstPtr_vec_Type;
+
     typedef typename Problem_Type::Domain_Type::Mesh_Type Mesh_Type;
     typedef typename Problem_Type::Domain_Type::MeshPtr_Type MeshPtr_Type;
     
@@ -53,6 +57,8 @@ public:
 
     typedef TimeProblem<SC,LO,GO,NO> TimeProblem_Type;
     typedef Teuchos::RCP<TimeProblem_Type> TimeProblemPtr_Type;
+    typedef MinPrecProblem<SC,LO,GO,NO> MinPrecProblem_Type;
+    typedef Teuchos::RCP<MinPrecProblem_Type> MinPrecProblemPtr_Type;
 
 // #ifdef FEDD_HAVE_ACEGENINTERFACE
 //     typedef LinElasAssFE<SC,LO,GO,NO> StructureProblem_Type;
@@ -184,6 +190,10 @@ public:
         return problemGeometry_;
     }
     
+    /// @brief Initialisation mini prec problems of FSI preconditioner
+    /// @param type  
+    void initPreconditionerFSI( std::string type ); 
+
     // Berechnet von einer dofID, d.h. dim*nodeID+(0,1,2), die entsprechende nodeID.
     // IN localDofNumber steht dann, ob es die x- (=0), y- (=1) oder z-Komponente (=2) ist.
     void toNodeID(UN dim, GO dofID, GO& nodeID, LO& localDofNumber ) const
@@ -254,6 +264,10 @@ private:
     mutable double flowRateOutlet_n_1_ =0.; // flowrate from previous timestep
     mutable double pressureOutlet_ =0.;
 
+    // Mini prec problems for FSI preconditioner
+    MinPrecProblemPtr_Type probFluid_;
+    MinPrecProblemPtr_Type probSolid_;
+    MinPrecProblemPtr_Type probGeo_;
 public:
         // NOX and FSI only implement in combination with TimeProblem
 

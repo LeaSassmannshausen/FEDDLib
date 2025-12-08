@@ -102,6 +102,7 @@ int LinearSolver<SC,LO,GO,NO>::solveMonolithic(Problem_Type* problem, BlockMulti
         pListThyraSolver->sublist("Preconditioner Types").sublist("FROSch").set("Only apply coarse",false);
     }
 
+
     Teuchos::RCP<Teuchos::FancyOStream> out = Teuchos::VerboseObjectBase::getDefaultOStream();
 
     lowsFactory->setOStream(out);

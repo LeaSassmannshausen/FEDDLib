@@ -152,6 +152,9 @@ public:
     /// @return pressure projection
     BlockMultiVectorPtr_Type getPressureProjection(){return pressureProjection_;}
 
+    void setProblemFluidFSI( MinPrecProblemPtr_Type probFluid ){ probFluid_ = probFluid; }
+    void setProblemSolidFSI( MinPrecProblemPtr_Type probSolid ){ probSolid_ = probSolid; }
+    void setProblemGeoFSI( MinPrecProblemPtr_Type probGeo ){ probGeo_ = probGeo; }
 
 private:
     ThyraPrecPtr_Type thyraPrec_;

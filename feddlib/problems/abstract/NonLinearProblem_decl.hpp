@@ -114,6 +114,11 @@ public:
     /// @param nmbVectors 
     void initializeVectorsNonLinear(int nmbVectors=1);
 
+    /// @brief Initialisation mini prec problems of FSI preconditioner
+    /// @param type 
+    virtual void initPreconditionerFSI( std::string type ) = 0;
+
+
     /// @brief Calculate the 2-norm of the residual vector
     /// @return Value of the norm of the residual
     double calculateResidualNorm() const;

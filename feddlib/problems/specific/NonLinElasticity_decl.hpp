@@ -74,6 +74,10 @@ public:
 
     mutable Teuchos::RCP<TimeSteppingTools>	timeSteppingTool_;
 
+    /// @brief Initialisation mini prec problems of FSI preconditioner
+    /// @param type 
+    virtual void initPreconditionerFSI( std::string type ) {};
+
         
 private:
     

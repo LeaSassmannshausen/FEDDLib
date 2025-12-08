@@ -917,14 +917,15 @@ Teuchos::RCP<Thyra::PreconditionerBase<SC> > TimeProblem<SC,LO,GO,NO>::create_W_
         std::string type = this->parameterList_->sublist("General").get("Preconditioner Method","Monolithic");
         this->setBoundariesSystem();
         
-        // if ( type == "Teko" || type == "FaCSI-Teko" || || type == "FaCSI-Block" || type =="Diagonal" ) { //we need to construct the whole preconditioner if Teko is used
-        //     nonLinProb->setupPreconditioner( type );
-        //     precInitOnly_ = false;
-        // }
-        // else{
+        if ( type == "FaCSI-Teko" || type == "FaCSI"  || type == "FaCSI-Block") { // In case of FSI preconditioning we need to setup the preconditioner differently
+            nonLinProb->initPreconditionerFSI( type );
+            nonLinProb->setupPreconditioner( type );
+            precInitOnly_ = false;
+        }
+        else{
             nonLinProb->setupPreconditioner( type ); //nonLinProb->initializePreconditioner( type );
             precInitOnly_ = false;
-        // }
+        }
     }
     
     Teuchos::RCP<const Thyra::PreconditionerBase<SC> > thyraPrec =  nonLinProb->getPreconditionerConst()->getThyraPrecConst();

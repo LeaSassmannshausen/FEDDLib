@@ -986,10 +986,15 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerTeko( )
     }
 
 }
+#endif
 
 template <class SC,class LO,class GO,class NO>
 void Preconditioner<SC,LO,GO,NO>::buildPreconditionerFaCSI( std::string type )
 {
+    TEUCHOS_TEST_FOR_EXCEPTION( timeProblem_.is_null(), std::logic_error, "FaCSI Preconditioner can only be used with a time dependent FSI problem." );
+    TEUCHOS_TEST_FOR_EXCEPTION( probFluid_.is_null(), std::logic_error, "FaCSI Preconditioner problem fluid is not set." );
+    TEUCHOS_TEST_FOR_EXCEPTION( probSolid_.is_null(), std::logic_error, "FaCSI Preconditioner problem solid is not set." );
+
     typedef Domain<SC,LO,GO,NO> Domain_Type;
     typedef Teuchos::RCP<const Domain_Type> DomainConstPtr_Type;
     typedef std::vector<DomainConstPtr_Type> DomainConstPtr_vec_Type;
@@ -1004,10 +1009,10 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerFaCSI( std::string type )
 
     // Get FSI problem
     ProblemPtr_Type steadyProblem = timeProblem_->getUnderlyingProblem();
-    Teuchos::RCP< FSI<SC,LO,GO,NO> > steadyFSI = Teuchos::rcp_dynamic_cast<FSI<SC,LO,GO,NO> >(steadyProblem);
+    // Teuchos::RCP< FSI<SC,LO,GO,NO> > steadyFSI = Teuchos::rcp_dynamic_cast<FSI<SC,LO,GO,NO> >(steadyProblem);
     BlockMatrixPtr_Type fsiSystem = timeProblem_->getSystemCombined();
 
-    ParameterListPtr_Type pLFluid = steadyFSI->getFluidProblem()->getParameterList();
+    // ParameterListPtr_Type pLFluid = steadyFSI->getFluidProblem()->getParameterList();
     
  
     std::string precTypeFluid;
@@ -1037,55 +1042,55 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerFaCSI( std::string type )
     BlockMatrixPtr_Type fluidSystem = Teuchos::rcp( new BlockMatrix_Type(2) );
     
     // We build copies of the fluid system with homogenous Dirichlet boundary conditions on the interface
-    // MatrixPtr_Type f = Teuchos::rcp(new Matrix_Type( fsiSystem->getBlock(0,0) ) );
+    MatrixPtr_Type f = Teuchos::rcp(new Matrix_Type( fsiSystem->getBlock(0,0) ) );
    
-    // MatrixPtr_Type bt = Teuchos::rcp(new Matrix_Type( fsiSystem->getBlock(0,1) ) );
-    // MatrixPtr_Type b = Teuchos::rcp(new Matrix_Type( fsiSystem->getBlock(1,0) ) );
-    // MatrixPtr_Type c;
-    // if ( fsiSystem->blockExists(1,1) )
-    //     c = Teuchos::rcp(new Matrix_Type( fsiSystem->getBlock(1,1) ) );
-    // fluidSystem->addBlock( f, 0, 0 );
-    // fluidSystem->addBlock( bt, 0, 1 );
-    // fluidSystem->addBlock( b, 1, 0 );
-    // if ( fsiSystem->blockExists(1,1) )
-    //     fluidSystem->addBlock( c, 1, 1 );
+    MatrixPtr_Type bt = Teuchos::rcp(new Matrix_Type( fsiSystem->getBlock(0,1) ) );
+    MatrixPtr_Type b = Teuchos::rcp(new Matrix_Type( fsiSystem->getBlock(1,0) ) );
+    MatrixPtr_Type c;
+    if ( fsiSystem->blockExists(1,1) )
+        c = Teuchos::rcp(new Matrix_Type( fsiSystem->getBlock(1,1) ) );
+    fluidSystem->addBlock( f, 0, 0 );
+    fluidSystem->addBlock( bt, 0, 1 );
+    fluidSystem->addBlock( b, 1, 0 );
+    if ( fsiSystem->blockExists(1,1) )
+        fluidSystem->addBlock( c, 1, 1 );
 
 
    // We want to use the underlying Navier-Stokes Fluid Problem to build the preconditioner
     // We start with the fluid time problem
-    Teuchos::RCP< TimeProblem<SC,LO,GO,NO> > fluidProblem = steadyFSI->problemTimeFluid_;
-    fluidProblem->combineSystems(); // Build combined system || check if even is neccesary
-    fluidProblem->setBoundariesSystem(); // Set boundaries || might also need fsi bc
-    // The we cast the timeproblem to original Navier-Stokes problem and use it to build preconditioner
-    Teuchos::RCP< NavierStokes<SC,LO,GO,NO> > fluidProblemSteady = Teuchos::rcp_dynamic_cast<NavierStokes<SC,LO,GO,NO> >(fluidProblem->getUnderlyingProblem());
+    // Teuchos::RCP< TimeProblem<SC,LO,GO,NO> > fluidProblem = steadyFSI->problemTimeFluid_;
+    // fluidProblem->combineSystems(); // Build combined system || check if even is neccesary
+    // fluidProblem->setBoundariesSystem(); // Set boundaries || might also need fsi bc
+    // // The we cast the timeproblem to original Navier-Stokes problem and use it to build preconditioner
+    // Teuchos::RCP< NavierStokes<SC,LO,GO,NO> > fluidProblemSteady = Teuchos::rcp_dynamic_cast<NavierStokes<SC,LO,GO,NO> >(fluidProblem->getUnderlyingProblem());
 
-    faCSIBCFactory_->setSystem( fluidProblem->getSystemCombined() );
+    // faCSIBCFactory_->setSystem( fluidProblem->getSystemCombined() );
+    probFluid_->initializeSystem( fluidSystem );
+    probFluid_->setupPreconditioner( precTypeFluid );
+    precFluid_ = probFluid_->getPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
 
-    fluidProblemSteady->setupPreconditioner( precTypeFluid );
-    precFluid_ = fluidProblemSteady->getPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
+    // //Setup structure problem
+    // bool nonlinearStructure = false;
+    // if (steadyFSI->getStructureProblem().is_null())
+    //     nonlinearStructure = true;
 
-    //Setup structure problem
-    bool nonlinearStructure = false;
-    if (steadyFSI->getStructureProblem().is_null())
-        nonlinearStructure = true;
+    // ParameterListPtr_Type pLStructure;
+    // if (nonlinearStructure)
+    //     pLStructure = steadyFSI->getNonLinStructureProblem()->getParameterList();
+    // else
+    //     pLStructure = steadyFSI->getStructureProblem()->getParameterList();
 
-    ParameterListPtr_Type pLStructure;
-    if (nonlinearStructure)
-        pLStructure = steadyFSI->getNonLinStructureProblem()->getParameterList();
-    else
-        pLStructure = steadyFSI->getStructureProblem()->getParameterList();
-
-    if (probSolid_.is_null()){
-        probSolid_ = Teuchos::rcp( new MinPrecProblem_Type(  pLStructure, timeProblem_->getComm() ) );
-        DomainConstPtr_vec_Type structDomain;
-        if (nonlinearStructure)
-            structDomain = steadyFSI->getNonLinStructureProblem()->getDomainVector();
-        else
-            structDomain = steadyFSI->getStructureProblem()->getDomainVector();
+    // if (probSolid_.is_null()){
+    //     probSolid_ = Teuchos::rcp( new MinPrecProblem_Type(  pLStructure, timeProblem_->getComm() ) );
+    //     DomainConstPtr_vec_Type structDomain;
+    //     if (nonlinearStructure)
+    //         structDomain = steadyFSI->getNonLinStructureProblem()->getDomainVector();
+    //     else
+    //         structDomain = steadyFSI->getStructureProblem()->getDomainVector();
         
-        probSolid_->initializeDomains( structDomain );
-        probSolid_->initializeLinSolverBuilder( timeProblem_->getLinearSolverBuilder() );
-    }
+    //     probSolid_->initializeDomains( structDomain );
+    //     probSolid_->initializeLinSolverBuilder( timeProblem_->getLinearSolverBuilder() );
+    // }
     
     BlockMatrixPtr_Type structSystem = Teuchos::rcp( new BlockMatrix_Type(1) );
 
@@ -1095,19 +1100,19 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerFaCSI( std::string type )
     
     probSolid_->setupPreconditioner( );
 
-    precStruct_ = probSolid_->getPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
+    precStruct_ =probSolid_->getPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
 
 
     //Setup geometry problem
 
     if (timeProblem_->getSystem()->size()>4) {
-        ParameterListPtr_Type pLGeometry = steadyFSI->getGeometryProblem()->getParameterList();
-        if (probGeo_.is_null()) {
-            probGeo_ = Teuchos::rcp( new MinPrecProblem_Type( pLGeometry, timeProblem_->getComm() ) );
-            DomainConstPtr_vec_Type geoDomain = steadyFSI->getGeometryProblem()->getDomainVector();
-            probGeo_->initializeDomains( geoDomain );
-            probGeo_->initializeLinSolverBuilder( timeProblem_->getLinearSolverBuilder() );
-        }
+        // ParameterListPtr_Type pLGeometry = steadyFSI->getGeometryProblem()->getParameterList();
+        // if (probGeo_.is_null()) {
+        //     probGeo_ = Teuchos::rcp( new MinPrecProblem_Type( pLGeometry, timeProblem_->getComm() ) );
+        //     DomainConstPtr_vec_Type geoDomain = steadyFSI->getGeometryProblem()->getDomainVector();
+        //     probGeo_->initializeDomains( geoDomain );
+        //     probGeo_->initializeLinSolverBuilder( timeProblem_->getLinearSolverBuilder() );
+        // }
         
         BlockMatrixPtr_Type geoSystem = Teuchos::rcp( new BlockMatrix_Type(1) );
 
@@ -1118,6 +1123,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerFaCSI( std::string type )
         probGeo_->setupPreconditioner( );
 
         precGeo_ = probGeo_->getPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
+        // precGeo_ = timeProblem_->getGeometryPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
     }
     bool shape = false;
     if (fsiSystem->size()>4) {
@@ -1174,6 +1180,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerFaCSI( std::string type )
     precondtionerIsBuilt_ = true;
 
 }
+
 
 template <class SC,class LO,class GO,class NO>
 void Preconditioner<SC,LO,GO,NO>::setPressureMassMatrix(MatrixPtr_Type massMatrix) const{
@@ -1759,7 +1766,6 @@ void Preconditioner<SC,LO,GO,NO>::setVelocityMassMatrix(MatrixPtr_Type massMatri
     velocityMassMatrix_ = massMatrix->getThyraLinOp();
     velocityMassMatrixMatrixPtr_ = massMatrix;
 }
-#endif
 
 template <class SC,class LO,class GO,class NO>
 void Preconditioner<SC,LO,GO,NO>::exportCoarseBasis( ){

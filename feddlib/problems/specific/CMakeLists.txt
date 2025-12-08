@@ -23,9 +23,9 @@ set(problems_specific_HEADERS
     specific/NonLinElasticity_decl.hpp
     specific/NonLinElasticity_def.hpp
     specific/NonLinElasticity.hpp
-    specific/NonLinLaplace_decl.hpp
-    specific/NonLinLaplace_def.hpp
-    specific/NonLinLaplace.hpp
+    # specific/NonLinLaplace_decl.hpp
+    # specific/NonLinLaplace_def.hpp
+    # specific/NonLinLaplace.hpp
 	specific/Stokes_decl.hpp
 	specific/Stokes_def.hpp
 	specific/Stokes.hpp
@@ -43,7 +43,7 @@ set(problems_specific_SOURCES
 	specific/NavierStokes.cpp
 	specific/NavierStokesAssFE.cpp
     specific/NonLinElasticity.cpp
-    specific/NonLinLaplace.cpp
+    # specific/NonLinLaplace.cpp
     specific/Stokes.cpp
     specific/FSI.cpp
 CACHE INTERNAL "")

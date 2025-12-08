@@ -156,14 +156,43 @@ exporterGeo_()
     // }
 }
 
-template<class SC,class LO,class GO,class NO>
-void FSI<SC,LO,GO,NO>::findDisplacementTurek2DBenchmark(){
+template <class SC, class LO, class GO, class NO> 
+void FSI<SC, LO, GO, NO>::initPreconditionerFSI(std::string type) {
+    if (probSolid_.is_null()){
+        probSolid_ = Teuchos::rcp( new MinPrecProblem_Type(  problemTimeStructure_->getParameterList(), problemTimeStructure_->getComm() ) );
+        DomainConstPtr_vec_Type structDomain = problemTimeStructure_->getUnderlyingProblem()->getDomainVector();
+        
+        probSolid_->initializeDomains( structDomain );
+        probSolid_->initializeLinSolverBuilder( problemTimeStructure_->getLinearSolverBuilder() );
+        this->getPreconditioner()->setProblemSolidFSI( probSolid_ );
+    }  
+    
+    if(probFluid_.is_null()){
+        probFluid_ = Teuchos::rcp( new MinPrecProblem_Type(  problemTimeFluid_->getParameterList(), problemTimeFluid_->getComm() ) );
+        DomainConstPtr_vec_Type fluidDomain = problemTimeFluid_->getUnderlyingProblem()->getDomainVector();
+        
+        probFluid_->initializeDomains( fluidDomain );
+        probFluid_->initializeLinSolverBuilder( problemTimeFluid_->getLinearSolverBuilder() );
+        this->getPreconditioner()->setProblemFluidFSI( probFluid_ );
+    }
+    
+    if(probGeo_.is_null()){
+        probGeo_ = Teuchos::rcp( new MinPrecProblem_Type(  problemGeometry_->getParameterList(), problemGeometry_->getComm() ) );
+        DomainConstPtr_vec_Type geoDomain = problemGeometry_->getDomainVector();
+        
+        probGeo_->initializeDomains( geoDomain );
+        probGeo_->initializeLinSolverBuilder( problemGeometry_->getLinearSolverBuilder() );
+        this->getPreconditioner()->setProblemGeoFSI( probGeo_ );
+    }
+}
+
+template <class SC, class LO, class GO, class NO> void FSI<SC, LO, GO, NO>::findDisplacementTurek2DBenchmark() {
     valuesForExport_.resize(1);
     vec_dbl_Type x = {0.6,0.2};
     //we save the local index as a double
     valuesForExport_[0] = this->getDomain(2)->findInPointsUnique( x );
 }
-    
+
 template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::findDisplacementRichter3DBenchmark(){
     valuesForExport_.resize(1);
@@ -1127,6 +1156,7 @@ void FSI<SC,LO,GO,NO>::setupSubTimeProblems(ParameterListPtr_Type parameterListF
 
     this->problemTimeFluid_->assemble( "MassSystem" );
     this->problemTimeStructure_->assemble( "MassSystem" );
+  
 }
 
 

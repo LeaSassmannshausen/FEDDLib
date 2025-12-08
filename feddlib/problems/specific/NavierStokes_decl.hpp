@@ -94,6 +94,9 @@ public:
     
     void computeValuesOfInterestAndExport() override {}
 
+    /// @brief Initialisation mini prec problems of FSI preconditioner
+    /// @param type 
+    virtual void initPreconditionerFSI( std::string type ) {};
 
 //    virtual void assembleExternal( std::string type ){}
     /*####################*/
