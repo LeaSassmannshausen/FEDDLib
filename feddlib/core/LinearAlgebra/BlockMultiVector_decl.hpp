@@ -138,6 +138,8 @@ public:
     BlockMapConstPtr_Type getMap() const;
 
     MultiVectorConstPtr_Type getMergedVector();
+    MultiVectorPtr_Type getMergedVectorNonConst();
+
 
 private:
 

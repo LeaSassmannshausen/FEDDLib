@@ -38,7 +38,7 @@ commEpetra_()
 }
 
 template<class SC,class LO,class GO,class NO>
-void HDF5Export<SC,LO,GO,NO>::writeVariablesHDF5(string varName,MultiVectorPtr_Type writeVector){
+void HDF5Export<SC,LO,GO,NO>::writeVariablesHDF5(string varName,MultiVectorConstPtr_Type writeVector){
 
     EpetraMVPtr_Type u_export(new Epetra_MultiVector(*(writeMap_),1)); // Epetra export vector
 

@@ -112,23 +112,23 @@ p_rep_()
     if(this->parameterList_->sublist("Timestepping Parameter").get("dt",-1.)> 0)
         timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter") , this->comm_));
 
-    if(this->dim_ ==3){
-        // Values we need to estimate RE and CFL in 3D
-        domainVelocity->getMesh()->calcDiamTetraeder();
-        domainVelocity->getMesh()->calcRhoTetraeder();
-        domainVelocity->getMesh()->determineLongestEdge();
-        // Reynolds number and CFL number estimations
-        exporterTxtCFLMax_ = Teuchos::rcp(new ExporterTxt () );
-        exporterTxtCFLMax_->setup( "CFL_max", this->comm_ );
-        exporterTxtReMax_ = Teuchos::rcp(new ExporterTxt () );
-        exporterTxtReMax_->setup( "Re_max", this->comm_ );
+    // if(this->dim_ ==3){
+    //     // Values we need to estimate RE and CFL in 3D
+    //     domainVelocity->getMesh()->calcDiamTetraeder();
+    //     domainVelocity->getMesh()->calcRhoTetraeder();
+    //     domainVelocity->getMesh()->determineLongestEdge();
+    //     // Reynolds number and CFL number estimations
+    //     exporterTxtCFLMax_ = Teuchos::rcp(new ExporterTxt () );
+    //     exporterTxtCFLMax_->setup( "CFL_max", this->comm_ );
+    //     exporterTxtReMax_ = Teuchos::rcp(new ExporterTxt () );
+    //     exporterTxtReMax_->setup( "Re_max", this->comm_ );
         
-        exporterTxtCFLMin_ = Teuchos::rcp(new ExporterTxt () );
-        exporterTxtCFLMin_->setup( "CFL_min", this->comm_ );
-        // exporterTxtReMin_ = Teuchos::rcp(new ExporterTxt () );
-        // exporterTxtReMin_->setup( "Re_min", this->comm_ );
-        // ---------------------------------------------
-    }
+    //     exporterTxtCFLMin_ = Teuchos::rcp(new ExporterTxt () );
+    //     exporterTxtCFLMin_->setup( "CFL_min", this->comm_ );
+    //     // exporterTxtReMin_ = Teuchos::rcp(new ExporterTxt () );
+    //     // exporterTxtReMin_->setup( "Re_min", this->comm_ );
+    //     // ---------------------------------------------
+    // }
 
     if (parameterList->sublist("Parameter").get("Calculate Coefficients",false)) {
         vec2D_dbl_ptr_Type vectmpPointsPressure = domainPressure->getPointsUnique();

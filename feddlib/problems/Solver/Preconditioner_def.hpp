@@ -444,7 +444,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
            if(!pressureProjection_.is_null() && ( dofsPerNodeVector.size() > 1 || dofsPerNodeVector[0] == 1) ){
                 pressureProjection_->merge(); // We merge the projection vector, as FROSch does not distinguish between blocks
 
-                pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").sublist("AlgebraicOverlappingOperator").set("Projection",pressureProjection_->getMergedVector()->getXpetraMultiVectorNonConst());
+                pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").sublist("AlgebraicOverlappingOperator").set("Projection",pressureProjection_->getMergedVectorNonConst()->getXpetraMultiVectorNonConst());
                 // In case of pressure correction we set the parameter in the paramterlist to true
                 pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").sublist("AlgebraicOverlappingOperator").set("Use Pressure Correction", true);
 
@@ -922,7 +922,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerTeko( )
             // Pressure Projection for Block Preconditioners
             if(!pressureProjection_.is_null()){
                 pressureProjection_->merge();
-                pListThyraSolver->sublist("Preconditioner Types").sublist("Teko").sublist("Inverse Factory Library").sublist("FROSch-Pressure").sublist("AlgebraicOverlappingOperator").set("Projection",pressureProjection_->getMergedVector()->getXpetraMultiVectorNonConst());
+                pListThyraSolver->sublist("Preconditioner Types").sublist("Teko").sublist("Inverse Factory Library").sublist("FROSch-Pressure").sublist("AlgebraicOverlappingOperator").set("Projection",pressureProjection_->getMergedVectorNonConst()->getXpetraMultiVectorNonConst());
                 // In case of pressure correction we set the parameter in the paramterlist to true
                 pListThyraSolver->sublist("Preconditioner Types").sublist("Teko").sublist("Inverse Factory Library").sublist("FROSch-Pressure").sublist("AlgebraicOverlappingOperator").set("Use Pressure Correction", true);
 
@@ -1457,7 +1457,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
         }
         else
         {
-           massMatrixVInverse_ = buildDiagonalInverse(velocityMassMatrixMatrixPtr_, typeDiag)->getThyraLinOp() ;
+           massMatrixVInverse_ = buildDiagonalInverse(velocityMassMatrixMatrixPtr_, typeDiag)->getThyraLinOpNonConst() ;
         }
             
     }
@@ -1505,7 +1505,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
                     cout << " ###### Making BC in B symmetric ###### " << endl;
                 MatrixPtr_Type matrixB(new Matrix_Type(system->getBlock(1,0)) );
                 problem_->getBCFactory()->setDirichletColumn(matrixB,false);
-                ThyraLinOpPtr_Type thyraB = matrixB->getThyraLinOp();
+                ThyraLinOpPtr_Type thyraB = matrixB->getThyraLinOpNonConst();
                 blockPrec2x2->setB(thyraB); 
             }
         }
