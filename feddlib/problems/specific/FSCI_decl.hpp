@@ -113,7 +113,7 @@ public:
 
     virtual void info();
 
-    virtual void assemble( std::string type = "" ) const;
+    void assemble( std::string type = "" ) const override;
 
     void initializeGE();
     
@@ -130,9 +130,9 @@ public:
     
     //virtual void reAssembleExtrapolation(BlockMultiVectorPtrArray_Type previousSolutions);
 
-    virtual void calculateNonLinResidualVec(std::string type="standard", double time=0.) const; //standard or reverse    
+    void calculateNonLinResidualVec(std::string type="standard", double time=0.) const override; //standard or reverse    
     
-    virtual void getValuesOfInterest( vec_dbl_Type& values );
+    void getValuesOfInterest( vec_dbl_Type& values ) override;
     
     virtual void getValuesOfInterest( BlockMultiVectorPtr_Type& values ) {} ;
 

@@ -85,13 +85,18 @@ int LinearSolver<SC,LO,GO,NO>::solveMonolithic(Problem_Type* problem, BlockMulti
 
     ParameterListPtr_Type pListThyraSolver = sublist( problem->getParameterList(), "ThyraSolver" );
 
-    pListThyraSolver->setParameters( problem->getParameterList()->sublist("ThyraPreconditioner") );
+    // pListThyraSolver->setParameters( problem->getParameterList()->sublist("ThyraPreconditioner") );
 
     problem->getLinearSolverBuilder()->setParameterList(pListThyraSolver);
     Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lowsFactory = problem->getLinearSolverBuilder()->createLinearSolveStrategy("");
 
     bool iterativeSolve = !pListThyraSolver->get("Linear Solver Type", "Belos").compare("Belos");
-    if (iterativeSolve && (type != "MonolithicConstPrec" || problem->getPreconditioner()->getThyraPrec().is_null()))
+
+    //##########
+    bool amesos2Prec = problem->getParameterList()->get("Use Amesos2 Preconditioner", false);
+    //##########
+
+    if (iterativeSolve && !amesos2Prec && (type != "MonolithicConstPrec" || problem->getPreconditioner()->getThyraPrec().is_null()))
         problem->setupPreconditioner("Monolithic");
 
     if (!pListThyraSolver->sublist("Preconditioner Types").sublist("FROSch").get("Level Combination","Additive").compare("Multiplicative")) {
@@ -102,6 +107,7 @@ int LinearSolver<SC,LO,GO,NO>::solveMonolithic(Problem_Type* problem, BlockMulti
         pListThyraSolver->sublist("Preconditioner Types").sublist("FROSch").set("Only apply coarse",false);
     }
 
+
     Teuchos::RCP<Teuchos::FancyOStream> out = Teuchos::VerboseObjectBase::getDefaultOStream();
 
     lowsFactory->setOStream(out);
@@ -110,7 +116,38 @@ int LinearSolver<SC,LO,GO,NO>::solveMonolithic(Problem_Type* problem, BlockMulti
     Teuchos::RCP<Thyra::LinearOpWithSolveBase<SC> > solver = lowsFactory->createOp();
 //    Teuchos::RCP<Thyra::LinearOpWithSolveBase<SC> > solver = linearOpWithSolve(*lowsFactory, problem->getSystem()->getThyraLinOp());
     ThyraLinOpConstPtr_Type thyraMatrix = problem->getSystem()->getThyraLinOp();
-    if ( iterativeSolve ) {
+
+
+    if(iterativeSolve && amesos2Prec) {
+        // #######################################################
+        // Using a direct solver as preconditioner with an iterative solver
+        auto& stratList = *pListThyraSolver;
+
+        // Belos as outer solver
+        stratList.set("Linear Solver Type", "Belos");
+
+        // Use Amesos (with MUMPS) as preconditioner
+        stratList.set("Preconditioner Type", "Amesos2");
+
+        Teuchos::ParameterList& precTypes = stratList.sublist("Preconditioner Types");
+        Teuchos::ParameterList& amesosPL   = precTypes.sublist("Amesos2");
+
+        // Tell Amesos to use MUMPS
+        amesosPL.set("Solver Type", "Mumps"); // sometimes "Amesos_Mumps", depends on Trilinos version
+
+        // Optional: fine-tune MUMPS
+        Teuchos::ParameterList& amesosSettings = amesosPL.sublist("Amesos Settings");
+        Teuchos::ParameterList& mumpsSettings  = amesosSettings.sublist("Mumps");
+
+        // Example: set some MUMPS ICNTL parameters, if you want:
+        //mumpsSettings.set("ICNTL(14)", 120);
+        // Thyra::initializePreconditionedOp<SC>(*lowsFactory, thyraMatrix, Teuchos::null, solver.ptr());
+        Thyra::initializeOp<SC>(*lowsFactory, thyraMatrix, solver.ptr());
+
+        // #######################################################
+
+    }
+    else if ( iterativeSolve ) {
         ThyraPrecPtr_Type thyraPrec = problem->getPreconditioner()->getThyraPrec();
         Thyra::initializePreconditionedOp<SC>(*lowsFactory, thyraMatrix, thyraPrec.getConst(), solver.ptr());
     }

@@ -73,17 +73,12 @@ public:
           ThyraLinOpPtr_Type fBT,
           ThyraLinOpPtr_Type gInv);
 
-    void setGIShape(ThyraLinOpPtr_Type C1,
-               ThyraLinOpPtr_Type C1T,
-               ThyraLinOpPtr_Type C2,
-               ThyraLinOpPtr_Type C4,
-               ThyraLinOpPtr_Type sInv,
-               ThyraLinOpPtr_Type fInv,
-               ThyraLinOpPtr_Type fF,
-               ThyraLinOpPtr_Type fBT,
-               ThyraLinOpPtr_Type gInv,
-               ThyraLinOpPtr_Type shape_v,
-               ThyraLinOpPtr_Type shape_p);
+    // GI with SCI
+    void setGI(ThyraLinOpPtr_Type C1, ThyraLinOpPtr_Type C1T, ThyraLinOpPtr_Type C2, ThyraLinOpPtr_Type C4, ThyraLinOpPtr_Type sciInv, ThyraLinOpPtr_Type sciS, ThyraLinOpPtr_Type sciC,
+               ThyraLinOpPtr_Type fInv, ThyraLinOpPtr_Type fF, ThyraLinOpPtr_Type fBT, ThyraLinOpPtr_Type gInv);
+
+    void setGIShape(ThyraLinOpPtr_Type C1, ThyraLinOpPtr_Type C1T, ThyraLinOpPtr_Type C2, ThyraLinOpPtr_Type C4, ThyraLinOpPtr_Type sInv, ThyraLinOpPtr_Type fInv, ThyraLinOpPtr_Type fF,
+                    ThyraLinOpPtr_Type fBT, ThyraLinOpPtr_Type gInv, ThyraLinOpPtr_Type shape_v, ThyraLinOpPtr_Type shape_p);
 
     void setC1(ThyraLinOpPtr_Type C1);
     void setC1T(ThyraLinOpPtr_Type C1T);

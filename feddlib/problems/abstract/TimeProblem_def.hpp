@@ -102,7 +102,7 @@ void TimeProblem<SC,LO,GO,NO>::combineSystems() const{
     BlockMatrixPtr_Type tmpSystem = problem_->getSystem();
     int size = tmpSystem->size();
     systemCombined_.reset( new BlockMatrix_Type ( size ) );
-
+    
     for (int i=0; i<size; i++) {
         DomainConstPtr_Type dom = this->getDomain(i);
         for (int j=0; j<size; j++) {
@@ -120,11 +120,12 @@ void TimeProblem<SC,LO,GO,NO>::combineSystems() const{
             }
         }
     }
+
     SmallMatrix<SC> ones( size , Teuchos::ScalarTraits<SC>::one());
     SmallMatrix<SC> zeros( size , Teuchos::ScalarTraits<SC>::zero());
     systemMass_->addMatrix( massParameters_, systemCombined_, zeros );
     tmpSystem->addMatrix( timeParameters_, systemCombined_, ones );
-    
+
     for (int i=0; i<size; i++) {
         for (int j=0; j<size; j++) {
             if ( systemCombined_->blockExists(i,j) ) {
@@ -443,7 +444,7 @@ void TimeProblem<SC,LO,GO,NO>::calculateNonLinResidualVec( std::string type, dou
         nonLinProb->calculateNonLinResidualVec( timeParameters_ ,type, time );
 
         // for FSI we need to reassemble the massmatrix system if the mesh was moved for geometry implicit computations
-        if (this->parameterList_->sublist("Parameter").get("FSI",false) ){
+        if (this->parameterList_->sublist("Parameter").get("FSI",false)  ){
             bool geometryExplicit = this->parameterList_->sublist("Parameter").get("Geometry Explicit",true);
             if( !geometryExplicit ) {
                 typedef FSI<SC,LO,GO,NO> FSI_Type;
@@ -455,13 +456,28 @@ void TimeProblem<SC,LO,GO,NO>::calculateNonLinResidualVec( std::string type, dou
                 this->systemMass_->addBlock( massmatrix, 0, 0 );
             }
         }
+        else if ( this->parameterList_->sublist("Parameter").get("FSCI",false) ){
+            bool geometryExplicit = this->parameterList_->sublist("Parameter").get("Geometry Explicit",true);
+            if( !geometryExplicit ) {
+                typedef FSCI<SC,LO,GO,NO> FSCI_Type;
+                typedef Teuchos::RCP<FSCI_Type> FSCIPtr_Type;
+                
+                MatrixPtr_Type massmatrix;                
+                FSCIPtr_Type fsci = Teuchos::rcp_dynamic_cast<FSCI_Type>( this->problem_ );
+                fsci->setFluidMassmatrix( massmatrix );
+                this->systemMass_->addBlock( massmatrix, 0, 0 );
+            }           
+        }
+        std::cout << "Adding mass matrix contribution to residual..." << std::endl;
         // we need to add M/dt*u_(t+1)^k (the last results of the nonlinear method) to the residualVec_
+        std::cout<< " Size of solution: " << nonLinProb->getSolution()->size() << std::endl;
         //Copy
         BlockMultiVectorPtr_Type tmpMV = Teuchos::rcp(new BlockMultiVector_Type( nonLinProb->getSolution() ) );
         tmpMV->putScalar(0.);
+        std::cout << " Size of system mass " << systemMass_->size() << std::endl;
         
         systemMass_->apply( *nonLinProb->getSolution(), *tmpMV, massParameters_ );
-
+        std::cout << "...done." << std::endl;
         if (type=="reverse")// reverse: b-Ax
             nonLinProb->getResidualVector()->update(-1,*tmpMV,1.);//this=1.*this + -1.*tmpMV
         else if(type=="standard")// standard: Ax-b
@@ -908,9 +924,9 @@ Teuchos::RCP<Thyra::LinearOpBase<SC> > TimeProblem<SC,LO,GO,NO>::create_W_op_Mon
 template<class SC,class LO,class GO,class NO>
 Teuchos::RCP<Thyra::LinearOpBase<SC> > TimeProblem<SC,LO,GO,NO>::create_W_op_Block()
 {
-    
+
     BlockMatrixPtr_Type system = this->getSystemCombined();
-    
+
     Teuchos::RCP<const ThyraBlockOp_Type> W_opBlocksConst = system->getThyraLinBlockOp();
     Teuchos::RCP<ThyraBlockOp_Type> W_opBlocks = Teuchos::rcp_const_cast<ThyraBlockOp_Type >(W_opBlocksConst);
     Teuchos::RCP<ThyraOp_Type> W_op = Teuchos::rcp_dynamic_cast<ThyraOp_Type >(W_opBlocks);

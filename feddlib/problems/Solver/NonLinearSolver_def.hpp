@@ -189,6 +189,7 @@ void NonLinearSolver<SC,LO,GO,NO>::solveNOX(TimeProblem_Type &problem, vec_dbl_p
     else
         solMV = problemPtr->getSolution()->getThyraMultiVector();
 
+
     Thyra::assign(initialGuess.ptr(), *solMV->col(0));
     //Thyra::V_S(initialGuess.ptr(),Teuchos::ScalarTraits<SC>::zero());
     Teuchos::RCP<Thyra::LinearOpBase<SC> > W_op = problemPtr->create_W_op();

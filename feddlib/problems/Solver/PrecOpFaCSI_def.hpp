@@ -106,6 +106,35 @@ void PrecOpFaCSI<SC,LO,GO,NO>::setGI(ThyraLinOpPtr_Type C1,
     initialize();
 }
 
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setGI(ThyraLinOpPtr_Type C1,
+                                     ThyraLinOpPtr_Type C1T,
+                                     ThyraLinOpPtr_Type C2,
+                                     ThyraLinOpPtr_Type C4,
+                                     ThyraLinOpPtr_Type sciInv,
+                                     ThyraLinOpPtr_Type sciS,
+                                     ThyraLinOpPtr_Type sciC,
+                                     ThyraLinOpPtr_Type fInv,
+                                     ThyraLinOpPtr_Type fF,
+                                     ThyraLinOpPtr_Type fBT,
+                                     ThyraLinOpPtr_Type gInv){
+    
+    setC1(C1); // C1
+    setC1T(C1T); // C1T
+    setC2(C2); // C2
+    setC4(C4); // C4
+    setSCIC(sciC); // SCI C
+    setSCIS(sciS); // SCI S
+    setSCIInv(sciInv); // SCI Inv
+    setFluidInv(fInv); // Fluid Inv
+    setFluidF(fF); // Fluid F
+    setFluidBT(fBT); // Fluid BT
+    setGeoInv(gInv); // Geo Inv
+
+    initializeWithSCI();
+}
+
 template<class SC, class LO, class GO, class NO>
 void PrecOpFaCSI<SC,LO,GO,NO>::setGIShape(ThyraLinOpPtr_Type C1,
                                           ThyraLinOpPtr_Type C1T,
@@ -242,12 +271,13 @@ void PrecOpFaCSI<SC,LO,GO,NO>::initialize(){
     
     this->defaultProductRange_ = pR;
     this->defaultProductDomain_ = pD;
+
+    std::cout << "  ########## Init PrecOpFaCSI ########### " << std::endl;
 }
 
 template<class SC, class LO, class GO, class NO>
 void PrecOpFaCSI<SC,LO,GO,NO>::initializeWithSCI(){
 
-    //std::cout << "  ########## Init PrecOpFaCSCI ########### " << std::endl;
 
     TEUCHOS_TEST_FOR_EXCEPTION(fInv_.is_null(), std::runtime_error,"Can not initialize FaCSCI preconditioner: Fluid preconditioner not set.");
     TEUCHOS_TEST_FOR_EXCEPTION(sciInv_.is_null(), std::runtime_error,"Can not initialize FaCSCI preconditioner: Structure preconditioner not set.");
@@ -285,6 +315,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::initializeWithSCI(){
     
     this->defaultProductRange_ = pR;
     this->defaultProductDomain_ = pD;
+
+    std::cout << "  ########## Init PrecOpFaCSCI ########### " << std::endl;
+
 }
 
 template<class SC, class LO, class GO, class NO>
@@ -373,8 +406,18 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
             else{
                 if(!sciC_.is_null()){
                     // std::cout << "FACSCI:: Implicit Case " << std::endl;
-                    Teuchos::RCP< const MultiVectorBase< SC > > X_chem = X->getMultiVectorBlock(4);
-                    Teuchos::RCP< MultiVectorBase< SC > > Y_chem = Y->getNonconstMultiVectorBlock(4);
+                    Teuchos::RCP< const MultiVectorBase< SC > > X_chem;
+                    Teuchos::RCP< MultiVectorBase< SC > > Y_chem ;
+            
+                    if ( !gInv_.is_null() ) {
+                        X_chem = X->getMultiVectorBlock(5);
+                        Y_chem = Y->getNonconstMultiVectorBlock(5);
+                    }
+                    else{
+                        X_chem = X->getMultiVectorBlock(4);
+                        Y_chem = Y->getNonconstMultiVectorBlock(4);
+                    }
+                    
                     assign(Y_chem.ptr(), *X_chem);
                     Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > X_sci( 2 );
                     Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_sci( 2 );

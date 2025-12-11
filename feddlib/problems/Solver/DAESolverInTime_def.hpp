@@ -1746,30 +1746,40 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
             }
         }
 
-        if(!chemistryExplicit_){
-
-            massCoeffFSI[4][4] = massCoeffChem[0][0];
-            problemCoeffFSI[4][4] = problemCoeffChem[0][0];
-            problemCoeffFSI[2][4] = 1.; // SCI Coupling 1
-            problemCoeffFSI[4][2] = 1.; // SCI Coupling 2
-        }
         // Setze noch Einsen an die Stellen, wo Eintraege (Kopplungsbloecke) vorhanden sind.
         problemCoeffFSI[0][3] = 1.0; // C1_T
         problemCoeffFSI[2][3] = 1.0; // C3_T
         problemCoeffFSI[3][0] = 1.0; // C1
         problemCoeffFSI[3][2] = 1.0; // C2
         
-        /*if(!geometryExplicit)
+        if(!geometryExplicit)
         {
             problemCoeffFSI[4][2] = 1.0; // C4
             problemCoeffFSI[4][4] = 1.0; // H (Geometrie)
-            string linearization = this->parameterList_->sublist("General").get("Linearization","Extrapolation");
+            std::string linearization = this->parameterList_->sublist("General").get("Linearization","Extrapolation");
             if(linearization == "Newton" || linearization == "NOX")
             {
                 problemCoeffFSI[0][4] = 1.0; // Shape-Derivatives Velocity
                 problemCoeffFSI[1][4] = 1.0; // Shape-Derivatives Div-Nebenbedingung
             }
-        }*/
+            if(!chemistryExplicit_){
+
+                massCoeffFSI[5][5] = massCoeffChem[0][0];
+                problemCoeffFSI[5][5] = problemCoeffChem[0][0];
+                problemCoeffFSI[2][5] = 1.; // SCI Coupling 1
+                problemCoeffFSI[5][2] = 1.; // SCI Coupling 2
+            }
+
+        }
+        else{
+            if(!chemistryExplicit_){
+
+                massCoeffFSI[4][4] = massCoeffChem[0][0];
+                problemCoeffFSI[4][4] = problemCoeffChem[0][0];
+                problemCoeffFSI[2][4] = 1.; // SCI Coupling 1
+                problemCoeffFSI[4][2] = 1.; // SCI Coupling 2
+            }
+        }
 
         this->problemTime_->setTimeParameters(massCoeffFSI, problemCoeffFSI);
         // Ist noetig, falls wir extrapolieren, damit wir
@@ -2534,7 +2544,7 @@ void DAESolverInTime<SC,LO,GO,NO>::setupExporter(){
             exporter_vector_.push_back(exporterPtr);
             export_solution_vector_.push_back(exportVector);
 
-            std::cout << "Exporter setup for variable " << varName << " and i " << i << std::endl;
+            // std::cout << "Exporter setup for variable " << varName << " and i " << i << std::endl;
         }
     }
     boolExporterSetup_ = true;

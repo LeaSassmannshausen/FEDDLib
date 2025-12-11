@@ -18,6 +18,7 @@
                 <Parameter name="DofOrdering3"                                      type="string"   value="NodeWise"/>
                 <Parameter name="DofOrdering4"                                      type="string"   value="NodeWise"/>
                 <Parameter name="DofOrdering5"                                      type="string"   value="NodeWise"/>
+                <Parameter name="DofOrdering6"                                      type="string"   value="NodeWise"/>
                 <Parameter name="Overlap"                                           type="int"      value="1"/>
                 <Parameter name="TwoLevel"                                          type="bool"     value="false"/>
                 <!--<Parameter name="Use OverlappingOperator" 							type="bool" 	value="true">-->

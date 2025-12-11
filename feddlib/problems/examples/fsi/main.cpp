@@ -555,7 +555,8 @@ int main(int argc, char *argv[])
                 (*defTS)[0][1] = 1;
 
                 // TODO: [0][4] und [1][4] bei GI + Newton noetig?
-
+                (*defTS)[0][4] = 1;
+                (*defTS)[1][4] = 1;
                 // Struktur
                 (*defTS)[2][2] = 1;
             }

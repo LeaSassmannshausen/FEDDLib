@@ -10,5 +10,6 @@
         "istream": "cpp",
         "functional": "cpp",
         "*.inc": "cpp"
-    }
+    },
+    "C_Cpp.dimInactiveRegions": false
 }

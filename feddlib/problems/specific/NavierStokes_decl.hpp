@@ -87,9 +87,9 @@ public:
 
     void establishNNZPattern() const;
 
-    virtual void reAssembleExtrapolation(BlockMultiVectorPtrArray_Type previousSolutions);
+    void reAssembleExtrapolation(BlockMultiVectorPtrArray_Type previousSolutions) override;
 
-    virtual void calculateNonLinResidualVec(std::string type="standard", double time=0.) const; //standard or reverse
+    void calculateNonLinResidualVec(std::string type="standard", double time=0.) const override; //standard or reverse
     
     void calculateNonLinResidualVecWithMeshVelo(std::string type, double time, MultiVectorPtr_Type u_minus_w, MatrixPtr_Type P) const;
     // virtual int ComputeDragLift(vec_dbl_ptr_Type &values);

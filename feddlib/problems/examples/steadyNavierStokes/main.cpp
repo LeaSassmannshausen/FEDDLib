@@ -339,8 +339,6 @@ int main(int argc, char *argv[]) {
 
                 domainVelocity->exportNodeFlags("nodeflags.out");
                 
-                domainVelocity->getMapUnique()->print();
-
                 std::vector<double> parameter_vec(1, parameterListProblem->sublist("Parameter").get("MaxVelocity",1.));
 
                 // ####################
@@ -418,8 +416,6 @@ int main(int argc, char *argv[]) {
 
                     navierStokes.initializeProblem();
                     navierStokes.assemble();
-
-                    navierStokes.getSolution()->getBlock(0)->print();
 
                     navierStokes.setBoundariesRHS();
 

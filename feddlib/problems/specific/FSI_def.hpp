@@ -719,7 +719,7 @@ void FSI<SC,LO,GO,NO>::reAssembleExtrapolation(BlockMultiVectorPtrArray_Type pre
 //   |C_2*d_s |   | C_1         C_2     0       0 |   
 //   |0       |   | 0           C_4     0       G |
 //   
-// GE (Geometry Implicit)
+// GE (Geometry Explicit)
 //   |b_f     |   | F(u,p,d_f)  0       C_1^T   0 |
 //R= |b_s     | - | 0           S       C_3^T   0 |
 //   |C_2*d_s |   | C_1         C_2     0       0 |   
