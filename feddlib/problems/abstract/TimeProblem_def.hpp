@@ -468,16 +468,12 @@ void TimeProblem<SC,LO,GO,NO>::calculateNonLinResidualVec( std::string type, dou
                 this->systemMass_->addBlock( massmatrix, 0, 0 );
             }           
         }
-        std::cout << "Adding mass matrix contribution to residual..." << std::endl;
         // we need to add M/dt*u_(t+1)^k (the last results of the nonlinear method) to the residualVec_
-        std::cout<< " Size of solution: " << nonLinProb->getSolution()->size() << std::endl;
         //Copy
         BlockMultiVectorPtr_Type tmpMV = Teuchos::rcp(new BlockMultiVector_Type( nonLinProb->getSolution() ) );
         tmpMV->putScalar(0.);
-        std::cout << " Size of system mass " << systemMass_->size() << std::endl;
         
         systemMass_->apply( *nonLinProb->getSolution(), *tmpMV, massParameters_ );
-        std::cout << "...done." << std::endl;
         if (type=="reverse")// reverse: b-Ax
             nonLinProb->getResidualVector()->update(-1,*tmpMV,1.);//this=1.*this + -1.*tmpMV
         else if(type=="standard")// standard: Ax-b

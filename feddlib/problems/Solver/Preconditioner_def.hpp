@@ -1268,9 +1268,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerFaCSCI( std::string type )
 
     faCSIBCFactory_->setSystem( fluidProblem->getSystemCombined() );
 
-    std::cout << " Setup Preconditioner Fluid " << std::endl;
     fluidProblemSteady->setupPreconditioner( precTypeFluid );
-    std::cout << " .. done "    << std::endl;
 
     precFluid_ = fluidProblemSteady->getPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
 
@@ -1449,7 +1447,6 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
     CommConstPtr_Type comm;
     ProblemPtr_Type steadyProblem;
     if (!timeProblem_.is_null()){
-        std::cout << "buildPreconditionerBlock2x2 timeProblem_ " << std::endl;
         parameterList = timeProblem_->getParameterList();
         system = timeProblem_->getSystemCombined();
         comm = timeProblem_->getComm();
