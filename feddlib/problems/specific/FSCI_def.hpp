@@ -882,7 +882,7 @@ void FSCI<SC,LO,GO,NO>::computeSolidRHSInTime() const {
     // if(time == 0){nur dann konstanten SourceTerm berechnen}
     if (this->problemSCI_->problemTimeStructure_->hasSourceTerm())
     {
-        if(verbose_)
+        if(this->verbose_)
             std::cout << "-- Assemble Source Term for Solid at time " << time << "\n" << std::flush;
 
         this->problemSCI_->problemTimeStructure_->assembleSourceTerm( time );
