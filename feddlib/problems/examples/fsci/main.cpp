@@ -665,10 +665,11 @@ int main(int argc, char *argv[])
             //fsci.problemSteadyFluid_->addBoundaries(bcFactoryFluid);
 
         }
-        {
-            // Struktur-RW
-            Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactoryStructure( new BCBuilder<SC,LO,GO,NO>( ) );
+        // Struktur-RW
+        Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactoryStructure( new BCBuilder<SC,LO,GO,NO>( ) );
 
+        {
+          
 
             bcFactory->addBC(zeroDirichlet3D, 14, 2, domainStructure, "Dirichlet_Y_Z", dim); // inflow/outflow strip fixed in y direction
             bcFactory->addBC(zeroDirichlet3D, 13, 2, domainStructure, "Dirichlet_X_Z", dim); // inflow/outflow strip fixed in y direction
