@@ -882,6 +882,9 @@ void FSCI<SC,LO,GO,NO>::computeSolidRHSInTime() const {
     // if(time == 0){nur dann konstanten SourceTerm berechnen}
     if (this->problemSCI_->problemTimeStructure_->hasSourceTerm())
     {
+        if(verbose_)
+            std::cout << "-- Assemble Source Term for Solid at time " << time << "\n" << std::flush;
+
         this->problemSCI_->problemTimeStructure_->assembleSourceTerm( time );
         
         // Fuege die rechte Seite der DGL (f bzw. f_{n+1}) der rechten Seite hinzu (skaliert mit coeffSourceTerm)
