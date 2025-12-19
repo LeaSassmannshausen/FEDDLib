@@ -286,25 +286,25 @@ void NonLinElasticity<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type,
         }            
     }
  #endif
-    if(this->parameterList_->sublist("Parameter").get("SCI",false) == false && this->parameterList_->sublist("Parameter").get("FSCI",false) == false ){
-
-        if (!type.compare("standard")){
-            this->residualVec_->update(-1.,*this->rhs_,1.);
-            //if ( !this->sourceTerm_.is_null() )
-            //    this->residualVec_->update(-1.,*this->sourceTerm_,1.);
-        }
-        else if(!type.compare("reverse")){
-            this->residualVec_->update(1.,*this->rhs_,-1.); // this = -1*this + 1*rhs
-            //if ( !this->sourceTerm_.is_null() )
-            //    this->residualVec_->update(1.,*this->sourceTerm_,1.);
-        }
-        else{
-            TEUCHOS_TEST_FOR_EXCEPTION(true, std::runtime_error, "Unknown type for residual computation.");
-        }
-        
-        // this might be set again by the TimeProblem after adding of M*u
-        this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );
+    if (!type.compare("standard")){
+        this->residualVec_->update(-1.,*this->rhs_,1.);
+        //if ( !this->sourceTerm_.is_null() )
+        //    this->residualVec_->update(-1.,*this->sourceTerm_,1.);
     }
+    else if(!type.compare("reverse")){
+        this->residualVec_->update(1.,*this->rhs_,-1.); // this = -1*this + 1*rhs
+        //if ( !this->sourceTerm_.is_null() )
+        //    this->residualVec_->update(1.,*this->sourceTerm_,1.);
+    }
+    else{
+        TEUCHOS_TEST_FOR_EXCEPTION(true, std::runtime_error, "Unknown type for residual computation.");
+    }
+    
+    // this might be set again by the TimeProblem after adding of M*u
+    this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );
+
+
+
 }
 }
 #endif

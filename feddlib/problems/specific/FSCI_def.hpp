@@ -617,10 +617,9 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
     
     // we need to account for the coupling in the residuals
     this->problemSCI_->calculateNonLinResidualVec( "reverse", time );
-
-    // this->problemSCI_->getResidualVector()->writeMM("Residual_SCI.mm");
-    
     this->residualVec_->addBlock(  this->problemSCI_->getResidualVector()->getBlockNonConst(0) , 2); // Solid
+
+    this->residualVec_->getBlock(2)->writeMM("res_FSCI.mm"); // change to -1 for standard
 
     if(!chemistryExplicit_) {
         // this->problemSCI_->getResidualVector()->getBlockNonConst(1)->scale(-1.);

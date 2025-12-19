@@ -194,7 +194,7 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
 
     if(t < parameters[1])
     {
-        res[0] = parameters[2] * 0.5 * ( ( 1 - cos( M_PI*t/parameters[1]) ));
+        res[0] = parameters[2] * 0.5 * ( ( 1. - cos( M_PI*t/parameters[1]) ));
     }
     else if(t > heartBeatStart)
     {
@@ -764,12 +764,15 @@ int main(int argc, char *argv[])
             bcFactoryChem->addBC(inflowChem, 10, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
             bcFactorySCI->addBC(inflowChem, 10, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem*/
 
+            int ID_diffusion_in_FSI = 4;
+            if(!geometryExplicit)
+                ID_diffusion_in_FSI = 5;
             // Diffusion happening at outer wall
-            bcFactory->addBC(inflowChem, 11,4, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+            bcFactory->addBC(inflowChem, 11,ID_diffusion_in_FSI, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
             bcFactoryChem->addBC(inflowChem, 11, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
             bcFactorySCI->addBC(inflowChem, 11, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
 
-            bcFactory->addBC(inflowChem, 3, 4, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+            bcFactory->addBC(inflowChem, 3, ID_diffusion_in_FSI, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
             bcFactoryChem->addBC(inflowChem, 3, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem    
             bcFactorySCI->addBC(inflowChem, 3, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
         
@@ -777,11 +780,11 @@ int main(int argc, char *argv[])
             // bcFactoryChem->addBC(inflowChem, 2, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
             // bcFactorySCI->addBC(inflowChem, 2, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
 
-            bcFactory->addBC(inflowChem, 13, 4, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+            bcFactory->addBC(inflowChem, 13, ID_diffusion_in_FSI, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
             bcFactoryChem->addBC(inflowChem, 13, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem    
             bcFactorySCI->addBC(inflowChem, 13, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
 
-            bcFactory->addBC(inflowChem, 14, 4, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+            bcFactory->addBC(inflowChem, 14, ID_diffusion_in_FSI, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
             bcFactoryChem->addBC(inflowChem, 14, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem    
             bcFactorySCI->addBC(inflowChem, 14, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
         }    

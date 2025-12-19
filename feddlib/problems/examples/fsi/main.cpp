@@ -202,7 +202,7 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
 
     if(t < parameters[2])
     {
-        res[0] = parameters[3] * 0.5 * ( ( 1 - cos( M_PI*t/parameters[2]) ));
+        res[0] = parameters[3] * 0.5 * ( ( 1. - cos( M_PI*t/parameters[2]) ));
     }
     else if(t > heartBeatStart)
     {
@@ -370,6 +370,7 @@ int main(int argc, char *argv[])
 
         ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListPrecStructure));
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
+        sublist(parameterListStructureAll, "Parameter Solid")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
 
         parameterListStructureAll->setParameters(*parameterListPrecStructure);
@@ -683,8 +684,8 @@ int main(int argc, char *argv[])
                         bcFactoryFluid->addBC(parabolicInflow3D, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec,inflowProfile,true, flowrate3D); // inflow 
                         bcFactory->addBC(zeroDirichlet3D, 9, 0, domainFluidVelocity, "Dirichlet_Z", dim, parameter_vec);// solutionLaplaceConst, true , parabolicInflowDirection3D); // inflow 
                         bcFactoryFluid->addBC(zeroDirichlet3D, 9, 0, domainFluidVelocity, "Dirichlet_Z", dim, parameter_vec);// solutionLaplaceConst, true , parabolicInflowDirection3D); // inflow 
-                        bcFactory->addBC(zeroDirichlet3D, 10, 0, domainFluidVelocity, "Dirichlet_Z", dim, parameter_vec);// solutionLaplaceConst, true , parabolicInflowDirection3D); // inflow 
-                        bcFactoryFluid->addBC(zeroDirichlet3D, 10, 0, domainFluidVelocity, "Dirichlet_Z", dim, parameter_vec);// solutionLaplaceConst, true , parabolicInflowDirection3D); // inflow 
+                        // bcFactory->addBC(zeroDirichlet3D, 10, 0, domainFluidVelocity, "Dirichlet_Z", dim, parameter_vec);// solutionLaplaceConst, true , parabolicInflowDirection3D); // inflow 
+                        // bcFactoryFluid->addBC(zeroDirichlet3D, 10, 0, domainFluidVelocity, "Dirichlet_Z", dim, parameter_vec);// solutionLaplaceConst, true , parabolicInflowDirection3D); // inflow 
 
                     }
                     else{ 
@@ -734,6 +735,8 @@ int main(int argc, char *argv[])
                         bcFactory->addBC(zeroDirichlet3D, 1, 2, domainStructure, "Dirichlet_Z", dim); // outer ring of inlet area
                         bcFactory->addBC(zeroDirichlet3D, 2, 2, domainStructure, "Dirichlet_Z", dim); // outer ring of outlet area
                         bcFactory->addBC(zeroDirichlet3D, 10, 2, domainStructure, "Dirichlet_Z", dim); // outlet ring in Z direction
+                        bcFactory->addBC(zeroDirichlet3D, 3, 2, domainStructure, "Dirichlet_Z", dim); // outer ring of outlet area
+
 
                         bcFactoryStructure->addBC(zeroDirichlet3D, 14, 0, domainStructure, "Dirichlet_Y_Z", dim); 
                         bcFactoryStructure->addBC(zeroDirichlet3D, 13, 0, domainStructure, "Dirichlet_X_Z", dim); 
@@ -743,6 +746,7 @@ int main(int argc, char *argv[])
                         bcFactoryStructure->addBC(zeroDirichlet3D, 1, 0, domainStructure, "Dirichlet_Z", dim); 
                         bcFactoryStructure->addBC(zeroDirichlet3D, 2, 0, domainStructure, "Dirichlet_Z", dim);           
                         bcFactoryStructure->addBC(zeroDirichlet3D, 10, 0, domainStructure, "Dirichlet_Z", dim); 
+                        bcFactoryStructure->addBC(zeroDirichlet3D, 3, 0, domainStructure, "Dirichlet_Z", dim); 
 
                     }
                     else{

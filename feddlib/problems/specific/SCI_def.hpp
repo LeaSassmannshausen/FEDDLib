@@ -254,17 +254,6 @@ void SCI<SC,LO,GO,NO>::solveChemistryProblem() const
     if (!exporterChem_.is_null())
             this->exporterChem_->save( this->timeSteppingTool_->currentTime() );
 
-    // If we want to safe/export the solution, we need to call the function here, as the chemistry problem is decoupled from the rest
-    // and does not encounter the usual export point within the time stepping loop
-    // BlockMultiVectorPtrArray_Type solution; solution.resize(1);
-    // solution[0] = Teuchos::rcp( new BlockMultiVector_Type( this->problemTimeChem_->getSolution()->getMap() ) );
-    // solution[0]->addBlock(this->problemTimeChem_->getSolution()->getBlock(0),0);
-
-    // cout << " Solve chemistry problem " << std::endl;
-
-    // //this->problemTimeChem_->checkForExportAndExport( solution,"Solution" );
-
-
 }
 template<class SC,class LO,class GO,class NO>
 void SCI<SC,LO,GO,NO>::reAssemble(std::string type) const
@@ -326,43 +315,7 @@ void SCI<SC,LO,GO,NO>::reAssemble(std::string type) const
         setBoundariesSubProblems();
         return;
     }
-    else if(type == "UpdateCoupling")
-    {
-        if(this->verbose_)
-            std::cout << "-- Update Coupling" << '\n';
-
-       
-        MultiVectorPtr_Type solChemRep = Teuchos::rcp( new MultiVector_Type( this->getDomain(1)->getMapRepeated() ) );
-        solChemRep->importFromVector(this->problemTimeChem_->getSolution()->getBlock(0));
-
-        if (materialModel_=="SCI_Linear"){
-            int dim = this->getDomain(0)->getDimension();
-            this->feFactory_->determineEMod(this->getDomain(0)->getFEType(),solChemRep,eModVec_,this->getDomain(1),this->parameterList_);
-            double nu = this->parameterList_->sublist("Parameter").get("PoissonRatio",0.4);
-            MatrixPtr_Type A(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) ); // Structure-Matrix
-
-            this->feFactory_->assemblyLinElasXDimE(this->dim_, this->getDomain(0)->getFEType(), A, eModVec_, nu, true);
-            this->problemStructure_->system_->addBlock(A,0,0);// assemble(); //
-            this->system_->addBlock( this->problemStructure_->system_->getBlock(0,0), 0, 0);
-            //this->problemStructure_->assemble();
-        }
-        else{
-            //MultiVectorConstPtr_Type eModVecConst = eModVec_;
-            this->problemStructureNonLin_->updateConcentration(solChemRep);          
-
-            //this->system_->addBlock( this->problemStructureNonLin_->getSystem()->getBlock(0,0), 0, 0 );                                
-        }
-        this->moveMesh();
-
-        this->problemChem_->assemble();     
-        //exporterEMod_->save( timeSteppingTool_->t_);
-
-
-        return;
-    }
-    
-
-       
+   
     if(type == "FixedPoint")
     {
         TEUCHOS_TEST_FOR_EXCEPTION(true, std::runtime_error, "should always be called by the residual and never here.");
@@ -522,7 +475,6 @@ void SCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
             std::cout << "2-Norm of residual of concentration: " << norm_c[0] << std::endl;
 
     }
-
 
 }
 
