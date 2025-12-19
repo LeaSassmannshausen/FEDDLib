@@ -541,6 +541,7 @@ void FSCI<SC,LO,GO,NO>::reAssemble(std::string type) const
 template<class SC,class LO,class GO,class NO>
 void FSCI<SC,LO,GO,NO>::updateTime() const
 {
+    this->newtonStep_ = 0;
     this->timeSteppingTool_->t_ = this->timeSteppingTool_->t_ + this->timeSteppingTool_->dt_prev_;
     this->problemTimeFluid_->updateTime(this->timeSteppingTool_->t_);
     this->problemSCI_->reAssemble("UpdateTime");

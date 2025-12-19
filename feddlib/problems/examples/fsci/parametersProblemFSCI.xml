@@ -18,6 +18,12 @@
         <Parameter name="MaxNonLinIts" type="int" value="10"/>
 
         <Parameter name="Criterion" type="string" value="Update"/><!-- Criterion for nonlinear solve, Residual or Update: Residual is the norm of the nonlinear residual; Update is the norm of the update -->
+    
+    	<!-- BUILDING PRECONDITIONER ONLY THE FIRST X (newtonLimit) NEWTON STEP(S) -->
+        <Parameter name="newtonLimit" type="int" value="3"/>
+        <Parameter name="Rebuild Preconditioner every Newton Iteration" type="bool" value="true"/>
+        <!--  -->
+    
     </ParameterList>
 
     <ParameterList name="Parameter Solid"> 
