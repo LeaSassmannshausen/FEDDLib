@@ -11,6 +11,9 @@
 #include "feddlib/problems/specific/NonLinElasticity.hpp"
 #include "feddlib/problems/Solver/NonLinearSolver.hpp"
 
+#include <Teuchos_StackedTimer.hpp>
+
+
 void zeroDirichlet(double* x, double* res, double t, const double* parameters)
 {
     res[0] = 0.;
