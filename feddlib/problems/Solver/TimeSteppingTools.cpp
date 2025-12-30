@@ -133,7 +133,7 @@ void TimeSteppingTools::updateParameter(){
     // We save the previous dt
     dt_prev_ = dt_;
     for(int i=0; i<numSegments_-1 ; i++){
-        if(t_ < timeParametersVec_[i+1][0] && t_+1.0e-12 > timeParametersVec_[i][0] ){
+        if(t_ <= timeParametersVec_[i+1][0] && t_+1.0e-12 > timeParametersVec_[i][0] ){
             dt_=timeParametersVec_[i][1];
             i=numSegments_;//break
             // std::cout << " updated to " << dt_ << " at time " << t_ << std::endl;

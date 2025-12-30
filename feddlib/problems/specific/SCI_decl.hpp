@@ -163,9 +163,9 @@ public:
         dofID = (GO) ( dim * nodeID + localDofNumber);
     }
     
-    void getValuesOfInterest2DBenchmark( vec_dbl_Type& values );
+    // void getValuesOfInterest2DBenchmark( vec_dbl_Type& values );
 
-    void getValuesOfInterest3DBenchmark( vec_dbl_Type& values );
+    // void getValuesOfInterest3DBenchmark( vec_dbl_Type& values );
     
     virtual void getValuesOfInterest( vec_dbl_Type& values ) {}  ;
 
