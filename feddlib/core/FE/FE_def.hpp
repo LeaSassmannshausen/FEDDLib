@@ -8753,13 +8753,13 @@ void FE<SC,LO,GO,NO>::assemblySurfaceIntegral(int dim,
                 // Setting flag to the placeholder (second last entry). The last entry at (funcParameter.size() - 1) should always be the degree of the surface function
                 params[ funcParameter.size() - 1 ] = feSub.getFlag();
                
-                vec_int_Type nodeList = feSub.getVectorNodeListNonConst ();
+                vec_int_Type nodeList = feSub.getVectorNodeListNonConst();
 
                 vec_dbl_Type v_E(dim,1.);
                 double norm_v_E=1.;
 
                 Helper::computeSurfaceNormal(dim, pointsRep,nodeList,v_E,norm_v_E);
-
+       
 		        Helper::buildTransformationSurface( nodeList, pointsRep, B, b, FEType);
                 elScaling = B.computeScaling( );
                 // loop over basis functions

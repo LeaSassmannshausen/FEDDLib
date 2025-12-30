@@ -626,8 +626,12 @@ int main(int argc, char *argv[])
             domainStructure.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., 1., comm));
             domainChem.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., 1., comm));
         
-		    domainStructure->buildMesh( 3,"Square", dim, discType, n, m, numProcsCoarseSolve);
-		    domainChem->buildMesh( 3,"Square", dim, discType, n, m, numProcsCoarseSolve);
+		    domainStructure->buildMesh( 3,"Square5Element", dim, discType, n, m, numProcsCoarseSolve);
+		    domainChem->buildMesh( 3,"Square5Element", dim, discType, n, m, numProcsCoarseSolve);
+
+            domainStructure->preProcessMesh(true,true);
+            domainChem->preProcessMesh(true,true);
+
 		}
         else if (!meshType.compare("unstructured")) {
         

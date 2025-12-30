@@ -4087,7 +4087,7 @@ void MeshStructured<SC,LO,GO,NO>::buildSurfaces(int flagsOption, std::string FET
                     else 
                         TEUCHOS_TEST_FOR_EXCEPTION(true,std::logic_error,"For flag option and discretization no surfaces are available");
 
-
+                    std::cout << "-- Building surface elements for flag option 3 --" << std::endl;
                     for( int T =0; T< this->elementsC_->numberElements(); T++){
 
                         vec_int_Type nodeList = this->elementsC_->getElement(T).getVectorNodeList();
@@ -4184,17 +4184,6 @@ void MeshStructured<SC,LO,GO,NO>::buildSurfaces(int flagsOption, std::string FET
                                     flipSurface(surfaceElements_vec[i]);
                                 flag = 6;
                             }
-                            p1[0] = this->pointsRep_->at(surfaceElements_vec[i][0]).at(0) - this->pointsRep_->at(surfaceElements_vec[i][1]).at(0);
-                            p1[1] =this->pointsRep_->at(surfaceElements_vec[i][0]).at(1) - this->pointsRep_->at(surfaceElements_vec[i][1]).at(1);
-                            p1[2] = this->pointsRep_->at(surfaceElements_vec[i][0]).at(2) - this->pointsRep_->at(surfaceElements_vec[i][1]).at(2);
-
-                            p2[0] = this->pointsRep_->at(surfaceElements_vec[i][0]).at(0) - this->pointsRep_->at(surfaceElements_vec[i][2]).at(0);
-                            p2[1] = this->pointsRep_->at(surfaceElements_vec[i][0]).at(1) - this->pointsRep_->at(surfaceElements_vec[i][2]).at(1);
-                            p2[2] = this->pointsRep_->at(surfaceElements_vec[i][0]).at(2) - this->pointsRep_->at(surfaceElements_vec[i][2]).at(2);
-
-                            v_E[0] = p1[1]*p2[2] - p1[2]*p2[1];
-                            v_E[1] = p1[2]*p2[0] - p1[0]*p2[2];
-                            v_E[2] = p1[0]*p2[1] - p1[1]*p2[0];
 
                             if(flag != 10){
                                 FiniteElement feSurface( surfaceElements_vec[i], flag);

@@ -94,19 +94,16 @@ void rhsX(double* x, double* res, double* parameters){
 
 void rhsYZ(double* x, double* res, double* parameters){
     // parameters[0] is the time, not needed here
-    res[0] = 0.;
+    res[0] =0.;
+    res[1] =0.;
+    res[2] =0.;   
     double force = parameters[1];
 
-    if(parameters[3] == 5)
+    if(parameters[3] == 5 || parameters[3] == 4){
+        res[0] = force;
         res[1] = force;
-    else
-        res[1] =0.;
-        
-    if (parameters[3] == 4)
         res[2] = force;
-    else
-        res[2] = 0.;
-    
+    }
     return;
 }
 
@@ -219,58 +216,56 @@ int main(int argc, char *argv[])
         // ########################
         // P1 und P2 Gitter bauen
         // ########################
+        int minNumberSubdomains=1;
 
-        domain.reset( new Domain<SC,LO,GO,NO>( comm, dim ) );
-        MeshPartitioner_Type::DomainPtrArray_Type domainP1Array(1);
-        domainP1Array[0] = domain;
+        if (!meshType.compare("structured")) {
+		    TEUCHOS_TEST_FOR_EXCEPTION( size%minNumberSubdomains != 0 , std::logic_error, "Wrong number of processors for structured mesh.");
+            n = (int)(std::pow( size/minNumberSubdomains, 1/3.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
+            std::vector<double> x(3);
+            x[0]=0.0;    x[1]=0.0;	x[2]=0.0;
+            domain.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., 1., comm));
         
-        ParameterListPtr_Type pListPartitioner = sublist( parameterListProblem, "Mesh Partitioner" );
-        MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
-        
-        partitionerP1.readAndPartition(15);
-        if (FEType=="P2") {
-            Teuchos::RCP<Domain<SC,LO,GO,NO> > domainP2;
-            domainP2.reset( new Domain_Type( comm, dim ) );
-            domainP2->buildP2ofP1Domain( domain );
-            domain = domainP2;
+		    domain->buildMesh( 3,"Square5Element", dim, FEType, n, m, numProcsCoarseSolve);
+
+            domain->preProcessMesh(true,true);
+		}
+        else if (!meshType.compare("unstructured")) {
+            domain.reset( new Domain<SC,LO,GO,NO>( comm, dim ) );
+            MeshPartitioner_Type::DomainPtrArray_Type domainP1Array(1);
+            domainP1Array[0] = domain;
+            
+            ParameterListPtr_Type pListPartitioner = sublist( parameterListProblem, "Mesh Partitioner" );
+            MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
+            
+            partitionerP1.readAndPartition(15);
+            if (FEType=="P2") {
+                Teuchos::RCP<Domain<SC,LO,GO,NO> > domainP2;
+                domainP2.reset( new Domain_Type( comm, dim ) );
+                domainP2->buildP2ofP1Domain( domain );
+                domain = domainP2;
+            }
         }
-
-       // ########################
-        // Flags setzen
+        
+        // ########################
+        domain->exportNodeFlags();
         // ########################
 
-		Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaF(new ExporterParaView<SC,LO,GO,NO>());
+        TEUCHOS_TEST_FOR_EXCEPTION( dim==2, std::logic_error, "Only 3D tests allowed"); 
 
-		Teuchos::RCP<MultiVector<SC,LO,GO,NO> > exportSolution(new MultiVector<SC,LO,GO,NO>(domain->getMapUnique()));
-		vec_int_ptr_Type BCFlags = domain->getBCFlagUnique();
-
-		Teuchos::ArrayRCP< SC > entries  = exportSolution->getDataNonConst(0);
-		for(int i=0; i< entries.size(); i++){
-			entries[i] = BCFlags->at(i);
-		}
-
-		Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionConst = exportSolution;
-
-		exParaF->setup("Flags", domain->getMesh(), FEType);
-
-		exParaF->addVariable(exportSolutionConst, "Flags", "Scalar", 1,domain->getMapUnique());
-
-		exParaF->save(0.0);
-
-		Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactory( new BCBuilder<SC,LO,GO,NO>( ) );
-        if (dim == 2)
-            bcFactory->addBC(zeroDirichlet2D, 1, 0, domain, "Dirichlet", dim);
-        else if (dim == 3){
-                      
-            // bcFactory->addBC(zeroDirichlet, 1, 0, domain, "Dirichlet_X", dim);
-            // bcFactory->addBC(zeroDirichlet, 2, 0, domain, "Dirichlet_Y", dim);
-            // bcFactory->addBC(zeroDirichlet, 3, 0, domain, "Dirichlet_Z", dim);
-            // bcFactory->addBC(zeroDirichlet3D, 0, 0, domain, "Dirichlet", dim);
-            // bcFactory->addBC(zeroDirichlet2D, 7, 0, domain, "Dirichlet_X_Y", dim);
-            // bcFactory->addBC(zeroDirichlet2D, 8, 0, domain, "Dirichlet_Y_Z", dim);
-            // bcFactory->addBC(zeroDirichlet2D, 9, 0, domain, "Dirichlet_X_Z", dim);
-
-
+        Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactory( new BCBuilder<SC,LO,GO,NO>( ) );
+      
+        if (!meshType.compare("structured")) { // Case of Cube
+            bcFactory->addBC(zeroDirichlet3D, 1, 0, domain, "Dirichlet_X", dim); // x=0
+            bcFactory->addBC(zeroDirichlet3D, 2, 0, domain, "Dirichlet_Y", dim); // y=0
+            bcFactory->addBC(zeroDirichlet3D, 3, 0, domain, "Dirichlet_Z", dim); // z=0
+        
+            bcFactory->addBC(zeroDirichlet3D, 0, 0, domain, "Dirichlet", dim);
+            bcFactory->addBC(zeroDirichlet3D, 7, 0, domain, "Dirichlet_X_Y", dim); //x,y = 0
+            bcFactory->addBC(zeroDirichlet3D, 8, 0, domain, "Dirichlet_Y_Z", dim); // y,z= 0
+            bcFactory->addBC(zeroDirichlet3D, 9, 0, domain, "Dirichlet_X_Z", dim); // x,z = 0
+        
+        }
+        else if (!meshType.compare("unstructured")) { // Case of Artery Mesh
             bcFactory->addBC(zeroDirichlet3D, 14, 0, domain, "Dirichlet_Y_Z", dim); // inflow/outflow strip fixed in y direction
             bcFactory->addBC(zeroDirichlet3D, 13, 0, domain, "Dirichlet_X_Z", dim); // inflow/outflow strip fixed in y direction
             bcFactory->addBC(zeroDirichlet3D, 7, 0, domain, "Dirichlet_Z", dim); // inlet fixed in Z direction
@@ -279,22 +274,23 @@ int main(int argc, char *argv[])
             bcFactory->addBC(zeroDirichlet3D, 1, 0, domain, "Dirichlet_Z", dim); // outer ring of inlet area
             bcFactory->addBC(zeroDirichlet3D, 2, 0, domain, "Dirichlet_Z", dim); // outer ring of outlet area
             bcFactory->addBC(zeroDirichlet3D, 10, 0, domain, "Dirichlet_Z", dim); // outlet ring in Z direction
-
+        }
         
-		}
-            
-         // LinElas Objekt erstellen
+        // LinElas Objekt erstellen
         NonLinElasticity<SC,LO,GO,NO> NonLinElasAssFE( domain, FEType, parameterListAll );
 
         NonLinElasAssFE.addBoundaries(bcFactory); // Dem Problem RW hinzufuegen
     
         double force = parameterListAll->sublist("Parameter").get("Volume force",0.);
         double degree = 0;
-        if (dim==2)
-            NonLinElasAssFE.addRhsFunction( rhs2D );
-        else if(dim==3)
+
+        if (!meshType.compare("structured")) { // Case of Cube
+            NonLinElasAssFE.addRhsFunction( rhsYZ );// rhsYZ
+        }
+        else if (!meshType.compare("unstructured")) { // Case of Artery Mesh
             NonLinElasAssFE.addRhsFunction( rhsInterface );// rhsYZ
-        
+        }
+
         NonLinElasAssFE.addParemeterRhs( force );
         NonLinElasAssFE.addParemeterRhs( degree );
         
@@ -311,24 +307,22 @@ int main(int argc, char *argv[])
         
         {
             Teuchos::TimeMonitor totalTimeMonitorAssFE(*totalTimeAssFE);
-            Teuchos::RCP<Teuchos::TimeMonitor> totalTimerAssFE = Teuchos::rcp(new Teuchos::TimeMonitor(*totalTimeAssFE));
             nlSolverAssFE.solve( NonLinElasAssFE );
             comm->barrier();
         }
         
-
-
         // Nonlinear Elasticity Objekt erstellen not from AceGen Interface
         parameterListAll->sublist("Parameter").set("Use AceGen Interface",false); 
         NonLinElasticity<SC,LO,GO,NO> NonLinElas( domain, FEType, parameterListAll );
 
         NonLinElas.addBoundaries(bcFactory); // Dem Problem RW hinzufuegen
 
-        if (dim==2)
-            NonLinElas.addRhsFunction( rhs2D );
-        else if(dim==3)
-            NonLinElas.addRhsFunction( rhsInterface ); // rhsYZ
-
+        if (!meshType.compare("structured")) { // Case of Cube
+            NonLinElas.addRhsFunction( rhsYZ );// rhsYZ
+        }
+        else if (!meshType.compare("unstructured")) { // Case of Artery Mesh
+            NonLinElas.addRhsFunction( rhsInterface );// rhsYZ
+        }
         
         
         NonLinElas.addParemeterRhs( force );
@@ -345,7 +339,6 @@ int main(int argc, char *argv[])
         
         {
             Teuchos::TimeMonitor totalTimeMonitorFEDD(*totalTimeFEDD);
-            Teuchos::RCP<Teuchos::TimeMonitor> totalTimerFEDD = Teuchos::rcp(new Teuchos::TimeMonitor(*totalTimeFEDD));
             nlSolver.solve( NonLinElas );
             comm->barrier();	
 
