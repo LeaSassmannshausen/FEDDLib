@@ -180,6 +180,10 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 
+    Teuchos::RCP<StackedTimer> stackedTimer =  rcp(new StackedTimer("Steady Nonlinear Elasticity",true));
+    TimeMonitor::setStackedTimer(stackedTimer);
+
+
     bool verbose (comm->getRank() == 0); // Print-Ausgaben nur auf rank = 0
     if (verbose) {
         cout << "###############################################################" <<endl;
@@ -207,9 +211,8 @@ int main(int argc, char *argv[])
         int numProcsCoarseSolve = parameterListProblem->sublist("General").get("Mpi Ranks Coarse",0);
         int size = comm->getSize() - numProcsCoarseSolve;
 
-        Teuchos::RCP<Teuchos::Time> totalTime(Teuchos::TimeMonitor::getNewCounter("main: Total Time"));
-        Teuchos::RCP<Teuchos::Time> buildMesh(Teuchos::TimeMonitor::getNewCounter("main: Build Mesh"));
-        Teuchos::RCP<Teuchos::Time> solveTime(Teuchos::TimeMonitor::getNewCounter("main: Solve problem time"));
+        Teuchos::RCP<Teuchos::Time> totalTimeAssFE(Teuchos::TimeMonitor::getNewCounter("main: Total Time Solve AssFE"));
+        Teuchos::RCP<Teuchos::Time> totalTimeFEDD(Teuchos::TimeMonitor::getNewCounter("main: Total Time Solve FEDD"));
 
         DomainPtr_Type domain;
 
@@ -305,8 +308,13 @@ int main(int argc, char *argv[])
 
 		std::string nlSolverType = parameterListProblem->sublist("General").get("Linearization","FixedPoint");
         NonLinearSolver<SC,LO,GO,NO> nlSolverAssFE( nlSolverType );
-        nlSolverAssFE.solve( NonLinElasAssFE );
-        comm->barrier();
+        
+        {
+            Teuchos::TimeMonitor totalTimeMonitorAssFE(*totalTimeAssFE);
+            Teuchos::RCP<Teuchos::TimeMonitor> totalTimerAssFE = Teuchos::rcp(new Teuchos::TimeMonitor(*totalTimeAssFE));
+            nlSolverAssFE.solve( NonLinElasAssFE );
+            comm->barrier();
+        }
         
 
 
@@ -334,8 +342,14 @@ int main(int argc, char *argv[])
 		NonLinElas.setBoundariesRHS();
 
         NonLinearSolver<SC,LO,GO,NO> nlSolver( nlSolverType );
-        nlSolver.solve( NonLinElas );
-        comm->barrier();	
+        
+        {
+            Teuchos::TimeMonitor totalTimeMonitorFEDD(*totalTimeFEDD);
+            Teuchos::RCP<Teuchos::TimeMonitor> totalTimerFEDD = Teuchos::rcp(new Teuchos::TimeMonitor(*totalTimeFEDD));
+            nlSolver.solve( NonLinElas );
+            comm->barrier();	
+
+        }
 
 		if(comm->getRank() ==0){
 			cout << " ############################################### " << endl;
@@ -389,6 +403,11 @@ int main(int argc, char *argv[])
         TEUCHOS_TEST_FOR_EXCEPTION( infNormError > 1e-11 , std::logic_error, "Inf Norm of Error between calculated solutions is too great. Exceeded 1e-11. ");
 
     }
+    Teuchos::TimeMonitor::report(cout);
+    stackedTimer->stop("Steady Nonlinear Elasticity");
+	StackedTimer::OutputOptions options;
+	options.output_fraction = options.output_histogram = options.output_minmax = true;
+	stackedTimer->report((std::cout),comm,options);
 
     return(EXIT_SUCCESS);
 }

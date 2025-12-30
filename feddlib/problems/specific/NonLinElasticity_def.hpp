@@ -1,5 +1,14 @@
 #ifndef NonLinElasticity_def_hpp
 #define NonLinElasticity_def_hpp
+
+#ifndef NONLINELAS_START
+#define NONLINELAS_START(A,S) Teuchos::RCP<Teuchos::TimeMonitor> A = Teuchos::rcp(new Teuchos::TimeMonitor(*Teuchos::TimeMonitor::getNewTimer(std::string("Assemble NonLinElasticity:") + std::string(S))));
+#endif
+
+#ifndef NONLINELAS_STOP
+#define NONLINELAS_STOP(A) A.reset();
+#endif
+
 #include "NonLinElasticity_decl.hpp"
 #include <sys/resource.h>
 #include <iostream>
@@ -129,6 +138,8 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
         
         MatrixPtr_Type W = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
         
+        NONLINELAS_START(Assembly," Assembling Jacobian and Residual");
+
     #ifdef FEDD_HAVE_ACEGENINTERFACE
         bool useInterface = this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true);
         if(this->getFEType(0) =="P2" && useInterface && this->dim_ == 3 && material_model != "Saint-Venant-Kirchhoff"){
@@ -148,6 +159,7 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
     #else
         this->feFactory_->assemblyElasticityJacobianAndStressAceFEM(this->dim_, this->getDomain(0)->getFEType(), W, f, u_rep_, this->parameterList_, C_);
     #endif  
+        NONLINELAS_STOP(Assembly);
         
         MultiVectorPtr_Type fUnique = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique(), 1 ) );
         fUnique->putScalar(0.);
