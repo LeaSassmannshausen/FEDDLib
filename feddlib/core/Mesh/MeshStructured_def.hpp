@@ -4087,7 +4087,6 @@ void MeshStructured<SC,LO,GO,NO>::buildSurfaces(int flagsOption, std::string FET
                     else 
                         TEUCHOS_TEST_FOR_EXCEPTION(true,std::logic_error,"For flag option and discretization no surfaces are available");
 
-                    std::cout << "-- Building surface elements for flag option 3 --" << std::endl;
                     for( int T =0; T< this->elementsC_->numberElements(); T++){
 
                         vec_int_Type nodeList = this->elementsC_->getElement(T).getVectorNodeList();
@@ -4184,6 +4183,7 @@ void MeshStructured<SC,LO,GO,NO>::buildSurfaces(int flagsOption, std::string FET
                                     flipSurface(surfaceElements_vec[i]);
                                 flag = 6;
                             }
+                   
 
                             if(flag != 10){
                                 FiniteElement feSurface( surfaceElements_vec[i], flag);

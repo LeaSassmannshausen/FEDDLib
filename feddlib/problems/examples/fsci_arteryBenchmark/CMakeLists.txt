@@ -1,0 +1,20 @@
+TRIBITS_ADD_EXECUTABLE(
+	fsci_arteryBenchmark
+    SOURCES main.cpp
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_fsciArteryBenchmark
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+	SOURCE_FILES parametersPrecGE.xml parametersPrecGI.xml parametersPrecGeometry.xml parametersProblemFSCI.xml  parametersSolverFSCI.xml parametersSolverGeometry.xml parametersPrecFluidMono.xml parametersPrecFluidTeko.xml parametersPrecStructure.xml parametersPrecStructureCE.xml parametersPrecChem.xml laplace_parabolic_fluidBenchmark2_P1.h5 laplace_parabolic_fluidBenchmark2_P2.h5 laplace_parabolic_fluidBenchmark3_P1.h5 laplace_parabolic_fluidBenchmark3_P2.h5 laplace_parabolic_fluidBenchmark4_P1.h5 laplace_parabolic_fluidBenchmark4_P2.h5
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+	DEST_FILES parametersPrecGE.xml parametersPrecGI.xml parametersPrecGeometry.xml  parametersProblemFSCI.xml parametersSolverFSCI.xml parametersSolverGeometry.xml parametersPrecFluidMono.xml parametersPrecFluidTeko.xml parametersPrecStructure.xml parametersPrecStructureCE.xml parametersPrecChem.xml laplace_parabolic_fluidBenchmark2_P1.h5 laplace_parabolic_fluidBenchmark2_P2.h5 laplace_parabolic_fluidBenchmark3_P1.h5 laplace_parabolic_fluidBenchmark3_P2.h5 laplace_parabolic_fluidBenchmark4_P1.h5 laplace_parabolic_fluidBenchmark4_P2.h5
+	EXEDEPS fsci_arteryBenchmark
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_fsciArteryBenchmark
+	SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
+    SOURCE_FILES fluidBenchmark2.mesh structureBenchmark2.mesh fluidBenchmark3.mesh structureBenchmark3.mesh fluidBenchmark4.mesh structureBenchmark4.mesh 
+	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+	DEST_FILES fluidBenchmark2.mesh structureBenchmark2.mesh fluidBenchmark3.mesh structureBenchmark3.mesh fluidBenchmark4.mesh structureBenchmark4.mesh
+	EXEDEPS fsci_arteryBenchmark
+)

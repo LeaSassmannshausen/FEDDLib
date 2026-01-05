@@ -28,8 +28,7 @@
             </ParameterList>
         </ParameterList>
     </ParameterList>
-
-   <ParameterList name="NOXSolver">
+<ParameterList name="NOXSolver">
         <Parameter name="Nonlinear Solver" type="string" value="Line Search Based"/>
         <ParameterList name="Direction">
             <ParameterList name="Newton">
