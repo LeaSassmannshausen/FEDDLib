@@ -53,7 +53,7 @@
         <Parameter name="Symmetric gradient" type="bool" value="true"/>
 
         <Parameter name="MeanVelocity" type="double" value="118.28"/><!--2d:2.0, Richter 3d: 1.0 - not used anyway!-->
-        <Parameter name="Max Ramp Time" type="double" value="0.2"/>
+        <Parameter name="Max Ramp Time" type="double" value="0.1"/>
         <Parameter name="Heart Beat Start" type="double" value="1.0"/><!-- Start of heart beat -->
         <Parameter name="Flowrate" type="double" value="3"/><!-- For Absorbing BC-->
   
