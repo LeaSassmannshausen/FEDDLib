@@ -623,9 +623,9 @@ int main(int argc, char *argv[])
                 if(!geometryExplicit)
                     ID_diffusion_in_FSI = 5;
                 // Diffusion happening at outer wall
-                bcFactory->addBC(inflowChem, 4,ID_diffusion_in_FSI, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-                bcFactoryChem->addBC(inflowChem, 4, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
-                bcFactorySCI->addBC(inflowChem, 4, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+                bcFactory->addBC(inflowChem, 6,ID_diffusion_in_FSI, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+                bcFactoryChem->addBC(inflowChem, 6, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+                bcFactorySCI->addBC(inflowChem, 6, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
 
                 fsci.problemSCI_->problemChem_->addBoundaries(bcFactoryChem);
 
