@@ -627,6 +627,14 @@ int main(int argc, char *argv[])
                 bcFactoryChem->addBC(inflowChem, 6, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
                 bcFactorySCI->addBC(inflowChem, 6, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
 
+                bcFactory->addBC(inflowChem, 4,ID_diffusion_in_FSI, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+                bcFactoryChem->addBC(inflowChem, 4, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+                bcFactorySCI->addBC(inflowChem, 4, 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+
+                bcFactory->addBC(inflowChem, 5,ID_diffusion_in_FSI, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+                bcFactoryChem->addBC(inflowChem, 5, 0, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+                bcFactorySCI->addBC(inflowChem, 5 , 1, domainChem, "Dirichlet", 1,parameter_vec); // inflow of Chem
+
                 fsci.problemSCI_->problemChem_->addBoundaries(bcFactoryChem);
 
             }
