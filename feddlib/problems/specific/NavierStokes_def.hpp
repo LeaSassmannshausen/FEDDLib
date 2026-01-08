@@ -322,6 +322,7 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
             bcBlockMatrix->addBlock(Lp,0,0);
 
             bcFactoryPCD_->setSystemScaled(bcBlockMatrix); // Setting boundary information where the Diagonal entry is kept 
+
             this->getPreconditionerConst()->setPressureLaplaceMatrix( Lp);   // Adding pressure laplacian to preconditioner
             // --------------------------------------------------------------------------------------------
 
@@ -480,6 +481,7 @@ void NavierStokes<SC,LO,GO,NO>::updateConvectionDiffusionOperator() const{
                                                        // Note, if no surfaces are available, the matrix Kext, containg the robin bc is zero,
                                                        // so no robin bc is applied.
 
+        
         this->getPreconditionerConst()->setPCDOperator( Fp );      
 
         NAVIER_STOKES_STOP(ReassemblePCD);       

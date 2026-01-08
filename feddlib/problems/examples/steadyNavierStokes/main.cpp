@@ -390,13 +390,13 @@ int main(int argc, char *argv[]) {
                     if (dim==2){
                         bcFactory->addBC(zeroDirichlet2D, 1, 0, domainVelocity, "Dirichlet", dim); // wall
                         bcFactory->addBC(ldcFunc2D, 2, 0, domainVelocity, "Dirichlet", dim,parameter_vec); // lid
-                        bcFactory->addBC(zeroDirichlet, 3, 1, domainPressure, "Dirichlet", 1); // pressure node
+                        bcFactory->addBC(zeroDirichlet, 3, 0, domainVelocity, "Dirichlet", 1); // pressure node
 
                     }
                     else if (dim==3){
                         bcFactory->addBC(zeroDirichlet3D, 1, 0, domainVelocity, "Dirichlet", dim); // Wall
                         bcFactory->addBC(ldcFunc3D, 2, 0, domainVelocity, "Dirichlet", dim,parameter_vec); // Lid
-                        bcFactory->addBC(zeroDirichlet, 3, 1, domainPressure, "Dirichlet", 1); // Pressure Node
+                        bcFactory->addBC(zeroDirichlet, 3, 0, domainVelocity, "Dirichlet", 1); // Pressure Node
                     }
                        
                 }
