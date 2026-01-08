@@ -37,6 +37,7 @@
         <Parameter name="ParaView export subdomain" type="bool" value="false"/>
         <!-- Preconditioning method-->
         <Parameter name="Preconditioner Method" type="string" value="Monolithic"/><!-- Monolithic, Teko, PCD, LSC, Diagonal, Triangular -->
-
+        <!-- Augmented lagrange Approach --> 
+		<Parameter name="Augmented Lagrange" type="bool" value="false"/><!-- true or false -->  
     </ParameterList>
 </ParameterList>

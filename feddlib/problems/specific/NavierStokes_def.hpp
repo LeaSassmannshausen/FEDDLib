@@ -148,7 +148,6 @@ u_rep_()
 
     // Establish the non zero pattern of the system matrix in (0,0) block
     NNZ_A_.reset(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
-    establishNNZPattern();
 
 }
 
@@ -393,6 +392,10 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
     // This was moved here from 'create_W_op'.
     // Here it will definetly be called before create_W_op and create_W_prec is called.
     //A_->print();
+    if(nnzPatternEstablished_==false)
+        establishNNZPattern();
+
+    
     MatrixPtr_Type A_withNNZ = Teuchos::rcp( new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
     A_->addMatrix(1.,A_withNNZ,0.);
     NNZ_A_->addMatrix(1.,A_withNNZ,1.);
@@ -686,11 +689,16 @@ void NavierStokes<SC,LO,GO,NO>::establishNNZPattern() const {
     this->feFactory_->assemblyAdvectionInUVecField( this->dim_, this->domain_FEType_vec_.at(0), W, zeroVec, true );
  
     W->addMatrix(1.,ANW,1.);
+
+    if(augmentedLagrange_)
+        BT_Mp_B_->addMatrix(1.,ANW,1.);
     
+    ANW->scale(0.0); // to make sure entries are zero    
     ANW->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique() );
 
     NNZ_A_= ANW;
  
+    nnzPatternEstablished_ = true;
     if (this->verbose_)
         std::cout << "done -- " << std::endl;
 }

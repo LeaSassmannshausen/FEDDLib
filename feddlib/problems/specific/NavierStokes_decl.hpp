@@ -113,6 +113,7 @@ public:
     mutable MatrixPtr_Type 	Ap_;
 
     bool augmentedLagrange_=false;
+    mutable bool nnzPatternEstablished_ = false;
 
 private:
 
