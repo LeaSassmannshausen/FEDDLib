@@ -70,6 +70,9 @@ public:
     
     MeshUnstructured( CommConstPtr_Type comm, int volumeID=10, std::string meshUnit = "cm", bool convertToCM = false );
     
+	MeshUnstructured( MeshPtr_Type mesh, CommConstPtr_Type comm);
+
+
     ~MeshUnstructured();
        
 	/*! 

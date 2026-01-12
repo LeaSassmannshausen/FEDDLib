@@ -870,17 +870,19 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, dou
     else
         this->system_->apply( *this->solution_, *this->residualVec_, this->coeff_ );
     
-    if(augmentedLagrange_){
-        MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
-        BT_Mp_->apply( *this->residualVec_->getBlock(1), *rhsAL );
-        this->residualVec_->getBlockNonConst(0)->update(1.,*rhsAL,1.);
-
-    }
     if (!type.compare("standard")){
         this->residualVec_->update(-1.,*this->rhs_,1.);
 //        if ( !this->sourceTerm_.is_null() )
 //            this->residualVec_->update(-1.,*this->sourceTerm_,1.);
         // this might be set again by the TimeProblem after addition of M*u
+
+        if(augmentedLagrange_){
+            MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
+            BT_Mp_->apply( *this->residualVec_->getBlock(1), *rhsAL );
+            // rhsAL->print();
+            this->residualVec_->getBlockNonConst(0)->update(1.,*rhsAL,1.);
+        }
+
         this->bcFactory_->setVectorMinusBC( this->residualVec_, this->solution_, time );
         
     }
@@ -889,6 +891,13 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, dou
 //        if ( !this->sourceTerm_.is_null() )
 //            this->residualVec_->update(1.,*this->sourceTerm_,1.);
         // this might be set again by the TimeProblem after addition of M*u
+
+        if(augmentedLagrange_){
+            MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
+            BT_Mp_->apply( *this->residualVec_->getBlock(1), *rhsAL );
+            // rhsAL->print();
+            this->residualVec_->getBlockNonConst(0)->update(-1.,*rhsAL,1.);
+        }
         this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );    
     }
 

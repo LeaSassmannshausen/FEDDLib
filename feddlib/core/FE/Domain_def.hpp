@@ -401,7 +401,11 @@ void Domain<SC, LO, GO, NO>::initDummyMesh(MapPtr_Type map)
 template <class SC, class LO, class GO, class NO>
 void Domain<SC,LO,GO,NO>::exportMesh(bool exportEdges, bool exportSurfaces, std::string exportMesh){ 
 
-    MeshUnstrPtr_Type meshUnstructured = Teuchos::rcp_dynamic_cast<MeshUnstr_Type>( mesh_ );
+     MeshUnstrPtr_Type meshUnstructured;
+    if(meshType_ != "unstructured")
+        meshUnstructured = Teuchos::rcp(new MeshUnstr_Type( mesh_, this->getComm() ));
+    else    
+        meshUnstructured = Teuchos::rcp_dynamic_cast<MeshUnstr_Type>( mesh_ , true);
 
     meshUnstructured->exportMesh(this->getMapUnique() , this->getMapRepeated(), exportEdges, exportSurfaces, exportMesh);
 }

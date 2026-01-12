@@ -80,6 +80,25 @@ void ldcFunc2D(double* x, double* res, double t, const double* parameters){
 }
 
 // For Lid Driven Cavity Test
+void ldcFunc2Dreg(double* x, double* res, double t, const double* parameters){
+    
+    res[0] = 1.-pow(x[0],4.);
+    res[1] = 0.;
+    
+    return;
+}
+
+// For Lid Driven Cavity Test
+void ldcFunc3Dreg(double* x, double* res, double t, const double* parameters){
+    
+    res[0] = 1.-pow(x[0],4.);
+    res[1] = 0.;
+    res[2] = 0.;
+
+    return;
+}
+
+// For Lid Driven Cavity Test
 void ldcFunc3D(double* x, double* res, double t, const double* parameters){
     
     res[0] = 1.*parameters[0];
@@ -302,9 +321,9 @@ int main(int argc, char *argv[]) {
                         if (dim == 2) {
                             n = (int) (std::pow( size/minNumberSubdomains ,1/2.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
                             std::vector<double> x(2);
-                            x[0]=0.0;    x[1]=0.0;
-                            domainPressure.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., comm ) );
-                            domainVelocity.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., comm ) );
+                            x[0]=-1.0;    x[1]=-1.0;
+                            domainPressure.reset(new Domain<SC,LO,GO,NO>( x, 2., 2., comm ) );
+                            domainVelocity.reset(new Domain<SC,LO,GO,NO>( x, 2., 2., comm ) );
                         }
                         else if (dim == 3){
                             n = (int) (std::pow( size/minNumberSubdomains, 1/3.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
@@ -337,7 +356,11 @@ int main(int argc, char *argv[]) {
                 }
                 domainVelocity->preProcessMesh(true,false);
 
-                domainVelocity->exportNodeFlags("nodeflags.out");
+                // domainVelocity->exportNodeFlags("nodeflags.out");
+                
+                // domainVelocity->exportMesh(false,false,"FluidMesh");
+
+                // domainVelocity->getMapRepeated()->print();
                 
                 std::vector<double> parameter_vec(1, parameterListProblem->sublist("Parameter").get("MaxVelocity",1.));
 
@@ -389,14 +412,14 @@ int main(int argc, char *argv[]) {
                 else if (!bcType.compare("LDC")){
                     if (dim==2){
                         bcFactory->addBC(zeroDirichlet2D, 1, 0, domainVelocity, "Dirichlet", dim); // wall
-                        bcFactory->addBC(ldcFunc2D, 2, 0, domainVelocity, "Dirichlet", dim,parameter_vec); // lid
-                        bcFactory->addBC(zeroDirichlet, 3, 0, domainVelocity, "Dirichlet", 1); // pressure node
+                        bcFactory->addBC(ldcFunc2Dreg, 2, 0, domainVelocity, "Dirichlet", dim,parameter_vec); // lid
+                        // bcFactory->addBC(zeroDirichlet2D, 3, 0, domainVelocity, "Dirichlet", dim); // pressure node
 
                     }
                     else if (dim==3){
                         bcFactory->addBC(zeroDirichlet3D, 1, 0, domainVelocity, "Dirichlet", dim); // Wall
-                        bcFactory->addBC(ldcFunc3D, 2, 0, domainVelocity, "Dirichlet", dim,parameter_vec); // Lid
-                        bcFactory->addBC(zeroDirichlet, 3, 0, domainVelocity, "Dirichlet", 1); // Pressure Node
+                        bcFactory->addBC(ldcFunc3Dreg, 2, 0, domainVelocity, "Dirichlet", dim,parameter_vec); // Lid
+                        // bcFactory->addBC(zeroDirichlet3D, 3, 0, domainVelocity, "Dirichlet", dim); // Pressure Node
                     }
                        
                 }

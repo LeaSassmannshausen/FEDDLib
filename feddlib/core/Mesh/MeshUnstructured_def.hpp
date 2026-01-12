@@ -67,6 +67,34 @@ delimiter_(" ")
 }
 
 template <class SC, class LO, class GO, class NO>
+inline MeshUnstructured<SC, LO, GO, NO>::MeshUnstructured(MeshPtr_Type mesh,CommConstPtr_Type comm):
+Mesh<SC,LO,GO,NO>(comm),
+meshInterface_(),
+volumeID_(10),
+edgeElements_(),
+surfaceEdgeElements_(),
+meshFileName_("fileName.mesh"),
+delimiter_(" ")
+{
+    edgeElements_ = Teuchos::rcp( new EdgeElements_Type() );
+    surfaceEdgeElements_ = Teuchos::rcp( new Elements_Type() );
+    
+    this->numElementsGlob_ = mesh->numElementsGlob_;
+    this->dim_ = mesh->dim_;
+    this->FEType_ = mesh->FEType_;
+    this->mapUnique_ = mesh->mapUnique_;
+    this->mapRepeated_ = mesh->mapRepeated_;
+    this->pointsRep_ = mesh->pointsRep_;
+    this->pointsUni_ = mesh->pointsUni_;
+    this->bcFlagRep_ = mesh->bcFlagRep_;
+    this->bcFlagUni_ = mesh->bcFlagUni_;
+    this->elementMap_ = mesh->elementMap_;
+    this->elementsC_ = mesh->getElementsC();
+    this->elementsVec_ = mesh->getElements();
+
+}
+
+template <class SC, class LO, class GO, class NO>
 MeshUnstructured<SC,LO,GO,NO>::~MeshUnstructured(){
 }
 
