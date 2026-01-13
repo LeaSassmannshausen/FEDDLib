@@ -879,7 +879,7 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, dou
             MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
             BT_Mp_->apply( *this->residualVec_->getBlock(1), *rhsAL );
             // rhsAL->print();
-            this->residualVec_->getBlockNonConst(0)->update(-1.,*rhsAL,1.);
+            this->residualVec_->getBlockNonConst(0)->update(1.,*rhsAL,1.);
         }
 
         this->residualVec_->update(-1.,*this->rhs_,1.);
