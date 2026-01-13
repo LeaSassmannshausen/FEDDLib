@@ -1531,9 +1531,15 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
         
         probSchur_->initializeSystem( Mp );
         
-        probSchur_->setupPreconditioner( "Monolithic" ); // single matrix
+        if(parameterList->sublist("General").get("Augmented Lagrange", true)){
+            std::string typeDiag = parameterList->sublist("General").get("Diagonal Approximation","Diagonal");
+            precSchur_ = pressureMassMatrixPtr_->buildDiagonalInverse(typeDiag)->getThyraLinOpNonConst() ;
+        }
+        else{
+            probSchur_->setupPreconditioner( "Monolithic" ); // single matrix
         
-        precSchur_ = probSchur_->getPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
+            precSchur_ = probSchur_->getPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
+        }
     }
     else if (type == "PCD") {
         // For PCD we additionally need to setup the monolithic preconditioner for the 
