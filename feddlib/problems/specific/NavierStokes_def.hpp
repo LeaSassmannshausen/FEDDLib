@@ -676,6 +676,8 @@ void NavierStokes<SC,LO,GO,NO>::establishNNZPattern() const {
    
     if (this->verbose_)
         std::cout << "-- Establish NNZ Pattern Navier-Stokes ... " << std::flush;
+    
+    int allocationFactor = 1;
     if(augmentedLagrange_)
         allocationFactor = 3;
     MatrixPtr_Type ANW = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), allocationFactor*this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
