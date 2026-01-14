@@ -519,6 +519,7 @@ void NavierStokes<SC,LO,GO,NO>::assembleDivAndStab() const{
     this->system_->addBlock( BT, 0, 1 );
     this->system_->addBlock( B, 1, 0 );
     
+    B_ = B;
     if ( !this->getFEType(0).compare("P1") ||  !this->getFEType(0).compare("Q1") ) {
         C.reset(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow() ) );
         this->feFactory_->assemblyBDStabilization( this->dim_, this->getFEType(0), C, true);
@@ -874,10 +875,9 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, dou
 //        if ( !this->sourceTerm_.is_null() )
 //            this->residualVec_->update(-1.,*this->sourceTerm_,1.);
         // this might be set again by the TimeProblem after addition of M*u
-
         if(augmentedLagrange_){
             MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
-            BT_Mp_->apply( *this->residualVec_->getBlock(1), *rhsAL );
+            BT_Mp_B_->apply( *this->solution_->getBlock(0), *rhsAL );
             // rhsAL->print();
             this->residualVec_->getBlockNonConst(0)->update(1.,*rhsAL,1.);
         }
@@ -893,13 +893,27 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, dou
         // this might be set again by the TimeProblem after addition of M*u
 
         if(augmentedLagrange_){
+            // MultiVectorPtr_Type B_u_ = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(1) ) );
+            // B_->apply( *this->solution_->getBlock(0), *B_u_ );
+            // std::cout << " B * u contribution to residual: " << std::endl;
+            // B_u_->print();
+            // std::cout << " Pressure residual: " << std::endl;
+            // this->residualVec_->getBlock(1)->print();
+
+
+            // MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
+            // BT_Mp_->apply( *this->residualVec_->getBlock(1), *rhsAL );
+            // std::cout << "Augmented Lagrange contribution to residual: " << std::endl;
+            // rhsAL->print();
+
             MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
-            BT_Mp_->apply( *this->residualVec_->getBlock(1), *rhsAL );
+            BT_Mp_B_->apply( *this->solution_->getBlock(0), *rhsAL );
             // rhsAL->print();
             this->residualVec_->getBlockNonConst(0)->update(1.,*rhsAL,1.);
-        }
 
+        }
         this->residualVec_->update(1.,*this->rhs_,-1.); // this = -1*this + 1*rhs
+
 
         this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );    
     }

@@ -108,6 +108,7 @@ public:
 
     BCPtr_Type bcFactoryPCD_;
     mutable MatrixPtr_Type 	Mp_;
+    mutable MatrixPtr_Type 	B_;
     mutable MatrixPtr_Type 	BT_Mp_;
     mutable MatrixPtr_Type BT_Mp_B_;
     mutable MatrixPtr_Type 	Ap_;
