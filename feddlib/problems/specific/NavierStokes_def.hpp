@@ -302,7 +302,7 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
             // Pressure mass matrix
             MatrixPtr_Type Mpressure(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow() ) );
             this->feFactory_->assemblyMass( this->dim_, this->domain_FEType_vec_.at(1), "Scalar", Mpressure, true ); 
-            Mp_= Mpressure;
+            Mp_.reset(new Matrix_Type(Mpressure));
             this->getPreconditionerConst()->setPressureMassMatrix( Mpressure );
             // --------------------------------------------------------------------------------------------
 
@@ -676,9 +676,10 @@ void NavierStokes<SC,LO,GO,NO>::establishNNZPattern() const {
    
     if (this->verbose_)
         std::cout << "-- Establish NNZ Pattern Navier-Stokes ... " << std::flush;
-    
-    MatrixPtr_Type ANW = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
-        
+    if(augmentedLagrange_)
+        allocationFactor = 3;
+    MatrixPtr_Type ANW = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), allocationFactor*this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+       
     MultiVectorPtr_Type zeroVec = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated(), 1 ) );
     zeroVec->putScalar(0.0);
 

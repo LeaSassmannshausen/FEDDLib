@@ -1537,7 +1537,6 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
         }
         else{
             probSchur_->setupPreconditioner( "Monolithic" ); // single matrix
-        
             precSchur_ = probSchur_->getPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
         }
     }
