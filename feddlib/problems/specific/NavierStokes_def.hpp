@@ -396,8 +396,11 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
     if(nnzPatternEstablished_==false)
         establishNNZPattern();
 
-    
-    MatrixPtr_Type A_withNNZ = Teuchos::rcp( new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+    int allocationFactor = 1;
+    if(augmentedLagrange_)
+        allocationFactor = 3;
+
+    MatrixPtr_Type A_withNNZ = Teuchos::rcp( new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), allocationFactor*this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
     A_->addMatrix(1.,A_withNNZ,0.);
     NNZ_A_->addMatrix(1.,A_withNNZ,1.);
 
