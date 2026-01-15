@@ -402,6 +402,11 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
 
     MatrixPtr_Type A_withNNZ = Teuchos::rcp( new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), allocationFactor*this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
     A_->addMatrix(1.,A_withNNZ,0.);
+
+    if(augmentedLagrange_){
+        BT_Mp_B_->addMatrix(1.,A_withNNZ,1.);
+    }
+
     NNZ_A_->addMatrix(1.,A_withNNZ,1.);
 
     A_withNNZ->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
@@ -699,14 +704,22 @@ void NavierStokes<SC,LO,GO,NO>::establishNNZPattern() const {
  
     W->addMatrix(1.,ANW,1.);
 
+
     if(augmentedLagrange_)
-        BT_Mp_B_->addMatrix(1.,ANW,1.);
+        BT_Mp_B_->addMatrix(1.0,ANW,1.);
     
+    ANW->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique() );
+    ANW->resumeFill();
     ANW->scale(0.0); // to make sure entries are zero    
     ANW->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique() );
+    // ANW->print();
 
     NNZ_A_= ANW;
- 
+
+    // NNZ_A_->writeMM("NNZ_A_");
+    if(this->verbose_)
+        std::cout << "Max number of nonzeros per row in Navier-Stokes matrix: " << NNZ_A_->getGlobalMaxNumRowEntries() << std::endl;
+
     nnzPatternEstablished_ = true;
     if (this->verbose_)
         std::cout << "done -- " << std::endl;
