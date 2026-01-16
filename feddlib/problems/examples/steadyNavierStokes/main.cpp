@@ -355,8 +355,6 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 domainVelocity->preProcessMesh(true,false);
-
-                domainVelocity->exportNodeFlags("Fluid");
                 
                 // domainVelocity->exportMesh(false,false,"FluidMesh");
 
