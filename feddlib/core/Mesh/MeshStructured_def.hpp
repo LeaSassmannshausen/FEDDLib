@@ -821,22 +821,29 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3D(std::string FEType,
         this->pointsUni_.reset(new std::vector<std::vector<double> >(this->mapUnique_->getNodeNumElements(),std::vector<double>(3,0.0)));
         this->bcFlagUni_.reset(new std::vector<int> (this->mapUnique_->getNodeNumElements(),0));
 
+        LO index;
         for (int i=0; i<this->mapUnique_->getNodeNumElements(); i++) {
-            (*this->pointsUni_)[i][0] = (this->mapUnique_->getGlobalElement(i) % nmbPoints_oneDir) * h/2;
-            if ((*this->pointsUni_)[i][0]<eps && (*this->pointsUni_)[i][0]>-eps) (*this->pointsUni_)[i][0]=0.0;
+            // (*this->pointsUni_)[i][0] = (this->mapUnique_->getGlobalElement(i) % nmbPoints_oneDir) * h/2;
+            // if ((*this->pointsUni_)[i][0]<eps && (*this->pointsUni_)[i][0]>-eps) (*this->pointsUni_)[i][0]=0.0;
 
-            (*this->pointsUni_)[i][1] = ((int) ((this->mapUnique_->getGlobalElement(i) % (nmbPoints_oneDir*nmbPoints_oneDir)) / nmbPoints_oneDir) + eps) *h/2;
-            if ((*this->pointsUni_)[i][1]<eps && (*this->pointsUni_)[i][1]>-eps) (*this->pointsUni_)[i][1]=0.0;
+            // (*this->pointsUni_)[i][1] = ((int) ((this->mapUnique_->getGlobalElement(i) % (nmbPoints_oneDir*nmbPoints_oneDir)) / nmbPoints_oneDir) + eps) *h/2;
+            // if ((*this->pointsUni_)[i][1]<eps && (*this->pointsUni_)[i][1]>-eps) (*this->pointsUni_)[i][1]=0.0;
 
-            (*this->pointsUni_)[i][2] = ((int)(this->mapUnique_->getGlobalElement(i) / (nmbPoints_oneDir*nmbPoints_oneDir) + eps)) * h/2;
-            if ((*this->pointsUni_)[i][2]<eps && (*this->pointsUni_)[i][2]>-eps) (*this->pointsUni_)[i][2]=0.0;
+            // (*this->pointsUni_)[i][2] = ((int)(this->mapUnique_->getGlobalElement(i) / (nmbPoints_oneDir*nmbPoints_oneDir) + eps)) * h/2;
+            // if ((*this->pointsUni_)[i][2]<eps && (*this->pointsUni_)[i][2]>-eps) (*this->pointsUni_)[i][2]=0.0;
 
-            if ((*this->pointsUni_)[i][0] > (coorRec[0]+length-eps) 	|| (*this->pointsUni_)[i][0] < (coorRec[0]+eps) ||
-                (*this->pointsUni_)[i][1] > (coorRec[1]+width-eps) 	|| (*this->pointsUni_)[i][1] < (coorRec[1]+eps) ||
-                (*this->pointsUni_)[i][2] > (coorRec[2]+height-eps) 	|| (*this->pointsUni_)[i][2] < (coorRec[2]+eps) ) {
-                (*this->bcFlagUni_)[i] = 1;
+            // if ((*this->pointsUni_)[i][0] > (coorRec[0]+length-eps) 	|| (*this->pointsUni_)[i][0] < (coorRec[0]+eps) ||
+            //     (*this->pointsUni_)[i][1] > (coorRec[1]+width-eps) 	|| (*this->pointsUni_)[i][1] < (coorRec[1]+eps) ||
+            //     (*this->pointsUni_)[i][2] > (coorRec[2]+height-eps) 	|| (*this->pointsUni_)[i][2] < (coorRec[2]+eps) ) {
+            //     (*this->bcFlagUni_)[i] = 1;
 
-            }
+            // }
+            index = this->mapRepeated_->getLocalElement( this->mapUnique_->getGlobalElement(i) );
+
+            (*this->pointsUni_)[i][0] = (*this->pointsRep_)[index][0];
+            (*this->pointsUni_)[i][1] = (*this->pointsRep_)[index][1];
+            (*this->pointsUni_)[i][2] = (*this->pointsRep_)[index][2];
+            (*this->bcFlagUni_)[i] = (*this->bcFlagRep_)[index];
         }
 
         //            Face 1             Face2                Face 3           Face 4
@@ -3789,11 +3796,11 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3D5Elements(std::string FEType,
                     p1_t = t/2;
                 }
 
-                (*this->pointsRep_)[counter][0] = r*h/2.0 + offset_x * H;
+                (*this->pointsRep_)[counter][0] = coorRec[0]+ r*h/2.0 + offset_x * H;
                 if ((*this->pointsRep_)[counter][0]<eps && (*this->pointsRep_)[counter][0]>-eps) (*this->pointsRep_)[counter][0]=0.0;
-                (*this->pointsRep_)[counter][1] = s*h/2.0 + offset_y * H;
+                (*this->pointsRep_)[counter][1] = coorRec[1]+ s*h/2.0 + offset_y * H;
                 if ((*this->pointsRep_)[counter][1]<eps && (*this->pointsRep_)[counter][1]>-eps) (*this->pointsRep_)[counter][1]=0.0;
-                (*this->pointsRep_)[counter][2] = t*h/2.0 + offset_z * H;
+                (*this->pointsRep_)[counter][2] = coorRec[2]+ t*h/2.0 + offset_z * H;
                 if ((*this->pointsRep_)[counter][2]<eps && (*this->pointsRep_)[counter][2]>-eps) (*this->pointsRep_)[counter][2]=0.0;
 
                 if(N>1){
