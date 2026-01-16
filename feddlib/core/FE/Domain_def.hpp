@@ -217,7 +217,7 @@ void Domain<SC,LO,GO,NO>::buildMesh(int flagsOption , std::string meshType, int 
     numProcsCoarseSolve_ = numProcsCoarseSolve;
     meshType_ = meshType;
     flagsOption_ = flagsOption;
-    std::cout<< " Geometry number: " << geoNumber << std::endl;
+
     switch (dim) {
         case 2:
             switch (geoNumber) {
