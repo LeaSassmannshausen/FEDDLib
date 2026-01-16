@@ -106,6 +106,7 @@ typename Map<LO,GO,NO>::MapPtr_Type Map<LO,GO,NO>::buildVecFieldMap(UN numDofs, 
 
     TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
     TEUCHOS_TEST_FOR_EXCEPTION(ordering.compare("NodeWise"), std::logic_error,"Select a valid ordering: NodeWise");
+    
     Teuchos::ArrayView<const GO> elementList = map_->getLocalElementList();
     Teuchos::Array<GO> elementListField( numDofs *  elementList.size() );
     for (UN i=0; i<elementList.size(); i++) {
@@ -116,6 +117,21 @@ typename Map<LO,GO,NO>::MapPtr_Type Map<LO,GO,NO>::buildVecFieldMap(UN numDofs, 
     return Teuchos::rcp(new Map_Type(GOOT::invalid(), elementListField(), map_->getIndexBase(), map_->getComm() ) );
 }
 
+// This function builds a map for a single dof in a multi-dof field. This can be used to extract a single component from a vector field like x,y or z-direction
+template < class LO, class GO, class NO>
+typename Map<LO,GO,NO>::MapPtr_Type Map<LO,GO,NO>::buildVecFieldMapDof(UN numDofs, std::string ordering, UN dof) const{
+
+    TEUCHOS_TEST_FOR_EXCEPTION(map_.is_null(),std::runtime_error,"map is null.");
+    TEUCHOS_TEST_FOR_EXCEPTION(ordering.compare("NodeWise"), std::logic_error,"Select a valid ordering: NodeWise");
+    
+    Teuchos::ArrayView<const GO> elementList = map_->getLocalElementList();
+    Teuchos::Array<GO> elementListField( elementList.size() );
+    for (UN i=0; i<elementList.size(); i++) {
+        elementListField[ i ] = numDofs * elementList[i] + dof;
+    }
+    typedef Teuchos::OrdinalTraits<GO> GOOT;
+    return Teuchos::rcp(new Map_Type(GOOT::invalid(), elementListField(), map_->getIndexBase(), map_->getComm() ) );
+}
 
 template < class LO, class GO, class NO>
 typename Map<LO,GO,NO>::TpetraMapConstPtr_Type Map<LO,GO,NO>::getTpetraMap() const{

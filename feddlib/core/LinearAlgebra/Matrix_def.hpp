@@ -301,6 +301,20 @@ typename Matrix<SC,LO,GO,NO>::MatrixPtr_Type Matrix<SC,LO,GO,NO>::buildDiagonalI
 //
 //    return ;
 //}
+template <class SC, class LO, class GO, class NO>
+typename Matrix<SC,LO,GO,NO>::MatrixPtr_Type Matrix<SC,LO,GO,NO>::extractSubmatrix(MapConstPtr_Type subMap){
+    
+    MatrixPtr_Type subMatrix = Teuchos::RCP(new Matrix_Type( subMap , matrix_->getGlobalMaxNumRowEntries()) ); // Submatrix with maximum number entries per row as original matrix
+
+    TpetraImportPtr_Type importer = Teuchos::RCP(new Tpetra::Import<LO, GO, NO>( this->getMapTpetra(), subMatrix->getMapTpetra() ));
+
+    subMatrix->matrix_->doImport( *matrix_, *importer, Tpetra::INSERT);
+
+    subMatrix->fillComplete( this->getMap(),subMap );
+    
+    return subMatrix;
+}
+
 
 template <class SC, class LO, class GO, class NO>
 void Matrix<SC,LO,GO,NO>::getGlobalRowView(GO globalRow, Teuchos::ArrayView< const GO > &indices, Teuchos::ArrayView< const SC > &values) const{

@@ -30,6 +30,7 @@ public:
     typedef Teuchos::RCP<const MatrixPtr_Type> MatrixConstPtr_Type;
 
     typedef typename Problem_Type::MapConstPtr_Type MapConstPtr_Type;
+    typedef typename Problem_Type::MapPtr_Type MapPtr_Type;
 
     typedef typename Problem_Type::BlockMatrix_Type BlockMatrix_Type;
     typedef typename Problem_Type::BlockMatrixPtr_Type BlockMatrixPtr_Type;

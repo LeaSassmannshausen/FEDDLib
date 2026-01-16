@@ -93,7 +93,14 @@ public:
     GO getIndexBase() const; 
 
     MapPtr_Type buildVecFieldMap(UN numDofs, std::string ordering="NodeWise") const;
-   
+
+    /// @brief  Build a map for a single dof in a multi-dof field. This can be used to extract a single component from a vector field like x,y or z-direction
+    /// @param numDofs 
+    /// @param ordering 
+    /// @param dof the dof you want to extraxt, 0 for x, 1 for y, 2 for z
+    /// @return 
+    MapPtr_Type buildVecFieldMapDof(UN numDofs, std::string ordering, UN dof) const;
+
     TpetraMapConstPtr_Type getTpetraMap() const;
 
     XpetraMapConstPtr_Type getXpetraMap();

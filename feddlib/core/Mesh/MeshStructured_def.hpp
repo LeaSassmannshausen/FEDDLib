@@ -677,13 +677,13 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3D(std::string FEType,
         for (int t=0; t < M+1; t++) {
             for (int s=0; s < M+1; s++) {
                 for (int r=0; r < M+1; r++) {
-                    (*this->pointsRep_)[counter][0] = r*h + offset_x * H;
+                    (*this->pointsRep_)[counter][0] = coorRec[0]+ r*h + offset_x * H;
                     if ((*this->pointsRep_)[counter][0]<eps && (*this->pointsRep_)[counter][0]>-eps) (*this->pointsRep_)[counter][0]=0.0;
 
-                    (*this->pointsRep_)[counter][1] = s*h + offset_y * H;
+                    (*this->pointsRep_)[counter][1] = coorRec[1]+ s*h + offset_y * H;
                     if ((*this->pointsRep_)[counter][1]<eps && (*this->pointsRep_)[counter][1]>-eps) (*this->pointsRep_)[counter][1]=0.0;
 
-                    (*this->pointsRep_)[counter][2] = t*h + offset_z * H;
+                    (*this->pointsRep_)[counter][2] = coorRec[2]+ t*h + offset_z * H;
                     if ((*this->pointsRep_)[counter][2]<eps && (*this->pointsRep_)[counter][2]>-eps) (*this->pointsRep_)[counter][2]=0.0;
 
                     pointsRepGlobMapping[counter] = r + s*nmbPoints_oneDir + t*nmbPoints_oneDir*nmbPoints_oneDir \
@@ -792,11 +792,11 @@ void MeshStructured<SC,LO,GO,NO>::buildMesh3D(std::string FEType,
                         p1_r = r/2;
                         p1_t = t/2;
                     }
-                    (*this->pointsRep_)[counter][0] = r*h/2.0 + offset_x * H;
+                    (*this->pointsRep_)[counter][0] = coorRec[0]+ r*h/2.0 + offset_x * H;
                     if ((*this->pointsRep_)[counter][0]<eps && (*this->pointsRep_)[counter][0]>-eps) (*this->pointsRep_)[counter][0]=0.0;
-                    (*this->pointsRep_)[counter][1] = s*h/2.0 + offset_y * H;
+                    (*this->pointsRep_)[counter][1] = coorRec[1]+ s*h/2.0 + offset_y * H;
                     if ((*this->pointsRep_)[counter][1]<eps && (*this->pointsRep_)[counter][1]>-eps) (*this->pointsRep_)[counter][1]=0.0;
-                    (*this->pointsRep_)[counter][2] = t*h/2.0 + offset_z * H;
+                    (*this->pointsRep_)[counter][2] = coorRec[2]+ t*h/2.0 + offset_z * H;
                     if ((*this->pointsRep_)[counter][2]<eps && (*this->pointsRep_)[counter][2]>-eps) (*this->pointsRep_)[counter][2]=0.0;
 
                     pointsRepGlobMapping[counter] = r + s*nmbPoints_oneDir + t*nmbPoints_oneDir*nmbPoints_oneDir \

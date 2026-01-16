@@ -163,10 +163,15 @@ public:
 //    void fillComplete(with maps);
 
 //    ThyraLinOpPtr_Type getThyraLinOp();
-
 	/*!
-		\brief Extracting single rows of Matrix with global row ID. Indices returns global indices of entries stored in values.
+		\brief Extracting submatrix based on subMap.
+	
 	*/
+    MatrixPtr_Type extractSubmatrix(MapConstPtr_Type subMap);
+
+    /*!
+            \brief Extracting single rows of Matrix with global row ID. Indices returns global indices of entries stored in values.
+        */
     void getGlobalRowView(GO globalRow, Teuchos::ArrayView< const GO > &indices, Teuchos::ArrayView< const SC > &values) const;
 
 	/*!

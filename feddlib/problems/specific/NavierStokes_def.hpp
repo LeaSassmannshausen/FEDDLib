@@ -576,6 +576,7 @@ void NavierStokes<SC,LO,GO,NO>::assembleDivAndStab() const{
         // BT_Mp_B_->print();
         // BT_Mp_B_->writeMM("BT_Mp_B_");
 
+
         NAVIER_STOKES_STOP(AssembleAugmentedLagrangianComponent);
     }
 
@@ -651,7 +652,7 @@ void NavierStokes<SC,LO,GO,NO>::reAssemble(std::string type) const {
         N->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
         
         A_->addMatrix(1.,ANW,0.);
-        N->addMatrix(1.,ANW,1.);
+        N->addMatrix(1.,ANW,1.);        
 
     }
     else if(type=="Newton"){ // We assume that reAssmble("FixedPoint") was already called for the current iterate
@@ -670,6 +671,18 @@ void NavierStokes<SC,LO,GO,NO>::reAssemble(std::string type) const {
         BT_Mp_B_->addMatrix(1.,ANW,1.);
 
     ANW->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique() );
+
+    // MapPtr_Type x_dofs = this->getDomain(0)->getMapUnique()->buildVecFieldMapDof(this->getDomain(0)->getDimension(),"NodeWise",0);
+    // x_dofs->print();
+    // this->getDomain(0)->getMapVecFieldUnique()->print();
+
+    // MatrixPtr_Type subMatrix = Teuchos::RCP(new Matrix_Type( x_dofs , ANW->getGlobalMaxNumRowEntries()) ); // Submatrix with maximum number entries per row as original matrix
+	// subMatrix->importFromVector(ANW,false,"Insert");
+    // subMatrix->fillComplete(this->getDomain(0)->getMapVecFieldUnique(),x_dofs); 
+    // subMatrix->print();
+
+    // MatrixPtr_Type A_x = ANW->extractSubmatrix(x_dofs);
+    // A_x->print();
 
     this->system_->addBlock( ANW, 0, 0 );
  
@@ -699,10 +712,13 @@ void NavierStokes<SC,LO,GO,NO>::establishNNZPattern() const {
     // A_->addMatrix(1.,ANW,0.);
     N->addMatrix(1.,ANW,0.);
      
-    MatrixPtr_Type W = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
-    this->feFactory_->assemblyAdvectionInUVecField( this->dim_, this->domain_FEType_vec_.at(0), W, zeroVec, true );
- 
-    W->addMatrix(1.,ANW,1.);
+    // We only add W if we have picard/fixedpoint iteration
+    if(this->parameterList_->sublist("General").get("Linearization","Fixedpoint") != "Fixedpoint"){
+        MatrixPtr_Type W = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
+        this->feFactory_->assemblyAdvectionInUVecField( this->dim_, this->domain_FEType_vec_.at(0), W, zeroVec, true );
+        W->addMatrix(1.,ANW,1.);
+    }   
+
 
 
     if(augmentedLagrange_)
