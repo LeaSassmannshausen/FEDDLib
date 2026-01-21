@@ -404,23 +404,15 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
     MatrixPtr_Type A_withNNZ = Teuchos::rcp( new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), allocationFactor*this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
     A_->addMatrix(1.,A_withNNZ,0.);
 
-    NNZ_A_->addMatrix(1.,A_withNNZ,1.);
-
-    A_withNNZ->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
-    this->system_->addBlock( A_withNNZ, 0, 0 );
-    
-    if(augmentedLagrange_){
-        this->getPreconditionerConst()->setA(A_withNNZ); // Updating A in preconditioner
-
-    }
+    NNZ_A_->addMatrix(1.,A_withNNZ,1.);   
+   
     // If we have augmented Lagrange we need to add additional entries to the system matrix in (0,0) block
     if(augmentedLagrange_){
-        MatrixPtr_Type A_withNNZ_BT_Mp_B = Teuchos::rcp( new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), allocationFactor*this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
-        A_withNNZ->addMatrix(1.,A_withNNZ_BT_Mp_B,0.);
-        BT_Mp_B_->addMatrix(1.,A_withNNZ_BT_Mp_B,1.);
-        A_withNNZ_BT_Mp_B->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
-        this->system_->addBlock( A_withNNZ_BT_Mp_B, 0, 0 );
+        BT_Mp_B_->addMatrix(1.,A_withNNZ,1.);
     }
+    A_withNNZ->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
+    this->system_->addBlock( A_withNNZ, 0, 0 );
+
     if (this->verbose_)
         std::cout << "done -- " << std::endl;
     
@@ -582,8 +574,6 @@ void NavierStokes<SC,LO,GO,NO>::assembleDivAndStab() const{
 
         BT_Mp_B_ = BT_M_B;
 
-        this->getPreconditionerConst()->setBT_Mp_B(BT_Mp_B_); // Updating BT_Mp_B in preconditioner
-
         NAVIER_STOKES_STOP(AssembleAugmentedLagrangianComponent);
     }
 
@@ -675,23 +665,12 @@ void NavierStokes<SC,LO,GO,NO>::reAssemble(std::string type) const {
         
     }
 
-    ANW->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique() );
-    this->system_->addBlock( ANW, 0, 0 );
-
-
     if(augmentedLagrange_){
-        this->getPreconditionerConst()->setA(ANW); // Updating A in preconditioner
-
-        MatrixPtr_Type ANW_BT_Mp_B = Teuchos::rcp( new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), allocationFactor*this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
-        ANW->addMatrix(1.,ANW_BT_Mp_B,0.);
-        BT_Mp_B_->addMatrix(1.,ANW_BT_Mp_B,1.);
-        ANW_BT_Mp_B->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
-        this->system_->addBlock( ANW_BT_Mp_B, 0, 0 );
+        BT_Mp_B_->addMatrix(1.,ANW,1.);
     }
 
-    // this->getDomain(0)->getMapVecFieldUnique()->print();
-
-
+    ANW->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique() );
+    this->system_->addBlock( ANW, 0, 0 );
  
     if (this->verbose_)
         std::cout << "done -- " << std::endl;

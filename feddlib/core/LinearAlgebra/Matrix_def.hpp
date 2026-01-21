@@ -351,6 +351,45 @@ typename Matrix<SC,LO,GO,NO>::MatrixPtr_Type Matrix<SC,LO,GO,NO>::removeDofCoupl
 }
 
 
+template <class SC, class LO, class GO, class NO>
+typename Matrix<SC,LO,GO,NO>::MatrixPtr_Type Matrix<SC,LO,GO,NO>::removeLowerBlockTriag(int dofs){
+    
+    // We construct a new submatrix with the given subMap and import the values from the original matrix into the submatrix
+    MatrixPtr_Type subMatrix = Teuchos::RCP(new Matrix_Type( this->getMap() , this->getGlobalMaxNumRowEntries()) ); // Submatrix with maximum number entries per row as original matrix
+
+    MapConstPtr_Type mapCol = this->getMap("col");
+    MapConstPtr_Type rowMap = this->getMap("row");
+    for(UN i=0; i<rowMap->getNodeNumElements(); i++){
+        GO globalRow = rowMap->getGlobalElement(i);
+
+        Teuchos::ArrayView<const SC> values;
+        Teuchos::ArrayView<const LO> indices;
+
+        this->getLocalRowView( i, indices, values );
+
+        Teuchos::Array<GO>  subIndices(0);
+        Teuchos::Array<SC>  subValues(0);
+
+        // Check what dof is the row:
+        int dof = std::fmod(globalRow,dofs); // e.g. for 3 dofs: 0,1,2
+        for(UN j=0; j<indices.size(); j++){
+            if( std::fmod(mapCol->getGlobalElement(indices[j]),dofs) == dof || mapCol->getGlobalElement(indices[j]) > globalRow){
+                subIndices.push_back( mapCol->getGlobalElement(indices[j]) );
+                subValues.push_back( values[j] );
+            }
+        }
+        subMatrix->insertGlobalValues( globalRow, subIndices(), subValues() );
+    }
+    subMatrix->fillComplete();
+
+    if(rowMap->getComm()->getRank() == 0){
+        std::cout << " Removed lower block triangular part of the matrix with respect to the dofs-blocks " << std::endl;
+        std::cout << " Original matrix nnz entries: " << this->getNnzEntriesGlobal() << std::endl;
+        std::cout << " Final matrix nnz entries: " << subMatrix->getNnzEntriesGlobal() << std::endl;
+    }
+    return subMatrix;
+
+}
 
 
 

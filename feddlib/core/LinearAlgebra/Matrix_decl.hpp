@@ -171,6 +171,8 @@ public:
 
     MatrixPtr_Type removeDofCoupling(int dofs);
 
+    MatrixPtr_Type removeLowerBlockTriag(int dofs);
+
     /*!
             \brief Extracting single rows of Matrix with global row ID. Indices returns global indices of entries stored in values.
         */
