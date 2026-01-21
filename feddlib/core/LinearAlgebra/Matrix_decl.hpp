@@ -169,6 +169,8 @@ public:
 	*/
     MatrixPtr_Type extractSubmatrix(MapConstPtr_Type subMap);
 
+    MatrixPtr_Type removeDofCoupling(int dofs);
+
     /*!
             \brief Extracting single rows of Matrix with global row ID. Indices returns global indices of entries stored in values.
         */
@@ -250,6 +252,7 @@ public:
 	*/
 	MatrixPtr_Type buildDiagonalInverse( std::string diagonalType);
 
+	GO getNnzEntriesGlobal() {return matrix_->getGlobalNumEntries();};
 
 private:
 

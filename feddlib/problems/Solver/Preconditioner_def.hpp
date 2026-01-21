@@ -307,10 +307,28 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
     ParameterListPtr_Type plFrosch = sublist( sublist( pListThyraPrec, "Preconditioner Types" ), "FROSch");
     
     ThyraLinOpConstPtr_Type thyraMatrix;
-    if (!problem_.is_null())
+    UN dofs = pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").get( "DofsPerNode" + std::to_string(1), 1);
+    if (!problem_.is_null()){
+        if(parameterList->sublist("General").get("Use Approximate Velocity Matrix", false) && !parameterList->sublist("General").get("Augmented Lagrange", true)){
+            MatrixPtr_Type F = problem_->getSystem()->getBlock(0,0)->removeDofCoupling(dofs);          
+            problem_->getSystem()->addBlock(F,0,0);
+        }
+        if(verbose)
+               std::cout << " Preconditioner: Building Monolithic Preconditioner | nnz entries in (0,0) " << problem_->getSystem()->getBlock(0,0)->getNnzEntriesGlobal() << std::endl;
+     
         thyraMatrix = problem_->getSystem()->getThyraLinOp();
-    else if(!timeProblem_.is_null())
+    }
+    else if(!timeProblem_.is_null()){
+        if(parameterList->sublist("General").get("Use Approximate Velocity Matrix", false) && !parameterList->sublist("General").get("Augmented Lagrange", true)){
+            MatrixPtr_Type F = timeProblem_->getSystemCombined()->getBlock(0,0)->removeDofCoupling(dofs);
+            timeProblem_->getSystemCombined()->addBlock(F,0,0);
+        }
+        if(verbose)
+               std::cout << " Preconditioner: Building Monolithic Preconditioner | nnz entries in (0,0) " << timeProblem_->getSystemCombined()->getBlock(0,0)->getNnzEntriesGlobal() << std::endl;
+
         thyraMatrix = timeProblem_->getSystemCombined()->getThyraLinOp();
+    }
+
 
     UN numberOfBlocks = parameterList->get("Number of blocks",1);
 
@@ -1446,17 +1464,20 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
     BlockMatrixPtr_Type system;
     CommConstPtr_Type comm;
     ProblemPtr_Type steadyProblem;
+    int dim;
     if (!timeProblem_.is_null()){
         parameterList = timeProblem_->getParameterList();
         system = timeProblem_->getSystemCombined();
         comm = timeProblem_->getComm();
         steadyProblem = timeProblem_->getUnderlyingProblem();
+        dim = timeProblem_->getDomain(0)->getDimension();
     }
     else{
         parameterList = problem_->getParameterList();
         system = problem_->getSystem();
         comm = problem_->getComm();
         steadyProblem = problem_;
+        dim = problem_->getDomain(0)->getDimension();
     }
     
     bool verbose( comm->getRank() == 0 );
@@ -1487,10 +1508,34 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
     
     BlockMatrixPtr_Type system1 = Teuchos::rcp( new BlockMatrix_Type(1) );
     
-    MatrixPtr_Type F = system->getBlock(0,0);//Teuchos::rcp(new Matrix_Type( system->getBlock(0,0) ) );
-
-    system1->addBlock( F, 0, 0 );
+    MatrixPtr_Type F ;
     
+    if(parameterList->sublist("General").get("Use Approximate Velocity Matrix", false)){
+        if(parameterList->sublist("General").get("Augmented Lagrange", true)){
+            F = Teuchos::rcp(new Matrix_Type( steadyProblem->getDomain(0)->getMapVecFieldUnique(), 3*steadyProblem->getDomain(0)->getDimension() * steadyProblem->getDomain(0)->getApproxEntriesPerRow() ) );
+            A_->removeDofCoupling(dim)->addMatrix(1.,F,0.);
+            BT_Mp_B_->addMatrix(1.,F,1.);
+            F->fillComplete();
+        }
+        else 
+            F = system->getBlock(0,0)->removeDofCoupling(dim);
+    }
+    else{
+        if(parameterList->sublist("General").get("Augmented Lagrange", true)){
+            F = Teuchos::rcp(new Matrix_Type( steadyProblem->getDomain(0)->getMapVecFieldUnique(), 3*steadyProblem->getDomain(0)->getDimension() * steadyProblem->getDomain(0)->getApproxEntriesPerRow() ) );
+            A_->addMatrix(1.,F,0.);
+            BT_Mp_B_->addMatrix(1.,F,1.);
+            F->fillComplete();  
+        }
+        else
+            F = system->getBlock(0,0);
+    }    
+    if(verbose)
+        std::cout << " Preconditioner: buildPreconditionerBlock2x2 | nnz entries in (0,0) " << F->getNnzEntriesGlobal() << std::endl;
+    
+    system1->addBlock( F, 0, 0 );
+    steadyProblem->getBCFactory()->setSystem( system1 );
+
     probVelocity_->initializeSystem( system1 );
     
     PRECONDITIONER_START(setupFInv, " Setup Preconditioner for F");
@@ -1533,7 +1578,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
         
         if(parameterList->sublist("General").get("Augmented Lagrange", true)){
             std::string typeDiag = parameterList->sublist("General").get("Diagonal Approximation","Diagonal");
-            precSchur_ = pressureMassMatrixPtr_->buildDiagonalInverse(typeDiag)->getThyraLinOpNonConst() ;
+            precSchur_ = pressureMassMatrixPtr_->buildDiagonalInverse(typeDiag)->getThyraLinOpNonConst();
         }
         else{
             probSchur_->setupPreconditioner( "Monolithic" ); // single matrix

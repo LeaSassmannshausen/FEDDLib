@@ -111,6 +111,11 @@ public:
 
     void initPreconditionerBlock( );
 
+    // Setting the components of the augmented Lagrange preconditioner
+    void setBT_Mp_B(MatrixPtr_Type BT_Mp_B) const {BT_Mp_B_ = BT_Mp_B;}
+    void setA(MatrixPtr_Type A) const {A_ = A;} ;
+
+
 #ifdef FEDD_HAVE_TEKO
     void buildPreconditionerTeko( );
 
@@ -182,6 +187,9 @@ private:
     MinPrecProblemPtr_Type probSchur_;
     // mutable MatrixPtr_Type pressureMassMatrix_;
 
+    // For augmented Lagrange preconditioner
+    mutable MatrixPtr_Type BT_Mp_B_;
+    mutable MatrixPtr_Type A_;
     // For LSC and PCD preconditioner
     mutable ThyraLinOpConstPtr_Type velocityMassMatrix_; // LSC
     mutable MatrixPtr_Type velocityMassMatrixMatrixPtr_; // LSC
