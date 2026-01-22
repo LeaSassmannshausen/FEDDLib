@@ -371,9 +371,9 @@ typename Matrix<SC,LO,GO,NO>::MatrixPtr_Type Matrix<SC,LO,GO,NO>::removeLowerBlo
         Teuchos::Array<SC>  subValues(0);
 
         // Check what dof is the row:
-        int dof = std::fmod(globalRow,dofs); // e.g. for 3 dofs: 0,1,2
+        int dof = std::fmod(globalRow,dofs); //my current row dof
         for(UN j=0; j<indices.size(); j++){
-            if( std::fmod(mapCol->getGlobalElement(indices[j]),dofs) == dof || mapCol->getGlobalElement(indices[j]) > globalRow){
+            if( std::fmod(mapCol->getGlobalElement(indices[j]),dofs) >= dof  ){
                 subIndices.push_back( mapCol->getGlobalElement(indices[j]) );
                 subValues.push_back( values[j] );
             }
