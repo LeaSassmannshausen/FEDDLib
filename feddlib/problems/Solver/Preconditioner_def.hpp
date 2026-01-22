@@ -1514,7 +1514,6 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
     else
        F = system->getBlock(0,0);
         
-    F->writeMM("F_matrix_for_Prec");   
     system1->addBlock( F, 0, 0 );
 
     probVelocity_->initializeSystem( system1 );
