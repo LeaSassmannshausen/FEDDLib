@@ -779,8 +779,6 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
     if (materialModel_!="linear"){
         this->problemStructureNonLin_->calculateNonLinResidualVec( "reverse", time );
         this->residualVec_->addBlock( this->problemStructureNonLin_->getResidualVector()->getBlockNonConst(0) , 2);
-        this->residualVec_->getBlockNonConst(2)->writeMM("res_FSI.mm"); // change to -1 for standard
-
         // we need to add a possible source term
     }
     else{

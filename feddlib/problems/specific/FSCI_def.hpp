@@ -620,8 +620,6 @@ void FSCI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time
     this->problemSCI_->calculateNonLinResidualVec( "reverse", time );
     this->residualVec_->addBlock(  this->problemSCI_->getResidualVector()->getBlockNonConst(0) , 2); // Solid
 
-    this->residualVec_->getBlock(2)->writeMM("res_FSCI.mm"); // change to -1 for standard
-
     if(!chemistryExplicit_) {
         // this->problemSCI_->getResidualVector()->getBlockNonConst(1)->scale(-1.);
         if(this->geometryExplicit_)
