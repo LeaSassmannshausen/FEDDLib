@@ -574,9 +574,6 @@ void NavierStokes<SC,LO,GO,NO>::assembleDivAndStab() const{
 
         BT_Mp_B_ = BT_M_B;
 
-        BT_Mp_B_->getMap()->print();
-        BT_Mp_B_->getMap("col")->print();
-
         NAVIER_STOKES_STOP(AssembleAugmentedLagrangianComponent);
     }
 
