@@ -356,6 +356,11 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
     if (!useNodeLists)
         nodeListVec = Teuchos::null;
 
+
+    // In case of augmented lagrange we pass on the unique map to the overlap construction. This way, the 
+    // overlap is more moderate in size due to the enlarged finite element stencil.
+    bool augmentedLagrange = parameterList->sublist("General").get("Augmented Lagrange", false);
+
    // timeProblem_->getSystemCombined()->print();
     //Set Precondtioner lists
     if (!precondtionerIsBuilt_) {
@@ -375,8 +380,18 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
 
                             //Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
                             //Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
+                            MapConstPtr_Type mapConstTmp;//->getTpetraMap();
 
-                            MapConstPtr_Type mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
+                            if(augmentedLagrange){
+                                mapConstTmp = problem_->getDomain(i)->getMapVecFieldUnique();//->getTpetraMap();
+                                if(verbose){
+                                    std::cout << " Using unique map for overlap construction in FROSch with augmented Lagrange " << std::endl;
+                                    std::cout << " Overlap=0 is now truely no overlap. Now, using overlap = 1 corresponds roughly to the usual overlap=1. " << std::endl;
+                                }        
+                            }    
+                            else
+                                mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated();//->get
+
                             XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
                             
@@ -390,8 +405,17 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             }
                             // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
                             // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                            
-                            MapConstPtr_Type mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
+                            MapConstPtr_Type mapConstTmp;//->getTpetraMap();
+
+                            if(augmentedLagrange){
+                                mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldUnique();//->getTpetraMap();
+                                if(verbose)
+                                    std::cout << " Using unique map for overlap construction in FROSch with augmented Lagrange " << std::endl;
+                            }    
+                            else
+                                mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->get
+
+
                             XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
                             
@@ -1556,7 +1580,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
         
         probSchur_->initializeSystem( Mp );
         
-        if(parameterList->sublist("General").get("Augmented Lagrange", true)){
+        if(parameterList->sublist("General").get("Augmented Lagrange", false)){
             std::string typeDiag = parameterList->sublist("General").get("Diagonal Approximation","Diagonal");
             precSchur_ = pressureMassMatrixPtr_->buildDiagonalInverse(typeDiag)->getThyraLinOpNonConst();
         }
