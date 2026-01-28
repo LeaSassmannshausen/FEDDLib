@@ -1,6 +1,16 @@
 #ifndef FE_DEF_hpp
 #define FE_DEF_hpp
 
+
+#ifndef FE_START
+#define FE_START(A,S) Teuchos::RCP<Teuchos::TimeMonitor> A = Teuchos::rcp(new Teuchos::TimeMonitor(*Teuchos::TimeMonitor::getNewTimer(std::string("FE Class:") + std::string(S))));
+#endif
+
+#ifndef FE_STOP
+#define FE_STOP(A) A.reset();
+#endif
+
+
 #include <string>
 #include "feddlib/core/core_config.h"
 #ifdef FEDD_HAVE_ACEGENINTERFACE
@@ -467,8 +477,6 @@ void FE<SC,LO,GO,NO>::assemblyNonLinearElasticity(int dim,
 
 	MapConstPtr_Type map = domainVec_.at(0)->getMapRepeated();
 
-
-
 	/// Tupel construction follows follwing pattern:
 	/// std::string: Physical Entity (i.e. Velocity) , std::string: Discretisation (i.e. "P2"), int: Degrees of Freedom per Node, int: Number of Nodes per element)
 	int numNodes=6;
@@ -496,24 +504,47 @@ void FE<SC,LO,GO,NO>::assemblyNonLinearElasticity(int dim,
     vec_dbl_Type solution_d(dofs * numNodes);
     // solution_d.reserve(dofs * numNodes);
 
+    FE_START(Assembly," Assembly Nonlinear Elasticity");
 	for (UN T=0; T<assemblyFEElements_.size(); T++) {
 
 		getSolutionInto(elements->getElement(T).getVectorNodeList(), d_rep,dofs,solution_d);
 
-		assemblyFEElements_[T]->updateSolution(solution_d);
+        {
+            FE_START(UpdateSol," Update Solution");
+		    assemblyFEElements_[T]->updateSolution(solution_d);
+            FE_STOP(UpdateSol);
+        }
 
-        assemblyFEElements_[T]->assembleJacobian();
-        // elementMatrix = assemblyFEElements_[T]->getJacobian();              
-        addFeBlock(A, assemblyFEElements_[T]->getJacobian(), elements->getElement(T), map, 0, 0, problemDisk);
+        {
+            FE_START(AssembleJac," Assemble Jacobian");                   
+            assemblyFEElements_[T]->assembleJacobian();
+            FE_STOP(AssembleJac);
+        }
+        // elementMatrix = assemblyFEElements_[T]->getJacobian();   
+        {
+            FE_START(AddFeBlock," Add Fe Block");
+            addFeBlock(A, assemblyFEElements_[T]->getJacobian(), elements->getElement(T), map, 0, 0, problemDisk);
+            FE_STOP(AddFeBlock);
+        }           
 
-        assemblyFEElements_[T]->assembleRHS();
+        {
+            FE_START(AssembleRHS," Assemble RHS");
+            assemblyFEElements_[T]->assembleRHS();
+            FE_STOP(AssembleRHS);
+        }
         // rhsVec = assemblyFEElements_[T]->getRHS(); 
-        addFeBlockMv(resVec, assemblyFEElements_[T]->getRHS(), elements->getElement(T),  dofs);
+        {
+            FE_START(AddFeBlockMv," Add Fe Block Mv");
+            addFeBlockMv(resVec, assemblyFEElements_[T]->getRHS(), elements->getElement(T),  dofs);
+            FE_STOP(AddFeBlockMv);
+        }
 
         assemblyFEElements_[T]->advanceNewtonStep();
 
 
 	}
+    FE_STOP(Assembly);
+    
 	if (callFillComplete)
 	    A->getBlock(0,0)->fillComplete( domainVec_.at(0)->getMapVecFieldUnique(),domainVec_.at(0)->getMapVecFieldUnique());
 	
@@ -3092,11 +3123,15 @@ void FE<SC,LO,GO,NO>::assemblyElasticityJacobianAndStressAceFEM(int dim,
         Teuchos::ArrayRCP<SC> fValues = f->getDataNonConst(0);
         
         Teuchos::Array<int> indices(2);
+        FE_START(Assembly," Assembly Elasticity Jacobian and Stress AceFEM");
         for (int T=0; T<elements->numberElements(); T++) {
-            
-            Helper::buildTransformation(elements->getElement(T).getVectorNodeList(), pointsRep, B,FEType);
-            detB = B.computeInverse(Binv);
-            absDetB = std::fabs(detB);
+            {
+                FE_START(BuildTransformation," Build Transformation");
+                Helper::buildTransformation(elements->getElement(T).getVectorNodeList(), pointsRep, B,FEType);
+                detB = B.computeInverse(Binv);
+                absDetB = std::fabs(detB);
+                FE_STOP(BuildTransformation);
+            }
             
             Teuchos::Array<SmallMatrix<SC> > all_dPhiMat_Binv( dPhiMat.size(), SmallMatrix<SC>() );
             
@@ -3109,128 +3144,148 @@ void FE<SC,LO,GO,NO>::assemblyElasticityJacobianAndStressAceFEM(int dim,
             std::vector<SC> locStresses( nmbAllDPhi, 0. );
             int elementFlag = 0;
             for (int p=0; p<nmbQuadPoints; p++){
-                
-                SmallMatrix<SC> Fmat( dim, 0. );
-                SmallMatrix<SC> tmpForScaling( dim, 0. );
-                Fmat[0][0] = 1.; Fmat[1][1] = 1.;
-                
-                for (int i=0; i<nmbScalarDPhi; i++) {
-                    indices.at(0) = dim * elements->getElement(T).getNode(i);
-                    indices.at(1) = dim * elements->getElement(T).getNode(i) + 1;
+                {
+                    FE_START(ComputeF," Compute Deformation Gradient F");
+                    SmallMatrix<SC> Fmat( dim, 0. );
+                    SmallMatrix<SC> tmpForScaling( dim, 0. );
+                    Fmat[0][0] = 1.; Fmat[1][1] = 1.;
                     
-                    for (int j=0; j<dim; j++) {
-                        tmpForScaling = all_dPhiMat_Binv[ p * nmbAllDPhi + dim * i + j ]; //we should not copy here
-                        SC v = uArray[indices.at(j)];
-                        tmpForScaling.scale( v );
-                        Fmat += tmpForScaling;
-                    }
-                }
-                
-                for (int i=0; i<Fmat.size(); i++) {
-                    for (int j=0; j<Fmat.size(); j++) {
-                        F[i][j] = Fmat[i][j]; //fix so we dont need to copy.
-                    }
-                }
-                                
-                elementFlag = elements->getElement(T).getFlag();
-                if (elementFlag == 1){
-                    lambda = lambda1;
-                    mue = mue1;
-                    E = E1;
-                }
-                else if (elementFlag == 2){
-                    lambda = lambda2;
-                    mue = mue2;
-                    E = E2;
-                }
-                
-                if ( !material_model.compare("Saint Venant-Kirchhoff") )
-                    stvk2d(v, &lambda, &mue, F, Pmat, Amat);
-                
-                SmallMatrix<SC> Aloc(dim*dim);
-                for (int i=0; i<2; i++) {
-                    for (int j=0; j<2; j++) {
-                        for (int k=0; k<2; k++) {
-                            for (int l=0; l<2; l++) {
-                                Aloc[ 2 * i + j ][ 2 * k + l ] = Amat[i][j][k][l];
-                            }
+                    for (int i=0; i<nmbScalarDPhi; i++) {
+                        indices.at(0) = dim * elements->getElement(T).getNode(i);
+                        indices.at(1) = dim * elements->getElement(T).getNode(i) + 1;
+                        
+                        for (int j=0; j<dim; j++) {
+                            tmpForScaling = all_dPhiMat_Binv[ p * nmbAllDPhi + dim * i + j ]; //we should not copy here
+                            SC v = uArray[indices.at(j)];
+                            tmpForScaling.scale( v );
+                            Fmat += tmpForScaling;
                         }
                     }
+                    
+                    for (int i=0; i<Fmat.size(); i++) {
+                        for (int j=0; j<Fmat.size(); j++) {
+                            F[i][j] = Fmat[i][j]; //fix so we dont need to copy.
+                        }
+                    }
+                    FE_STOP(ComputeF);
+                }
+                                
+                {
+                    FE_START(MaterialModel," Evaluate Material Model");
+                    elementFlag = elements->getElement(T).getFlag();
+                    if (elementFlag == 1){
+                        lambda = lambda1;
+                        mue = mue1;
+                        E = E1;
+                    }
+                    else if (elementFlag == 2){
+                        lambda = lambda2;
+                        mue = mue2;
+                        E = E2;
+                    }
+                    
+                    if ( !material_model.compare("Saint Venant-Kirchhoff") )
+                        stvk2d(v, &lambda, &mue, F, Pmat, Amat);
+                    FE_STOP(MaterialModel);
                 }
                 
                 double* aceFEMFunc = new double[ sizeLocStiff * sizeLocStiff ];
                 double* allDPhiBlas = new double[ nmbAllDPhi * sizeLocStiff ];
                 
-                //jacobian
-                double* resTmp = new double[ nmbAllDPhi * sizeLocStiff ];
-                // all_dPhiMat_Binv: quadpoints -> basisfunction vector field
-                fillMatrixArray(Aloc, aceFEMFunc, "cols"); //blas uses column-major
-                
-                int offset = p * nmbAllDPhi;
-                int offsetInArray = 0;
-                for (int i=0; i<nmbAllDPhi; i++) {
-                    fillMatrixArray( all_dPhiMat_Binv[ offset + i ], allDPhiBlas, "rows",offsetInArray );
-                    offsetInArray += sizeLocStiff;
-                }
-                
-                teuchosBLAS.GEMM (Teuchos::NO_TRANS, Teuchos::NO_TRANS, sizeLocStiff, nmbAllDPhi, sizeLocStiff, 1., aceFEMFunc, sizeLocStiff, allDPhiBlas, sizeLocStiff, 0., resTmp, sizeLocStiff);
-                
-                
-                double* locStiffMatBlas = new double[ nmbAllDPhi * nmbAllDPhi ];
-                
-                teuchosBLAS.GEMM (Teuchos::TRANS, Teuchos::NO_TRANS, nmbAllDPhi, nmbAllDPhi, sizeLocStiff, 1., allDPhiBlas, sizeLocStiff/*lda of A not trans(A)! Otherwise result is wrong*/, resTmp, sizeLocStiff, 0., locStiffMatBlas, nmbAllDPhi);
-                
-                for (int i=0; i<nmbAllDPhi; i++) {
-                    for (int j=0; j<nmbAllDPhi; j++)
-                        locStiffMat[i][j] += weights->at(p) * locStiffMatBlas[ j * nmbAllDPhi + i ];
-                }
-                
-                delete [] resTmp;
-                delete [] locStiffMatBlas;
-                
-                
-                //stress
-                double* fArray = new double[ sizeLocStiff ];
-                for (int i=0; i<dim; i++) {
-                    for (int j=0; j<dim; j++) {
-                        fArray[i * dim + j] = Pmat[i][j]; //is this correct?
-                    }
-                }
-                
-                double* res = new double[ nmbAllDPhi ];
-                teuchosBLAS.GEMV(Teuchos::TRANS, sizeLocStiff, nmbAllDPhi, 1., allDPhiBlas, sizeLocStiff, fArray, 1, 0., res, 1);
-                for (int i=0; i<locStresses.size(); i++) {
-                    locStresses[i] += weights->at(p) * res[i];
-                }
-                
-                delete [] res;
-                delete [] aceFEMFunc;
-                delete [] allDPhiBlas;
-                delete [] fArray;
-            }
-            
-            for (int i=0; i<nmbScalarDPhi; i++) {
-                for (int d1=0; d1<dim; d1++) {
-                    
-                    LO rowLO = dim * elements->getElement(T).getNode(i) + d1;
-                    SC v = absDetB * locStresses[ dim * i + d1 ];
-                    fValues[rowLO] += v;
-                    
-                    Teuchos::Array<SC> value( nmbAllDPhi, 0. );
-                    Teuchos::Array<GO> indices( nmbAllDPhi, 0 );
-                    LO counter = 0;
-                    for (UN j=0; j < nmbScalarDPhi; j++){
-                        for (UN d2=0; d2<dim; d2++) {
-                            indices[counter] = GO ( dim * map->getGlobalElement( elements->getElement(T).getNode(j) ) + d2 );
-                            value[counter] = absDetB * locStiffMat[dim*i+d1][dim*j+d2];
-                            counter++;
+                {
+                    FE_START(LocalStiffness," Assemble Local Stiffness");
+                    SmallMatrix<SC> Aloc(dim*dim);
+                    for (int i=0; i<2; i++) {
+                        for (int j=0; j<2; j++) {
+                            for (int k=0; k<2; k++) {
+                                for (int l=0; l<2; l++) {
+                                    Aloc[ 2 * i + j ][ 2 * k + l ] = Amat[i][j][k][l];
+                                }
+                            }
                         }
                     }
-                    GO row = GO ( dim * map->getGlobalElement( elements->getElement(T).getNode(i) ) + d1 );
-                    A->insertGlobalValues( row, indices(), value() );
+                    
+                    //jacobian
+                    double* resTmp = new double[ nmbAllDPhi * sizeLocStiff ];
+                    // all_dPhiMat_Binv: quadpoints -> basisfunction vector field
+                    fillMatrixArray(Aloc, aceFEMFunc, "cols"); //blas uses column-major
+                    
+                    int offset = p * nmbAllDPhi;
+                    int offsetInArray = 0;
+                    for (int i=0; i<nmbAllDPhi; i++) {
+                        fillMatrixArray( all_dPhiMat_Binv[ offset + i ], allDPhiBlas, "rows",offsetInArray );
+                        offsetInArray += sizeLocStiff;
+                    }
+                    
+                    teuchosBLAS.GEMM (Teuchos::NO_TRANS, Teuchos::NO_TRANS, sizeLocStiff, nmbAllDPhi, sizeLocStiff, 1., aceFEMFunc, sizeLocStiff, allDPhiBlas, sizeLocStiff, 0., resTmp, sizeLocStiff);
+                    
+                    
+                    double* locStiffMatBlas = new double[ nmbAllDPhi * nmbAllDPhi ];
+                    
+                    teuchosBLAS.GEMM (Teuchos::TRANS, Teuchos::NO_TRANS, nmbAllDPhi, nmbAllDPhi, sizeLocStiff, 1., allDPhiBlas, sizeLocStiff/*lda of A not trans(A)! Otherwise result is wrong*/, resTmp, sizeLocStiff, 0., locStiffMatBlas, nmbAllDPhi);
+                    
+                    for (int i=0; i<nmbAllDPhi; i++) {
+                        for (int j=0; j<nmbAllDPhi; j++)
+                            locStiffMat[i][j] += weights->at(p) * locStiffMatBlas[ j * nmbAllDPhi + i ];
+                    }
+                    
+                    delete [] resTmp;
+                    delete [] locStiffMatBlas;
+                    FE_STOP(LocalStiffness);
                 }
+                
+                {
+                    FE_START(LocalStress," Compute Local Stress");
+                    //stress
+                    double* fArray = new double[ sizeLocStiff ];
+                    for (int i=0; i<dim; i++) {
+                        for (int j=0; j<dim; j++) {
+                            fArray[i * dim + j] = Pmat[i][j]; //is this correct?
+                        }
+                    }
+                    
+                    double* res = new double[ nmbAllDPhi ];
+                    teuchosBLAS.GEMV(Teuchos::TRANS, sizeLocStiff, nmbAllDPhi, 1., allDPhiBlas, sizeLocStiff, fArray, 1, 0., res, 1);
+                    for (int i=0; i<locStresses.size(); i++) {
+                        locStresses[i] += weights->at(p) * res[i];
+                    }
+                    
+                    delete [] res;
+                    delete [] fArray;
+                    FE_STOP(LocalStress);
+                }
+                
+                delete [] aceFEMFunc;
+                delete [] allDPhiBlas;
+            }
+            
+            {
+                FE_START(GlobalAssembly," Add to Global Matrix");
+                for (int i=0; i<nmbScalarDPhi; i++) {
+                    for (int d1=0; d1<dim; d1++) {
+                        
+                        LO rowLO = dim * elements->getElement(T).getNode(i) + d1;
+                        SC v = absDetB * locStresses[ dim * i + d1 ];
+                        fValues[rowLO] += v;
+                        
+                        Teuchos::Array<SC> value( nmbAllDPhi, 0. );
+                        Teuchos::Array<GO> indices( nmbAllDPhi, 0 );
+                        LO counter = 0;
+                        for (UN j=0; j < nmbScalarDPhi; j++){
+                            for (UN d2=0; d2<dim; d2++) {
+                                indices[counter] = GO ( dim * map->getGlobalElement( elements->getElement(T).getNode(j) ) + d2 );
+                                value[counter] = absDetB * locStiffMat[dim*i+d1][dim*j+d2];
+                                counter++;
+                            }
+                        }
+                        GO row = GO ( dim * map->getGlobalElement( elements->getElement(T).getNode(i) ) + d1 );
+                        A->insertGlobalValues( row, indices(), value() );
+                    }
+                }
+                FE_STOP(GlobalAssembly);
             }
         }
+        FE_STOP(Assembly);
         
         delete [] v;
         for (int i=0; i<2; i++)
@@ -3287,11 +3342,15 @@ void FE<SC,LO,GO,NO>::assemblyElasticityJacobianAndStressAceFEM(int dim,
         Teuchos::ArrayRCP<SC> fValues = f->getDataNonConst(0);
 
         Teuchos::Array<int> indices(3);
+        FE_START(Assembly," Assembly Elasticity Jacobian and Stress AceFEM");
         for (int T=0; T<elements->numberElements(); T++) {
-            
-            Helper::buildTransformation(elements->getElement(T).getVectorNodeList(), pointsRep, B,FEType);
-            detB = B.computeInverse(Binv);
-            absDetB = std::fabs(detB);
+            {
+                FE_START(BuildTransformation," Build Transformation");
+                Helper::buildTransformation(elements->getElement(T).getVectorNodeList(), pointsRep, B,FEType);
+                detB = B.computeInverse(Binv);
+                absDetB = std::fabs(detB);
+                FE_STOP(BuildTransformation);
+            }
             
             Teuchos::Array<SmallMatrix<SC> > all_dPhiMat_Binv( dPhiMat.size(), SmallMatrix<SC>() );
             
@@ -3304,134 +3363,154 @@ void FE<SC,LO,GO,NO>::assemblyElasticityJacobianAndStressAceFEM(int dim,
             std::vector<SC> locStresses( nmbAllDPhi, 0. );
             int elementFlag = 0;
             for (int p=0; p<nmbQuadPoints; p++){
-                
-                SmallMatrix<SC> Fmat( dim, 0. );
-                SmallMatrix<SC> tmpForScaling( dim, 0. );
-                Fmat[0][0] = 1.; Fmat[1][1] = 1.; Fmat[2][2] = 1.;
-                
-                for (int i=0; i<nmbScalarDPhi; i++) {
-                    indices.at(0) = dim * elements->getElement(T).getNode(i);
-                    indices.at(1) = dim * elements->getElement(T).getNode(i) + 1;
-                    indices.at(2) = dim * elements->getElement(T).getNode(i) + 2;
+                {
+                    FE_START(ComputeF," Compute Deformation Gradient F");
+                    SmallMatrix<SC> Fmat( dim, 0. );
+                    SmallMatrix<SC> tmpForScaling( dim, 0. );
+                    Fmat[0][0] = 1.; Fmat[1][1] = 1.; Fmat[2][2] = 1.;
                     
-                    for (int j=0; j<dim; j++) {
-                        tmpForScaling = all_dPhiMat_Binv[ p * nmbAllDPhi + dim * i + j ]; //we should not copy here
-                        SC v = uArray[indices.at(j)];
-                        tmpForScaling.scale( v );
-                        Fmat += tmpForScaling;
-                    }
-                }
-                
-                for (int i=0; i<Fmat.size(); i++) {
-                    for (int j=0; j<Fmat.size(); j++) {
-                        F[i][j] = Fmat[i][j]; //fix so we dont need to copy.
-                    }
-                }
-                
-                elementFlag = elements->getElement(T).getFlag();
-                if (elementFlag == 1){
-                    lambda = lambda1;
-                    mue = mue1;
-                    E = E1;
-                }
-                else if (elementFlag == 2){
-                    lambda = lambda2;
-                    mue = mue2;
-                    E = E2;
-                }
-                
-                if ( !material_model.compare("Neo-Hooke") )
-                    nh3d(v, &E, &poissonRatio, F, Pmat, Amat);
-                else if ( !material_model.compare("Mooney-Rivlin") )
-                    mr3d(v, &E, &poissonRatio, &C, F, Pmat, Amat);
-                else if ( !material_model.compare("Saint Venant-Kirchhoff") )
-                    stvk3d(v, &lambda, &mue, F, Pmat, Amat);
-                                
-                SmallMatrix<SC> Aloc(dim*dim);
-                for (int i=0; i<3; i++) {
-                    for (int j=0; j<3; j++) {
-                        for (int k=0; k<3; k++) {
-                            for (int l=0; l<3; l++) {
-                                Aloc[ 3 * i + j ][ 3 * k + l ] = Amat[i][j][k][l];
-                            }
+                    for (int i=0; i<nmbScalarDPhi; i++) {
+                        indices.at(0) = dim * elements->getElement(T).getNode(i);
+                        indices.at(1) = dim * elements->getElement(T).getNode(i) + 1;
+                        indices.at(2) = dim * elements->getElement(T).getNode(i) + 2;
+                        
+                        for (int j=0; j<dim; j++) {
+                            tmpForScaling = all_dPhiMat_Binv[ p * nmbAllDPhi + dim * i + j ]; //we should not copy here
+                            SC v = uArray[indices.at(j)];
+                            tmpForScaling.scale( v );
+                            Fmat += tmpForScaling;
                         }
                     }
+                    
+                    for (int i=0; i<Fmat.size(); i++) {
+                        for (int j=0; j<Fmat.size(); j++) {
+                            F[i][j] = Fmat[i][j]; //fix so we dont need to copy.
+                        }
+                    }
+                    FE_STOP(ComputeF);
                 }
                 
+                {
+                    FE_START(MaterialModel," Evaluate Material Model");
+                    elementFlag = elements->getElement(T).getFlag();
+                    if (elementFlag == 1){
+                        lambda = lambda1;
+                        mue = mue1;
+                        E = E1;
+                    }
+                    else if (elementFlag == 2){
+                        lambda = lambda2;
+                        mue = mue2;
+                        E = E2;
+                    }
+                    
+                    if ( !material_model.compare("Neo-Hooke") )
+                        nh3d(v, &E, &poissonRatio, F, Pmat, Amat);
+                    else if ( !material_model.compare("Mooney-Rivlin") )
+                        mr3d(v, &E, &poissonRatio, &C, F, Pmat, Amat);
+                    else if ( !material_model.compare("Saint Venant-Kirchhoff") )
+                        stvk3d(v, &lambda, &mue, F, Pmat, Amat);
+                    FE_STOP(MaterialModel);
+                }
+                                
                 double* aceFEMFunc = new double[ sizeLocStiff * sizeLocStiff ];
                 double* allDPhiBlas = new double[ nmbAllDPhi * sizeLocStiff ];
                 
-                //jacobian
-                double* resTmp = new double[ nmbAllDPhi * sizeLocStiff ];
-                // all_dPhiMat_Binv: quadpoints -> basisfunction vector field
-                fillMatrixArray(Aloc, aceFEMFunc, "cols"); //blas uses column-major
-                
-                int offset = p * nmbAllDPhi;
-                int offsetInArray = 0;
-                for (int i=0; i<nmbAllDPhi; i++) {
-                    fillMatrixArray( all_dPhiMat_Binv[ offset + i ], allDPhiBlas, "rows",offsetInArray );
-                    offsetInArray += sizeLocStiff;
-                }
-                
-                teuchosBLAS.GEMM (Teuchos::NO_TRANS, Teuchos::NO_TRANS, sizeLocStiff, nmbAllDPhi, sizeLocStiff, 1., aceFEMFunc, sizeLocStiff, allDPhiBlas, sizeLocStiff, 0., resTmp, sizeLocStiff);
-
-                
-                double* locStiffMatBlas = new double[ nmbAllDPhi * nmbAllDPhi ];
-                
-                teuchosBLAS.GEMM (Teuchos::TRANS, Teuchos::NO_TRANS, nmbAllDPhi, nmbAllDPhi, sizeLocStiff, 1., allDPhiBlas, sizeLocStiff/*lda of A not trans(A)! Otherwise result is wrong*/, resTmp, sizeLocStiff, 0., locStiffMatBlas, nmbAllDPhi);
-                
-                for (int i=0; i<nmbAllDPhi; i++) {
-                    for (int j=0; j<nmbAllDPhi; j++)
-                        locStiffMat[i][j] += weights->at(p) * locStiffMatBlas[ j * nmbAllDPhi + i ];
-                }
-                
-                delete [] resTmp;
-                delete [] locStiffMatBlas;
-                
-                
-                //stress
-                double* fArray = new double[ sizeLocStiff ];
-                for (int i=0; i<dim; i++) {
-                    for (int j=0; j<dim; j++) {
-                        fArray[i * dim + j] = Pmat[i][j]; //is this correct?
-                    }
-                }
-                
-                double* res = new double[ nmbAllDPhi ];
-                teuchosBLAS.GEMV(Teuchos::TRANS, sizeLocStiff, nmbAllDPhi, 1., allDPhiBlas, sizeLocStiff, fArray, 1, 0., res, 1);
-                for (int i=0; i<locStresses.size(); i++) {
-                    locStresses[i] += weights->at(p) * res[i];
-                }
-                
-                delete [] res;
-                delete [] aceFEMFunc;
-                delete [] allDPhiBlas;
-                delete [] fArray;
-            }
-            
-            for (int i=0; i<nmbScalarDPhi; i++) {
-                for (int d1=0; d1<dim; d1++) {
-                    
-                    LO rowLO = dim * elements->getElement(T).getNode(i) + d1;
-                    SC v = absDetB * locStresses[ dim * i + d1 ];
-                    fValues[rowLO] += v;
-
-                    Teuchos::Array<SC> value( nmbAllDPhi, 0. );
-                    Teuchos::Array<GO> indices( nmbAllDPhi, 0 );
-                    LO counter = 0;
-                    for (UN j=0; j < nmbScalarDPhi; j++){
-                        for (UN d2=0; d2<dim; d2++) {
-                            indices[counter] = GO ( dim * map->getGlobalElement( elements->getElement(T).getNode(j) ) + d2 );
-                            value[counter] = absDetB * locStiffMat[dim*i+d1][dim*j+d2];
-                                                    
-                            counter++;
+                {
+                    FE_START(LocalStiffness," Assemble Local Stiffness");
+                    SmallMatrix<SC> Aloc(dim*dim);
+                    for (int i=0; i<3; i++) {
+                        for (int j=0; j<3; j++) {
+                            for (int k=0; k<3; k++) {
+                                for (int l=0; l<3; l++) {
+                                    Aloc[ 3 * i + j ][ 3 * k + l ] = Amat[i][j][k][l];
+                                }
+                            }
                         }
                     }
-                    GO row = GO ( dim * map->getGlobalElement( elements->getElement(T).getNode(i) ) + d1 );
-                    A->insertGlobalValues( row, indices(), value() );
+                    
+                    //jacobian
+                    double* resTmp = new double[ nmbAllDPhi * sizeLocStiff ];
+                    // all_dPhiMat_Binv: quadpoints -> basisfunction vector field
+                    fillMatrixArray(Aloc, aceFEMFunc, "cols"); //blas uses column-major
+                    
+                    int offset = p * nmbAllDPhi;
+                    int offsetInArray = 0;
+                    for (int i=0; i<nmbAllDPhi; i++) {
+                        fillMatrixArray( all_dPhiMat_Binv[ offset + i ], allDPhiBlas, "rows",offsetInArray );
+                        offsetInArray += sizeLocStiff;
+                    }
+                    
+                    teuchosBLAS.GEMM (Teuchos::NO_TRANS, Teuchos::NO_TRANS, sizeLocStiff, nmbAllDPhi, sizeLocStiff, 1., aceFEMFunc, sizeLocStiff, allDPhiBlas, sizeLocStiff, 0., resTmp, sizeLocStiff);
+
+                    
+                    double* locStiffMatBlas = new double[ nmbAllDPhi * nmbAllDPhi ];
+                    
+                    teuchosBLAS.GEMM (Teuchos::TRANS, Teuchos::NO_TRANS, nmbAllDPhi, nmbAllDPhi, sizeLocStiff, 1., allDPhiBlas, sizeLocStiff/*lda of A not trans(A)! Otherwise result is wrong*/, resTmp, sizeLocStiff, 0., locStiffMatBlas, nmbAllDPhi);
+                    
+                    for (int i=0; i<nmbAllDPhi; i++) {
+                        for (int j=0; j<nmbAllDPhi; j++)
+                            locStiffMat[i][j] += weights->at(p) * locStiffMatBlas[ j * nmbAllDPhi + i ];
+                    }
+                    
+                    delete [] resTmp;
+                    delete [] locStiffMatBlas;
+                    FE_STOP(LocalStiffness);
                 }
+                
+                {
+                    FE_START(LocalStress," Compute Local Stress");
+                    //stress
+                    double* fArray = new double[ sizeLocStiff ];
+                    for (int i=0; i<dim; i++) {
+                        for (int j=0; j<dim; j++) {
+                            fArray[i * dim + j] = Pmat[i][j]; //is this correct?
+                        }
+                    }
+                    
+                    double* res = new double[ nmbAllDPhi ];
+                    teuchosBLAS.GEMV(Teuchos::TRANS, sizeLocStiff, nmbAllDPhi, 1., allDPhiBlas, sizeLocStiff, fArray, 1, 0., res, 1);
+                    for (int i=0; i<locStresses.size(); i++) {
+                        locStresses[i] += weights->at(p) * res[i];
+                    }
+                    
+                    delete [] res;
+                    delete [] fArray;
+                    FE_STOP(LocalStress);
+                }
+                
+                delete [] aceFEMFunc;
+                delete [] allDPhiBlas;
+            }
+            
+            {
+                FE_START(GlobalAssembly," Add to Global Matrix");
+                for (int i=0; i<nmbScalarDPhi; i++) {
+                    for (int d1=0; d1<dim; d1++) {
+                        
+                        LO rowLO = dim * elements->getElement(T).getNode(i) + d1;
+                        SC v = absDetB * locStresses[ dim * i + d1 ];
+                        fValues[rowLO] += v;
+
+                        Teuchos::Array<SC> value( nmbAllDPhi, 0. );
+                        Teuchos::Array<GO> indices( nmbAllDPhi, 0 );
+                        LO counter = 0;
+                        for (UN j=0; j < nmbScalarDPhi; j++){
+                            for (UN d2=0; d2<dim; d2++) {
+                                indices[counter] = GO ( dim * map->getGlobalElement( elements->getElement(T).getNode(j) ) + d2 );
+                                value[counter] = absDetB * locStiffMat[dim*i+d1][dim*j+d2];
+                                                        
+                                counter++;
+                            }
+                        }
+                        GO row = GO ( dim * map->getGlobalElement( elements->getElement(T).getNode(i) ) + d1 );
+                        A->insertGlobalValues( row, indices(), value() );
+                    }
+                }
+                FE_STOP(GlobalAssembly);
             }
         }
+        FE_STOP(Assembly);
         
         delete [] v;
         for (int i=0; i<3; i++)
