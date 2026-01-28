@@ -87,37 +87,31 @@ void  AssembleFE_NonLinElas2<SC,LO,GO,NO>::assemblyNonLinElas(SmallMatrixPtr_Typ
 	// dofsElement_
 	// mu_
 	// poissonRatio_
-
-	/// Writing entries in the element matrix for nodes 1,2..n , n=numNodes_
-	/// 1_x 1_y 1_z 2_x 2_y 2_z .... n_x n_y n_z 
-	// this->rhsVec_.reset( new vec_dbl_Type ( dofsElement_,0.) );
-	std::fill(v_.begin(), v_.end(), 0.0);
-	std::fill(s_.begin(), s_.end(), 0.0);
-	std::fill(p_.begin(), p_.end(), 0.0);
-	std::fill(ht_.begin(), ht_.end(), 0.0);
-	std::fill(hp_.begin(), hp_.end(), 0.0);
-
-	d_[0] = this->E_; // TODO: Check order if there is a problem
-	d_[1] = this->poissonRatio_;
-
-	// for(int i=0;i<30;i++)
-	// 	ul_[i] = (*this->solution_)[i]; // What is the order? I need it in the form (u1,v1,w1,u2,v2,w2,...)
-
-    std::copy_n(this->solution_->begin(), 30, ul_.begin());
-
-	// int count = 0;
-	// for(int i=0;i<this->numNodes_;i++)
-	// 	for(int j=0;j<this->dofs_;j++){
-	// 		xl_[count] = this->getNodesRefConfig()[i][j];
-	// 		count++;}	
-	const auto& nodesRef = this->getNodesRefConfig();
-	auto it = xl_.begin();
-	for(int i = 0; i < this->numNodes_; i++) {
-		it = std::copy_n(nodesRef[i].begin(), this->dofs_, it);
-	}
-
-	// std::cout << "[DEBUG] SKR-Jacobian Calls after this line!" << std::endl;
 	if(!this->isComputed_){
+
+		/// Writing entries in the element matrix for nodes 1,2..n , n=numNodes_
+		/// 1_x 1_y 1_z 2_x 2_y 2_z .... n_x n_y n_z 
+		// this->rhsVec_.reset( new vec_dbl_Type ( dofsElement_,0.) );
+		std::fill(v_.begin(), v_.end(), 0.0);
+		std::fill(s_.begin(), s_.end(), 0.0);
+		std::fill(p_.begin(), p_.end(), 0.0);
+		std::fill(ht_.begin(), ht_.end(), 0.0);
+		std::fill(hp_.begin(), hp_.end(), 0.0);
+
+		d_[0] = this->E_; // TODO: Check order if there is a problem
+		d_[1] = this->poissonRatio_;
+
+		// for(int i=0;i<30;i++)
+		// 	ul_[i] = (*this->solution_)[i]; // What is the order? I need it in the form (u1,v1,w1,u2,v2,w2,...)
+
+		std::copy_n((*this->solution_).begin(), 30, ul_.begin());
+
+		const auto& nodesRef = this->getNodesRefConfig();
+		auto it = xl_.begin();
+		for(int i = 0; i < this->numNodes_; i++) {
+			it = std::copy_n(nodesRef[i].begin(), this->dofs_, it);
+		}
+
 		skr3(v_.data(), d_.data(), ul_.data(), ul0_.data(), xl_.data(), s_.data(), p_.data(), ht_.data(), hp_.data());
 		this->isComputed_ = true;
 	}
@@ -149,35 +143,32 @@ void  AssembleFE_NonLinElas2<SC,LO,GO,NO>::assembleRHS() {
 
 	// [Efficiency] Need to know which is called first: assembleRHS() or assembleJacobian(), so that multiple calls to skr() may be avoided.
 	// Note skr() computes both elementMatrix_ and rhsVec_
-	std::fill(v_.begin(), v_.end(), 0.0);
-	std::fill(s_.begin(), s_.end(), 0.0);
-	std::fill(p_.begin(), p_.end(), 0.0);
-	std::fill(ht_.begin(), ht_.end(), 0.0);
-	std::fill(hp_.begin(), hp_.end(), 0.0);
-
-	d_[0] = this->E_; // TODO: Check order if there is a problem
-	d_[1] = this->poissonRatio_;
-
-	// for(int i=0;i<30;i++){
-	// 	ul_[i] = (*this->solution_)[i];
-	// }
-
-    std::copy_n(this->solution_->begin(), 30, ul_.begin());
-
-
-	// int count = 0;
-	// for(int i=0;i<this->numNodes_;i++)
-	// 	for(int j=0;j<this->dofs_;j++){
-	// 		xl_[count] = this->getNodesRefConfig()[i][j];
-	// 		count++;}
-	const auto& nodesRef = this->getNodesRefConfig();
-	auto it = xl_.begin();
-	for(int i = 0; i < this->numNodes_; i++) {
-		it = std::copy_n(nodesRef[i].begin(), this->dofs_, it);
-	}
-
 	if(!this->isComputed_){
+
+		std::fill(v_.begin(), v_.end(), 0.0);
+		std::fill(s_.begin(), s_.end(), 0.0);
+		std::fill(p_.begin(), p_.end(), 0.0);
+		std::fill(ht_.begin(), ht_.end(), 0.0);
+		std::fill(hp_.begin(), hp_.end(), 0.0);
+
+		d_[0] = this->E_; // TODO: Check order if there is a problem
+		d_[1] = this->poissonRatio_;
+
+		// for(int i=0;i<30;i++){
+		// 	ul_[i] = (*this->solution_)[i];
+		// }
+
+		std::copy_n((*this->solution_).begin(), 30, ul_.begin());
+
+
+		const auto& nodesRef = this->getNodesRefConfig();
+		auto it = xl_.begin();
+		for(int i = 0; i < this->numNodes_; i++) {
+			it = std::copy_n(nodesRef[i].begin(), this->dofs_, it);
+		}
+
 		skr3(v_.data(), d_.data(), ul_.data(), ul0_.data(), xl_.data(), s_.data(), p_.data(), ht_.data(), hp_.data());
+		this->isComputed_ = true;
 	}
 
 	for(int i=0; i< p_.size(); i++)

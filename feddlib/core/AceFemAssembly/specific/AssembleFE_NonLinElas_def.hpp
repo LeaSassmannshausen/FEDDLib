@@ -98,35 +98,31 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assemblyNonLinElas(SmallMatrixPtr_Type 
 	// std::vector<double> p(30); // Residual vector [Output from skr]
 	// std::vector<double> ht(10); // History parameters currently unused
 	// std::vector<double> hp(10); // History parameters currently unused
+	if(!this->isComputed_){
 
-	std::fill(v_.begin(), v_.end(), 0.0);
-	std::fill(s_.begin(), s_.end(), 0.0);
-	std::fill(p_.begin(), p_.end(), 0.0);
-	std::fill(ht_.begin(), ht_.end(), 0.0);
-	std::fill(hp_.begin(), hp_.end(), 0.0);
+		std::fill(v_.begin(), v_.end(), 0.0);
+		std::fill(s_.begin(), s_.end(), 0.0);
+		std::fill(p_.begin(), p_.end(), 0.0);
+		std::fill(ht_.begin(), ht_.end(), 0.0);
+		std::fill(hp_.begin(), hp_.end(), 0.0);
 
-	d_[0] = this->E_; // TODO: Check order if there is a problem
-	d_[1] = this->poissonRatio_;
+		d_[0] = this->E_; // TODO: Check order if there is a problem
+		d_[1] = this->poissonRatio_;
 
-	// for(int i=0;i<30;i++)
-	// 	ul_[i] = (*this->solution_)[i]; // What is the order? I need it in the form (u1,v1,w1,u2,v2,w2,...)
+		// for(int i=0;i<30;i++)
+		// 	ul_[i] = (*this->solution_)[i]; // What is the order? I need it in the form (u1,v1,w1,u2,v2,w2,...)
 
-    std::copy_n(this->solution_->begin(), 30, ul_.begin());
+		std::copy_n((*this->solution_).begin(), 30, ul_.begin());
 
-	// int count = 0;
-	// for(int i=0;i<this->numNodes_;i++)
-	// 	for(int j=0;j<this->dofs_;j++){
-	// 		xl_[count] = this->getNodesRefConfig()[i][j];
-	// 		count++;}	
-	const auto& nodesRef = this->getNodesRefConfig();
-	auto it = xl_.begin();
-	for(int i = 0; i < this->numNodes_; i++) {
-		it = std::copy_n(nodesRef[i].begin(), this->dofs_, it);
-	}
+		const auto& nodesRef = this->getNodesRefConfig();
+		auto it = xl_.begin();
+		for(int i = 0; i < this->numNodes_; i++) {
+			it = std::copy_n(nodesRef[i].begin(), this->dofs_, it);
+		}	
 
 	// std::cout << "[DEBUG] SKR-Jacobian Calls after this line!" << std::endl;
-	if(!this->isComputed_){
 		skr2(v_.data(), d_.data(), ul_.data(), ul0_.data(), xl_.data(), s_.data(), p_.data(), ht_.data(), hp_.data());
+		
 		this->isComputed_ = true;
 	}
 	// std::cout << "[DEBUG] SKR-Jacobian Call successful!" << std::endl;
@@ -167,34 +163,28 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assembleRHS() {
 	// std::vector<double> ht(10); // History parameters currently unused
 	// std::vector<double> hp(10); // History parameters currently unused
 
-	std::fill(v_.begin(), v_.end(), 0.0);
-	std::fill(s_.begin(), s_.end(), 0.0);
-	std::fill(p_.begin(), p_.end(), 0.0);
-	std::fill(ht_.begin(), ht_.end(), 0.0);
-	std::fill(hp_.begin(), hp_.end(), 0.0);
-
-	d_[0] = this->E_; // TODO: Check order if there is a problem
-	d_[1] = this->poissonRatio_;
-
-	// for(int i=0;i<30;i++){
-	// 	ul_[i] = (*this->solution_)[i];
-	// }
-    std::copy_n(this->solution_->begin(), 30, ul_.begin());
-
-
-	// int count = 0;
-	// for(int i=0;i<this->numNodes_;i++)
-	// 	for(int j=0;j<this->dofs_;j++){
-	// 		xl_[count] = this->getNodesRefConfig()[i][j];
-	// 		count++;}
-
-	const auto& nodesRef = this->getNodesRefConfig();
-	auto it = xl_.begin();
-	for(int i = 0; i < this->numNodes_; i++) {
-		it = std::copy_n(nodesRef[i].begin(), this->dofs_, it);
-	}
-
 	if(!this->isComputed_){
+
+		std::fill(v_.begin(), v_.end(), 0.0);
+		std::fill(s_.begin(), s_.end(), 0.0);
+		std::fill(p_.begin(), p_.end(), 0.0);
+		std::fill(ht_.begin(), ht_.end(), 0.0);
+		std::fill(hp_.begin(), hp_.end(), 0.0);
+
+		d_[0] = this->E_; // TODO: Check order if there is a problem
+		d_[1] = this->poissonRatio_;
+
+		// for(int i=0;i<30;i++){
+		// 	ul_[i] = (*this->solution_)[i];
+		// }
+		std::copy_n((*this->solution_).begin(), 30, ul_.begin());
+
+		const auto& nodesRef = this->getNodesRefConfig();
+		auto it = xl_.begin();
+		for(int i = 0; i < this->numNodes_; i++) {
+			it = std::copy_n(nodesRef[i].begin(), this->dofs_, it);
+		}
+
 		skr2(v_.data(), d_.data(), ul_.data(), ul0_.data(), xl_.data(), s_.data(), p_.data(), ht_.data(), hp_.data());
 		this->isComputed_ = true;
 	}
