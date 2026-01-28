@@ -20,6 +20,8 @@
 #ifdef FEDD_HAVE_TEKO
 #include "Teko_StratimikosFactory.hpp"
 #include <Teko_StaticRequestCallback.hpp>
+#include "Stratimikos_DefaultLinearSolverBuilder.hpp"
+#include "Stratimikos_MueLuHelpers.hpp"
 #endif
 
 /*!

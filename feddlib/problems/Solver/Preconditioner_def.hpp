@@ -382,7 +382,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             //Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
                             MapConstPtr_Type mapConstTmp;//->getTpetraMap();
 
-                            if(augmentedLagrange){
+                            if(augmentedLagrange && parameterList->sublist("General").get("Use Unique Maps for Overlap", false)){
                                 mapConstTmp = problem_->getDomain(i)->getMapVecFieldUnique();//->getTpetraMap();
                                 if(verbose){
                                     std::cout << " Using unique map for overlap construction in FROSch with augmented Lagrange " << std::endl;
@@ -407,7 +407,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
                             MapConstPtr_Type mapConstTmp;//->getTpetraMap();
 
-                            if(augmentedLagrange){
+                            if(augmentedLagrange && parameterList->sublist("General").get("Use Unique Maps for Overlap", false)){
                                 mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldUnique();//->getTpetraMap();
                                 if(verbose)
                                     std::cout << " Using unique map for overlap construction in FROSch with augmented Lagrange " << std::endl;
@@ -878,13 +878,17 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerTeko( )
     else
         TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error, "Preconditioner can not be used without a problem.");
 
-    
+
+
     LinSolverBuilderPtr_Type solverBuilder;
     if (!problem_.is_null())
         solverBuilder = problem_->getLinearSolverBuilder();
     else if(!timeProblem_.is_null())
         solverBuilder = timeProblem_->getUnderlyingProblem()->getLinearSolverBuilder();
 
+    // Register MueLu with Stratimikos
+    Stratimikos::enableMueLu<SC, LO, GO, NO>(*solverBuilder, "MueLu");
+    
     ParameterListPtr_Type tekoPList= sublist( parameterList, "Teko Parameters" );
 
     if (precFactory_.is_null()) {

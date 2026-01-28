@@ -33,6 +33,28 @@
                             <Parameter name="SolverType" type="string" value="Amesos2"/>
                             
                             <Parameter name="Solver" type="string"   value="klu2"/>
+
+                           <!-- <Parameter name="SolverType" type="string" value="Ifpack2"/>          
+                            <Parameter name="Solver"        type="string"   value="RILUK"/>  
+                                <ParameterList name="Ifpack2">
+                                <!-- Level of fill: 0 = ILU(0), 1 = ILU(1), etc. default: 0 -->
+                                <Parameter name="fact: iluk level-of-fill" type="int" value="1"/>
+                                    <!-- Diagonal perturbation for stability, default: 0 -->
+                                <Parameter name="fact: absolute threshold" type="double" value="1e-5"/>
+                                    <!-- Diagonal scaling factor (1.0 = no scaling), default: 1.0 -->
+                                <Parameter name="fact: relative threshold" type="double" value="1.01"/>
+                            </ParameterList>  -->
+                                <!--<ParameterList name="Ifpack2">                                 
+									<Parameter name="fact: iluk level-of-overlap" type="int" value="0"/>
+									<Parameter name="fact: drop tolerance" type="double" value="1e-5"/>
+									<Parameter name="fact: relative threshold" type="double" value="1.0"/> 
+									<Parameter name="fact: relax value" type="double" value="0.0"/> 
+									<Parameter name="fact: initial relax value" type="double" value="0.0"/>
+									<Parameter name="fact: diagonal threshold" type="double" value="0.0"/> 
+									<Parameter name="fact: reuse symbolic" type="bool" value="true"/> 
+									<Parameter name="fact: reuse numeric" type="bool" value="false"/> 
+                                  </ParameterList> -->      
+
                             
                         </ParameterList>
                         

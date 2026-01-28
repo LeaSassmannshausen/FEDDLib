@@ -2,26 +2,22 @@
     <ParameterList name="Parameter">
         <Parameter name="Dimension"							    type="int"   	value="3"/>
         <Parameter name="Discretization"                        type="string"   value="P2"/><!--P1, P2-->
-        <Parameter name="Mesh Type" type="string" value="unstructured"/> <!--structured, unstructured -->
-        <Parameter name="Volume force" type="double" value="0.016"/>
+        <Parameter name="Mesh Type" type="string" value="structured"/> <!--structured, unstructured -->
+        <Parameter name="Volume force" type="double" value="-160.0"/>
 	    <Parameter name="Source Type" type="string"   value="surface"/>
+        <Parameter name="External Force" type="bool" value="true"/>
         <Parameter name="Mesh Delimiter"					    type="string"   value=" "/>
-        <Parameter name="H/h"							    	type="int"   	value="6"/>   
-          <Parameter name="relNonLinTol" type="double" value="1.0e-9"/>
-        <Parameter name="MaxNonLinIts" type="int" value="2"/>
+        <Parameter name="H/h"							    	type="int"   	value="5"/>   
+        <Parameter name="relNonLinTol" type="double" value="1.0e-8"/>
+        <Parameter name="MaxNonLinIts" type="int" value="10"/>
         <Parameter name="Criterion" type="string" value="Residual"/>     
- 	<Parameter name="Material model" type="string" value="Neo-Hooke"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
+ 		<Parameter name="Material model" type="string" value="Neo-Hooke"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
         <Parameter name="Neo-Hooke Modell" type="int" value="1"/><!--different energy functions -->
         <Parameter name="Density" type="double"   value="1."/>
-	 <Parameter name="Poisson Ratio"					        type="double"   value="0.49e-0"/>        
-     <Parameter name="Mu" type="double" value="671.0"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 1476.5 | NH_3: 1275.2 | NH_2: 671-->
-        <Parameter name="Mu1" type="double" value="671.0"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 1476.5-->
-        <Parameter name="Mu2" type="double" value="671.0"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 1476.5-->
-
-        <Parameter name="E" type="double" value="2.0e3"/> <!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48 | NH_3 = 3800, NH_2 = 2000-->
-        <Parameter name="E1" type="double" value="2.0e3"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48-->
-        <Parameter name="E2" type="double" value="2.0e3"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48-->
-        
+	 	<Parameter name="Poisson Ratio"					        type="double"   value="0.49e-0"/>        
+     	<Parameter name="Mu" type="double" value="1275.2"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 1476.5 | NH_3: 1275.2 | NH_2: 671-->
+    
+        <Parameter name="E" type="double" value="3800"/> <!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48 | NH_3 = 3800, NH_2 = 2000-->
         <!-- Parameter for Mooney-Rivlin-->
         <Parameter name="C" type="double" value="1."/><!-- Mooney-Rivlin parameter -->
     </ParameterList>
@@ -46,8 +42,8 @@
     
     <ParameterList name="General">
         <Parameter name="Mpi Ranks Coarse"		                type="int"      value="0"/>
-        <Parameter name="ParaViewExport"			            type="bool"     value="true"/>
-        <Parameter name="ParaViewCoarse"                        type="bool"     value="true"/>
+        <Parameter name="ParaViewExport"			            type="bool"     value="false"/>
+        <Parameter name="ParaViewCoarse"                        type="bool"     value="false"/>
         <Parameter name="Preconditioner Method"                 type="string"   value="Monolithic"/><!-- Monolithic, Diagonal, Triangular -->
         <Parameter name="Scale mass matrix"                     type="bool"     value="true"/>
         <Parameter name="Set Zeros"		                        type="bool"     value="true"/>
