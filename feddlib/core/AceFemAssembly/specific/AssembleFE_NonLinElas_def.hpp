@@ -108,17 +108,27 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assemblyNonLinElas(SmallMatrixPtr_Type 
 	d_[0] = this->E_; // TODO: Check order if there is a problem
 	d_[1] = this->poissonRatio_;
 
-	for(int i=0;i<30;i++)
-		ul_[i] = (*this->solution_)[i]; // What is the order? I need it in the form (u1,v1,w1,u2,v2,w2,...)
+	// for(int i=0;i<30;i++)
+	// 	ul_[i] = (*this->solution_)[i]; // What is the order? I need it in the form (u1,v1,w1,u2,v2,w2,...)
 
-	int count = 0;
-	for(int i=0;i<this->numNodes_;i++)
-		for(int j=0;j<this->dofs_;j++){
-			xl_[count] = this->getNodesRefConfig()[i][j];
-			count++;}	
+    std::copy_n(this->solution_->begin(), 30, ul_.begin());
+
+	// int count = 0;
+	// for(int i=0;i<this->numNodes_;i++)
+	// 	for(int j=0;j<this->dofs_;j++){
+	// 		xl_[count] = this->getNodesRefConfig()[i][j];
+	// 		count++;}	
+	const auto& nodesRef = this->getNodesRefConfig();
+	auto it = xl_.begin();
+	for(int i = 0; i < this->numNodes_; i++) {
+		it = std::copy_n(nodesRef[i].begin(), this->dofs_, it);
+	}
 
 	// std::cout << "[DEBUG] SKR-Jacobian Calls after this line!" << std::endl;
-	skr2(v_.data(), d_.data(), ul_.data(), ul0_.data(), xl_.data(), s_.data(), p_.data(), ht_.data(), hp_.data());
+	if(!this->isComputed_){
+		skr2(v_.data(), d_.data(), ul_.data(), ul0_.data(), xl_.data(), s_.data(), p_.data(), ht_.data(), hp_.data());
+		this->isComputed_ = true;
+	}
 	// std::cout << "[DEBUG] SKR-Jacobian Call successful!" << std::endl;
 	// Note: FEAP/Fortran returns matrices unrolled in column major form. This must be converted for use here.
 
@@ -166,22 +176,28 @@ void AssembleFE_NonLinElas<SC,LO,GO,NO>::assembleRHS() {
 	d_[0] = this->E_; // TODO: Check order if there is a problem
 	d_[1] = this->poissonRatio_;
 
-	for(int i=0;i<30;i++){
-		ul_[i] = (*this->solution_)[i];
+	// for(int i=0;i<30;i++){
+	// 	ul_[i] = (*this->solution_)[i];
+	// }
+    std::copy_n(this->solution_->begin(), 30, ul_.begin());
+
+
+	// int count = 0;
+	// for(int i=0;i<this->numNodes_;i++)
+	// 	for(int j=0;j<this->dofs_;j++){
+	// 		xl_[count] = this->getNodesRefConfig()[i][j];
+	// 		count++;}
+
+	const auto& nodesRef = this->getNodesRefConfig();
+	auto it = xl_.begin();
+	for(int i = 0; i < this->numNodes_; i++) {
+		it = std::copy_n(nodesRef[i].begin(), this->dofs_, it);
 	}
 
-	int count = 0;
-	for(int i=0;i<this->numNodes_;i++)
-		for(int j=0;j<this->dofs_;j++){
-			xl_[count] = this->getNodesRefConfig()[i][j];
-			count++;}
-
-
-
-	// std::cout << "[DEBUG] SKR-Rhs Calls after this line!" << std::endl;
-	//skr3(&v[0],&d[0],&ul[0],&ul0[0],&xl[0],&s[0],&p[0],&ht[0],&hp[0]); // Fortran subroutine call modifies s and p
-	skr2(&v_[0],&d_[0],&ul_[0],&ul0_[0],&xl_[0],&s_[0],&p_[0],&ht_[0],&hp_[0]); // Fortran subroutine call modifies s and p
-	// std::cout << "[DEBUG] SKR-Rhs Call successful!" << std::endl;
+	if(!this->isComputed_){
+		skr2(v_.data(), d_.data(), ul_.data(), ul0_.data(), xl_.data(), s_.data(), p_.data(), ht_.data(), hp_.data());
+		this->isComputed_ = true;
+	}
 
 	for(int i=0; i< p_.size(); i++)
 		(*this->rhsVec_)[i] = -p_[i];

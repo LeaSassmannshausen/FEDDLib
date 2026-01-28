@@ -290,6 +290,7 @@ namespace FEDD {
         // This can be any postprocessing output field ddefined inside an element using converged solution
         vec_dbl_Type constOutputField_ ; // can be a vector with values on P1/ P2 nodes or just averaged element value
 
+        bool isComputed_ = false;
         friend class AssembleFEFactory<SC,LO,GO,NO>;
     };
 }
