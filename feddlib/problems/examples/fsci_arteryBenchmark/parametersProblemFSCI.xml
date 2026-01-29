@@ -34,7 +34,7 @@
 
         <!-- For Explicit Coupling and SCI_NH , SCI_SMC_Active_Growth_Reorientation-->
         <Parameter name="E" type="double" value="3800.0"/> <!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48 | NH_3 = 3800, NH_2 = 2000-->
-        <Parameter name="E1" type="double" value="3000.0"/><!-- 1kg⋅cm/s² * 1/cm²-->
+        <Parameter name="E1" type="double" value="2800.0"/><!-- 1kg⋅cm/s² * 1/cm²-->
         <Parameter name="c1" type="double" value="0.25"/>
         <Parameter name="Poisson Ratio" type="double" value="0.49"/>
         <!-- ######################################## -->
