@@ -543,11 +543,19 @@ void FE<SC,LO,GO,NO>::assemblyNonLinearElasticity(int dim,
 
 
 	}
-    FE_STOP(Assembly);
     
-	if (callFillComplete)
-	    A->getBlock(0,0)->fillComplete( domainVec_.at(0)->getMapVecFieldUnique(),domainVec_.at(0)->getMapVecFieldUnique());
+    {
+    FE_START(FillComplete," Fill Complete");
+
+        if (callFillComplete)
+            A->getBlock(0,0)->fillComplete( domainVec_.at(0)->getMapVecFieldUnique(),domainVec_.at(0)->getMapVecFieldUnique());
 	
+    FE_STOP(FillComplete);
+    }
+
+
+    FE_STOP(Assembly);
+
 }
 
 /*!
@@ -3531,8 +3539,13 @@ void FE<SC,LO,GO,NO>::assemblyElasticityJacobianAndStressAceFEM(int dim,
         delete [] Amat;
         
     }
-    if (callFillComplete)
-        A->fillComplete();
+    {
+        FE_START(FillComplete," Fill Complete");
+        if (callFillComplete)
+            A->fillComplete();
+
+        FE_STOP(FillComplete);
+    }
     
 }
 
