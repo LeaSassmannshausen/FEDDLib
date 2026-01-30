@@ -1758,6 +1758,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
 
     NonLinearSolver<SC, LO, GO, NO> nlSolver(parameterList_->sublist("General").get("Linearization","FixedPoint"));
 
+    vec_dbl_Type linearIterations(0);
+    vec_dbl_Type newtonIterations(0);
     // ######################
     // Time loop
     // ######################
@@ -1956,6 +1958,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
             exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
             exporterIterations->exportData(timeSteppingTool_->currentTime(), (*its)[0] );
             exporterNewtonIterations->exportData(timeSteppingTool_->currentTime(), (*its)[1] );
+            linearIterations.push_back((*its)[0]);
+            newtonIterations.push_back((*its)[1]);
 
         }
         if(printFlowRate){
@@ -2027,6 +2031,26 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
     }
 
     comm_->barrier();
+    if (printData) {
+        exporterTimeTxt->closeExporter();
+        exporterIterations->closeExporter();
+        exporterNewtonIterations->closeExporter();
+
+        double sumLinear=0., sumNewton=0.;
+        for(int i=0; i < linearIterations.size(); i++){
+            sumLinear += linearIterations[i];
+            sumNewton += newtonIterations[i];
+        }
+        sumLinear = sumLinear / linearIterations.size();
+        sumNewton = sumNewton / newtonIterations.size();
+
+        if (verbose_) {
+            std::cout << " ######################################################## "<< std::endl;
+            std::cout << " Average linear iteration count over all time steps:  " << sumLinear << std::endl;
+            std::cout << " Average Newton iteration count over all time steps:  " << sumNewton << std::endl;
+            std::cout << " ######################################################## \n"<< std::endl;
+        }
+    }
     if (printExtraData) {
         exporterTimeTxt->closeExporter();
         exporterIterations->closeExporter();
