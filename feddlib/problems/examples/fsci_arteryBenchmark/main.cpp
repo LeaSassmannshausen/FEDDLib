@@ -323,7 +323,6 @@ int main(int argc, char *argv[])
         
         string      discType        = parameterListProblem->sublist("Parameter").get("Discretization","P2");
         string preconditionerMethod = parameterListProblem->sublist("General").get("Preconditioner Method","Monolithic");
-        bool        fullInterface   = parameterListProblem->sublist("Parameter").get("Full Interface",true);
         int         n;
 
         TimePtr_Type totalTime(TimeMonitor_Type::getNewCounter("FEDD - main - Total Time"));
@@ -376,10 +375,8 @@ int main(int argc, char *argv[])
                     if (!meshType.compare("unstructured")) {
 
                         vec_int_Type idsInterface(1,6);
-                        if (fullInterface) {
-                            idsInterface.push_back(4);
-                            idsInterface.push_back(5);
-                        }
+                        idsInterface.push_back(4);
+                        idsInterface.push_back(5);
                
                         MeshPartitioner_Type::DomainPtrArray_Type domainP1Array(2);
                         domainP1Array[0] = domainP1fluid;
@@ -464,7 +461,7 @@ int main(int argc, char *argv[])
             // #####################
             // Problem definieren
             // #####################
-           Teuchos::RCP<SmallMatrix<int>> defTS;
+            Teuchos::RCP<SmallMatrix<int>> defTS;
 
             if(geometryExplicit)
             {
@@ -652,7 +649,6 @@ int main(int argc, char *argv[])
             if (preconditionerMethod == "FaCSCI")
                 bcFactoryFluidInterface = Teuchos::rcp( new BCBuilder<SC,LO,GO,NO>( ) );
 
-            
             bcFactoryGeometry->addBC(zeroDirichlet3D, 4, 0, domainGeometry, "Dirichlet", dim); // inlet Ring
             bcFactoryGeometry->addBC(zeroDirichlet3D, 5, 0, domainGeometry, "Dirichlet", dim); // outlet Ring
             bcFactoryGeometry->addBC(zeroDirichlet3D, 6, 0, domainGeometry, "Dirichlet", dim); // Interface
@@ -660,10 +656,8 @@ int main(int argc, char *argv[])
             // Die RW, welche nicht Null sind in der rechten Seite (nur Interface) setzen wir spaeter per Hand.
             // Hier erstmal Dirichlet Nullrand, wird spaeter von der Sturkturloesung vorgegeben
             if (preconditionerMethod == "FaCSCI"){
-                if(fullInterface){
-                    bcFactoryFluidInterface->addBC(zeroDirichlet3D, 4, 0, domainFluidVelocity, "Dirichlet", dim);
-                    bcFactoryFluidInterface->addBC(zeroDirichlet3D, 5, 0, domainFluidVelocity, "Dirichlet", dim);
-                }
+                bcFactoryFluidInterface->addBC(zeroDirichlet3D, 4, 0, domainFluidVelocity, "Dirichlet", dim);
+                bcFactoryFluidInterface->addBC(zeroDirichlet3D, 5, 0, domainFluidVelocity, "Dirichlet", dim);
                 bcFactoryFluidInterface->addBC(zeroDirichlet3D, 6, 0, domainFluidVelocity, "Dirichlet", dim);
             }
             fsci.problemGeometry_->addBoundaries(bcFactoryGeometry);
