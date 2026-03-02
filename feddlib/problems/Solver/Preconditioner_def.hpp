@@ -301,7 +301,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
 
     std::string precType = parameterList->sublist("ThyraPreconditioner").get("Preconditioner Type", "FROSch");
 
-    bool useRepeatedMaps = parameterList->get( "Use repeated maps", true );
+    bool useRepeatedMaps = parameterList->get("Use repeated maps", true );
     bool useNodeLists = parameterList->get( "Use node lists", true );
     ParameterListPtr_Type pListThyraPrec = sublist( parameterList, "ThyraPreconditioner" );
     ParameterListPtr_Type plFrosch = sublist( sublist( pListThyraPrec, "Preconditioner Types" ), "FROSch");
@@ -360,6 +360,33 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
     // In case of augmented lagrange we pass on the unique map to the overlap construction. This way, the 
     // overlap is more moderate in size due to the enlarged finite element stencil.
     bool augmentedLagrange = parameterList->sublist("General").get("Augmented Lagrange", false);
+    bool useUniqueOverlap = parameterList->sublist("General").get("Use Unique Maps for Overlap", false);
+
+    std::cout << " Augmented Lagrange: " << augmentedLagrange << " | Use unique maps for overlap: " << useUniqueOverlap << std::endl;
+
+    auto buildMultiplicityOneMap = [&](const MapConstPtr_Type& repeatedMap, const MapConstPtr_Type& uniqueMap) -> MapConstPtr_Type {
+        TEUCHOS_TEST_FOR_EXCEPTION(repeatedMap.is_null(), std::logic_error, "Repeated map is null.");
+
+        MultiVectorPtr_Type repeatedMultiplicity = Teuchos::rcp(new MultiVector_Type(repeatedMap, 1));
+        MultiVectorPtr_Type uniqueMultiplicity = Teuchos::rcp(new MultiVector_Type(uniqueMap, 1));
+
+        repeatedMultiplicity->putScalar(1);
+        uniqueMultiplicity->putScalar(0);
+
+        uniqueMultiplicity->exportFromVector(repeatedMultiplicity, true , "Add");
+        
+        Teuchos::Array<GO> multiplicityOneEntries;
+        const Teuchos::ArrayView<const GO> uniqueEntries = uniqueMap->getNodeElementList();
+        const Teuchos::ArrayRCP<const SC> uniqueMultiplicityData = uniqueMultiplicity->getData(0);
+        for (LO j = 0; j < uniqueMap->getNodeNumElements(); ++j) {
+            if (uniqueMultiplicityData[j] == static_cast<GO>(1)) {
+                multiplicityOneEntries.push_back(uniqueEntries[j]);
+            }
+        }
+
+        typedef Teuchos::OrdinalTraits<GO> GOOT;
+        return Teuchos::rcp(new Map_Type(GOOT::invalid(), multiplicityOneEntries(), repeatedMap->getIndexBase(), repeatedMap->getComm()));
+    };
 
    // timeProblem_->getSystemCombined()->print();
     //Set Precondtioner lists
@@ -382,8 +409,12 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             //Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
                             MapConstPtr_Type mapConstTmp;//->getTpetraMap();
 
-                            if(augmentedLagrange && parameterList->sublist("General").get("Use Unique Maps for Overlap", false)){
-                                mapConstTmp = problem_->getDomain(i)->getMapVecFieldUnique();//->getTpetraMap();
+                            if(augmentedLagrange && useUniqueOverlap){
+                                // We want to contruct a map that does not contain interface components by checking the multiplicity in the repeated map
+                                // and only including those with multiplicity one in the unique map. 
+                                //This way, we can ensure that \hat\delta = 1 for AL is the same as for non AL systems.
+                                // problem_->getDomain(i)->getMapVecFieldUnique(); //
+                                mapConstTmp = buildMultiplicityOneMap(problem_->getDomain(i)->getMapVecFieldRepeated(),problem_->getDomain(i)->getMapVecFieldUnique());
                                 if(verbose){
                                     std::cout << " Using unique map for overlap construction in FROSch with augmented Lagrange " << std::endl;
                                     std::cout << " Overlap=0 is now truely no overlap. Now, using overlap = 1 corresponds roughly to the usual overlap=1. " << std::endl;
@@ -395,6 +426,8 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
                             
+                            mapConstTmp->print();
+
                             repeatedMaps[i] = mapX;
 
 
@@ -407,8 +440,8 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
                             MapConstPtr_Type mapConstTmp;//->getTpetraMap();
 
-                            if(augmentedLagrange && parameterList->sublist("General").get("Use Unique Maps for Overlap", false)){
-                                mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldUnique();//->getTpetraMap();
+                            if(augmentedLagrange && useUniqueOverlap){
+                                mapConstTmp = buildMultiplicityOneMap(timeProblem_->getDomain(i)->getMapVecFieldRepeated(),timeProblem_->getDomain(i)->getMapVecFieldUnique());
                                 if(verbose)
                                     std::cout << " Using unique map for overlap construction in FROSch with augmented Lagrange " << std::endl;
                             }    
@@ -502,6 +535,9 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
 
             pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("Dimension", dim);
             pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("Repeated Map Vector",repeatedMaps);
+            if(numberOfBlocks == 1)
+                pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("Repeated Map",repeatedMaps[0]);
+
             pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("Coordinates List Vector",nodeListVec);
             pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("DofOrdering Vector",dofOrderings);
             pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("DofsPerNode Vector",dofsPerNodeVector);
