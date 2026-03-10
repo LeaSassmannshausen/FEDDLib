@@ -39,6 +39,7 @@
         <Parameter name="Preconditioner Method" type="string" value="Monolithic"/><!-- Monolithic, Teko, PCD, LSC, Diagonal, Triangular -->
         <!-- Augmented lagrange Approach --> 
 		<Parameter name="Augmented Lagrange" type="bool" value="false"/><!-- true or false -->  
+        <Parameter name="Use Augmented Overlap" type="bool" value="false"/><!-- true or false -->
         <Parameter name="Gamma" type="double" value="0.01"/>
         <!-- Use Approximate Velocity Matrix in Preconditioner -->
         <Parameter name="Use Approximate Velocity Matrix" type="bool" value="true"/>

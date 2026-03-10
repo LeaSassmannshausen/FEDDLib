@@ -360,9 +360,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
     // In case of augmented lagrange we pass on the unique map to the overlap construction. This way, the 
     // overlap is more moderate in size due to the enlarged finite element stencil.
     bool augmentedLagrange = parameterList->sublist("General").get("Augmented Lagrange", false);
-    bool useUniqueOverlap = parameterList->sublist("General").get("Use Unique Maps for Overlap", false);
-
-    std::cout << " Augmented Lagrange: " << augmentedLagrange << " | Use unique maps for overlap: " << useUniqueOverlap << std::endl;
+    bool useAugmentedOverlap = parameterList->sublist("General").get("Use Augmented Overlap", false);
 
     auto buildMultiplicityOneMap = [&](const MapConstPtr_Type& repeatedMap, const MapConstPtr_Type& uniqueMap) -> MapConstPtr_Type {
         TEUCHOS_TEST_FOR_EXCEPTION(repeatedMap.is_null(), std::logic_error, "Repeated map is null.");
@@ -374,7 +372,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
         uniqueMultiplicity->putScalar(0);
 
         uniqueMultiplicity->exportFromVector(repeatedMultiplicity, true , "Add");
-        
+
         Teuchos::Array<GO> multiplicityOneEntries;
         const Teuchos::ArrayView<const GO> uniqueEntries = uniqueMap->getNodeElementList();
         const Teuchos::ArrayRCP<const SC> uniqueMultiplicityData = uniqueMultiplicity->getData(0);
@@ -407,27 +405,11 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
 
                             //Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
                             //Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                            MapConstPtr_Type mapConstTmp;//->getTpetraMap();
-
-                            if(augmentedLagrange && useUniqueOverlap){
-                                // We want to contruct a map that does not contain interface components by checking the multiplicity in the repeated map
-                                // and only including those with multiplicity one in the unique map. 
-                                //This way, we can ensure that \hat\delta = 1 for AL is the same as for non AL systems.
-                                // problem_->getDomain(i)->getMapVecFieldUnique(); //
-                                mapConstTmp = buildMultiplicityOneMap(problem_->getDomain(i)->getMapVecFieldRepeated(),problem_->getDomain(i)->getMapVecFieldUnique());
-                                if(verbose){
-                                    std::cout << " Using unique map for overlap construction in FROSch with augmented Lagrange " << std::endl;
-                                    std::cout << " Overlap=0 is now truely no overlap. Now, using overlap = 1 corresponds roughly to the usual overlap=1. " << std::endl;
-                                }        
-                            }    
-                            else
-                                mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated();//->get
+                            MapConstPtr_Type mapConstTmp = problem_->getDomain(i)->getMapVecFieldRepeated();//->get
 
                             XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mapX= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
                             
-                            mapConstTmp->print();
-
                             repeatedMaps[i] = mapX;
 
 
@@ -440,10 +422,10 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
                             MapConstPtr_Type mapConstTmp;//->getTpetraMap();
 
-                            if(augmentedLagrange && useUniqueOverlap){
+                            if(augmentedLagrange && useAugmentedOverlap){
                                 mapConstTmp = buildMultiplicityOneMap(timeProblem_->getDomain(i)->getMapVecFieldRepeated(),timeProblem_->getDomain(i)->getMapVecFieldUnique());
                                 if(verbose)
-                                    std::cout << " Using unique map for overlap construction in FROSch with augmented Lagrange " << std::endl;
+                                    std::cout << " Using augmented map for overlap construction in FROSch with augmented Lagrange " << std::endl;
                             }    
                             else
                                 mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->get
@@ -535,9 +517,19 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
 
             pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("Dimension", dim);
             pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("Repeated Map Vector",repeatedMaps);
-            if(numberOfBlocks == 1)
+            if(numberOfBlocks == 1) // For one level preconditioner in 1x1 block system
                 pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("Repeated Map",repeatedMaps[0]);
 
+            if(numberOfBlocks == 1 && augmentedLagrange && useAugmentedOverlap){ // For one level preconditioner in 1x1 block system
+                MapConstPtr_Type mapConstTmp = buildMultiplicityOneMap(problem_->getDomain(0)->getMapVecFieldRepeated(),problem_->getDomain(0)->getMapVecFieldUnique());
+                
+                XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
+                Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > mapXOverlap= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
+                                           
+                Teuchos::ArrayRCP<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > > repeatedMapsOverlap(1);
+                repeatedMapsOverlap[0] = mapXOverlap;
+                pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").sublist("AlgebraicOverlappingOperator").set("Repeated Map Vector",repeatedMapsOverlap);
+            }
             pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("Coordinates List Vector",nodeListVec);
             pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("DofOrdering Vector",dofOrderings);
             pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("DofsPerNode Vector",dofsPerNodeVector);

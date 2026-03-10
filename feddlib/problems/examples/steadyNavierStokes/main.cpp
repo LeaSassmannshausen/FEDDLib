@@ -356,7 +356,7 @@ int main(int argc, char *argv[]) {
                 }
                 domainVelocity->preProcessMesh(true,false);
                 
-                // domainVelocity->exportMesh(false,false,"FluidMesh");
+                domainVelocity->exportMesh(false,false,"FluidMesh");
 
                 // domainVelocity->getMapRepeated()->print();
                 
