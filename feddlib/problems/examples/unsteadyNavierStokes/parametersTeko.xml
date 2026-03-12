@@ -28,6 +28,23 @@
                         <Parameter name="Use Mass Scaling" type="bool" value="false"/>
                         <Parameter name="Assume Stable Discretization" type="bool" value="true"/>
                     </ParameterList>
+
+                    <ParameterList name="PCD">
+						<Parameter name="Type" type="string" value="Block LU2x2"/>
+						<Parameter name="Strategy Name" type="string" value="NS PCD Strategy"/>
+						<ParameterList name="Strategy Settings">
+							<Parameter name="PCD Operator" type="bool" value="true"/>
+						   	<Parameter name="Pressure Laplace Operator" type="bool" value="true"/>
+						   	<Parameter name="Pressure Mass Operator" type="bool" value="true"/>
+							<Parameter name="Inverse Type" type="string" value="FROSch-Pressure"/>
+							<Parameter name="Inverse F Type" type="string" value="FROSch-Velocity"/>
+							<Parameter name="Inverse Laplace Type" type="string" value="FROSch-Pressure"/>
+							<Parameter name="Inverse Mass Type" type="string" value="FROSch-Pressure"/>
+							<Parameter name="Flip Schur Complement Ordering" type="bool" value="true"/> <!-- true works better -->
+						</ParameterList>
+					</ParameterList>
+
+
                     
                     <ParameterList name="FROSch-Pressure">
                         <Parameter name="Type" type="string" value="FROSch"/>

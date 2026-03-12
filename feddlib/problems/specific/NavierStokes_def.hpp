@@ -372,7 +372,9 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
     }
 #endif
     std::string precType = this->parameterList_->sublist("General").get("Preconditioner Method","Monolithic");
-    if ( precType == "Diagonal" || precType == "Triangular" ) {
+    if ( precType == "Diagonal" || precType == "Triangular" 
+             || !this->parameterList_->sublist("Teko Parameters").sublist("Preconditioner Types").sublist("Teko").get("Inverse Type","None").compare("Triangular")
+        ) {
         MatrixPtr_Type Mpressure(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow() ) );
         
         this->feFactory_->assemblyMass( this->dim_, this->domain_FEType_vec_.at(1), "Scalar", Mpressure, true );
@@ -385,6 +387,11 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
         else{
             Mpressure->scale(-1./kinVisco);
         }
+
+        if(!this->parameterList_->sublist("Teko Parameters").sublist("Preconditioner Types").sublist("Teko").get("Inverse Type","None").compare("Triangular")){
+            Mpressure->scale(-1.); // Scaling with -1 to get the correct sign for the preconditioner, since we have a minus in front of the mass matrix in the preconditioner   
+        }
+        
         this->getPreconditionerConst()->setPressureMassMatrix( Mpressure );
     }
 

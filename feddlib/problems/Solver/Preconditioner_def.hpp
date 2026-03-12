@@ -63,6 +63,14 @@ precFactory_()
     problem_->getLinearSolverBuilder()->setPreconditioningStrategyFactory(Teuchos::abstractFactoryStd<Base, Impl>(), "Ifpack2");
 #endif
 #ifdef FEDD_HAVE_TEKO
+    // Register MueLu before adding Teko: Teko snapshots the Stratimikos builder
+    // when it is registered, so the snapshot must already know "MueLu".
+    if (!problem_->getLinearSolverBuilder()
+              ->getValidParameters()
+              ->sublist("Preconditioner Types")
+              .isSublist("MueLu")) {
+        Stratimikos::enableMueLu<SC, LO, GO, NO>(*problem_->getLinearSolverBuilder(), "MueLu");
+    }
     Teko::addTekoToStratimikosBuilder( *problem_->getLinearSolverBuilder() );
 #endif
 
@@ -895,7 +903,6 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithicFSI( )
 template <class SC,class LO,class GO,class NO>
 void Preconditioner<SC,LO,GO,NO>::buildPreconditionerTeko( )
 {
-
     Teuchos::RCP<Teuchos::FancyOStream> out = Teuchos::VerboseObjectBase::getDefaultOStream();
 
     ParameterListPtr_Type parameterList;
@@ -914,8 +921,12 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerTeko( )
     else if(!timeProblem_.is_null())
         solverBuilder = timeProblem_->getUnderlyingProblem()->getLinearSolverBuilder();
 
-    // Register MueLu with Stratimikos
-    Stratimikos::enableMueLu<SC, LO, GO, NO>(*solverBuilder, "MueLu");
+    // Register MueLu with Stratimikos only if not already present.
+    if (!solverBuilder->getValidParameters()
+             ->sublist("Preconditioner Types")
+             .isSublist("MueLu")) {
+        Stratimikos::enableMueLu<SC, LO, GO, NO>(*solverBuilder, "MueLu");
+    }
     
     ParameterListPtr_Type tekoPList= sublist( parameterList, "Teko Parameters" );
 
@@ -1002,6 +1013,13 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerTeko( )
                 Teko::LinearOp thyraPCD = pcdOperator_;
                 callbackPCD_ = Teuchos::rcp(new Teko::StaticRequestCallback<Teko::LinearOp> ( "PCD Operator", thyraPCD ) );
                 rh_->addRequestCallback( callbackPCD_ );
+
+            }
+            else if(!tekoPList->sublist("Preconditioner Types").sublist("Teko").get("Inverse Type", "SIMPLE").compare("Triangular")){
+                // Pressure Mass appriximation for the schur complement
+                Teko::LinearOp thyraPressureMass = pressureMass_;
+                Teuchos::RCP< Teko::StaticRequestCallback<Teko::LinearOp> > callbackPressureMass = Teuchos::rcp(new Teko::StaticRequestCallback<Teko::LinearOp> ( "External Schur Complement", thyraPressureMass ) );
+                rh_->addRequestCallback( callbackPressureMass );
 
             }
             Teuchos::RCP< Teko::StratimikosFactory > tekoFactory = Teuchos::rcp_dynamic_cast<Teko::StratimikosFactory>(precFactory_);

@@ -6,7 +6,7 @@
             
             <ParameterList name="Teko">
                 <!--<Parameter name="Strided Blocking" type="string" value="2 1"/>-->
-                <Parameter name="Inverse Type" type="string" value="SIMPLE"/>
+                <Parameter name="Inverse Type" type="string" value="Triangular"/>
                 
                 <ParameterList name="Inverse Factory Library">
                     
@@ -31,12 +31,41 @@
                         <Parameter name="Assume Stable Discretization" type="bool" value="true"/>
                     </ParameterList>
 
+                    <ParameterList name="Triangular">
+						<Parameter name="Type" type="string" value="Block LU2x2"/>
+						<Parameter name="Strategy Name" type="string" value="Teko_LU2x2TriangularStrategy"/>
+                        <Parameter name="Use LDU" type="bool" value="false"/>
+						<ParameterList name="Strategy Settings">
+							<Parameter name="Inverse Type" type="string" value="MueLu-Pressure"/>
+							<Parameter name="Inverse A00 Type" type="string" value="MueLu-Velocity"/>
+							<Parameter name="Inverse Schur Type" type="string" value="MueLu-Pressure"/>
+                            <Parameter name="Use External Schur" type="bool" value="true"/>
+                            <Parameter name="External Schur Is Already Inverse" type="bool" value="false"/>
+						</ParameterList>
+					</ParameterList>
+
                     <ParameterList name="Ifpack2-list">
                         <Parameter name="Type" type="string" value="Ifpack2"/>
                         <Parameter name="Prec Type" type="string" value="SCHWARZ"/>
                         <ParameterList name="Ifpack2 Settings">
                             <Parameter name="Amesos2 solver name" type="string" value="KLU2"/>
                         </ParameterList>
+                    </ParameterList>
+
+                    <ParameterList name="MueLu-Velocity">
+                        <Parameter name="Type" type="string" value="MueLu"/>
+                        <Parameter name="verbosity" type="string" value="medium"/>
+                        <Parameter name="number of equations" type="int" value="2"/> <!-- 3 for 3D -->
+                        <Parameter name="multigrid algorithm" type="string" value="sa"/>
+                        <Parameter name="smoother: type" type="string" value="CHEBYSHEV"/>
+                    </ParameterList>
+
+                    <ParameterList name="MueLu-Pressure">
+                        <Parameter name="Type" type="string" value="MueLu"/>
+                        <Parameter name="verbosity" type="string" value="medium"/>
+                        <Parameter name="number of equations" type="int" value="1"/>
+                        <Parameter name="multigrid algorithm" type="string" value="sa"/>
+                        <Parameter name="smoother: type" type="string" value="CHEBYSHEV"/>
                     </ParameterList>
 
                     <ParameterList name="FROSch-Pressure">
