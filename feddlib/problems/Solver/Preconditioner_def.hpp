@@ -930,6 +930,61 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerTeko( )
     
     ParameterListPtr_Type tekoPList= sublist( parameterList, "Teko Parameters" );
 
+    ParameterListPtr_Type inverseFactoryLibrary = sublist( sublist( sublist( tekoPList, "Preconditioner Types" ) , "Teko" ) , "Inverse Factory Library" );
+    if (inverseFactoryLibrary->isSublist("MueLu-Velocity")) {
+        *out << "[Preconditioner::buildPreconditionerTeko] Found 'MueLu-Velocity' in Teko Inverse Factory Library. Configuring velocity nullspace data." << std::endl;
+        ParameterListPtr_Type mueLuVelocitySubList = sublist(inverseFactoryLibrary, "MueLu-Velocity");
+
+        if (!mueLuVelocitySubList->isParameter("number of equations")) {
+            int dim = 1;
+            if (!problem_.is_null())
+                dim = problem_->getDomain(0)->getDimension();
+            else if (!timeProblem_.is_null())
+                dim = timeProblem_->getDomain(0)->getDimension();
+            mueLuVelocitySubList->set("number of equations", dim);
+            *out << "[Preconditioner::buildPreconditionerTeko] Set MueLu-Velocity parameter 'number of equations' = " << dim << std::endl;
+        }
+        else {
+            *out << "[Preconditioner::buildPreconditionerTeko] Keeping user-provided 'number of equations' in MueLu-Velocity." << std::endl;
+        }
+
+        if (!mueLuVelocitySubList->isParameter("nullspace: calculate rotations")) {
+            mueLuVelocitySubList->set("nullspace: calculate rotations", true);
+            *out << "[Preconditioner::buildPreconditionerTeko] Set 'nullspace: calculate rotations' = true in MueLu-Velocity." << std::endl;
+        }
+        else {
+            *out << "[Preconditioner::buildPreconditionerTeko] Keeping user-provided 'nullspace: calculate rotations' in MueLu-Velocity." << std::endl;
+        }
+
+        if (!Teuchos::ScalarTraits<SC>::isComplex && !mueLuVelocitySubList->isParameter("Coordinates")) {
+            Teuchos::RCP< Tpetra::MultiVector<SC,LO,GO,NO> > nodeListTpetra;
+            if (!problem_.is_null() && problem_->getDomain(0)->getFEType() != "P0") {
+                nodeListTpetra = problem_->getDomain(0)->getNodeListMV()->getTpetraMultiVectorNonConst();
+            }
+            else if (!timeProblem_.is_null() && timeProblem_->getDomain(0)->getFEType() != "P0") {
+                nodeListTpetra = timeProblem_->getDomain(0)->getNodeListMV()->getTpetraMultiVectorNonConst();
+            }
+
+            if (!nodeListTpetra.is_null()) {
+                Teuchos::RCP<Xpetra::MultiVector<SC,LO,GO,NO> > nodeListXpetra = Xpetra::toXpetra(nodeListTpetra);
+                mueLuVelocitySubList->set("Coordinates", nodeListXpetra);
+                *out << "[Preconditioner::buildPreconditionerTeko] Injected velocity 'Coordinates' into MueLu-Velocity." << std::endl;
+            }
+            else {
+                *out << "[Preconditioner::buildPreconditionerTeko] Velocity coordinates not available (or FE type P0). Did not set 'Coordinates'." << std::endl;
+            }
+        }
+        else if (Teuchos::ScalarTraits<SC>::isComplex) {
+            *out << "[Preconditioner::buildPreconditionerTeko] Complex scalar type detected. Skipping automatic 'Coordinates' injection." << std::endl;
+        }
+        else {
+            *out << "[Preconditioner::buildPreconditionerTeko] Keeping user-provided 'Coordinates' in MueLu-Velocity." << std::endl;
+        }
+    }
+    else {
+        *out << "[Preconditioner::buildPreconditionerTeko] No 'MueLu-Velocity' sublist found. Skipping velocity nullspace auto-configuration." << std::endl;
+    }
+
     if (precFactory_.is_null()) {
         ParameterListPtr_Type tmpSubList = sublist( sublist( sublist( sublist( parameterList, "Teko Parameters" ) , "Preconditioner Types" ) , "Teko" ) , "Inverse Factory Library" );
 
