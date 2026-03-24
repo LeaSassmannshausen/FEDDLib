@@ -10,6 +10,8 @@
 #define Preconditioner_DEF_hpp
 #include "Preconditioner_decl.hpp"
 #include <Thyra_DefaultZeroLinearOp_decl.hpp>
+#include <Xpetra_CrsMatrixWrap.hpp>
+#include <Xpetra_TpetraCrsMatrix.hpp>
 #ifdef FEDD_HAVE_IFPACK2
 #include <Thyra_Ifpack2PreconditionerFactory_def.hpp>
 #endif
@@ -1072,7 +1074,15 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerTeko( )
             }
             else if(!tekoPList->sublist("Preconditioner Types").sublist("Teko").get("Inverse Type", "SIMPLE").compare("Triangular")){
                 // Pressure Mass appriximation for the schur complement
-                Teko::LinearOp thyraPressureMass = pressureMass_;
+                Teko::LinearOp thyraPressureMass;
+                if(parameterList->sublist("General").get("Augmented Lagrange", false)){
+                    std::string typeDiag = parameterList->sublist("General").get("Diagonal Approximation","Diagonal");
+                    precSchur_ = pressureMassMatrixPtr_->buildDiagonalInverse(typeDiag)->getThyraLinOpNonConst();
+                    thyraPressureMass = precSchur_;
+                }
+                else
+                    thyraPressureMass = pressureMass_;
+                    
                 Teuchos::RCP< Teko::StaticRequestCallback<Teko::LinearOp> > callbackPressureMass = Teuchos::rcp(new Teko::StaticRequestCallback<Teko::LinearOp> ( "External Schur Complement", thyraPressureMass ) );
                 rh_->addRequestCallback( callbackPressureMass );
 
@@ -1622,6 +1632,16 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
     //Addig General information to both lists
     plVelocity->sublist("General").setParameters(parameterList->sublist("General"));
     plSchur->sublist("General").setParameters(parameterList->sublist("General"));
+
+    // Forward exporter settings to the velocity sub-problem so that
+    // probVelocity_->setupPreconditioner("Monolithic") can trigger
+    // exportCoarseBasis() for the velocity block.
+    plVelocity->sublist("Exporter").set("Export coarse functions",
+                                          parameterList->sublist("Exporter").get("Export coarse functions",false));
+    plVelocity->sublist("Exporter").set("Name coarse functions block1",
+                                          parameterList->sublist("Exporter").get("Name coarse functions block1",std::string("phiU")));
+    plVelocity->sublist("Exporter").set("Exclude coarse functions block1",
+                                          parameterList->sublist("Exporter").get("Exclude coarse functions block1",false));
     
     Teuchos::RCP< PrecBlock2x2<SC,LO,GO,NO> > blockPrec2x2
         = Teuchos::rcp(new PrecBlock2x2<SC,LO,GO,NO> ( comm ) );
@@ -2160,11 +2180,16 @@ void Preconditioner<SC,LO,GO,NO>::exportCoarseBasis( ){
 
     TEUCHOS_TEST_FOR_EXCEPTION( !pLCoarse->isParameter("RCP(Phi)"), std::runtime_error, "No parameter to extract Phi pointer.");
     
-    Teuchos::RCP<Tpetra::CrsMatrix<SC,LO,GO,NO> > phiTpetra;
+    Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > phiXpetra;
     
-    TEUCHOS_TEST_FOR_EXCEPTION( !pLCoarse->isType<decltype(phiTpetra)>("RCP(Phi)"), std::runtime_error, "Wrong type of pointer to extract Phi.");
+    TEUCHOS_TEST_FOR_EXCEPTION( !pLCoarse->isType<decltype(phiXpetra)>("RCP(Phi)"), std::runtime_error, "Wrong type of pointer to extract Phi.");
     
-    phiTpetra = pLCoarse->get<decltype(phiTpetra)>("RCP(Phi)");
+    phiXpetra = pLCoarse->get<decltype(phiXpetra)>("RCP(Phi)");
+
+    auto phiWrap = Teuchos::rcp_dynamic_cast<Xpetra::CrsMatrixWrap<SC,LO,GO,NO> >(phiXpetra, true);
+    auto phiXpetraCrs = phiWrap->getCrsMatrix();
+    auto phiXpetraTpetra = Teuchos::rcp_dynamic_cast<Xpetra::TpetraCrsMatrix<SC,LO,GO,NO> >(phiXpetraCrs, true);
+    Teuchos::RCP<Tpetra::CrsMatrix<SC,LO,GO,NO> > phiTpetra = phiXpetraTpetra->getTpetra_CrsMatrixNonConst();
     
     MatrixPtr_Type phiMatrix = Teuchos::rcp( new Matrix_Type( phiTpetra ) );
     int numberOfBlocks;
@@ -2279,11 +2304,16 @@ void Preconditioner<SC,LO,GO,NO>::exportCoarseBasisFSI( ){
 
     TEUCHOS_TEST_FOR_EXCEPTION( !pLCoarse->isParameter("Phi Pointer"), std::runtime_error, "No parameter to extract Phi pointer.");
     
-    Teuchos::RCP<Tpetra::CrsMatrix<SC,LO,GO,NO> > phiTpetra;
+    Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > phiXpetra;
     
-    TEUCHOS_TEST_FOR_EXCEPTION( !pLCoarse->isType<decltype(phiTpetra)>("Phi Pointer"), std::runtime_error, "Wrong type of pointer to extract Phi.");
+    TEUCHOS_TEST_FOR_EXCEPTION( !pLCoarse->isType<decltype(phiXpetra)>("Phi Pointer"), std::runtime_error, "Wrong type of pointer to extract Phi.");
     
-    phiTpetra = pLCoarse->get<decltype(phiTpetra)>("Phi Pointer");
+    phiXpetra = pLCoarse->get<decltype(phiXpetra)>("Phi Pointer");
+
+    auto phiWrap = Teuchos::rcp_dynamic_cast<Xpetra::CrsMatrixWrap<SC,LO,GO,NO> >(phiXpetra, true);
+    auto phiXpetraCrs = phiWrap->getCrsMatrix();
+    auto phiXpetraTpetra = Teuchos::rcp_dynamic_cast<Xpetra::TpetraCrsMatrix<SC,LO,GO,NO> >(phiXpetraCrs, true);
+    Teuchos::RCP<Tpetra::CrsMatrix<SC,LO,GO,NO> > phiTpetra = phiXpetraTpetra->getTpetra_CrsMatrixNonConst();
     
     MatrixPtr_Type phiMatrix = Teuchos::rcp( new Matrix_Type( phiTpetra ) );
     int numberOfBlocks;

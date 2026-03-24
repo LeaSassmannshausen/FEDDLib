@@ -6,7 +6,7 @@
             
             <ParameterList name="Teko">
                 <!--<Parameter name="Strided Blocking" type="string" value="2 1"/>-->
-                <Parameter name="Inverse Type" type="string" value="Triangular"/>
+                <Parameter name="Inverse Type" type="string" value="LSC"/>
                 
                 <ParameterList name="Inverse Factory Library">
                     
@@ -22,12 +22,12 @@
                     <ParameterList name="LSC">
                         <Parameter name="Type" type="string" value="NS LSC"/>
                         <Parameter name="Inverse Type" type="string" value=""/>
-                        <Parameter name="Inverse Velocity Type" type="string" value="FROSch-Velocity"/>
-                        <Parameter name="Inverse Pressure Type" type="string" value="FROSch-Pressure"/>
+                        <Parameter name="Inverse Velocity Type" type="string" value="MueLu-Velocity"/>
+                        <Parameter name="Inverse Pressure Type" type="string" value="Amesos2"/>
                         <Parameter name="Ignore Boundary Rows" type="bool" value="false"/>
                         <Parameter name="Use LDU" type="bool" value="false"/>
                         <Parameter name="Scaling Type" type="string" value="Diagonal"/>
-                        <Parameter name="Use Mass Scaling" type="bool" value="false"/>
+                        <Parameter name="Use Mass Scaling" type="bool" value="true"/>
                         <Parameter name="Assume Stable Discretization" type="bool" value="true"/>
                     </ParameterList>
 
@@ -43,6 +43,22 @@
                             <Parameter name="External Schur Is Already Inverse" type="bool" value="false"/>
 						</ParameterList>
 					</ParameterList>
+                    <ParameterList name="PCD">
+						<Parameter name="Type" type="string" value="Block LU2x2"/>
+						<Parameter name="Strategy Name" type="string" value="NS PCD Strategy"/>
+						<Parameter name="Use LDU" type="bool" value="false"/>
+						<ParameterList name="Strategy Settings">
+						  <Parameter name="PCD Operator" type="bool" value="true"/>
+						  <Parameter name="Pressure Laplace Operator" type="bool" value="true"/>
+						  <Parameter name="Pressure Mass Operator" type="bool" value="true"/>
+						  <Parameter name="Inverse Type" type="string" value="MueLu-Pressure"/>
+						  <Parameter name="Inverse F Type" type="string" value="MueLu-Velocity"/>
+						  <Parameter name="Inverse Laplace Type" type="string" value="MueLu-Pressure"/>
+						  <Parameter name="Inverse Mass Type" type="string" value="MueLu-Pressure"/>
+						  <Parameter name="Flip Schur Complement Ordering" type="bool" value="true"/> <!-- true works better -->
+						</ParameterList>
+                    </ParameterList>
+
 
                     <ParameterList name="Ifpack2-list">
                         <Parameter name="Type" type="string" value="Ifpack2"/>
@@ -53,30 +69,75 @@
                     </ParameterList>
 
                     <ParameterList name="MueLu-Velocity">
+
+                        <Parameter name="problem: symmetric" type="bool" value="false"/>
+                        <Parameter name="nullspace: calculate rotations" type="bool" value="false"/>
                         <Parameter name="Type" type="string" value="MueLu"/>
                         <Parameter name="verbosity" type="string" value="medium"/>
                         <Parameter name="number of equations" type="int" value="2"/> <!-- 3 for 3D -->
                         <Parameter name="multigrid algorithm" type="string" value="sa"/>
-                        <Parameter name="smoother: type" type="string" value="CHEBYSHEV"/>
+                        <Parameter name="max levels" type="int" value="10"/>
+                        <!-- Pre and post smoothing -->
+                        <!-- RILUK, ILUT, SCHWARZ-->
+                        <Parameter name="smoother: pre type" type="string" value="RELAXATION"/>
+                        <ParameterList name="smoother: pre params">
+                        <!-- Jacobi, Gauss-Seidel, Symmetric Gauss-Seidel, MT Gauss-Seidel, 
+                        Richardson, Two-stage Gauss-Seidel, Two-stage Symmetric Gauss-Seidel -->
+                            <Parameter name="relaxation: type" type="string" value="Jacobi"/>
+                            <Parameter name="relaxation: sweeps" type="int" value="2"/>
+                            <Parameter name="relaxation: damping factor" type="double" value="0.9"/>
+                        </ParameterList>
+                        <!-- RILUK, ILUT, SCHWARZ-->
+                        <Parameter name="smoother: post type" type="string" value="RELAXATION"/>
+                        <ParameterList name="smoother: post params">
+                        <!-- Jacobi, Gauss-Seidel, Symmetric Gauss-Seidel, MT Gauss-Seidel, 
+                        Richardson, Two-stage Gauss-Seidel, Two-stage Symmetric Gauss-Seidel -->
+                            <Parameter name="relaxation: type" type="string" value="Jacobi"/>
+                            <Parameter name="relaxation: sweeps" type="int" value="2"/>
+                            <Parameter name="relaxation: damping factor" type="double" value="0.9"/>
+                        </ParameterList>
+                	    <Parameter name="coarse: max size" type="int" value="50"/>
+                        <Parameter name="coarse: type" type="string" value="PARDISOMKL"/> <!-- KLU2, PARDIOMKL, MUMPS -->
+
+                        <!-- possible aggregation types: uncoupled, coupled, brick, matlab, notay, classical -->
+                	    <Parameter name="aggregation: type" type="string" value="uncoupled"/> 
+                        <Parameter name="aggregation: min agg size" type="int" value="10"/>
+						<Parameter name="aggregation: max agg size" type="int" value="20"/>
+
+                        <Parameter name="sa: damping factor" type="double" value="1.33"/>
+                        <Parameter name="sa: use filtered matrix" type="bool" value="true"/>
+                        <Parameter name="sa: calculate eigenvalue estimate" type="bool" value="false"/>
+                        <Parameter name="sa: eigenvalue estimate num iterations" type="int" value="10"/>
+                        <Parameter name="sa: use rowsumabs diagonal scaling" type="bool" value="false"/>
+                        <Parameter name="sa: enforce constraints" type="bool" value="false"/>
+                        <Parameter name="sa: max eigenvalue" type="double" value="-1"/>
+                        <Parameter name="sa: rowsumabs diagonal replacement tolerance" type="double" value="-1"/>
+                        <Parameter name="sa: rowsumabs use automatic diagonal tolerance" type="bool" value="false"/>
+                        <Parameter name="sa: rowsumabs diagonal replacement value" type="double" value="0"/>
+                        <Parameter name="sa: rowsumabs replace single entry row with zero" type="bool" value="true"/>
+
+                        <Parameter name="coarse grid correction scaling factor" type="double" value="1.0"/>
+                        <Parameter name="smoother: overlap" type="int" value="0.0"/>
+                        <Parameter name="smoother: pre overlap" type="int" value="0.0"/>
+                        <Parameter name="smoother: post overlap" type="int" value="0.0"/>
+
                     </ParameterList>
 
                     <ParameterList name="MueLu-Pressure">
                         <Parameter name="Type" type="string" value="MueLu"/>
-                        <Parameter name="verbosity" type="string" value="medium"/>
+                        <Parameter name="verbosity" type="string" value="none"/>
                         <Parameter name="number of equations" type="int" value="1"/>
                         <Parameter name="multigrid algorithm" type="string" value="sa"/>
                         <Parameter name="smoother: type" type="string" value="CHEBYSHEV"/>
                     </ParameterList>
-
+                    
                     <ParameterList name="FROSch-Pressure">
                         <Parameter name="Type" type="string" value="FROSch"/>
                         <Parameter name="FROSch Preconditioner Type" type="string" value="TwoLevelBlockPreconditioner"/>
                         <Parameter name="Recycling" type="bool" value="true"/>
-                        <!--<Parameter name="Recycling" type="bool" value="true"/>-->
                         <Parameter name="DofsPerNode" type="int" value="1"/>
                         <Parameter name="DofOrdering" type="string" value="NodeWise"/>
                         <Parameter name="Overlap" type="int" value="1"/>
-                        <Parameter name="TwoLevel" type="bool" value="false"/>
                         <Parameter name="Level Combination"  type="string" value="Additive"/>
                         <Parameter name="Pre Apply" type="bool" value="true"/>
                         <Parameter name="OverlappingOperator Type" type="string" value="AlgebraicOverlappingOperator"/>
@@ -84,27 +145,26 @@
                         
                         <ParameterList name="AlgebraicOverlappingOperator">
                         
-                            <Parameter name="Reuse: Symbolic Factorization" type="bool"     value="false"/>
+                            <Parameter name="Reuse: Symbolic Factorization" type="bool"     value="true"/>
                             <Parameter name="Combine Values in Overlap" type="string" value="Averaging"/><!--Restricted,Averaging,Full-->
                             <Parameter name="Overlapping Operator Combination" type="string" value="Averaging"/><!--Restricted,Averaging,Full-->
                             <Parameter name="Level ID" type="int"      value="1"/>
                             
-                            <ParameterList name="Solver">
-                            
+                            <ParameterList name="Solver">                           
                                 <Parameter name="SolverType" type="string" value="Amesos2"/>
                                 <Parameter name="Solver" type="string" value="klu2"/>
                             </ParameterList>
                         </ParameterList>
                         <ParameterList name="RGDSWCoarseOperator">
-                            <Parameter name="Reuse: Coarse Basis" type="bool" value="false"/>
+                            <Parameter name="Reuse: Coarse Basis" type="bool" value="true"/>
                             <Parameter name="Reuse: Coarse Matrix" type="bool" value="false"/>
                             
                             <Parameter name="Reuse: Extension Symbolic Factorization" type="bool" value="true"/>
-                            <Parameter name="Reuse: Coarse Matrix Symbolic Factorization" type="bool" value="false"/>
+                            <Parameter name="Reuse: Coarse Matrix Symbolic Factorization" type="bool" value="true"/>
                             
                             <Parameter name="Use Triple MatrixMultiply" type="bool"     value="false"/>
                             <Parameter name="Test Unconnected Interface" type="bool"     value="false"/>
-                            
+                            <Parameter name="Phi: Dropping Threshold" type="double" value="1.0e-3"/>	
                             <ParameterList name="Blocks">
                             
                                 <ParameterList name="1">
@@ -122,26 +182,14 @@
                                 <Parameter name="Solver" type="string"   value="klu2"/>
                             </ParameterList>
                             
-                            <ParameterList name="Distribution">
-                                
+                            <ParameterList name="Distribution">                                
                                 <Parameter name="Type" type="string"   value="linear"/>
                                 <Parameter name="GatheringSteps" type="int" value="1"/>
                                 <Parameter name="NumProcs" type="int"      value="2"/>
                                 <Parameter name="Factor" type="double"   value="1.0"/>
-                                <!-- NumProcs = Factor * NumProcs -->
-                                <ParameterList name="Zoltan2 Parameter">
-                                    <Parameter name="algorithm" type="string"   value="parmetis"/>
-                                    <Parameter name="debug_level" type="string"   value="basic_status"/>
-                                    <Parameter name="debug_procs" type="string"   value="0"/>
-                                    <Parameter name="error_check_level" type="string"   value="basic_assertions"/>
-                                    <Parameter name="imbalance_tolerance" type="double"   value="1.1"/>
-                                    <Parameter name="timer_type" type="string"   value="macro_timers"/>
-                                    <!-- sets num_global_parts = NumProc()/num_global_parts_fraction -->
-                                </ParameterList>
                             </ParameterList>
                             
                             <ParameterList name="CoarseSolver">
-
                                 <Parameter name="SolverType" type="string"   value="Amesos2"/>
                                 <Parameter name="Solver" type="string"   value="klu2"/>
                             </ParameterList>
@@ -153,17 +201,14 @@
                         <Parameter name="Type" type="string" value="FROSch"/>
                         <Parameter name="FROSch Preconditioner Type" type="string" value="TwoLevelBlockPreconditioner"/>
                         <Parameter name="Recycling" type="bool" value="true"/>
-                        <!--<Parameter name="Recycling" type="bool" value="true"/>-->
                         <Parameter name="DofsPerNode" type="int" value="2"/>
                         <Parameter name="DofOrdering" type="string" value="NodeWise"/>
                         <Parameter name="Overlap" type="int" value="1"/>
-                        <Parameter name="TwoLevel" type="bool" value="true"/>
                         <Parameter name="Level Combination"  type="string" value="Additive"/>
-                        <Parameter name="Pre Apply" type="bool"     value="true"/>
                         <Parameter name="OverlappingOperator Type" type="string" value="AlgebraicOverlappingOperator"/>
                         <Parameter name="CoarseOperator Type" type="string"   value="RGDSWCoarseOperator"/>
                         <ParameterList name="AlgebraicOverlappingOperator">
-                            <Parameter name="Reuse: Symbolic Factorization"                  type="bool"     value="false"/>
+                            <Parameter name="Reuse: Symbolic Factorization"                  type="bool"     value="true"/>
                             <Parameter name="Combine Values in Overlap" type="string" value="Averaging"/><!--Restricted,Averaging,Full-->
                             <Parameter name="Overlapping Operator Combination" type="string" value="Averaging"/><!--Restricted,Averaging,Full-->
                             <Parameter name="Level ID"                                      type="int"      value="1"/>
@@ -174,11 +219,11 @@
                         </ParameterList>
                         <ParameterList name="RGDSWCoarseOperator">
                             
-                            <Parameter name="Reuse: Coarse Basis" type="bool" value="false"/>
+                            <Parameter name="Reuse: Coarse Basis" type="bool" value="true"/>
                             <Parameter name="Reuse: Coarse Matrix" type="bool" value="false"/>
                             
                             <Parameter name="Reuse: Extension Symbolic Factorization" type="bool" value="true"/>
-                            <Parameter name="Reuse: Coarse Matrix Symbolic Factorization" type="bool" value="false"/>
+                            <Parameter name="Reuse: Coarse Matrix Symbolic Factorization" type="bool" value="true"/>
 
                             <Parameter name="Use Triple MatrixMultiply"                     type="bool"     value="false"/>
                             <Parameter name="Test Unconnected Interface"                    type="bool"     value="false"/>
@@ -201,16 +246,6 @@
                                 <Parameter name="GatheringSteps"                            type="int"      value="1"/>
                                 <Parameter name="NumProcs"                                  type="int"      value="2"/>
                                 <Parameter name="Factor"                                    type="double"   value="1.0"/>
-                                <!-- NumProcs = Factor * NumProcs -->
-                                <ParameterList name="Zoltan2 Parameter">
-                                    <Parameter name="algorithm" type="string"   value="parmetis"/>
-                                    <Parameter name="debug_level" type="string"   value="basic_status"/>
-                                    <Parameter name="debug_procs" type="string"   value="0"/>
-                                    <Parameter name="error_check_level" type="string"   value="basic_assertions"/>
-                                    <Parameter name="imbalance_tolerance" type="double"   value="1.1"/>
-                                    <Parameter name="timer_type" type="string"   value="macro_timers"/>
-                                    <!-- sets num_global_parts = NumProc()/num_global_parts_fraction -->
-                                </ParameterList>
                             </ParameterList>
                             
                             <ParameterList name="CoarseSolver">
