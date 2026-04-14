@@ -6,6 +6,7 @@
         <Parameter name="Mesh Type" type="string" value="structured_ldc"/> <!--structured_bfs for specific BFS mesh-->
         <Parameter name="BC Type" type="string" value="LDC"/><!-- parabolic (for parabolic like inflow profile), partialCFD, parabolic_benchmark, Richter3D -->
         <Parameter name="Mesh Delimiter" type="string" value=" "/>
+        <Parameter name="Use Pressure Projection" type="bool" value="true"/>
         <!-- H/h definition -->
         <Parameter name="H/h" type="int" value="4"/> 
         <!-- Kinematic Viscosity -->

@@ -1,0 +1,39 @@
+<ParameterList name="solver">
+    <ParameterList name="ThyraSolver">
+        <Parameter name="Linear Solver Type" type="string" value="Belos"/>
+        <ParameterList name="Linear Solver Types">
+            <ParameterList name="Belos">
+                <Parameter name="Solver Type" type="string" value="Block GMRES"/>
+                <ParameterList name="Solver Types">
+                    <ParameterList name="Block GMRES">
+<!--                    <Parameter name="PreconditionerPosition" type="string" value="right"/>-->
+                        <Parameter name="Convergence Tolerance" type="double" value="1e-6"/>
+                        <Parameter name="Maximum Iterations" type="int" value="1000"/>
+                        <Parameter name="Num Blocks" type="int" value="1000"/>
+                        <Parameter name="Block Size" type="int" value="1"/>
+                        <Parameter name="Output Frequency" type="int" value="1"/>
+                        <!--<Parameter name="Verbosity" type="int" value="1"/>-->
+                        <Parameter name="Show Maximum Residual Norm Only" type="bool" value="1"/>
+                    </ParameterList>
+                </ParameterList>
+                <ParameterList name="VerboseObject">
+                        <Parameter name="Verbosity Level" type="string" value="medium"/>
+                </ParameterList>
+            </ParameterList>
+        </ParameterList>
+    </ParameterList>
+
+    <ParameterList name="NOXSolver">
+        <Parameter name="Nonlinear Solver" type="string" value="Line Search Based"/>
+        <ParameterList name="Direction">
+            <ParameterList name="Newton">
+                <Parameter name="Forcing Term Method" type="string" value="Constant"/> <!-- Constant, Type 1, Type 2-->
+                <Parameter name="Forcing Term Minimum Tolerance" type="double" value="1.e-6"/>
+                <Parameter name="Forcing Term Maximum Tolerance" type="double" value="0.001"/>
+                <ParameterList name="Linear Solver">
+                    <Parameter name="Tolerance" type="double" value="1e-6"/>
+                </ParameterList>
+            </ParameterList>
+        </ParameterList>
+    </ParameterList>
+</ParameterList>

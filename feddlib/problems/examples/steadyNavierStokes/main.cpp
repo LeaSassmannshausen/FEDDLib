@@ -411,7 +411,7 @@ int main(int argc, char *argv[]) {
                     if (dim==2){
                         bcFactory->addBC(zeroDirichlet2D, 1, 0, domainVelocity, "Dirichlet", dim); // wall
                         bcFactory->addBC(ldcFunc2Dreg, 2, 0, domainVelocity, "Dirichlet", dim,parameter_vec); // lid
-                        // bcFactory->addBC(zeroDirichlet2D, 3, 0, domainVelocity, "Dirichlet", dim); // pressure node
+                        bcFactory->addBC(zeroDirichlet2D, 3, 0, domainVelocity, "Dirichlet", dim); // pressure node
 
                     }
                     else if (dim==3){

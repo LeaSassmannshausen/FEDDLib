@@ -1642,6 +1642,13 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
                                           parameterList->sublist("Exporter").get("Name coarse functions block1",std::string("phiU")));
     plVelocity->sublist("Exporter").set("Exclude coarse functions block1",
                                           parameterList->sublist("Exporter").get("Exclude coarse functions block1",false));
+
+    plSchur->sublist("Exporter").set("Export coarse functions",
+                                          parameterList->sublist("Exporter").get("Export coarse functions",false));
+    plSchur->sublist("Exporter").set("Name coarse functions block2",
+                                          parameterList->sublist("Exporter").get("Name coarse functions block2",std::string("phiP")));
+    plSchur->sublist("Exporter").set("Exclude coarse functions block2",
+                                          parameterList->sublist("Exporter").get("Exclude coarse functions block2",false));
     
     Teuchos::RCP< PrecBlock2x2<SC,LO,GO,NO> > blockPrec2x2
         = Teuchos::rcp(new PrecBlock2x2<SC,LO,GO,NO> ( comm ) );

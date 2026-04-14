@@ -3122,14 +3122,14 @@ void MeshStructured<SC,LO,GO,NO>::setStructuredMeshFlags(int flagsOption,std::st
                         if (this->pointsUni_->at(i).at(0) > (coorRec[0]+length - tol) && this->pointsUni_->at(i).at(1) > (coorRec[1] + tol) && this->pointsUni_->at(i).at(1) < (coorRec[1] + height - tol)) {
                             this->bcFlagUni_->at(i) = 3; //outflow
                         }
-                        if (this->pointsUni_->at(i).at(0) < (coorRec[0] +tol)) {
-                            this->bcFlagUni_->at(i) = 2; //inflow
-                        }
                         if (this->pointsUni_->at(i).at(0) > (coorRec[0] - tol) && this->pointsUni_->at(i).at(1) < (coorRec[1] + tol) ) {
                             this->bcFlagUni_->at(i) = 1;
                         }
                         if (this->pointsUni_->at(i).at(0) > (coorRec[0] - tol) && this->pointsUni_->at(i).at(1) > (coorRec[1] + height - tol) ) {
                             this->bcFlagUni_->at(i) = 1;
+                        }
+                        if (this->pointsUni_->at(i).at(0) < (coorRec[0] +tol)) {
+                            this->bcFlagUni_->at(i) = 2; //inflow
                         }
                     }
                     for (int i=0; i<this->pointsRep_->size(); i++) {

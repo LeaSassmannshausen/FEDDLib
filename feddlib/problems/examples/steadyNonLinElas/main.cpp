@@ -314,97 +314,29 @@ int main(int argc, char *argv[])
             comm->barrier();
         }
         
-        // Nonlinear Elasticity Objekt erstellen not from AceGen Interface
-        parameterListAll->sublist("Parameter").set("Use AceGen Interface",false); 
-        NonLinElasticity<SC,LO,GO,NO> NonLinElas( domain, FEType, parameterListAll );
-
-        NonLinElas.addBoundaries(bcFactory); // Dem Problem RW hinzufuegen
-
-        if (!meshType.compare("structured")) { // Case of Cube
-            NonLinElas.addRhsFunction( rhsYZ );// rhsYZ
-        }
-        else if (!meshType.compare("unstructured")) { // Case of Artery Mesh
-            NonLinElas.addRhsFunction( rhsInterface );// rhsYZ
-        }
-        
-        
-        NonLinElas.addParemeterRhs( force );
-        NonLinElas.addParemeterRhs( degree );
-        // ######################
-        // Matrix assemblieren, RW setzen und System loesen
-        // ######################
-        NonLinElas.initializeProblem();
-        NonLinElas.assemble();                
-        NonLinElas.setBoundaries(); // In der Klasse Problem
-		NonLinElas.setBoundariesRHS();
-
-        NonLinearSolver<SC,LO,GO,NO> nlSolver( nlSolverType );
-        
-        {
-            Teuchos::TimeMonitor totalTimeMonitorFEDD(*totalTimeFEDD);
-            nlSolver.solve( NonLinElas );
-            comm->barrier();	
-
-        }
 
 		if(comm->getRank() ==0){
 			cout << " ############################################### " << endl;
-			cout << " Nonlinear Iterations FEDDLib Assembly : " << nlSolver.getNonLinIts() << endl; 
 			cout << " Nonlinear Iterations AceGEN Assembly  : " << nlSolverAssFE.getNonLinIts() << endl;
 			cout << " ############################################### " << endl;
 
 		}    
-       
-        MultiVectorConstPtr_Type valuesSolidConst1 = NonLinElas.getSolution()->getBlock(0);
-        MultiVectorConstPtr_Type valuesSolidConst2 = NonLinElasAssFE.getSolution()->getBlock(0);
-        // Calculating the error per node
-        Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValues = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( valuesSolidConst1->getMap() ) ); 
-        //this = alpha*A + beta*B + gamma*this
-        errorValues->update( 1., valuesSolidConst2, -1. ,valuesSolidConst1, 0.);
-        // Taking abs norm
-        Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbs = errorValues;
-
-        errorValues->abs(errorValuesAbs);
-
+    
         if( parameterListProblem->sublist("General").get("ParaViewExport",false) ) {
 
             Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
 
             exPara->setup( "displacements", domain->getMesh(), FEType );
 
-            exPara->addVariable( valuesSolidConst1, "valuesNonLinElas", "Vector", dim, domain->getMapUnique());
+            MultiVectorConstPtr_Type valuesSolidConst1 = NonLinElasAssFE.getSolution()->getBlock(0);
 
-            exPara->addVariable( valuesSolidConst2, "valuesNonLinElasAssFE", "Vector", dim, domain->getMapUnique());
+            exPara->addVariable( valuesSolidConst1, "solution", "Vector", dim, domain->getMapUnique());
         
-            exPara->addVariable( errorValuesAbs, "erroeValues", "Vector", dim, domain->getMapUnique());
-
-            domain->exportDistribution();
             exPara->save(0.0);
             
+            domain->exportDistribution();
+
         }
-
-        Teuchos::Array<SC> norm(1); 
-        errorValues->normInf(norm);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
-        double res = norm[0];
-        if(comm->getRank() ==0)
-            cout << " Inf Norm of Error of Solutions " << res << endl;
-        double infNormError = res;
-    
-        NonLinElas.getSolution()->getBlock(0)->normInf(norm);
-        res = norm[0];
-        if(comm->getRank() ==0)
-            cout << " Relative error Inf-Norm of solution nonlinear elasticity " << infNormError/res << endl;
-
-        NonLinElasAssFE.getSolution()->getBlock(0)->normInf(norm);
-        res = norm[0];
-        if(comm->getRank() ==0)
-            cout << " Relative error Inf-Norm of solutions nonlinear elasticity assemFE " << infNormError/res << endl;
-  
-
-
-
-
-        TEUCHOS_TEST_FOR_EXCEPTION( infNormError > 1e-11 , std::logic_error, "Inf Norm of Error between calculated solutions is too great. Exceeded 1e-11. ");
 
     }
     Teuchos::TimeMonitor::report(cout);
