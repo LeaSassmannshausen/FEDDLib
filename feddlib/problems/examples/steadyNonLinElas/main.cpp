@@ -10,6 +10,7 @@
 #include "feddlib/problems/specific/LinElas.hpp"
 #include "feddlib/problems/specific/NonLinElasticity.hpp"
 #include "feddlib/problems/Solver/NonLinearSolver.hpp"
+#include "feddlib/problems/Solver/DAESolverInTime.hpp"
 
 #include <Teuchos_StackedTimer.hpp>
 
@@ -97,29 +98,47 @@ void rhsX(double* x, double* res, double* parameters){
 
 void rhsYZ(double* x, double* res, double* parameters){
     // parameters[0] is the time, not needed here
-    res[0] =0.;
-    res[1] =0.;
-    res[2] =0.;   
-    double force = parameters[1];
 
-    if(parameters[3] == 5 || parameters[3] == 4){
-        res[0] = force;
+    double force = parameters[1];
+    double TRamp = parameters[2];
+    double loadStepSize = parameters[3];
+
+  	res[0] =0.;
+    res[1] =0.;
+    res[2] =0.;
+
+    if(parameters[0]+1.e-12 < TRamp)
+        force = (parameters[0]+loadStepSize) * parameters[1] / TRamp ;
+    else
+        force = parameters[1];
+
+    if(parameters[5] == 4 || parameters[5] == 5){
+      	res[0] = force;
         res[1] = force;
         res[2] = force;
     }
+    
     return;
 }
 
 void rhsInterface(double* x, double* res, double* parameters){
     // parameters[0] is the time, not needed here
     double force = parameters[1];
-    
-    res[0] =0.;
+    double TRamp = parameters[2];
+    double loadStepSize = parameters[3];
+
+  	res[0] =0.;
     res[1] =0.;
     res[2] =0.;
 
+    if(parameters[0]+1.e-12 < TRamp)
+        force = (parameters[0]+loadStepSize) * parameters[1] / TRamp ;
+    else
+        force = parameters[1];
 
-    if(parameters[3] == 6){
+
+    if(parameters[5] == 6){
+
       	res[0] = force;
         res[1] = force;
         res[2] = force;
@@ -199,6 +218,7 @@ int main(int argc, char *argv[])
         ParameterListPtr_Type parameterListAll(new Teuchos::ParameterList(*parameterListProblem)) ;
         parameterListAll->setParameters(*parameterListPrec);
         parameterListAll->setParameters(*parameterListSolver);
+        sublist(parameterListAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
 
         int 		dim				= parameterListProblem->sublist("Parameter").get("Dimension",3);
         string		meshType    	= parameterListProblem->sublist("Parameter").get("Mesh Type","structured");
@@ -285,6 +305,9 @@ int main(int argc, char *argv[])
         NonLinElasAssFE.addBoundaries(bcFactory); // Dem Problem RW hinzufuegen
     
         double force = parameterListAll->sublist("Parameter").get("Volume force",0.);
+        double finalTimeRamp = parameterListAll->sublist("Timestepping Parameter").get("Final time force",0.1);
+        double dt = parameterListAll->sublist("Timestepping Parameter").get("dt",0.1);
+
         double degree = 0;
 
         if (!meshType.compare("structured")) { // Case of Cube
@@ -295,6 +318,8 @@ int main(int argc, char *argv[])
         }
 
         NonLinElasAssFE.addParemeterRhs( force );
+        NonLinElasAssFE.addParemeterRhs( finalTimeRamp );
+        NonLinElasAssFE.addParemeterRhs( dt );
         NonLinElasAssFE.addParemeterRhs( degree );
         
         // ######################
@@ -302,26 +327,47 @@ int main(int argc, char *argv[])
         // ######################
         NonLinElasAssFE.initializeProblem();
         NonLinElasAssFE.assemble();                
-        NonLinElasAssFE.setBoundaries(); // In der Klasse Problem
-        NonLinElasAssFE.setBoundariesRHS();
+        // NonLinElasAssFE.setBoundaries(); // In der Klasse Problem
+        // NonLinElasAssFE.setBoundariesRHS();
 
-		std::string nlSolverType = parameterListProblem->sublist("General").get("Linearization","FixedPoint");
-        NonLinearSolver<SC,LO,GO,NO> nlSolverAssFE( nlSolverType );
+		// std::string nlSolverType = parameterListProblem->sublist("General").get("Linearization","FixedPoint");
+        // NonLinearSolver<SC,LO,GO,NO> nlSolverAssFE( nlSolverType );
         
-        {
-            Teuchos::TimeMonitor totalTimeMonitorAssFE(*totalTimeAssFE);
-            nlSolverAssFE.solve( NonLinElasAssFE );
-            comm->barrier();
-        }
-        
+        // {
+        //     Teuchos::TimeMonitor totalTimeMonitorAssFE(*totalTimeAssFE);
+        //     nlSolverAssFE.solve( NonLinElasAssFE );
+        //     comm->barrier();
+        // }
+        // ######################
+        // Zeitintegration
+        // ######################
+        DAESolverInTime<SC,LO,GO,NO> daeTimeSolver(parameterListAll, comm);
 
-		if(comm->getRank() ==0){
-			cout << " ############################################### " << endl;
-			cout << " Nonlinear Iterations AceGEN Assembly  : " << nlSolverAssFE.getNonLinIts() << endl;
-			cout << " ############################################### " << endl;
+        // Only one block for structural problem
+        SmallMatrix<int> defTS(1);
+        defTS[0][0] = 1;
 
-		}    
-    
+        // Uebergebe auf welchen Bloecken die Zeitintegration durchgefuehrt werden soll
+        // und Uebergabe der parameterList, wo die Parameter fuer die Zeitintegration drin stehen
+        daeTimeSolver.defineTimeStepping(defTS);
+
+        // Uebergebe das (nicht) lineare Problem
+        daeTimeSolver.setProblem(NonLinElasAssFE);
+
+        // Setup fuer die Zeitintegration, wie z.B. Aufstellen der Massematrizen auf den Zeilen, welche in
+        // defTS definiert worden sind.
+        daeTimeSolver.setupTimeStepping();
+
+        // Fuehre die komplette Zeitintegration + Newton + Loesen + Exporter durch
+        daeTimeSolver.advanceInTime();
+
+		// if(comm->getRank() ==0){
+		// 	cout << " ############################################### " << endl;
+		// 	cout << " Nonlinear Iterations AceGEN Assembly  : " << nlSolverAssFE.getNonLinIts() << endl;
+		// 	cout << " ############################################### " << endl;
+
+		// }    
+
         if( parameterListProblem->sublist("General").get("ParaViewExport",false) ) {
 
             Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
@@ -335,6 +381,8 @@ int main(int argc, char *argv[])
             exPara->save(0.0);
             
             domain->exportDistribution();
+
+            domain->exportNodeFlags();
 
         }
 

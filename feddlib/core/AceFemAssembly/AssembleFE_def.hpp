@@ -26,7 +26,7 @@ solution_(0)
 	// Reading through parameterlist
 	dim_= params_->sublist("Parameter").get("Dimension",-1);
 
-	timeIncrement_= params_->sublist("Timestepping Parameter").get("dt",0.1);
+	timeIncrement_= params_->sublist("Timestepping Parameter").get("dt",0.0);
 
 	diskTuple_= tuple;
 	

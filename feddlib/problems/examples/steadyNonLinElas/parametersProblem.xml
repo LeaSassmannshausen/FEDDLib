@@ -3,7 +3,7 @@
         <Parameter name="Dimension" type="int" value="3"/>
         <Parameter name="Discretization" type="string" value="P2"/><!--P1, P2-->
         <Parameter name="Mesh Type" type="string" value="structured"/> <!--structured, unstructured -->
-        <Parameter name="Volume force" type="double" value="-160.0"/> <!-- 1kg⋅cm/s² , test p_min = 106.6, text p_max = 213.3-->
+        <Parameter name="Volume force" type="double" value="-213.3"/> <!-- 1kg⋅cm/s² , test p_min = 106.6, text p_max = 213.3-->
 	    <Parameter name="Source Type" type="string"   value="surface"/>
         <Parameter name="External Force" type="bool" value="false"/>
         <Parameter name="Mesh Delimiter" type="string"   value=" "/>
@@ -18,12 +18,9 @@
         <!--Material Properties -->            
  		<Parameter name="Material model" type="string" value="Neo-Hooke"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
         <Parameter name="Use AceGen Interface" type="bool" value="false"/>
+        <Parameter name="SCI" type="bool" value="true"/>
+ 		<Parameter name="Structure Model" type="string" value="SCI_SMC_MLCK"/>
         <Parameter name="Neo-Hooke Modell" type="int" value="1"/><!--different energy functions -->
-
-        <Parameter name="E" type="double" value="3800"/> <!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48 | NH_3 = 3800, NH_2 = 2000-->
-        <Parameter name="Density" type="double"   value="1."/>
-	 	<Parameter name="Poisson Ratio"	type="double"   value="0.49e-0"/>        
-     	<Parameter name="Mu" type="double" value="1275.2"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 1476.5 | NH_3: 1275.2 | NH_2: 671-->
         <!--  -->
 
         <!-- BUILDING PRECONDITIONER ONLY THE FIRST X (newtonLimit) NEWTON STEP(S) -->
@@ -31,7 +28,25 @@
         <Parameter name="Rebuild Preconditioner every Newton Iteration" type="bool" value="true"/>
         <!--  -->
     </ParameterList>
+    <ParameterList name="Parameter Solid">
+        <Parameter name="E" type="double" value="3800"/> <!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48 | NH_3 = 3800, NH_2 = 2000-->
+        <Parameter name="Density" type="double"   value="1."/>
+	 	<Parameter name="Poisson Ratio"	type="double"   value="0.49e-0"/>        
+     	<Parameter name="Mu" type="double" value="1275.2"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 1476.5 | NH_3: 1275.2 | NH_2: 671-->
+     	
+     	<!-- Parameters for Media using the psi_A Model  -->
+     	<!--Units: cm,kg,s -->
+		<!-- ######################################## -->
+        <Parameter name="FA" type="double" value="43.0" /><!-- ° - degree-->
 
+		<Parameter name="Alpha1" type="double" value="11.52507e1" /><!-- 1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha2" type="double" value="151.73775e1" /> <!-- 1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha3" type="double" value="2.75662" /> <!-- dimensionless -->
+		<Parameter name="Alpha4" type="double" value="1.27631e1" /><!--1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha5" type="double" value="3.08798" /> <!-- dimensionless -->
+		<!-- ######################################## -->
+
+    </ParameterList>
     
     <ParameterList name="Exporter">
         <Parameter name="Write new mesh" type="bool" value="false"/>
@@ -43,8 +58,20 @@
     <ParameterList name="General">
         <Parameter name="Mpi Ranks Coarse"		                type="int"      value="0"/>
         <Parameter name="ParaViewExport"			            type="bool"     value="false"/>
+        <Parameter name="Export Data"			            type="bool"     value="true"/>
+
         <Parameter name="Preconditioner Method"                 type="string"   value="Monolithic"/><!-- Monolithic, Diagonal, Triangular -->
         <Parameter name="Set Zeros"		                        type="bool"     value="true"/>
         <Parameter name="Linearization"                         type="string"   value="NOX"/> <!-- FixedPoint, Newton, Extrapolation-->
     </ParameterList>
+
+
+    <ParameterList name="Timestepping Parameter">
+        <Parameter name="Class"                                 type="string"		value="Loadstepping"/> <!--Multistep, Singlestep, Newmark-->
+        <Parameter name="Final time force"	                    type="double"   	value="0.10"/>
+        <Parameter name="Final time"	                    	type="double"   	value="0.10"/>
+        <Parameter name="dt"			                    	type="double"   	value="0.01"/>
+    </ParameterList>
+    
+
 </ParameterList>

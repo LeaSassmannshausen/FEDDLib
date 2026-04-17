@@ -49,37 +49,61 @@ AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params, tuple)
 		$[Rho]$0 -Density_30 						1e0
 													
 		*/
+	c1_ = this->params_->sublist("Parameter Solid").get("Alpha1",11.52507e1); // 
+	epsilon1_ = this->params_->sublist("Parameter Solid").get("Alpha2", 0.15173775e1);
+	epsilon2_ = this->params_->sublist("Parameter Solid").get("Alpha3",0.27566199999999996e1); // 
+	alpha1_ = this->params_->sublist("Parameter Solid").get("Alpha4",1.27631e1);
+	alpha2_ = this->params_->sublist("Parameter Solid").get("Alpha5",0.308798e1); // 
 
-	fA_= this->params_->sublist("Parameter Solid").get("FA",30.e0); // ??
-	lambdaC50_ = this->params_->sublist("Parameter Solid").get("LambdaC50",0.12e1); // ??
-	gamma3_= this->params_->sublist("Parameter Solid").get("Gamma3",0.9e0);
-	lambdaBarCDotMax_= this->params_->sublist("Parameter Solid").get("LambdaBarCDotMax",0.3387e-1); // ??
-	lambdaBarCDotMin_= this->params_->sublist("Parameter Solid").get("LambdaBarCDotMin",-0.3387e-1); // ?? 
-	gamma2_ = this->params_->sublist("Parameter Solid").get("Gamma2",50.0e0); // ??
-	gamma1_ = this->params_->sublist("Parameter Solid").get("Gamma1",0.50247e0); 
-	eta1_ = this->params_->sublist("Parameter Solid").get("Eta1",0.18745e0); // ??
-	ca50_ = this->params_->sublist("Parameter Solid").get("Ca50",0.4e0); // ??
+	fA_= this->params_->sublist("Parameter Solid").get("FA",0.0e0); // ??
+
+	// std::cout << "AssembleFE_SCI_SMC_MLCK: Parameters read in: " << std::endl;
+	// std::cout << "c1: " << c1_ << std::endl;
+	// std::cout << "epsilon1: " << epsilon1_ << std::endl;	
+	// std::cout << "epsilon2: " << epsilon2_ << std::endl;
+	// std::cout << "alpha1: " << alpha1_ << std::endl;
+	// std::cout << "alpha2: " << alpha2_ << std::endl;
+
+	// ------------------------ Parameter ------------------------------
+	// Stretch-dependent chemical kinetics model for smooth muscle cells
+	// -----------------------------------------------------------------
+	// Kinetics model with MLCK
 	k2_ = this->params_->sublist("Parameter Solid").get("K2",0.2e0); 
 	k5_ = this->params_->sublist("Parameter Solid").get("K5",0.2e0);
 	k3_ = this->params_->sublist("Parameter Solid").get("K3",0.134e0); // ??
 	k4_ = this->params_->sublist("Parameter Solid").get("K4",0.166e-2); // ??
-	k7_= this->params_->sublist("Parameter Solid").get("K7",0.66e-4); // ?? 
-	kappaC_ = this->params_->sublist("Parameter Solid").get("KappaC",146.36600000000002e0);
-	beta1_ = this->params_->sublist("Parameter Solid").get("Beta1",0.10097e-2); // ??
-	muA_ = this->params_->sublist("Parameter Solid").get("MuA",0.9291e1); 
-	alpha_ = this->params_->sublist("Parameter Solid").get("Alpha",0.2668e2); 
-	epsilon1_ = this->params_->sublist("Parameter Solid").get("Epsilon1", 0.15173775e3);
-	epsilon2_ = this->params_->sublist("Parameter Solid").get("Epsilon2",0.27566199999999996e1); // ??
-	c1_ = this->params_->sublist("Parameter Solid").get("C1",11.52507e0);
-	alpha1_ = this->params_->sublist("Parameter Solid").get("Alpha1",1.27631e0);
-	alpha2_ = this->params_->sublist("Parameter Solid").get("Alpha2",0.308798e1); // ?? 
-	p1_ = this->params_->sublist("Parameter Solid").get("P1",0.3e0);
-	p3_ = this->params_->sublist("Parameter Solid").get("P3",0.2e0);
+	k7_= this->params_->sublist("Parameter Solid").get("K7",0.66e-4); // ??
+	// k_1 / k_6
+	ca50_ = this->params_->sublist("Parameter Solid").get("Ca50",0.4e0); // ??
+	// Ca^2+
+	gamma1_ = this->params_->sublist("Parameter Solid").get("Gamma1",0.5131e0); 
+	// \bar{lambda}_c determined by evolution equation with
+	lambdaBarCDotMax_= this->params_->sublist("Parameter Solid").get("LambdaBarCDotMax",0.443e-1); // ??
+	lambdaBarCDotMin_= this->params_->sublist("Parameter Solid").get("LambdaBarCDotMin",-0.443e-1); // ??
+	gamma2_ = this->params_->sublist("Parameter Solid").get("Gamma2",50.0e0); // ??
+	// the targe calcium concentration Ca^{2+}_tar is defined with
+	gamma3_= this->params_->sublist("Parameter Solid").get("Gamma3",0.9e0);
+	lambdaC50_ = this->params_->sublist("Parameter Solid").get("LambdaC50",0.12e1); // ??
+	// Effect of pharmacological agents
 	c50_ = this->params_->sublist("Parameter Solid").get("C50",0.5e0);
-	d0_ = this->params_->sublist("Parameter Diffusion").get("D0",6.e-05);
+	p1_ = this->params_->sublist("Parameter Solid").get("P1",0.6e0);
+	p3_ = this->params_->sublist("Parameter Solid").get("P3",0.6e0);	
+
+	// Smooth muscle cell activation
+	muA_ = this->params_->sublist("Parameter Solid").get("MuA",0.11857e-1); 
+	kappaC_ = this->params_->sublist("Parameter Solid").get("Kappa",0.148262e0); 
+	beta1_ = this->params_->sublist("Parameter Solid").get("Beta1",0.1006e-2); // ??
+	// At Starttime 1000 the diffused drug influences the material model. -> Active response at T=starttime	
+	startTime_ = this->params_->sublist("Parameter Solid").get("ActiveStartTime",1001.0e0); // At Starttime 1000 the diffused drug influences the material model. -> Active response at T=starttime
+	// Diffusion Parameter
+	d0_ = this->params_->sublist("Parameter Diffusion").get("D0",0.e-0);
 	m_ = this->params_->sublist("Parameter Solid").get("m",0.e0);
-	startTime_ = this->params_->sublist("Parameter Solid").get("ActiveStartTime",1001.e0); // At Starttime 1000 the diffused drug influences the material model. -> Active response at T=starttime
-	rho_ = this->params_->sublist("Parameter Solid").get("Rho",1.e0);
+
+	
+	eta1_ = this->params_->sublist("Parameter Solid").get("Eta1",0.18745e0); // ??
+	alpha_ = this->params_->sublist("Parameter Solid").get("Alpha",0.2668e2);
+	
+	rho_ = this->params_->sublist("Parameter Solid").get("Rho",1.0e0);
 
 	// iCode_ = this->params_->sublist("Parameter Solid").get("Intergration Code",18);
 	iCode_=18; //Only works for 18 currently!!
@@ -223,7 +247,7 @@ void AssembleFE_SCI_SMC_MLCK<SC,LO,GO,NO>::assembleRHS(){
     
 	// getResiduumVectorRdyn(&positions[0], &displacements[0], &concentrations[0], &accelerations[0],&rates[0], &domainData[0], &history[0], subIterationTolerance, deltaT, time, iCode_, &historyUpdated[0], residuumRDyn);
 	for(int i=0; i< 30 ; i++){
-		(*this->rhsVec_)[i] = residuumRint[i]; //+residuumRDyn[i];
+		(*this->rhsVec_)[i] = -residuumRint[i]; //+residuumRDyn[i];
 	}
 	double *residuumRc = elem.getResiduumVectorRc();
 	// getResiduumVectorRc(&positions[0], &displacements[0], &concentrations[0], &accelerations[0], &rates[0], &domainData[0], &history[0], subIterationTolerance, deltaT, time, iCode_, &historyUpdated[0], residuumRc);
@@ -337,7 +361,7 @@ void AssembleFE_SCI_SMC_MLCK<SC,LO,GO,NO>::assemble_SCI_SMC_MLCK(SmallMatrixPtr_
 			//if(std::fabs(stiffnessMatrixKuu[i][j]) > 1e7)
 			//	cout << " !!! Sus entry Kuu [" << i << "][" << j << "] " << stiffnessMatrixKuu[i][j] << endl; 
 			
-			(*elementMatrix)[i][j]=stiffnessMatrixKuu[i][j];
+			(*elementMatrix)[i][j]=-stiffnessMatrixKuu[i][j];
 		}
 	}
 	for(int i=0; i< 30; i++){

@@ -11,17 +11,26 @@
         <Parameter name="relNonLinTol" type="double" value="1.0e-8"/>
         <Parameter name="MaxNonLinIts" type="int" value="10"/>
         <Parameter name="Criterion" type="string" value="Residual"/>     
+ 		     <!--Material Model -->            
  		<Parameter name="Material model" type="string" value="Neo-Hooke"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
-        <Parameter name="Neo-Hooke Modell" type="int" value="1"/><!--different energy functions -->
-        <Parameter name="Density" type="double"   value="1."/>
-	 	<Parameter name="Poisson Ratio"					        type="double"   value="0.49e-0"/>        
-     	<Parameter name="Mu" type="double" value="1275.2"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 1476.5 | NH_3: 1275.2 | NH_2: 671-->
-    
-        <Parameter name="E" type="double" value="3800"/> <!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48 | NH_3 = 3800, NH_2 = 2000-->
-        <!-- Parameter for Mooney-Rivlin-->
-        <Parameter name="C" type="double" value="1."/><!-- Mooney-Rivlin parameter -->
-    </ParameterList>
+        <Parameter name="Use AceGen Interface" type="bool" value="true"/>
+        <Parameter name="SCI" type="bool" value="false"/>
+ 		<Parameter name="Structure Model" type="string" value="SCI_NH"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
+        <Parameter name="Neo-Hooke Modell" type="int" value="1"/><!--different energy functions for the AceGen Neo hooke -->
+        <!--  -->
 
+        <!-- BUILDING PRECONDITIONER ONLY THE FIRST X (newtonLimit) NEWTON STEP(S) -->
+        <Parameter name="newtonLimit" type="int" value="3"/>
+        <Parameter name="Rebuild Preconditioner every Newton Iteration" type="bool" value="true"/>
+        <!--  -->
+    
+    </ParameterList>
+    <ParameterList name="Parameter Solid">
+   		<Parameter name="E" type="double" value="3800"/> <!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48 | NH_3 = 3800, NH_2 = 2000-->
+        <Parameter name="Density" type="double"   value="1."/>
+	 	<Parameter name="Poisson Ratio"	type="double"   value="0.49e-0"/>        
+     	<Parameter name="Mu" type="double" value="1275.2"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 1476.5 | NH_3: 1275.2 | NH_2: 671-->
+    </ParameterList>
     
     <ParameterList name="Exporter">
         <Parameter name="Write new mesh" type="bool" value="false"/>

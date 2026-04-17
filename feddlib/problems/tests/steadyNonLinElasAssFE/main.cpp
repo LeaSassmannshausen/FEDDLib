@@ -200,6 +200,7 @@ int main(int argc, char *argv[])
         parameterListAll->setParameters(*parameterListPrec);
         parameterListAll->setParameters(*parameterListSolver);
 
+
         int 		dim				= parameterListProblem->sublist("Parameter").get("Dimension",3);
         string		meshType    	= parameterListProblem->sublist("Parameter").get("Mesh Type","structured");
         string		meshName    	= parameterListProblem->sublist("Parameter").get("Mesh Name","cube_0_1.mesh");

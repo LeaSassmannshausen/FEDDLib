@@ -144,7 +144,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTime(){
         advanceInTimeFSCI();
         
     }
-    else if(this->parameterList_->sublist("Parameter").get("SCI",false))
+    else if(this->parameterList_->sublist("Parameter").get("SCI",false) && parameterList_->sublist("Timestepping Parameter").get("Class","Singlestep").compare("Loadstepping"))
     {
         advanceInTimeSCI();
     }
@@ -167,7 +167,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTime(){
         //         advanceInTimeNonLinear();
         //     }
         // }
-        if(!parameterList_->sublist("Timestepping Parameter").get("Class","Singlestep").compare("Newmark"))
+        else if(!parameterList_->sublist("Timestepping Parameter").get("Class","Singlestep").compare("Newmark"))
         {
             NonLinProbPtr_Type nonLinProb = Teuchos::rcp_dynamic_cast<NonLinProb_Type>(problem_);
             if (nonLinProb.is_null()) {
@@ -225,7 +225,9 @@ void DAESolverInTime<SC,LO,GO,NO>::getMassCoefficients(SmallMatrix<double> &mass
 template<class SC,class LO,class GO,class NO>
 void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
 {
-    
+    timeSteppingTool_->printInfo();
+
+
     bool print = parameterList_->sublist("General").get("ParaViewExport",false);
     bool printExtraData = parameterList_->sublist("General").get("Export Extra Data",false);
     bool printData = parameterList_->sublist("General").get("Export Data",false);
@@ -277,27 +279,30 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
     // Bei AdvanceInTimeNonLinear... wird das in ReAssemble() gemacht!!!
     problemTime_->setTimeParameters(massCoeff, problemCoeff);
     // Der Source Term ist schon nach der Assemblierung mit der Dichte \rho skaliert worden
-   
+    vec_dbl_Type linearIterations(0);
+    vec_dbl_Type newtonIterations(0);
     // ######################
     // "Time" loop
     // ######################
     while(timeSteppingTool_->continueTimeStepping())
     {
+        timeSteppingTool_->printInfo();
+
         // Stelle (massCoeff*M + problemCoeff*A) auf
-        //problemTime_->combineSystems();
-        
-       
+        //problemTime_->combineSystems();       
         double time = timeSteppingTool_->currentTime() + dt;
         problemTime_->updateTime ( time );
           
         NonLinearSolver<SC, LO, GO, NO> nlSolver(parameterList_->sublist("General").get("Linearization","Newton"));
         nlSolver.solve( *problemTime_, time, its );
         
-        timeSteppingTool_->advanceTime(true/*output info*/);
+        timeSteppingTool_->advanceTime(false);
         if (printData) {
             exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
             exporterIterations->exportData( (*its)[0] );
+            linearIterations.push_back((*its)[0]);
             exporterNewtonIterations->exportData( (*its)[1] );
+            newtonIterations.push_back((*its)[1]);
         }
         if (print) {
             exportTimestep();
@@ -305,8 +310,34 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
         this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
 
     }
-    
+    std::cout << "Loadstepping finished. Total number of nonlinear iterations: " << (*its)[1] << std::endl;
+
     comm_->barrier();
+
+    if (printData) {
+        exporterTimeTxt->closeExporter();
+        exporterIterations->closeExporter();
+        exporterNewtonIterations->closeExporter();
+
+        double sumLinear=0., sumNewton=0.;
+        for(int i=0; i < linearIterations.size(); i++){
+            sumLinear += linearIterations[i];
+            sumNewton += newtonIterations[i];
+        }
+        sumLinear = sumLinear / linearIterations.size();
+        sumNewton = sumNewton / newtonIterations.size();
+
+        if (verbose_) {
+            std::cout << " ######################################################## "<< std::endl;
+            std::cout << " Average linear iteration count over all time steps:  " << sumLinear << std::endl;
+            std::cout << " Average Newton iteration count over all time steps:  " << sumNewton << std::endl;
+            std::cout << " ######################################################## \n"<< std::endl;
+        }
+    
+    }
+
+
+
     if (print)
     {
         closeExporter();
