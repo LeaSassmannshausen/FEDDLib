@@ -1040,7 +1040,8 @@ void FE<SC,LO,GO,NO>::assemblyAceDeformDiffuBlock(int dim,
 	problemDisk->push_back(chem);
 	
 	std::string SCIModel = params->sublist("Parameter").get("Structure Model","SCI_simple");
-
+    if(mapSolid->getComm()->getRank() == 0)
+        std::cout << " ######## Assembly Modell: " << SCIModel << " ############ " <<  std::endl;
 	if(assemblyFEElements_.size()== 0){
        	initAssembleFEElements(SCIModel,problemDisk,elementsChem, params,pointsRep,domainVec_.at(FElocSolid)->getElementMap());
     }

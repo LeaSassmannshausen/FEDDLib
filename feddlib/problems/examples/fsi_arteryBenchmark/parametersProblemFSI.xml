@@ -27,15 +27,26 @@
         <Parameter name="Criterion" type="string" value="Update"/><!-- Criterion for nonlinear solve, Residual or Update: Residual is the norm of the nonlinear residual; Update is the norm of the update -->
     </ParameterList>
     <ParameterList name="Parameter Solid">        
-        <Parameter name="Material model" type="string" value="Neo-Hooke"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
-        <Parameter name="Density" type="double"   value="1.0e-03"/><!-- kg/cm³ -->
-        <!-- Parameters NH4 Neo Hooke Model from 'Comparison of arterial wall models in fluid–structure interaction simulations' -->
-        <Parameter name="Mu" type="double" value="1476.5"/><!-- 1kg⋅cm/s² * 1/cm², NH2: 671.0, NH3: 1275.2, NH4: 1476.5 -->
-      
-        <Parameter name="E" type="double" value="4400.0"/> <!-- 1kg⋅cm/s² * 1/cm², NH2: 2000, NH3: 3800, NH4: 4400 -->
-      
-        <Parameter name="c1" type="double" value="0.25"/>
-        <Parameter name="Poisson Ratio" type="double" value="0.49"/>
+		<Parameter name="Material model" type="string" value="SCI_SMC_MLCK"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
+        <Parameter name="Use AceGen Interface" type="bool" value="true"/>
+        <Parameter name="SCI" type="bool" value="true"/>
+ 		<Parameter name="Structure Model" type="string" value="SCI_SMC_MLCK"/>
+        <Parameter name="E" type="double" value="3800"/> <!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48 | NH_3 = 3800, NH_2 = 2000-->
+        <Parameter name="Density" type="double"   value="1."/>
+	 	<Parameter name="Poisson Ratio"	type="double"   value="0.49e-0"/>        
+     	<Parameter name="Mu" type="double" value="1275.2"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 1476.5 | NH_3: 1275.2 | NH_2: 671-->
+     	
+     	<!-- Parameters for Media using the psi_A Model  -->
+     	<!--Units: cm,kg,s -->
+		<!-- ######################################## -->
+        <Parameter name="FA" type="double" value="43.0" /><!-- ° - degree-->
+
+		<Parameter name="Alpha1" type="double" value="11.52507e1" /><!-- 1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha2" type="double" value="151.73775e1" /> <!-- 1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha3" type="double" value="2.75662" /> <!-- dimensionless -->
+		<Parameter name="Alpha4" type="double" value="1.27631e1" /><!--1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha5" type="double" value="300.08798" /> <!-- dimensionless -->
+		<!-- ######################################## -->
     </ParameterList>
 
     <ParameterList name="Parameter Fluid">

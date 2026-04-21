@@ -310,7 +310,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
         this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
 
     }
-    std::cout << "Loadstepping finished. Total number of nonlinear iterations: " << (*its)[1] << std::endl;
 
     comm_->barrier();
 

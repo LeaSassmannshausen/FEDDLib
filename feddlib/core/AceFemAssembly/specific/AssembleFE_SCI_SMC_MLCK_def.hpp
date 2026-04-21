@@ -105,6 +105,16 @@ AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params, tuple)
 	
 	rho_ = this->params_->sublist("Parameter Solid").get("Rho",1.0e0);
 
+	// // if(this->getGlobalElementID() > 0){
+		// std::cout << "AssembleFE_SCI_SMC_MLCK: Parameters read in: " << std::endl;
+		// std::cout << "c1: " << c1_ << std::endl;
+		// std::cout << "epsilon1: " << epsilon1_ << std::endl;
+		// std::cout << "epsilon2: " << epsilon2_ << std::endl;
+		// std::cout << "alpha1: " << alpha1_ << std::endl;
+		// std::cout << "alpha2: " << alpha2_ << std::endl;
+		// std::cout << "fA: " << fA_ << std::endl;
+	// // }
+
 	// iCode_ = this->params_->sublist("Parameter Solid").get("Intergration Code",18);
 	iCode_=18; //Only works for 18 currently!!
 

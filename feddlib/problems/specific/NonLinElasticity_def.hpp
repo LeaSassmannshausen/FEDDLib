@@ -141,32 +141,36 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
         this->getComm()->barrier();
         this->getComm()->barrier();
 
-    { 
-        NONLINELAS_START(Assembly," Assembling Jacobian and Residual");    
-    #ifdef FEDD_HAVE_ACEGENINTERFACE
-        bool useInterface = this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true);
-        if(this->getFEType(0) =="P2" && useInterface && this->dim_ == 3 && material_model != "Saint-Venant-Kirchhoff"){
-            this->system_->addBlock( W, 0, 0 );  
-           
-            f->putScalar(0.);   
-            this->residualVec_->addBlock( f, 0 ); 
+        { 
+            NONLINELAS_START(Assembly," Assembling Jacobian and Residual");    
+        #ifdef FEDD_HAVE_ACEGENINTERFACE
+            bool useInterface = this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true);
+            // std::cout << " Checking useInterface parameter for assembly: " << useInterface << std::endl;
+            if(this->getFEType(0) =="P2" && useInterface && this->dim_ == 3 && material_model != "Saint-Venant-Kirchhoff"){
+                this->system_->addBlock( W, 0, 0 );  
+            
+                f->putScalar(0.);   
+                this->residualVec_->addBlock( f, 0 ); 
 
-            if(this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true )
-                this->feFactory_->assemblyAceDeformDiffuBlock(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(0)->getFEType(), 2, 1,this->dim_,concentration_,u_rep_,this->system_,0,0,this->residualVec_,0, this->parameterList_, "Jacobian", true/*call fillComplete*/);
+                // std::cout << " Checking sci paramters for assembly: " << this->parameterList_->sublist("Parameter").get("SCI",false) << std::endl;
+                
+
+                if(this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true )
+                    this->feFactory_->assemblyAceDeformDiffuBlock(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(0)->getFEType(), 2, 1,this->dim_,concentration_,u_rep_,this->system_,0,0,this->residualVec_,0, this->parameterList_, "Jacobian", true/*call fillComplete*/);
+                else 
+                    this->feFactory_->assemblyNonLinearElasticity(this->dim_, this->getDomain(0)->getFEType(),2, this->dim_, u_rep_, this->system_, this->residualVec_, this->parameterList_,true);
+
+            }
             else 
-                this->feFactory_->assemblyNonLinearElasticity(this->dim_, this->getDomain(0)->getFEType(),2, this->dim_, u_rep_, this->system_, this->residualVec_, this->parameterList_,true);
-
-        }
-        else 
+                this->feFactory_->assemblyElasticityJacobianAndStressAceFEM(this->dim_, this->getDomain(0)->getFEType(), W, f, u_rep_, this->parameterList_, C_);
+        #else
             this->feFactory_->assemblyElasticityJacobianAndStressAceFEM(this->dim_, this->getDomain(0)->getFEType(), W, f, u_rep_, this->parameterList_, C_);
-    #else
-        this->feFactory_->assemblyElasticityJacobianAndStressAceFEM(this->dim_, this->getDomain(0)->getFEType(), W, f, u_rep_, this->parameterList_, C_);
-    #endif
-        this->getComm()->barrier();
-        this->getComm()->barrier();
+        #endif
+            this->getComm()->barrier();
+            this->getComm()->barrier();
 
-        NONLINELAS_STOP(Assembly);
-    }
+            NONLINELAS_STOP(Assembly);
+        }
         
         MultiVectorPtr_Type fUnique = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique(), 1 ) );
         fUnique->putScalar(0.);
