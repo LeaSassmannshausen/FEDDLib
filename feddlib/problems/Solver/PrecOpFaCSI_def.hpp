@@ -272,7 +272,6 @@ void PrecOpFaCSI<SC,LO,GO,NO>::initialize(){
     this->defaultProductRange_ = pR;
     this->defaultProductDomain_ = pD;
 
-    std::cout << "  ########## Init PrecOpFaCSI ########### " << std::endl;
 }
 
 template<class SC, class LO, class GO, class NO>
