@@ -169,6 +169,10 @@ public:
     // Macht setupTimeStepping() auf problemTimeFluid_ und problemTimeStructure_
     void setupSubTimeProblems(ParameterListPtr_Type parameterListFluid, ParameterListPtr_Type parameterListStructure) const;
 
+    BlockMultiVectorPtr_Type getPostProcessingData() const;
+
+    vec_string_Type getPostprocessingNames();
+
     FluidProblemPtr_Type getFluidProblem(){
         return problemFluid_;
     }

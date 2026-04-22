@@ -33,7 +33,8 @@ public:
     typedef typename Problem_Type::MultiVectorPtr_Type MultiVectorPtr_Type;
     typedef typename Problem_Type::MultiVectorConstPtr_Type MultiVectorConstPtr_Type;
     typedef typename Problem_Type::BlockMultiVectorPtr_Type BlockMultiVectorPtr_Type;
-    
+    typedef typename Problem_Type::BlockMultiVector_Type BlockMultiVector_Type;
+
     typedef typename Problem_Type::DomainConstPtr_Type DomainConstPtr_Type;
     typedef typename Problem_Type::CommConstPtr_Type CommConstPtr_Type;
     
@@ -61,33 +62,37 @@ public:
     virtual void reAssembleExtrapolation(BlockMultiVectorPtrArray_Type previousSolutions);
     
     virtual void calculateNonLinResidualVec(std::string type, double time=0.) const;
-    
-    void getValuesOfInterest( vec_dbl_Type& values ) override {}
-    
-    void computeValuesOfInterestAndExport() override {}
-    
-    void assembleSourceTermLoadstepping(double time=0.) const;
 
-    void updateTime() const;
+   BlockMultiVectorPtr_Type getPostProcessingData() const;
 
-    void updateConcentration(MultiVectorConstPtr_Type concentration) {concentration_.reset(new MultiVector_Type (concentration));}
+   vec_string_Type getPostprocessingNames();
 
-    mutable Teuchos::RCP<TimeSteppingTools>	timeSteppingTool_;
+   void getValuesOfInterest(vec_dbl_Type &values) override {}
 
-        
-private:
-    
-    mutable MultiVectorPtr_Type u_rep_;
-    MultiVectorPtr_Type concentration_;
-    double E_;
-    double mue_;
-    double C_;
-    double poissonRatio_;
-    double lambda_;
-    bool loadStepping_;
-    bool externalForce_;
-    bool nonlinearExternalForce_;
-    /*####################*/
+   void computeValuesOfInterestAndExport() override {}
+
+   void assembleSourceTermLoadstepping(double time = 0.) const;
+
+   void updateTime() const;
+
+   void updateConcentration(MultiVectorConstPtr_Type concentration) { concentration_.reset(new MultiVector_Type(concentration)); }
+
+   mutable Teuchos::RCP<TimeSteppingTools> timeSteppingTool_;
+
+ private:
+   mutable MultiVectorPtr_Type u_rep_;
+   MultiVectorPtr_Type concentration_;
+   double E_;
+   double mue_;
+   double C_;
+   double poissonRatio_;
+   double lambda_;
+   bool loadStepping_;
+   bool externalForce_;
+   bool nonlinearExternalForce_;
+   vec_string_Type postProcessingnames_;
+
+   /*####################*/
 
 };
 }

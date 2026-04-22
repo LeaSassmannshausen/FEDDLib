@@ -64,6 +64,9 @@ public:
     typedef SCI<SC,LO,GO,NO> SCIProblem_Type;
     typedef Teuchos::RCP<SCIProblem_Type> SCIProblemPtr_Type;
 
+    typedef NonLinElasticity<SC,LO,GO,NO> NonLinElasticityProblem_Type;
+    typedef Teuchos::RCP<NonLinElasticityProblem_Type> NonLinElasticityProblemPtr_Type;
+
 
     typedef Domain<SC,LO,GO,NO> Domain_Type;
     typedef Teuchos::RCP<Domain_Type > DomainPtr_Type;
@@ -178,7 +181,7 @@ public:
 
     std::vector<ExporterPtr_Type> exporter_vector_postprocess_;
     //MultiVectorConstPtrArray_Type export_stress_vector_;
-    bool boolExporterSetupPostprocess_;
+    bool boolExporterSetupPostprocess_=false;
 private:
 
 #ifdef FEDD_TIMER

@@ -55,7 +55,9 @@ u_rep_()
 
     timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter") , this->comm_));
 
-   
+    postProcessingnames_.resize(5);
+    postProcessingnames_ = {"vonMisesStress", "SCirc","SAxial","SRadial","W"};
+
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -180,18 +182,6 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
 
         this->system_->addBlock( W, 0, 0 );
 
-        // if(useInterface){
-        //     this->residualVec_->getBlock(0)->writeMM("residual_vec_interface");
-        //     this->system_->getBlock(0,0)->writeMM("system_interface");
-        //     u_rep_->writeMM("solution_interface");
-        // }
-        // else
-        // {
-        //     this->residualVec_->getBlock(0)->writeMM("residual_vec");
-        //     this->system_->getBlock(0,0)->writeMM("system");
-        //     u_rep_->writeMM("solution");
-
-        // }
 
         if(loadStepping_) 
             assembleSourceTermLoadstepping();
@@ -326,8 +316,98 @@ void NonLinElasticity<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type,
     // this might be set again by the TimeProblem after adding of M*u
     this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );
 
-
-
 }
+
+template<class SC,class LO,class GO,class NO>
+typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticity<SC,LO,GO,NO>::getPostProcessingData() const
+{
+    BlockMultiVectorPtr_Type postProcess =Teuchos::rcp(new BlockMultiVector_Type(5)) ;
+        
+    /*
+    0 -- "Volume","
+    1 -- Sxx",
+    2 -- "Sxy"
+    3 -- "Sxz" 
+    4 -- "Syx"
+    5 -- "Syy"
+    6 -- "Syz" 
+    7 -- "Szx" 
+    8 -- "Szy" 
+    9 -- "Szz" 
+    10 -- "MisesStress" 
+    11 -- "SCirc"
+    12 -- "SAxial",
+    13 -- "SRadial"
+    14 -- "Exx"
+    15 -- "Exy"
+    16 -- "Exz" 
+    17 -- "Eyx"
+    18 -- "Eyy"
+    19 -- "Eyz" 
+    20 -- "Ezx"
+    21 -- "Ezy"
+    22 -- "Ezz"
+    23 -- "W"
+    24 -- "Growth1"
+    25 -- "Growth2" 
+    26 -- "Growth3"
+    27 -- "Stretch1"
+    28 -- "Stretch2"
+    29 -- "DetF",
+    30 - 38 "Ag1n1","Ag1n2","Ag1n3","Ag2n1","Ag2n2","Ag2n3","Ag3n1","Ag3n2","Ag3n3"
+    39 -- "a11"
+    40 -- "a12"
+    41 -- "a13"
+    42 -- "a21"
+    43 -- "a22"
+    44 -- "a23"
+    45 -- "nC1" <----- !!
+    46 -- "nC2" <----- !!
+    47 -- "nD1" <----- !! 
+    48 -- "nD2" <----- !!
+    49 -- "ScDir1"
+    50 -- "ScDir2" 
+    51 -- "ScDir3" 
+    52 -- "SaDir1"
+    53 -- "SaDir2"
+    54 -- "SaDir3"
+    55 -- "SrDir1"
+    56 -- "SrDir2"
+    57 -- "SrDir3"*/
+
+    if(this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true ){
+    
+        MultiVectorPtr_Type vonMisesStress = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(10, vonMisesStress);
+
+        MultiVectorPtr_Type SCirc = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(11, SCirc);
+
+        MultiVectorPtr_Type SAxial = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(12, SAxial);
+
+        MultiVectorPtr_Type SRadial = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(13, SRadial);
+
+        MultiVectorPtr_Type W = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(23, W);
+
+
+        postProcess->addBlock(vonMisesStress,0);
+        postProcess->addBlock(SCirc,1);
+        postProcess->addBlock(SAxial,2);
+        postProcess->addBlock(SRadial,3);
+        postProcess->addBlock(W,4);
+    }
+    
+    return postProcess;
+}
+
+template<class SC,class LO,class GO,class NO>
+vec_string_Type NonLinElasticity<SC,LO,GO,NO>::getPostprocessingNames()
+{
+    return postProcessingnames_;
+}
+
 }
 #endif

@@ -150,10 +150,7 @@ exporterGeo_()
     }
     p_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(1)->getMapRepeated() ) );
     
-    // if ( this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false)){
-    //     exporterBoundaryCondition_ = Teuchos::rcp(new ExporterTxt () );
-    //     exporterBoundaryCondition_->setup( "boundaryConditionFluid", this->comm_ );
-    // }
+
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -1742,6 +1739,19 @@ void FSI<SC,LO,GO,NO>::initializeGE(){
         this->residualVec_->resize( 4 );
         this->initVectorSpaces();  //reinitialize NOX vector spaces
     }
+}
+
+
+template<class SC,class LO,class GO,class NO>
+typename FSI<SC,LO,GO,NO>::BlockMultiVectorPtr_Type FSI<SC,LO,GO,NO>::getPostProcessingData() const
+{
+    return this->problemStructureNonLin_->getPostProcessingData();
+}
+
+template<class SC,class LO,class GO,class NO>
+vec_string_Type FSI<SC,LO,GO,NO>::getPostprocessingNames()
+{
+    return this->problemStructureNonLin_->getPostprocessingNames();
 }
 
 }

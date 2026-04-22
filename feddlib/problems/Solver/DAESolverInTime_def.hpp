@@ -227,7 +227,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
 {
     timeSteppingTool_->printInfo();
 
-
+    bool printStress = parameterList_->sublist("General").get("Export Stress",false);
     bool print = parameterList_->sublist("General").get("ParaViewExport",false);
     bool printExtraData = parameterList_->sublist("General").get("Export Extra Data",false);
     bool printData = parameterList_->sublist("General").get("Export Data",false);
@@ -240,6 +240,10 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
     ExporterTxtPtr_Type exporterTimeTxt;
     ExporterTxtPtr_Type exporterIterations;
     ExporterTxtPtr_Type exporterNewtonIterations;
+
+    NonLinElasticityProblemPtr_Type nonlinElas = Teuchos::rcp_dynamic_cast<NonLinElasticityProblem_Type>( this->problemTime_->getUnderlyingProblem() );
+    BlockMultiVectorPtr_Type stressVec;
+
     if (printData) {
         std::string suffix = parameterList_->sublist("General").get("Export Suffix","");
         
@@ -306,6 +310,25 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
         }
         if (print) {
             exportTimestep();
+        }
+        if (printStress){
+
+            std::cout << "Exporting stresses and co. " << std::endl;
+
+            double modValue = parameterList_->sublist("General").get("Every X Second",1.) ;
+
+            double time = timeSteppingTool_->currentTime();
+
+         
+
+            if(fabs(remainder(time,modValue)) < 0. + 1.e-8 ){
+                std::cout << "Exporting stresses and co. at time " << timeSteppingTool_->currentTime() << std::endl;
+
+                BlockMultiVectorPtr_Type stressVecTmp= nonlinElas->getPostProcessingData();
+                stressVec = stressVecTmp;
+                this->exportPostprocess(stressVec,problemTime_->getDomain(0),nonlinElas->getPostprocessingNames()); 
+            }
+
         }
         this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
 
@@ -1021,6 +1044,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
     bool printData = parameterList_->sublist("General").get("Export Data",false);
     bool printExtraData = parameterList_->sublist("General").get("Export Extra Data",false);
     bool printFlowRate = parameterList_->sublist("General").get("Export Flow Rate",true);
+    bool printStress = parameterList_->sublist("General").get("Export Stress",false);
+    BlockMultiVectorPtr_Type stressVec;
 
     if (print)
     {
@@ -1478,6 +1503,21 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
 
             exporterAreaInlet->exportData( timeSteppingTool_->currentTime() , areaInlet);
             exporterAreaOutlet->exportData(  timeSteppingTool_->currentTime() ,areaOutlet );
+        }
+        if (printStress){
+
+            double modValue = parameterList_->sublist("General").get("Every X Second",1.) ;
+
+            double time = timeSteppingTool_->currentTime();
+
+         
+
+            if(fabs(remainder(time,modValue)) < 0. + 1.e-8 ){
+                BlockMultiVectorPtr_Type stressVecTmp= fsi->getPostProcessingData();
+                stressVec = stressVecTmp;
+                this->exportPostprocess(stressVec,problemTime_->getDomain(2),fsi->getPostprocessingNames()); 
+            }
+
         }
 
     }
@@ -2538,8 +2578,8 @@ void DAESolverInTime<SC,LO,GO,NO>::exportPostprocess(BlockMultiVectorPtr_Type po
     if (verbose_) {
         std::cout << "-- Exporting Postprocessing Data..."<< std::flush;
     }
-    for (int i=0; i<postProcessVec->size(); i++) {
 
+    for (int i=0; i<postProcessVec->size(); i++) {
         MultiVectorConstPtr_Type exportMV= postProcessVec->getBlock(i);
         exporter_vector_postprocess_[0]->updateVariables(exportMV, exportNames[i]);
 

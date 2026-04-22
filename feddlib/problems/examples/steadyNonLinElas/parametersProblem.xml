@@ -17,9 +17,9 @@
 
         <!--Material Properties -->            
  		<Parameter name="Material model" type="string" value="Neo-Hooke"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
-        <Parameter name="Use AceGen Interface" type="bool" value="false"/>
+        <Parameter name="Use AceGen Interface" type="bool" value="true"/>
         <Parameter name="SCI" type="bool" value="true"/>
- 		<Parameter name="Structure Model" type="string" value="SCI_SMC_MLCK"/> <!-- SCI_SMC_MLCK, SCI_SMC_Active_Growth_Reorientation -->
+ 		<Parameter name="Structure Model" type="string" value="SCI_SMC_Active_Growth_Reorientation"/> <!-- SCI_SMC_MLCK, SCI_SMC_Active_Growth_Reorientation -->
         <Parameter name="Neo-Hooke Modell" type="int" value="1"/><!--different energy functions -->
         <!--  -->
 
@@ -37,8 +37,7 @@
      	<!-- Parameters for Media using the psi_A Model  -->
      	<!--Units: cm,kg,s -->
 		<!-- ######################################## -->
-       <Parameter name="FA" type="double" value="43.0" /><!-- ° - degree-->
-
+        <Parameter name="FA" type="double" value="43.0" /><!-- ° - degree-->
         <Parameter name="Alpha1" type="double" value="17.5e1" /><!-- 1kg⋅cm/s² * 1/cm²-->
         <Parameter name="Alpha2" type="double" value="499.8e1" /> <!-- 1kg⋅cm/s² * 1/cm²-->
         <Parameter name="Alpha3" type="double" value="2.4" /> <!-- dimensionless -->
@@ -51,11 +50,14 @@
 			<!--linear,Neo-Hooke Only relevant for explicit coupling-->  
          	<Parameter name="Volume Flag" type="int" value="0"/>  <!--corresponding element flag to material-->    
 				<Parameter name="Fibre angle" type="double" value="43." /> <!-- degrees -->
+                <Parameter name="kFiberDistribution" type="double" value="0.0" /> <!-- dimensionless -->	    
 				<Parameter name="Alpha1" type="double" value="17.5e1" /><!-- 1kg⋅cm/s² * 1/cm²-->
 				<Parameter name="Alpha2" type="double" value="499.8e1" /> <!-- 1kg⋅cm/s² * 1/cm²-->
 				<Parameter name="Alpha3" type="double" value="2.4" /> <!-- dimensionless -->
 				<Parameter name="Alpha4" type="double" value="30001.9e1" /><!--1kg⋅cm/s² * 1/cm²-->
 				<Parameter name="Alpha5" type="double" value="5.1" /> <!-- dimensionless -->	
+                <Parameter name="kFiberDistribution" type="double" value="0.0" /> <!-- dimensionless -->	    
+
 				<Parameter name="growthStartTime" type="double" value="10.0" />
 				<Parameter name="reorientationStartTime" type="double" value="10.0" />
 				<Parameter name="growthEndTime" type="double" value="10.0" />
@@ -75,6 +77,7 @@
     
     <ParameterList name="Exporter">
         <Parameter name="Write new mesh" type="bool" value="false"/>
+     
         <Parameter name="Export every X timesteps" type="int" value="1"/>       
         <Parameter name="Export coarse functions" type="bool" value="false"/>     
         <Parameter name="Name coarse functions block1" type="string" value="phiU"/>    
@@ -84,6 +87,8 @@
         <Parameter name="Mpi Ranks Coarse"		                type="int"      value="0"/>
         <Parameter name="ParaViewExport"			            type="bool"     value="false"/>
         <Parameter name="Export Data"			            type="bool"     value="true"/>
+        <Parameter name="Export Stress" type="bool" value="true"/>
+        <Parameter name="Every X Second" type="double" value="0.1"/> <!-- Output frequency for stresses and co. during normal phase. 1 = every time step. 10 = every tenth time step -->
 
         <Parameter name="Preconditioner Method"                 type="string"   value="Monolithic"/><!-- Monolithic, Diagonal, Triangular -->
         <Parameter name="Set Zeros"		                        type="bool"     value="true"/>
