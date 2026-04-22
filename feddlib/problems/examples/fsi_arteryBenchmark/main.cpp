@@ -589,10 +589,10 @@ int main(int argc, char *argv[])
             bcFactoryGeometry->addBC(zeroDirichlet3D, 6, 0, domainGeometry, "Dirichlet", dim); // Interface
 
             bool usefullinterface=parameterListProblem->sublist("Parameter").get("Use full interface",true);
-            if(usefullinterface){
+            // if(usefullinterface){
                 bcFactoryGeometry->addBC(zeroDirichlet3D, 4, 0, domainGeometry, "Dirichlet", dim); // inlet Ring
                 bcFactoryGeometry->addBC(zeroDirichlet3D, 5, 0, domainGeometry, "Dirichlet", dim); // outlet Ring
-            }
+            // }
             // Die RW, welche nicht Null sind in der rechten Seite (nur Interface) setzen wir spaeter per Hand.
             // Hier erstmal Dirichlet Nullrand, wird spaeter von der Sturkturloesung vorgegeben
             if (preconditionerMethod == "FaCSI" || preconditionerMethod == "FaCSI-Teko"){
