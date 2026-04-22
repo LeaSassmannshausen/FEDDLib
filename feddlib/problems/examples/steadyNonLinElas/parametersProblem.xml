@@ -19,7 +19,7 @@
  		<Parameter name="Material model" type="string" value="Neo-Hooke"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
         <Parameter name="Use AceGen Interface" type="bool" value="false"/>
         <Parameter name="SCI" type="bool" value="true"/>
- 		<Parameter name="Structure Model" type="string" value="SCI_SMC_MLCK"/>
+ 		<Parameter name="Structure Model" type="string" value="SCI_SMC_MLCK"/> <!-- SCI_SMC_MLCK, SCI_SMC_Active_Growth_Reorientation -->
         <Parameter name="Neo-Hooke Modell" type="int" value="1"/><!--different energy functions -->
         <!--  -->
 
@@ -45,7 +45,31 @@
         <Parameter name="Alpha4" type="double" value="30001.9e1" /><!--1kg⋅cm/s² * 1/cm²-->
         <Parameter name="Alpha5" type="double" value="5.1" /> <!-- dimensionless -->
         <!-- ######################################## -->
+		<!-- ######################################## -->
+        <Parameter name="Number of Materials" type="int" value="1"/> <!--number of different materials-->  
+      	<ParameterList name="1">
+			<!--linear,Neo-Hooke Only relevant for explicit coupling-->  
+         	<Parameter name="Volume Flag" type="int" value="0"/>  <!--corresponding element flag to material-->    
+				<Parameter name="Fibre angle" type="double" value="43." /> <!-- degrees -->
+				<Parameter name="Alpha1" type="double" value="17.5e1" /><!-- 1kg⋅cm/s² * 1/cm²-->
+				<Parameter name="Alpha2" type="double" value="499.8e1" /> <!-- 1kg⋅cm/s² * 1/cm²-->
+				<Parameter name="Alpha3" type="double" value="2.4" /> <!-- dimensionless -->
+				<Parameter name="Alpha4" type="double" value="30001.9e1" /><!--1kg⋅cm/s² * 1/cm²-->
+				<Parameter name="Alpha5" type="double" value="5.1" /> <!-- dimensionless -->	
+				<Parameter name="growthStartTime" type="double" value="10.0" />
+				<Parameter name="reorientationStartTime" type="double" value="10.0" />
+				<Parameter name="growthEndTime" type="double" value="10.0" />
+				<Parameter name="reorientationEndTime" type="double" value="10.0" />			 
+				<Parameter name="Density" type="double" value="1.e0" />
+				<Parameter name="ActiveBool" type="double" value="0" />
+				<Parameter name="growthBool" type="double" value="0" />
+				<Parameter name="reorientationBool" type="double" value="0" />
+				<Parameter name="growthDirectionBool" type="double" value="0" />
+				<Parameter name="PostProcessingType" type="double" value="1." />
+				<Parameter name="PostProcessingPower" type="double" value="2." />
 
+		</ParameterList>
+		<!-- ######################################## -->
 
     </ParameterList>
     

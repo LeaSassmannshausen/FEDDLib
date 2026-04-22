@@ -49,13 +49,13 @@ AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params, tuple)
 		$[Rho]$0 -Density_30 						1e0
 													
 		*/
-	c1_ = this->params_->sublist("Parameter Solid").get("Alpha1",11.52507e1); // 
-	epsilon1_ = this->params_->sublist("Parameter Solid").get("Alpha2", 0.15173775e1);
-	epsilon2_ = this->params_->sublist("Parameter Solid").get("Alpha3",0.27566199999999996e1); // 
-	alpha1_ = this->params_->sublist("Parameter Solid").get("Alpha4",1.27631e1);
-	alpha2_ = this->params_->sublist("Parameter Solid").get("Alpha5",0.308798e1); // 
+	c1_ = this->params_->sublist("Parameter Solid").get("Alpha1",17.5e1); // 
+	epsilon1_ = this->params_->sublist("Parameter Solid").get("Alpha2", 499.8e1);
+	epsilon2_ = this->params_->sublist("Parameter Solid").get("Alpha3",2.4); // 
+	alpha1_ = this->params_->sublist("Parameter Solid").get("Alpha4",30001.9e1);
+	alpha2_ = this->params_->sublist("Parameter Solid").get("Alpha5",5.1); // 
 
-	fA_= this->params_->sublist("Parameter Solid").get("FA",0.0e0); // ??
+	fA_= this->params_->sublist("Parameter Solid").get("FA",43.0e0); // ??
 
 	// std::cout << "AssembleFE_SCI_SMC_MLCK: Parameters read in: " << std::endl;
 	// std::cout << "c1: " << c1_ << std::endl;
