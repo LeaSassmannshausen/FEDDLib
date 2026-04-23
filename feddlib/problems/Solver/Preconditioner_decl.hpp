@@ -21,7 +21,10 @@
 #include "Teko_StratimikosFactory.hpp"
 #include <Teko_StaticRequestCallback.hpp>
 #include "Stratimikos_DefaultLinearSolverBuilder.hpp"
+#if defined(HAVE_MUELU) || defined(HAVE_MUELU_TPETRA)
 #include "Stratimikos_MueLuHelpers.hpp"
+#define FEDD_HAVE_MUELU
+#endif
 #endif
 
 /*!

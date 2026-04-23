@@ -65,6 +65,7 @@ precFactory_()
     problem_->getLinearSolverBuilder()->setPreconditioningStrategyFactory(Teuchos::abstractFactoryStd<Base, Impl>(), "Ifpack2");
 #endif
 #ifdef FEDD_HAVE_TEKO
+#ifdef FEDD_HAVE_MUELU
     // Register MueLu before adding Teko: Teko snapshots the Stratimikos builder
     // when it is registered, so the snapshot must already know "MueLu".
     if (!problem_->getLinearSolverBuilder()
@@ -73,6 +74,7 @@ precFactory_()
               .isSublist("MueLu")) {
         Stratimikos::enableMueLu<SC, LO, GO, NO>(*problem_->getLinearSolverBuilder(), "MueLu");
     }
+#endif
     Teko::addTekoToStratimikosBuilder( *problem_->getLinearSolverBuilder() );
 #endif
 
@@ -923,12 +925,14 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerTeko( )
     else if(!timeProblem_.is_null())
         solverBuilder = timeProblem_->getUnderlyingProblem()->getLinearSolverBuilder();
 
+#ifdef FEDD_HAVE_MUELU
     // Register MueLu with Stratimikos only if not already present.
     if (!solverBuilder->getValidParameters()
              ->sublist("Preconditioner Types")
              .isSublist("MueLu")) {
         Stratimikos::enableMueLu<SC, LO, GO, NO>(*solverBuilder, "MueLu");
     }
+#endif
     
     ParameterListPtr_Type tekoPList= sublist( parameterList, "Teko Parameters" );
 

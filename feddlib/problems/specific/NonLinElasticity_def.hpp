@@ -374,7 +374,7 @@ typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticit
     55 -- "SrDir1"
     56 -- "SrDir2"
     57 -- "SrDir3"*/
-
+    std::cout << "Assembling postprocessing data..." << std::endl;
     if(this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true ){
     
         MultiVectorPtr_Type vonMisesStress = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
