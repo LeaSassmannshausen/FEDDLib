@@ -5076,7 +5076,7 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
         << " Reference Pressure Input: " << p_ref_input << std::endl
         << " Ramp Time: " << rampTime << std::endl
         << " Unsteady Start: " << unsteadyStart << std::endl
-        << " Flowrate Input: " << flowRateInput << std::endl
+        << " Flowrate Input: " << flowRateInput << std::endl;
     }
 
     SC elScaling;
