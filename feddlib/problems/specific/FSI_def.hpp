@@ -847,25 +847,11 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
         this->rhs_->getBlock(0)->norm2(rhsNormBefore());
         this->sourceTerm_->getBlock(0)->norm2(sourceNormBefore());
         if(this->verbose_)
-            std::cout << "FSI_DEBUG before_setBoundariesRHS"
+            std::cout << "FSI_DEBUG residual_rhs_state_after_bc"
                       << " rhs0_norm=" << rhsNormBefore[0]
                       << " sourceTerm0_norm=" << sourceNormBefore[0]
                       << " bc_time=" << this->timeSteppingTool_->currentTime()
-                      << std::endl;
-    }
-
-    this->setBoundariesRHS(this->timeSteppingTool_->currentTime());
-
-    {
-        typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-        Teuchos::Array<Magnitude_Type> rhsNormAfter(1);
-        Teuchos::Array<Magnitude_Type> sourceNormAfter(1);
-        this->rhs_->getBlock(0)->norm2(rhsNormAfter());
-        this->sourceTerm_->getBlock(0)->norm2(sourceNormAfter());
-        if(this->verbose_)
-            std::cout << "FSI_DEBUG after_setBoundariesRHS"
-                      << " rhs0_norm=" << rhsNormAfter[0]
-                      << " sourceTerm0_norm=" << sourceNormAfter[0]
+                      << " setBoundariesRHS_skipped=1"
                       << std::endl;
     }
 
@@ -1182,6 +1168,8 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
 
     // Type of pressure boundary condition
     std::string pressureRB = this->parameterList_->sublist("Parameter Fluid").get("Pressure Boundary Condition","None");
+
+    this->sourceTerm_->getBlockNonConst(0)->putScalar(0.0);
 
     {
         typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
