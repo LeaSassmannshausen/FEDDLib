@@ -55,8 +55,8 @@ u_rep_()
 
     timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter") , this->comm_));
 
-    postProcessingnames_.resize(5);
-    postProcessingnames_ = {"vonMisesStress", "SCirc","SAxial","SRadial","W"};
+    postProcessingnames_.resize(11);
+    postProcessingnames_ = {"vonMisesStress", "SCirc","SAxial","SRadial","W","a11","a12","a13","a21","a22","a23"};
 
 }
 
@@ -321,7 +321,7 @@ void NonLinElasticity<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type,
 template<class SC,class LO,class GO,class NO>
 typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticity<SC,LO,GO,NO>::getPostProcessingData() const
 {
-    BlockMultiVectorPtr_Type postProcess =Teuchos::rcp(new BlockMultiVector_Type(5)) ;
+    BlockMultiVectorPtr_Type postProcess =Teuchos::rcp(new BlockMultiVector_Type(11)) ;
         
     /*
     0 -- "Volume","
@@ -392,12 +392,32 @@ typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticit
         MultiVectorPtr_Type W = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
         this->feFactory_->postProcessing(23, W);
 
+        MultiVectorPtr_Type a11 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(39, a11);
+        MultiVectorPtr_Type a12 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(40, a12);
+        MultiVectorPtr_Type a13 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(41, a13);
+        MultiVectorPtr_Type a21 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(42, a21);
+        MultiVectorPtr_Type a22 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(43, a22);
+        MultiVectorPtr_Type a23 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(44, a23);
+
+
 
         postProcess->addBlock(vonMisesStress,0);
         postProcess->addBlock(SCirc,1);
         postProcess->addBlock(SAxial,2);
         postProcess->addBlock(SRadial,3);
         postProcess->addBlock(W,4);
+        postProcess->addBlock(a11,5);
+        postProcess->addBlock(a12,6);
+        postProcess->addBlock(a13,7);
+        postProcess->addBlock(a21,8);   
+        postProcess->addBlock(a22,9);
+        postProcess->addBlock(a23,10);
     }
     
     return postProcess;

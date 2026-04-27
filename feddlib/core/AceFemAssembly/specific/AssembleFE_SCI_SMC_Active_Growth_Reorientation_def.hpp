@@ -42,6 +42,7 @@ namespace FEDD
 		this->domainDataLength_ = tempElem.getNumberOfDomainData();
 		char **domainDataNames = tempElem.getDomainDataNames();
 		char **postDataNames = tempElem.getPostDataNames();
+		
 
 		std::vector<std::string> subString(this->domainDataLength_);
 
