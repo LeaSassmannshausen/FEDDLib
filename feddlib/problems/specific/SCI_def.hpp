@@ -837,11 +837,11 @@ void SCI<SC,LO,GO,NO>::setSolidMassmatrix( MatrixPtr_Type& massmatrix ) const
 
     int size = this->problemTimeStructure_->getSystem()->size();
 
-    bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
-    double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0); 
+    // bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
+    // double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0); 
  
-    if(timeSteppingTool_->currentTime() == 0.0 || (restart &&  timeSteppingTool_->currentTime() -1.e-5 < timeStepRestart ))
-    {
+    // if(timeSteppingTool_->currentTime() == 0.0 || (restart &&  timeSteppingTool_->currentTime() -1.e-5 < timeStepRestart ))
+    // {
         this->problemTimeStructure_->systemMass_.reset(new BlockMatrix_Type(size));
         {
 
@@ -857,7 +857,7 @@ void SCI<SC,LO,GO,NO>::setSolidMassmatrix( MatrixPtr_Type& massmatrix ) const
 
             this->problemTimeStructure_->systemMass_->addBlock( massmatrix, 0, 0 );
         }
-    }
+    // }
 }
 
 // Can stay the same

@@ -85,10 +85,15 @@ void NonLinElasticity<SC,LO,GO,NO>::assemble(std::string type) const{
         this->system_.reset(new BlockMatrix_Type(1));
         this->system_->addBlock( A, 0, 0 );
                 
-        double density = this->parameterList_->sublist("Parameter").get("Density",1000.);
-        std::string sourceType = 	this->parameterList_->sublist("Parameter").get("Source Type","volume");
+        double density = this->parameterList_->sublist("Parameter").get("Density",1.);
+        std::string sourceType = 	this->parameterList_->sublist("Parameter").get("Source Type","none");
 
         this->assembleSourceTerm( 0. );
+
+        // this->sourceTerm_->print();
+        Teuchos::Array<SC> normVec(1); 
+        this->sourceTerm_->norm2(normVec);
+        std::cout << " Norm of sourceterm " << normVec[0] << std::endl;
         if(sourceType == "volume")
             this->sourceTerm_->scale(density);
         
