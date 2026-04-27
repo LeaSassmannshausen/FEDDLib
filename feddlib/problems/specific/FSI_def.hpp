@@ -1276,31 +1276,6 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
                           << std::endl;
         }
 
-        //this->sourceTerm_->getBlockNonConst(0)->print();
-        //double density = this->parameterList_->sublist("Parameter").get("Density",1.);
-        //this->problemTimeFluid_->getSourceTerm()->scale(density);
-        // Fuege die rechte Seite der DGL (f bzw. f_{n+1}) der rechten Seite hinzu (skaliert mit coeffSourceTerm)
-        // Die Skalierung mit der Dichte erfolgt schon in der Assemblierungsfunktion!
-        
-        // addSourceTermToRHS() aus DAESolverInTime
-        double coeffSourceTerm = 1.0; // 1 for BDF 1/2 
-       // BlockMultiVectorPtr_Type tmpSourceterm = Teuchos::rcp(new BlockMultiVector_Type(1)) ;
-       // tmpSourceterm->addBlock(this->sourceTerm_->getBlockNonConst(1),0);
-
-            
-        this->problemTimeFluid_->getRhs()->getBlockNonConst(0)->update(coeffSourceTerm, *this->sourceTerm_->getBlockNonConst(0), 1.);
-        this->rhs_->addBlock( this->problemTimeFluid_->getRhs()->getBlockNonConst(0), 0 );
-
-        {
-            typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-            Teuchos::Array<Magnitude_Type> fluidRhsNorm(1);
-            this->problemTimeFluid_->getRhs()->getBlock(0)->norm2(fluidRhsNorm());
-            if(this->verbose_)
-                std::cout << "FSI_DEBUG PressureRHS Resistance after_rhs_update"
-                          << " fluid_time_rhs0_norm=" << fluidRhsNorm[0]
-                          << std::endl;
-        }
-
         if(this->verbose_)
             std::cout << "  .. done " << std::endl;
 
@@ -1435,23 +1410,6 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
         if ( this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false)){
             exporterBoundaryCondition_->exportData( "FlowrateOutlet_Previous_Timestep", flowRateOutlet_n_1_ );
         }
-        // addSourceTermToRHS() aus DAESolverInTime
-        double coeffSourceTerm = 1.0;  // 1 for BDF 1/2 
-       
-            
-        this->problemTimeFluid_->getRhs()->getBlockNonConst(0)->update(coeffSourceTerm, *this->sourceTerm_->getBlockNonConst(0), 1.);
-        this->rhs_->addBlock( this->problemTimeFluid_->getRhs()->getBlockNonConst(0), 0 );
-
-        {
-            typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-            Teuchos::Array<Magnitude_Type> fluidRhsNorm(1);
-            this->problemTimeFluid_->getRhs()->getBlock(0)->norm2(fluidRhsNorm());
-            if(this->verbose_)
-                std::cout << "FSI_DEBUG PressureRHS Absorbing after_rhs_update"
-                          << " fluid_time_rhs0_norm=" << fluidRhsNorm[0]
-                          << std::endl;
-        }
-
         if(this->verbose_)
             std::cout << "  .. done " << std::endl;
 
@@ -1493,22 +1451,6 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
                           << std::endl;
         }
         
-        // addSourceTermToRHS() aus DAESolverInTime
-        double coeffSourceTerm = 1.0;  // 1 for BDF 1/2 
-            
-        this->problemTimeFluid_->getRhs()->getBlockNonConst(0)->update(coeffSourceTerm, *this->sourceTerm_->getBlockNonConst(0), 1.);
-        this->rhs_->addBlock( this->problemTimeFluid_->getRhs()->getBlockNonConst(0), 0 );
-
-        {
-            typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-            Teuchos::Array<Magnitude_Type> fluidRhsNorm(1);
-            this->problemTimeFluid_->getRhs()->getBlock(0)->norm2(fluidRhsNorm());
-            if(this->verbose_)
-                std::cout << "FSI_DEBUG PressureRHS PressureFlowrate after_rhs_update"
-                          << " fluid_time_rhs0_norm=" << fluidRhsNorm[0]
-                          << std::endl;
-        }
-
         if(this->verbose_)
             std::cout << "  .. done " << std::endl;
 
