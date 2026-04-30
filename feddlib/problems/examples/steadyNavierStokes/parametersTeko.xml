@@ -70,56 +70,85 @@
 
                     <ParameterList name="MueLu-Velocity">
 
-                        <Parameter name="problem: symmetric" type="bool" value="false"/>
-                        <Parameter name="nullspace: calculate rotations" type="bool" value="false"/>
                         <Parameter name="Type" type="string" value="MueLu"/>
+                        <!-- 3 for 3D - similar to dofs -->
+                        <Parameter name="number of equations" type="int" value="3"/> 
+                        <Parameter name="problem: symmetric" type="bool" value="false"/>
+                        <!-- Roations necessary for elasticity problem -->
+                        <Parameter name="nullspace: calculate rotations" type="bool" value="false"/>
+						<!-- Output verbosity -->
                         <Parameter name="verbosity" type="string" value="medium"/>
-                        <Parameter name="number of equations" type="int" value="2"/> <!-- 3 for 3D -->
-                        <Parameter name="multigrid algorithm" type="string" value="sa"/>
-                        <Parameter name="max levels" type="int" value="10"/>
-                        <!-- Pre and post smoothing -->
-                        <!-- RILUK, ILUT, SCHWARZ-->
-                        <Parameter name="smoother: pre type" type="string" value="RELAXATION"/>
+                        
+                        <!-- Reuse Values: none, tP, RP, emin, RAP, full, S -->
+						<Parameter name="reuse: type" type="string" value="RAP"/>
+						<Parameter name="keep data" type="string" value="{}"/>
+						<Parameter name="filtered matrix: reuse graph" type="bool" value="false"/>
+						<Parameter name="filtered matrix: reuse eigenvalue" type="bool" value="false"/>
+						
+						                        
+	                    <!-- Not too high to avaoid redundant levels, e.g. when coarse size is too small -->
+                        <Parameter name="max levels" type="int" value="5"/>
+                        <!-- Not too small for a good coarse correction! -->
+                        <Parameter name="coarse: max size" type="int" value="100"/> 
+                        <Parameter name="coarse: type" type="string" value="PARDISOMKL"/> <!-- direct coarse solver: KLU2, PARDIOMKL, MUMPS -->
+
+
+                        <!-- Pre smoothing -->
+                        <!-- RELAXATION RILUK, ILUT, SCHWARZ-->
+                        <Parameter name="smoother: pre type" type="string" value="RILUK"/>
+                        
+                        <!-- Input for relaxation -->
                         <ParameterList name="smoother: pre params">
-                        <!-- Jacobi, Gauss-Seidel, Symmetric Gauss-Seidel, MT Gauss-Seidel, 
-                        Richardson, Two-stage Gauss-Seidel, Two-stage Symmetric Gauss-Seidel -->
-                            <Parameter name="relaxation: type" type="string" value="Jacobi"/>
-                            <Parameter name="relaxation: sweeps" type="int" value="2"/>
+		                    <!-- Jacobi, Gauss-Seidel, Symmetric Gauss-Seidel, MT Gauss-Seidel, 
+		                    Richardson, Two-stage Gauss-Seidel, Two-stage Symmetric Gauss-Seidel -->
+							<Parameter name="relaxation: type" type="string" value="Gauss-Seidel"/>
+							<Parameter name="relaxation: sweeps" type="int" value="2"/>
                             <Parameter name="relaxation: damping factor" type="double" value="0.9"/>
                         </ParameterList>
+                        
+                        <!-- Post smoothing -->
                         <!-- RILUK, ILUT, SCHWARZ-->
-                        <Parameter name="smoother: post type" type="string" value="RELAXATION"/>
+                        <Parameter name="smoother: post type" type="string" value="RILUK"/>
+                        
+                        <!-- Input for relaxation -->
                         <ParameterList name="smoother: post params">
                         <!-- Jacobi, Gauss-Seidel, Symmetric Gauss-Seidel, MT Gauss-Seidel, 
                         Richardson, Two-stage Gauss-Seidel, Two-stage Symmetric Gauss-Seidel -->
-                            <Parameter name="relaxation: type" type="string" value="Jacobi"/>
+                            <Parameter name="relaxation: type" type="string" value="Gauss-Seidel"/>
                             <Parameter name="relaxation: sweeps" type="int" value="2"/>
                             <Parameter name="relaxation: damping factor" type="double" value="0.9"/>
                         </ParameterList>
-                	    <Parameter name="coarse: max size" type="int" value="50"/>
-                        <Parameter name="coarse: type" type="string" value="PARDISOMKL"/> <!-- KLU2, PARDIOMKL, MUMPS -->
-
+                        
+                        <!-- If we use a Schwarz Smoother -->	
+                        <Parameter name="smoother: overlap" type="int" value="1"/>
+                        <Parameter name="smoother: pre overlap" type="int" value="0"/>
+                        <Parameter name="smoother: post overlap" type="int" value="0"/>
+                        
+                		<!-- Aggregation -->
+                        <Parameter name="multigrid algorithm" type="string" value="sa"/>
                         <!-- possible aggregation types: uncoupled, coupled, brick, matlab, notay, classical -->
                 	    <Parameter name="aggregation: type" type="string" value="uncoupled"/> 
-                        <Parameter name="aggregation: min agg size" type="int" value="10"/>
-						<Parameter name="aggregation: max agg size" type="int" value="20"/>
-
+                        <Parameter name="aggregation: min agg size" type="int" value="5"/>
+						<Parameter name="aggregation: max agg size" type="int" value="30"/>
+						<Parameter name="aggregation: drop tol" type="double" value="0.02"/>
+						<!-- Damping factor good value: 1.2-1.4 -> controls strength of prolongation smoothing (I-\omega D^{-1}A)) P -->
+						<!-- Small value ~1.0 -> weak prolongation, poor coarse correction -->
+						<!-- Too large > 1.5 -> unstable/overcorrection -->
                         <Parameter name="sa: damping factor" type="double" value="1.33"/>
+                        <!-- Use filtered (sparsified) matrix for aggregation and prolongation smoothing instead of the full matrx -->
+                        <!-- Important for high nnz/rows -->
                         <Parameter name="sa: use filtered matrix" type="bool" value="true"/>
+                        <!-- Calculates damping factor by eigenvalue estimation \lambda_max(D^{-1}A) -->
                         <Parameter name="sa: calculate eigenvalue estimate" type="bool" value="false"/>
                         <Parameter name="sa: eigenvalue estimate num iterations" type="int" value="10"/>
-                        <Parameter name="sa: use rowsumabs diagonal scaling" type="bool" value="false"/>
+                        <!-- Enforces, that prolongator exactly preserves nullspace: P^{T} B = 0 -->
                         <Parameter name="sa: enforce constraints" type="bool" value="false"/>
+                        <!-- Manual override vor lambda_max. -1 -> compute automatically. -->
                         <Parameter name="sa: max eigenvalue" type="double" value="-1"/>
-                        <Parameter name="sa: rowsumabs diagonal replacement tolerance" type="double" value="-1"/>
-                        <Parameter name="sa: rowsumabs use automatic diagonal tolerance" type="bool" value="false"/>
-                        <Parameter name="sa: rowsumabs diagonal replacement value" type="double" value="0"/>
-                        <Parameter name="sa: rowsumabs replace single entry row with zero" type="bool" value="true"/>
-
-                        <Parameter name="coarse grid correction scaling factor" type="double" value="1.0"/>
-                        <Parameter name="smoother: overlap" type="int" value="0.0"/>
-                        <Parameter name="smoother: pre overlap" type="int" value="0.0"/>
-                        <Parameter name="smoother: post overlap" type="int" value="0.0"/>
+                     	<!-- Scaling factor \alpha for coarse correction: x = x + \alpha P A_c^{-1} Rr -->
+                     	<!-- 1.0 -> standard, <1 -> under relaxed AMG, >1 (maybe try 0.8-0.9) -> over correction (rarely good) -->
+                        <Parameter name="coarse grid correction scaling factor" type="double" value="0.9"/>
+                        
 
                     </ParameterList>
 
