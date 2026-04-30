@@ -1198,6 +1198,8 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
     // with the resistive boundary condition -- Wu, Cai 2011'
     // We assemble
     // \int_{\Gamma_O} R flowrateOutlet \phi_f n ds + nu_f \int_{\Omega_O} \phi_f \cdot (\nabla u_f) \cdot n ds
+
+    
     if (pressureRB == "Resistance")
     {
         if(this->verbose_)
@@ -1348,6 +1350,26 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
         flowRateOutlet_timesteps[0] = flowRateOutlet_n_1_;
         flowRateOutlet_timesteps[1] = flowRateOutlet_n_;
 
+
+        if(flowRateOutlet_n_< 0)
+        {
+            MatrixPtr_Type A = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
+            MultiVectorPtr_Type r = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
+
+            this->feFactory_->assemblyBackflowStabilization(this->dim_,this->getDomain(0)->getFEType(), A,r,u_rep_, this->parameterList_, 0);
+        
+            typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
+            Teuchos::Array<Magnitude_Type> feNorm(1);
+            Teuchos::Array<Magnitude_Type> sourceNorm(1);
+            r->norm2(feNorm());
+            
+            if(this->verbose_)
+                std::cout << "FSI_DEBUG PressureRHS Absorbing residual for flowrate below zero"
+                          << " r_norm=" << feNorm[0]
+                          << std::endl;
+            r->writeMM("r_backflow_stab"+std::to_string(this->timeSteppingTool_->currentTime())+".mm");
+            A->writeMM("A_backflow_stab"+std::to_string(this->timeSteppingTool_->currentTime())+".mm");
+        }
         // The traditional approach differs slightly from the approach used in Comparison of arterial wall models in fluid–structure interaction
         // simulations D. Balzani, A. Heinlein, A. Klawonn, O. Rheinbach, J. Schröder, 2023, and its predecessor. Thus, absorbing paper refers to 
         // the aforementioned paper.

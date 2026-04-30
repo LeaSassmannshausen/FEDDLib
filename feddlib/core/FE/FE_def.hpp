@@ -5250,6 +5250,140 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
     return p_out;
 }
 
+
+template <class SC, class LO, class GO, class NO>
+double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
+                                              std::string FEType,
+                                              MatrixPtr_Type A,
+                                              MultiVectorPtr_Type f,
+                                              MultiVectorPtr_Type u_rep,
+                                              ParameterListPtr_Type params,
+                                              int FEloc) {
+
+    ElementsPtr_Type elements = domainVec_.at(FEloc)->getElementsC();
+
+    ElementsPtr_Type elementsPressure = domainVec_.at(FEloc+1)->getElementsC();
+
+    vec2D_dbl_ptr_Type pointsRep = domainVec_.at(FEloc)->getPointsRepeated();
+    
+    vec2D_dbl_ptr_Type phi;
+    MapConstPtr_Type map = domainVec_.at(FEloc)->getMapRepeated();
+
+
+    vec_dbl_ptr_Type weights = Teuchos::rcp(new vec_dbl_Type(0));
+
+    UN deg = Helper::determineDegree( dim-1, FEType, Helper::Deriv0);// + 1.0;
+    Helper::getPhi(phi, weights, dim-1, FEType, deg);
+
+    vec2D_dbl_ptr_Type quadPoints;
+    vec_dbl_ptr_Type w = Teuchos::rcp(new vec_dbl_Type(0));
+    Helper::getQuadratureValues(dim-1, deg, quadPoints, w, FEType);
+    w.reset();
+
+    double poissonRatio=params->sublist("Parameter Fluid").get("Poisson Ratio",0.49); 
+    int flagOutlet = params->sublist("General").get("Flag Outlet Fluid", 5);
+    double rho_f = params->sublist("Parameter Fluid").get("Density",1.0); 
+    double beta = params->sublist("Parameter Fluid").get("Density",1.0); 
+
+    SC elScaling;
+    SmallMatrix<SC> B(dim);
+    SmallMatrix<SC> Binv(dim);
+    SC detB;
+    SC absDetB;
+    vec_dbl_Type b(dim);
+    f->putScalar(0.);
+    Teuchos::ArrayRCP< SC > valuesF = f->getDataNonConst(0);
+       
+  
+    // Second step: use flow rate to determine pressure with resistance
+    for (UN T=0; T<elements->numberElements(); T++) {
+        FiniteElement fe = elements->getElement( T );
+        ElementsPtr_Type subEl = fe.getSubElements(); // might be null
+        for (int surface=0; surface<fe.numSubElements(); surface++) {
+            FiniteElement feSub = subEl->getElement( surface  );
+            if(subEl->getDimension() == dim-1 ){
+               if(feSub.getFlag() == flagOutlet){
+                    vec_int_Type nodeList = feSub.getVectorNodeListNonConst ();
+                    vec_int_Type nodeListP = elementsPressure->getElement(T).getSubElements()->getElement(surface).getVectorNodeListNonConst();
+                    int numNodes_T = nodeList.size();
+                    vec_dbl_Type solution_u = getSolution(nodeList, u_rep,dim);
+                    vec2D_dbl_Type nodes;
+                    nodes = getCoordinates(nodeList, pointsRep);
+
+                    vec_dbl_Type p1(dim),p2(dim),v_E(dim,1.);
+
+                    double norm_v_E = 1.;
+
+                    Helper::computeSurfaceNormal( dim, pointsRep, nodeList, v_E, norm_v_E);
+
+                    // Step 1: Quadrature Points on physical surface:
+                    // Resulting Quad Points always (0.5,0,0) (0.5,0.5,0) (0,0.5,0)
+                    Helper::buildTransformationSurface( nodeList, pointsRep, B, b, FEType);
+                    elScaling = B.computeScaling( );
+                    
+                    
+                    for (UN w=0; w < phi->size(); w++) { // Quadrature points
+        
+                        // Adding backflow stabilization for negative flowrate only
+                        // Check if there is negativ flowrate for some points
+                        vec_dbl_Type u_h_q(dim,0.); // u evaluated a qudrature point w
+
+                        for (int d=0; d<dim; d++) {
+                            for (int i=0; i < phi->at(0).size(); i++) { // loop over all basis functions
+                                u_h_q[d] += solution_u[dim * i + d] * (*phi)[w][i];// Evaluation at each Qudrature point of basis function w
+                            }
+                        }
+                        
+                        double localVelocity = 0.;
+                        for (int d = 0; d < dim; d++)
+                        {
+                            localVelocity += u_h_q[d] * v_E[d]/norm_v_E;
+                        }
+
+                        // We only assemble for negative flow
+                        if(localVelocity < 0.)                     
+                        {   
+                            // Matrix Assembly for backflow stabilization                         
+                            for (UN i=0; i < phi->at(0).size(); i++) {
+                                Teuchos::Array<SC> value( phi->at(0).size(), 0. ); //  number basis function
+                                Teuchos::Array<GO> indices( phi->at(0).size(), 0 ); //  number basis function
+                                for (UN j=0; j < phi->at(0).size(); j++){
+                                    value[j] = beta*rho_f* weights->at(w)*localVelocity* (*phi)[w][i] * (*phi)[w][j];
+                                    value[j] *= elScaling;
+                                    
+                                }
+                                for (UN d=0; d<dim; d++) {
+                                    for (int j=0; j<indices.size(); j++) {
+                                        indices[j] = (GO) ( dim * map->getGlobalElement( nodeList[j] ) + d );
+                                    }
+                                    GO row = (GO) ( dim * map->getGlobalElement( nodeList[i] ) + d );
+                                    A->insertGlobalValues( row, indices(), value() );
+                                }
+                            }
+                            // Residual Assembly for backflow stabilization
+                            for (UN i=0; i < phi->at(0).size(); i++) {
+                                Teuchos::Array<SC> value( dim, 0. ); //  number basis function
+                                Teuchos::Array<GO> indices( dim, 0 ); //  number basis function
+                                for (UN d=0; d<dim; d++) {
+                                    value[d] = beta*rho_f* weights->at(w)*localVelocity*u_h_q[d]*(*phi)[w][i] ;
+                                    value[d] *= elScaling;
+                                }
+                                for (int d=0; d<value.size(); d++)
+                                    valuesF[ dim * nodeList[ i ] + d ] += value[d];
+                            }
+                            
+                        }
+                    }
+
+               }
+                    
+            }
+        }
+    }
+    A->fillComplete();
+    return 0;
+}
+
 template <class SC, class LO, class GO, class NO>
 double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundary(int dim,
                                               std::string FEType,
