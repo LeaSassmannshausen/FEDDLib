@@ -1346,17 +1346,40 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
             MultiVectorPtr_Type r = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
 
             this->feFactory_->assemblyBackflowStabilization(this->dim_,this->getDomain(0)->getFEType(), A,r,u_rep_, this->parameterList_, 0);
+
+            MultiVectorPtr_Type AStabU = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
+            AStabU->putScalar(0.);
+            A->apply( *this->solution_->getBlock(0), *AStabU );
+
+            MultiVectorPtr_Type rUnique = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
+            rUnique->putScalar(0.);
+            rUnique->exportFromVector( r, false, "Add" );
+
+            MultiVectorPtr_Type rMinusAStabU = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
+            rMinusAStabU->putScalar(0.);
+            rMinusAStabU->update( 1., *rUnique, 0. );
+            rMinusAStabU->update( -1., *AStabU, 1. );
         
             typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-            Teuchos::Array<Magnitude_Type> feNorm(1);
-            Teuchos::Array<Magnitude_Type> sourceNorm(1);
-            r->norm2(feNorm());
+            Teuchos::Array<Magnitude_Type> rRepeatedNorm(1);
+            Teuchos::Array<Magnitude_Type> rUniqueNorm(1);
+            Teuchos::Array<Magnitude_Type> AStabUNorm(1);
+            Teuchos::Array<Magnitude_Type> diffNorm(1);
+            r->norm2(rRepeatedNorm());
+            rUnique->norm2(rUniqueNorm());
+            AStabU->norm2(AStabUNorm());
+            rMinusAStabU->norm2(diffNorm());
             
             if(this->verbose_)
                 std::cout << "FSI_DEBUG PressureRHS Absorbing residual for flowrate below zero"
-                          << " r_norm=" << feNorm[0]
+                          << " r_repeated_norm=" << rRepeatedNorm[0]
+                          << " r_unique_norm=" << rUniqueNorm[0]
+                          << " A_stab_u_norm=" << AStabUNorm[0]
+                          << " r_minus_A_stab_u_norm=" << diffNorm[0]
                           << std::endl;
             r->writeMM("r_backflow_stab"+std::to_string(this->timeSteppingTool_->currentTime())+".mm");
+            AStabU->writeMM("A_stab_u_backflow_stab"+std::to_string(this->timeSteppingTool_->currentTime())+".mm");
+            rMinusAStabU->writeMM("r_minus_A_stab_u_backflow_stab"+std::to_string(this->timeSteppingTool_->currentTime())+".mm");
             A->writeMM("A_backflow_stab"+std::to_string(this->timeSteppingTool_->currentTime())+".mm");
         }
         // The traditional approach differs slightly from the approach used in Comparison of arterial wall models in fluid–structure interaction
