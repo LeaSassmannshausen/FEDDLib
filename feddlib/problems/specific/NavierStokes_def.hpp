@@ -915,7 +915,7 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::stri
                         << std::endl;
     
         }
-        system_->getBlock(0,0)->addMatrix(1.0, A_stab, 1.0);
+        this->system_->getBlock(0,0)->addMatrix(1.0, A_stab, 1.0);
     }
     // We need to account for different parameters of time discretizations here
     // This is ok for bdf with 1.0 scaling of the system. Would be wrong for Crank-Nicolson
