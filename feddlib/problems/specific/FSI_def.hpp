@@ -758,11 +758,16 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
     
     u_minus_w_rep_->update(-1.0, *w_rep_, 1.0);
     
+    if(this->problemTimeFluid_->getParameterList()->sublist("Parameter").get("Nonlinear Boundary Conditions",false))
+    {
+        this->computePressureRHSInTime();
+    }
+
     if (!geometryExplicit_) {
         
         P_.reset(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
         double density = this->problemTimeFluid_->getParameterList()->sublist("Parameter").get("Density",1.e-0);
-        
+        std::cout << " Density " << std::endl;
         this->feFactory_->assemblyAdditionalConvection( this->dim_, this->domain_FEType_vec_.at(0), P_, w_rep_, true );
         P_->resumeFill();
         P_->scale(density);
