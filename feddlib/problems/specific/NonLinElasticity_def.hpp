@@ -93,7 +93,7 @@ void NonLinElasticity<SC,LO,GO,NO>::assemble(std::string type) const{
         // this->sourceTerm_->print();
         Teuchos::Array<SC> normVec(1); 
         this->sourceTerm_->norm2(normVec);
-        std::cout << " Norm of sourceterm " << normVec[0] << std::endl;
+
         if(sourceType == "volume")
             this->sourceTerm_->scale(density);
         
