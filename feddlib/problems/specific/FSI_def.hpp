@@ -1329,25 +1329,10 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
                 exporterBoundaryCondition_->exportData( "Area_Outlet ", areaInlet_init );
             }
         } 
-        // else if(restart && timeStepRestart +1e-8 > timeSteppingTool_->currentTime() )
-        // {
-        //     if(this->verbose_)
-        //         cout << " WARNING: Absorbing boundary condition is computed but the initial values usally corresponding to T=0 now correspond to the restart time " << endl;
-        //     double areaInlet_init = 0.;
-        //     double areaOutlet_init = 0.;
-
-        //     this->feFactory_->assemblyArea(this->dim_,areaInlet_init, flagInlet);
-        //     this->feFactory_->assemblyArea(this->dim_, areaOutlet_init, flagOutlet);
-
-        //     areaInlet_init_ = 0.0253605;//areaInlet_init;
-        //     areaOutlet_init_ = 0.025605; //areaOutlet_init;
-
-        //     double flowRateInlet_n_1 = 0.;
-        //     this->feFactory_->assemblyFlowRate(this->dim_, flowRateInlet_n_1, this->getDomain(0)->getFEType() , this->dim_, flagOutlet , u_rep_);  
-        //     flowRateOutlet_n_1_ = flowRateInlet_n_1;  
+         
         // }
         double flowRateInlet_n = 0.;
-        this->feFactory_->assemblyFlowRate(this->dim_, flowRateInlet_n, this->getDomain(0)->getFEType() , this->dim_, flagOutlet , u_rep_);  
+        int isNeg = this->feFactory_->assemblyFlowRate(this->dim_, flowRateInlet_n, this->getDomain(0)->getFEType() , this->dim_, flagOutlet , u_rep_);  
         flowRateOutlet_n_ = flowRateInlet_n; 
 
         vec_dbl_Type flowRateOutlet_timesteps(2);
@@ -1355,7 +1340,7 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
         flowRateOutlet_timesteps[1] = flowRateOutlet_n_;
 
 
-        if(flowRateOutlet_n_< 0)
+        if(isNeg)
         {
             MatrixPtr_Type A = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
             MultiVectorPtr_Type r = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));

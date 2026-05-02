@@ -6292,7 +6292,7 @@ int FE<SC,LO,GO,NO>::assemblyFlowRate(int dim,
     vec2D_dbl_Type uLoc( dim, vec_dbl_Type( weights->size() , -1. ) );
 
     Teuchos::ArrayRCP< const SC > uArray = solution_rep->getData(0);
-    // Step 0: determie flowrate on inlet to calculate resistance
+    // Step 0: determie flowrate on inlet
     for (UN T=0; T<elements->numberElements(); T++) {
         FiniteElement fe = elements->getElement( T );
         ElementsPtr_Type subEl = fe.getSubElements(); // might be null
@@ -6340,27 +6340,18 @@ int FE<SC,LO,GO,NO>::assemblyFlowRate(int dim,
                     
                     Teuchos::Array<SC> value(0);
                     value.resize(  numNodes_T, 0. ); // Volumetric flow rate over one surface is a skalar value
-                    // //cout << " Velocity over node ";
-                    // for (int w=0; w<phi->size(); w++){ //quads points
-                    //     for (int d=0; d<dim; d++) {
-                    //         uLoc[d][w] = 0.;
-                    //         for (int i=0; i < phi->at(0).size(); i++) {
-                    //             LO index = dim * nodeList[i] + d;
-                    //             uLoc[d][w] += uArray[index] * phi->at(w).at(i);
-                    //         }
-                    //     }
-                    // }
 
                     for (UN i=0; i < numNodes_T; i++) {
                         // loop over basis functions quadrature points
                         for (UN w=0; w<phi->size(); w++) {
+                            
                             for (int j=0; j<dim; j++){
                                 if(dofs==1){
-                                    value[i] += weights->at(w) *v_E[j]/norm_v_E *solution_u[i]*(*phi)[w][i]; // valueFunc[0]* = 1.0
+                                    value[i] += weights->at(w) *v_E[j]/norm_v_E *solution_u[i]*(*phi)[w][i]; 
                                 }
                                 else{
                                     LO index = dim * i + j;
-                                    value[i] += weights->at(w) *v_E[j]/norm_v_E *solution_u[index]*(*phi)[w][i]; // valueFunc[0]* = 1.0
+                                    value[i] += weights->at(w) *v_E[j]/norm_v_E *solution_u[index]*(*phi)[w][i]; 
                                 }
 
                             }

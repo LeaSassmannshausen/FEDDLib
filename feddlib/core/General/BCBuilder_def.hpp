@@ -589,6 +589,9 @@ void BCBuilder<SC,LO,GO,NO>::determineVelocityForFlowrate(LO i, double time) con
     double flowRateParabolic=0.;
     feFactory->assemblyFlowRate(domain->getDimension(), flowRateParabolic, domain->getFEType(),1, vecFlag_[i] , parabolic_rep);
     // std::cout << " Flowrate parabolic " << flowRateParabolic << std::endl; 
+    // double area = 0.;
+    // feFactory->assemblyArea(domain->getDimension(), area, vecFlag_[i]);
+    // std::cout << " Area inlet " << area << std::endl;
     // Then we have flowRateParabolic * u_max == Q  <=> u_max = Q/flowRateParabolic, and Q is given as 'desired flowrate' in flowrate
     double maxVelocity = flowRate[0] / std::fabs(flowRateParabolic);
     // if(domain->getComm()->getRank() == 0)
