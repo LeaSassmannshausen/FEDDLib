@@ -767,7 +767,6 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
         
         P_.reset(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
         double density = this->problemTimeFluid_->getParameterList()->sublist("Parameter").get("Density",1.e-0);
-        std::cout << " Density " << density <<  std::endl;
         this->feFactory_->assemblyAdditionalConvection( this->dim_, this->domain_FEType_vec_.at(0), P_, w_rep_, true );
         P_->resumeFill();
         P_->scale(density);
