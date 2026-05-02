@@ -5065,19 +5065,19 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
 
     double bcRamp =  params->sublist("Parameter Fluid").get("BC Ramp",0.1);
 
-    if(u_rep->getMap()->getComm()->getRank()==0)
-    {
-    std::cout << " Parameters for absorbing BC: " << std::endl
-        << " Poisson Ratio: " << poissonRatio << std::endl
-        << " Normal Scale: " << normalScale << std::endl
-        << " E: " << E << std::endl
-        << " Wall Thickness: " << wallThickness << std::endl
-        << " Density: " << density << std::endl 
-        << " Reference Pressure Input: " << p_ref_input << std::endl
-        << " Ramp Time: " << rampTime << std::endl
-        << " Unsteady Start: " << unsteadyStart << std::endl
-        << " Flowrate Input: " << flowRateInput << std::endl;
-    }
+    // if(u_rep->getMap()->getComm()->getRank()==0)
+    // {
+    // std::cout << " Parameters for absorbing BC: " << std::endl
+    //     << " Poisson Ratio: " << poissonRatio << std::endl
+    //     << " Normal Scale: " << normalScale << std::endl
+    //     << " E: " << E << std::endl
+    //     << " Wall Thickness: " << wallThickness << std::endl
+    //     << " Density: " << density << std::endl 
+    //     << " Reference Pressure Input: " << p_ref_input << std::endl
+    //     << " Ramp Time: " << rampTime << std::endl
+    //     << " Unsteady Start: " << unsteadyStart << std::endl
+    //     << " Flowrate Input: " << flowRateInput << std::endl;
+    // }
 
     SC elScaling;
     SmallMatrix<SC> B(dim);
