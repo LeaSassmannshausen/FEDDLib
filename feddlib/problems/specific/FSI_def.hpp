@@ -1339,52 +1339,6 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
         flowRateOutlet_timesteps[0] = flowRateOutlet_n_1_;
         flowRateOutlet_timesteps[1] = flowRateOutlet_n_;
 
-
-       
-            MatrixPtr_Type A = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
-            MultiVectorPtr_Type r = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
-
-            this->feFactory_->assemblyBackflowStabilization(this->dim_,this->getDomain(0)->getFEType(), A,r,u_rep_, this->parameterList_, 0);
-
-            Teuchos::Array<SC> rNorm(1);
-            r->norm2(rNorm());
-
-            if(rNorm[0] > 0.0)
-            {
-                MultiVectorPtr_Type AStabU = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
-                AStabU->putScalar(0.);
-                A->apply( *this->solution_->getBlock(0), *AStabU );
-
-                MultiVectorPtr_Type rUnique = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
-                rUnique->putScalar(0.);
-                rUnique->exportFromVector( r, false, "Add" );
-
-                MultiVectorPtr_Type rMinusAStabU = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
-                rMinusAStabU->putScalar(0.);
-                rMinusAStabU->update( 1., *rUnique, 0. );
-                rMinusAStabU->update( -1., *AStabU, 1. );
-            
-                typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-                Teuchos::Array<Magnitude_Type> rRepeatedNorm(1);
-                Teuchos::Array<Magnitude_Type> rUniqueNorm(1);
-                Teuchos::Array<Magnitude_Type> AStabUNorm(1);
-                Teuchos::Array<Magnitude_Type> diffNorm(1);
-                r->norm2(rRepeatedNorm());
-                rUnique->norm2(rUniqueNorm());
-                AStabU->norm2(AStabUNorm());
-                rMinusAStabU->norm2(diffNorm());
-                
-                if(this->verbose_)
-                    std::cout << "FSI_DEBUG PressureRHS Absorbing residual for flowrate below zero"
-                            << " r_repeated_norm=" << rRepeatedNorm[0]
-                            << " r_unique_norm=" << rUniqueNorm[0]
-                            << " A_stab_u_norm=" << AStabUNorm[0]
-                            << " r_minus_A_stab_u_norm=" << diffNorm[0]
-                            << std::endl;
-                r->writeMM("r_backflow_stab"+std::to_string(this->timeSteppingTool_->currentTime())+".mm");
-            
-                A->writeMM("A_backflow_stab"+std::to_string(this->timeSteppingTool_->currentTime())+".mm");
-        }
         // The traditional approach differs slightly from the approach used in Comparison of arterial wall models in fluid–structure interaction
         // simulations D. Balzani, A. Heinlein, A. Klawonn, O. Rheinbach, J. Schröder, 2023, and its predecessor. Thus, absorbing paper refers to 
         // the aforementioned paper.

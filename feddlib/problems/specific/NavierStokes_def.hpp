@@ -667,7 +667,7 @@ void NavierStokes<SC,LO,GO,NO>::reAssemble(std::string type) const {
         W->resumeFill();
         W->scale(density);
         W->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
-        this->system_->getBlock( 0, 0 )->addMatrix(1.,ANW,0.);
+        this->system_->getBlock( 0, 0 )->addMatrix(1.,ANW,0.); // adding current system to ANW
         W->addMatrix(1.,ANW,1.);
         
     }
@@ -780,6 +780,225 @@ void NavierStokes<SC,LO,GO,NO>::reAssembleExtrapolation(BlockMultiVectorPtrArray
         std::cout << "done -- " << std::endl;
 }
 
+
+template<class SC,class LO,class GO,class NO>
+void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time) const{
+    
+    if (this->verbose_)
+        std::cout << "-- NavierStokes::calculateNonLinResidualVec ("<< type <<") ... " << std::flush;
+
+    // this->updateConvectionDiffusionOperator();
+    
+    this->reAssemble("FixedPoint");
+    // We need to account for different parameters of time discretizations here
+    // This is ok for bdf with 1.0 scaling of the system. Would be wrong for Crank-Nicolson - might be ok now for CN
+    if (this->coeff_.size() == 0)
+        this->system_->apply( *this->solution_, *this->residualVec_ );
+    else
+        this->system_->apply( *this->solution_, *this->residualVec_, this->coeff_ );
+    
+    if (!type.compare("standard")){
+//        if ( !this->sourceTerm_.is_null() )
+//            this->residualVec_->update(-1.,*this->sourceTerm_,1.);
+        // this might be set again by the TimeProblem after addition of M*u
+        if(augmentedLagrange_){
+            MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
+            BT_Mp_B_->apply( *this->solution_->getBlock(0), *rhsAL );
+            // rhsAL->print();
+            this->residualVec_->getBlockNonConst(0)->update(1.,*rhsAL,1.);
+        }
+
+        this->residualVec_->update(-1.,*this->rhs_,1.);
+
+        this->bcFactory_->setVectorMinusBC( this->residualVec_, this->solution_, time );
+        
+    }
+    else if(!type.compare("reverse")){
+//        if ( !this->sourceTerm_.is_null() )
+//            this->residualVec_->update(1.,*this->sourceTerm_,1.);
+        // this might be set again by the TimeProblem after addition of M*u
+
+        if(augmentedLagrange_){
+            // MultiVectorPtr_Type B_u_ = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(1) ) );
+            // B_->apply( *this->solution_->getBlock(0), *B_u_ );
+            // std::cout << " B * u contribution to residual: " << std::endl;
+            // B_u_->print();
+            // std::cout << " Pressure residual: " << std::endl;
+            // this->residualVec_->getBlock(1)->print();
+
+
+            // MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
+            // BT_Mp_->apply( *this->residualVec_->getBlock(1), *rhsAL );
+            // std::cout << "Augmented Lagrange contribution to residual: " << std::endl;
+            // rhsAL->print();
+
+            MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
+            BT_Mp_B_->apply( *this->solution_->getBlock(0), *rhsAL );
+            // rhsAL->print();
+            this->residualVec_->getBlockNonConst(0)->update(1.,*rhsAL,1.);
+
+        }
+        this->residualVec_->update(1.,*this->rhs_,-1.); // this = -1*this + 1*rhs
+
+
+        this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );    
+    }
+
+}
+
+template<class SC,class LO,class GO,class NO>
+void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::string type, double time, MultiVectorPtr_Type u_minus_w, MatrixPtr_Type P) const{
+
+    {
+        typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
+        Teuchos::Array<Magnitude_Type> solutionNorm(1);
+        Teuchos::Array<Magnitude_Type> uMinusWNorm(1);
+        Teuchos::Array<Magnitude_Type> rhsNorm(1);
+        Teuchos::Array<Magnitude_Type> sourceNorm(1);
+        this->solution_->getBlock(0)->norm2(solutionNorm());
+        u_minus_w->norm2(uMinusWNorm());
+        this->rhs_->getBlock(0)->norm2(rhsNorm());
+        if (!this->sourceTerm_.is_null())
+            this->sourceTerm_->getBlock(0)->norm2(sourceNorm());
+        else
+            sourceNorm[0] = 0.;
+        if (this->verbose_)
+            std::cout << "NS_FSI_DEBUG residual begin"
+                      << " type=" << type
+                      << " time=" << time
+                      << " velocity_norm=" << solutionNorm[0]
+                      << " u_minus_w_norm=" << uMinusWNorm[0]
+                      << " rhs0_norm=" << rhsNorm[0]
+                      << " sourceTerm0_norm=" << sourceNorm[0]
+                      << std::endl;
+    }
+
+    this->reAssembleFSI( "FixedPoint", u_minus_w, P );
+    
+    if(this->parameterList_->sublist("Parameter").get("Backflow Stabilization",false))
+    {
+        MatrixPtr_Type A_stab = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
+        MultiVectorPtr_Type r = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
+
+        this->feFactory_->assemblyBackflowStabilization(this->dim_,this->getDomain(0)->getFEType(), A_stab,r,u_rep_, this->parameterList_, 0);
+
+        {     
+            MultiVectorPtr_Type AStabU = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
+            AStabU->putScalar(0.);
+            A_stab->apply( *this->solution_->getBlock(0), *AStabU );
+
+            MultiVectorPtr_Type rUnique = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
+            rUnique->putScalar(0.);
+            rUnique->exportFromVector( r, false, "Add" );
+
+            MultiVectorPtr_Type rMinusAStabU = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
+            rMinusAStabU->putScalar(0.);
+            rMinusAStabU->update( 1., *rUnique, 0. );
+            rMinusAStabU->update( -1., *AStabU, 1. );
+        
+            typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
+            Teuchos::Array<Magnitude_Type> rRepeatedNorm(1);
+            Teuchos::Array<Magnitude_Type> rUniqueNorm(1);
+            Teuchos::Array<Magnitude_Type> AStabUNorm(1);
+            Teuchos::Array<Magnitude_Type> diffNorm(1);
+            r->norm2(rRepeatedNorm());
+            rUnique->norm2(rUniqueNorm());
+            AStabU->norm2(AStabUNorm());
+            rMinusAStabU->norm2(diffNorm());
+            
+            if(this->verbose_)
+                std::cout << "FSI_DEBUG PressureRHS residual greater than zero"
+                        << " r_repeated_norm=" << rRepeatedNorm[0]
+                        << " r_unique_norm=" << rUniqueNorm[0]
+                        << " A_stab_u_norm=" << AStabUNorm[0]
+                        << " r_minus_A_stab_u_norm=" << diffNorm[0]
+                        << std::endl;
+    
+        }
+        system_->getBlock(0,0)->addMatrix(1.0, A_stab, 1.0);
+    }
+    // We need to account for different parameters of time discretizations here
+    // This is ok for bdf with 1.0 scaling of the system. Would be wrong for Crank-Nicolson
+    
+    this->system_->apply( *this->solution_, *this->residualVec_ );
+
+    {
+        typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
+        Teuchos::Array<Magnitude_Type> residualNorm(1);
+        this->residualVec_->getBlock(0)->norm2(residualNorm());
+        if (this->verbose_)
+            std::cout << "NS_FSI_DEBUG after_system_apply"
+                      << " residual0_norm=" << residualNorm[0]
+                      << std::endl;
+    }
+//    this->residualVec_->getBlock(0)->writeMM("Ax.mm");
+//    this->rhs_->getBlock(0)->writeMM("nsRHS.mm");
+    if (!type.compare("standard")){
+        this->residualVec_->update(-1.,*this->rhs_,1.);
+        {
+            typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
+            Teuchos::Array<Magnitude_Type> residualNorm(1);
+            this->residualVec_->getBlock(0)->norm2(residualNorm());
+            if (this->verbose_)
+                std::cout << "NS_FSI_DEBUG standard after_rhs"
+                          << " residual0_norm=" << residualNorm[0]
+                          << std::endl;
+        }
+        if ( !this->sourceTerm_.is_null() )
+        {
+            this->residualVec_->update(-1.,*this->sourceTerm_,1.);
+            {
+                typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
+                Teuchos::Array<Magnitude_Type> residualNorm(1);
+                this->residualVec_->getBlock(0)->norm2(residualNorm());
+                if (this->verbose_)
+                    std::cout << "NS_FSI_DEBUG standard after_source"
+                              << " residual0_norm=" << residualNorm[0]
+                              << std::endl;
+            }
+        }
+    }
+    else if(!type.compare("reverse")){
+        this->residualVec_->update(1.,*this->rhs_,-1.); // this = -1*this + 1*rhs
+        {
+            typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
+            Teuchos::Array<Magnitude_Type> residualNorm(1);
+            this->residualVec_->getBlock(0)->norm2(residualNorm());
+            if (this->verbose_)
+                std::cout << "NS_FSI_DEBUG reverse after_rhs"
+                          << " residual0_norm=" << residualNorm[0]
+                          << std::endl;
+        }
+        if ( !this->sourceTerm_.is_null() )
+        {
+            this->residualVec_->update(1.,*this->sourceTerm_,1.);
+            {
+                typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
+                Teuchos::Array<Magnitude_Type> residualNorm(1);
+                this->residualVec_->getBlock(0)->norm2(residualNorm());
+                if (this->verbose_)
+                    std::cout << "NS_FSI_DEBUG reverse after_source"
+                              << " residual0_norm=" << residualNorm[0]
+                              << std::endl;
+            }
+        }
+    }
+    
+    // this might be set again by the TimeProblem after addition of M*u
+    this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );
+
+    {
+        typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
+        Teuchos::Array<Magnitude_Type> residualNorm(1);
+        this->residualVec_->getBlock(0)->norm2(residualNorm());
+        if (this->verbose_)
+            std::cout << "NS_FSI_DEBUG after_bc"
+                      << " residual0_norm=" << residualNorm[0]
+                      << std::endl;
+    }
+        
+}
+
 //template<class SC,class LO,class GO,class NO>
 //int NavierStokes<SC,LO,GO,NO>::ComputeDragLift(vec_dbl_ptr_Type &values){
 //
@@ -882,182 +1101,6 @@ void NavierStokes<SC,LO,GO,NO>::reAssembleExtrapolation(BlockMultiVectorPtrArray
 //    Thyra::DetachedVectorView<SC> x0(x0_);
 //    x0.sv().values()().assign(x0_in);
 //}
-
-template<class SC,class LO,class GO,class NO>
-void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time) const{
-    
-    if (this->verbose_)
-        std::cout << "-- NavierStokes::calculateNonLinResidualVec ("<< type <<") ... " << std::flush;
-
-    // this->updateConvectionDiffusionOperator();
-    
-    this->reAssemble("FixedPoint");
-    // We need to account for different parameters of time discretizations here
-    // This is ok for bdf with 1.0 scaling of the system. Would be wrong for Crank-Nicolson - might be ok now for CN
-    if (this->coeff_.size() == 0)
-        this->system_->apply( *this->solution_, *this->residualVec_ );
-    else
-        this->system_->apply( *this->solution_, *this->residualVec_, this->coeff_ );
-    
-    if (!type.compare("standard")){
-//        if ( !this->sourceTerm_.is_null() )
-//            this->residualVec_->update(-1.,*this->sourceTerm_,1.);
-        // this might be set again by the TimeProblem after addition of M*u
-        if(augmentedLagrange_){
-            MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
-            BT_Mp_B_->apply( *this->solution_->getBlock(0), *rhsAL );
-            // rhsAL->print();
-            this->residualVec_->getBlockNonConst(0)->update(1.,*rhsAL,1.);
-        }
-
-        this->residualVec_->update(-1.,*this->rhs_,1.);
-
-        this->bcFactory_->setVectorMinusBC( this->residualVec_, this->solution_, time );
-        
-    }
-    else if(!type.compare("reverse")){
-//        if ( !this->sourceTerm_.is_null() )
-//            this->residualVec_->update(1.,*this->sourceTerm_,1.);
-        // this might be set again by the TimeProblem after addition of M*u
-
-        if(augmentedLagrange_){
-            // MultiVectorPtr_Type B_u_ = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(1) ) );
-            // B_->apply( *this->solution_->getBlock(0), *B_u_ );
-            // std::cout << " B * u contribution to residual: " << std::endl;
-            // B_u_->print();
-            // std::cout << " Pressure residual: " << std::endl;
-            // this->residualVec_->getBlock(1)->print();
-
-
-            // MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
-            // BT_Mp_->apply( *this->residualVec_->getBlock(1), *rhsAL );
-            // std::cout << "Augmented Lagrange contribution to residual: " << std::endl;
-            // rhsAL->print();
-
-            MultiVectorPtr_Type rhsAL = Teuchos::rcp( new MultiVector_Type( this->residualVec_->getBlock(0) ) );
-            BT_Mp_B_->apply( *this->solution_->getBlock(0), *rhsAL );
-            // rhsAL->print();
-            this->residualVec_->getBlockNonConst(0)->update(1.,*rhsAL,1.);
-
-        }
-        this->residualVec_->update(1.,*this->rhs_,-1.); // this = -1*this + 1*rhs
-
-
-        this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );    
-    }
-
-}
-
-template<class SC,class LO,class GO,class NO>
-void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::string type, double time, MultiVectorPtr_Type u_minus_w, MatrixPtr_Type P) const{
-
-    {
-        typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-        Teuchos::Array<Magnitude_Type> solutionNorm(1);
-        Teuchos::Array<Magnitude_Type> uMinusWNorm(1);
-        Teuchos::Array<Magnitude_Type> rhsNorm(1);
-        Teuchos::Array<Magnitude_Type> sourceNorm(1);
-        this->solution_->getBlock(0)->norm2(solutionNorm());
-        u_minus_w->norm2(uMinusWNorm());
-        this->rhs_->getBlock(0)->norm2(rhsNorm());
-        if (!this->sourceTerm_.is_null())
-            this->sourceTerm_->getBlock(0)->norm2(sourceNorm());
-        else
-            sourceNorm[0] = 0.;
-        if (this->verbose_)
-            std::cout << "NS_FSI_DEBUG residual begin"
-                      << " type=" << type
-                      << " time=" << time
-                      << " velocity_norm=" << solutionNorm[0]
-                      << " u_minus_w_norm=" << uMinusWNorm[0]
-                      << " rhs0_norm=" << rhsNorm[0]
-                      << " sourceTerm0_norm=" << sourceNorm[0]
-                      << std::endl;
-    }
-
-    this->reAssembleFSI( "FixedPoint", u_minus_w, P );
-    
-    // We need to account for different parameters of time discretizations here
-    // This is ok for bdf with 1.0 scaling of the system. Would be wrong for Crank-Nicolson
-    
-    this->system_->apply( *this->solution_, *this->residualVec_ );
-
-    {
-        typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-        Teuchos::Array<Magnitude_Type> residualNorm(1);
-        this->residualVec_->getBlock(0)->norm2(residualNorm());
-        if (this->verbose_)
-            std::cout << "NS_FSI_DEBUG after_system_apply"
-                      << " residual0_norm=" << residualNorm[0]
-                      << std::endl;
-    }
-//    this->residualVec_->getBlock(0)->writeMM("Ax.mm");
-//    this->rhs_->getBlock(0)->writeMM("nsRHS.mm");
-    if (!type.compare("standard")){
-        this->residualVec_->update(-1.,*this->rhs_,1.);
-        {
-            typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-            Teuchos::Array<Magnitude_Type> residualNorm(1);
-            this->residualVec_->getBlock(0)->norm2(residualNorm());
-            if (this->verbose_)
-                std::cout << "NS_FSI_DEBUG standard after_rhs"
-                          << " residual0_norm=" << residualNorm[0]
-                          << std::endl;
-        }
-        if ( !this->sourceTerm_.is_null() )
-        {
-            this->residualVec_->update(-1.,*this->sourceTerm_,1.);
-            {
-                typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-                Teuchos::Array<Magnitude_Type> residualNorm(1);
-                this->residualVec_->getBlock(0)->norm2(residualNorm());
-                if (this->verbose_)
-                    std::cout << "NS_FSI_DEBUG standard after_source"
-                              << " residual0_norm=" << residualNorm[0]
-                              << std::endl;
-            }
-        }
-    }
-    else if(!type.compare("reverse")){
-        this->residualVec_->update(1.,*this->rhs_,-1.); // this = -1*this + 1*rhs
-        {
-            typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-            Teuchos::Array<Magnitude_Type> residualNorm(1);
-            this->residualVec_->getBlock(0)->norm2(residualNorm());
-            if (this->verbose_)
-                std::cout << "NS_FSI_DEBUG reverse after_rhs"
-                          << " residual0_norm=" << residualNorm[0]
-                          << std::endl;
-        }
-        if ( !this->sourceTerm_.is_null() )
-        {
-            this->residualVec_->update(1.,*this->sourceTerm_,1.);
-            {
-                typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-                Teuchos::Array<Magnitude_Type> residualNorm(1);
-                this->residualVec_->getBlock(0)->norm2(residualNorm());
-                if (this->verbose_)
-                    std::cout << "NS_FSI_DEBUG reverse after_source"
-                              << " residual0_norm=" << residualNorm[0]
-                              << std::endl;
-            }
-        }
-    }
-    
-    // this might be set again by the TimeProblem after addition of M*u
-    this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );
-
-    {
-        typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-        Teuchos::Array<Magnitude_Type> residualNorm(1);
-        this->residualVec_->getBlock(0)->norm2(residualNorm());
-        if (this->verbose_)
-            std::cout << "NS_FSI_DEBUG after_bc"
-                      << " residual0_norm=" << residualNorm[0]
-                      << std::endl;
-    }
-        
-}
 
 }
 
