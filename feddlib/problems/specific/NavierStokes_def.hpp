@@ -895,8 +895,6 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::stri
 
         this->system_->addBlock( ANW_stab, 0, 0 );
 
-        A_stab->fillComplete(this->getDomain(0)->getMapVecFieldUnique(),    this->getDomain(0)->getMapVecFieldUnique());
-
         {     
             MultiVectorPtr_Type AStabU = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
             AStabU->putScalar(0.);
