@@ -882,6 +882,21 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::stri
 
         this->feFactory_->assemblyBackflowStabilization(this->dim_,this->getDomain(0)->getFEType(), A_stab,r,u_rep_, this->parameterList_, 0);
 
+       
+        MatrixPtr_Type ANW_stab = Teuchos::rcp(new Matrix_Type(
+            this->getDomain(0)->getMapVecFieldUnique(),
+            this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow()
+        ));
+        this->system_->getBlock(0,0)->addMatrix(1.0, ANW_stab, 0.);
+
+        A_stab->addMatrix(1.0,ANW_stab, 1.0);
+
+        ANW_stab->fillComplete(this->getDomain(0)->getMapVecFieldUnique(),    this->getDomain(0)->getMapVecFieldUnique());
+
+        this->system_->addBlock( ANW_stab, 0, 0 );
+
+        A_stab->fillComplete(this->getDomain(0)->getMapVecFieldUnique(),    this->getDomain(0)->getMapVecFieldUnique());
+
         {     
             MultiVectorPtr_Type AStabU = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
             AStabU->putScalar(0.);
@@ -915,7 +930,6 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::stri
                         << std::endl;
     
         }
-        this->system_->getBlock(0,0)->addMatrix(1.0, A_stab, 1.0);
     }
     // We need to account for different parameters of time discretizations here
     // This is ok for bdf with 1.0 scaling of the system. Would be wrong for Crank-Nicolson

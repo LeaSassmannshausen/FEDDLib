@@ -5380,7 +5380,6 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
             }
         }
     }
-    A->fillComplete();
     return 0;
 }
 
