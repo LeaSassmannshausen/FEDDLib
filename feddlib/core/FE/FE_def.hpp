@@ -5282,6 +5282,7 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
 
     double poissonRatio=params->sublist("Parameter").get("Poisson Ratio",0.49); 
     int flagOutlet = params->sublist("General").get("Flag Outlet Fluid", 5);
+    
     double rho_f = params->sublist("Parameter").get("Density",1.0); 
     double beta = params->sublist("Parameter").get("Beta",1.0); 
 
@@ -5293,7 +5294,14 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
     vec_dbl_Type b(dim);
     f->putScalar(0.);
     Teuchos::ArrayRCP< SC > valuesF = f->getDataNonConst(0);
-       
+    if(u_rep->getMap()->getComm()->getRank()==0){
+        std::cout << " ---------------------------------------------------------- " <<std::endl;
+        std::cout << " Backflow Stabilization " <<std::endl;
+        std::cout << " Beta: " << beta <<std::endl;
+        std::cout << " Density: " << rho_f <<std::endl;
+        std::cout << " Outlet Flag: " << flagOutlet <<std::endl;
+        std::cout << " ---------------------------------------------------------- " <<std::endl;
+    }   
   
     // Second step: use flow rate to determine pressure with resistance
     for (UN T=0; T<elements->numberElements(); T++) {

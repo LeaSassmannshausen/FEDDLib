@@ -949,7 +949,6 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::stri
         MultiVectorPtr_Type r = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
 
         this->feFactory_->assemblyBackflowStabilization(this->dim_,this->getDomain(0)->getFEType(), A_stab,r,u_rep_, this->parameterList_, 0);
-
        
         MatrixPtr_Type ANW_stab = Teuchos::rcp(new Matrix_Type(
             this->getDomain(0)->getMapVecFieldUnique(),
