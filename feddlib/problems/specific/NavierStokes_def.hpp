@@ -848,7 +848,7 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, dou
             
             if(this->verbose_){
                 std::cout << "----------------------------------------------------" << std::endl;
-                std::cout << "NavierStokes_DEBUG PressureRHS zero"
+                std::cout << "NavierStokes_DEBUG Values Backflow Stabilization"
                         << " r_repeated_norm=" << rRepeatedNorm[0]
                         << " r_unique_norm=" << rUniqueNorm[0]
                         << " A_stab_u_norm=" << AStabUNorm[0]
@@ -988,7 +988,7 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::stri
             
             if(this->verbose_){
                 std::cout << "----------------------------------------------------" << std::endl;
-                std::cout << "NavierStokes_FSI_DEBUG PressureRHS zero"
+                std::cout << "NavierStokes_FSI_DEBUG Values Backflow Stabilization"
                         << " r_repeated_norm=" << rRepeatedNorm[0]
                         << " r_unique_norm=" << rUniqueNorm[0]
                         << " A_stab_u_norm=" << AStabUNorm[0]
