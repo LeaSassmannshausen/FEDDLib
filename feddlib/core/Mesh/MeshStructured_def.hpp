@@ -4224,6 +4224,12 @@ void MeshStructured<SC,LO,GO,NO>::buildSurfaces(int flagsOption, std::string FET
                                     if(v_E[0] > 0 )
                                         flipSurface(surfaceElements_vec[i]);
                                 }
+                                // x=4 Face  
+                                if (midpoint.at(0) > (coorRec[0]+length - tol) ) {
+                                    flag = 3;
+                                    if(v_E[0] > 0 )
+                                        flipSurface(surfaceElements_vec[i]);
+                                }
                                 
                                 p1[0] = this->pointsRep_->at(surfaceElements_vec[i][0]).at(0) - this->pointsRep_->at(surfaceElements_vec[i][1]).at(0);
                                 p1[1] =this->pointsRep_->at(surfaceElements_vec[i][0]).at(1) - this->pointsRep_->at(surfaceElements_vec[i][1]).at(1);

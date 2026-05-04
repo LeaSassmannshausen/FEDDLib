@@ -5345,7 +5345,7 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
                         {
                             localVelocity += u_h_q[d] * v_E[d]/norm_v_E;
                         }
-
+                        // std::cout << " Local velocity before modification " << localVelocity <<std::endl;
                         localVelocity = 0.5*(localVelocity - std::sqrt(std::pow(localVelocity,2)+std::pow(1.e-13,2)));
 
                         // We only assemble for negative flow
@@ -5359,7 +5359,7 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
                             
                             std::cout << " Normal vector at surface " ;
                             for(int i=0; i<dim; i++){
-                                std::cout << v_E[i]/norm_v_E ;
+                                std::cout << v_E[i]/norm_v_E << ", ";
                             }
                             std::cout<< std::endl;
                             std::cout << " Local velocity" <<" is " << localVelocity <<std::endl;
