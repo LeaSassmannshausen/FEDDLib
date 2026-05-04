@@ -5272,7 +5272,7 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
 
     vec_dbl_ptr_Type weights = Teuchos::rcp(new vec_dbl_Type(0));
 
-    UN deg = Helper::determineDegree( dim-1, FEType, Helper::Deriv0);// + 1.0;
+    UN deg = Helper::determineDegree( dim-1, FEType, Helper::Deriv0)+ 2.0;
     Helper::getPhi(phi, weights, dim-1, FEType, deg);
 
     vec2D_dbl_ptr_Type quadPoints;
@@ -5304,11 +5304,8 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
             if(subEl->getDimension() == dim-1 ){
                if(feSub.getFlag() == flagOutlet){
                     vec_int_Type nodeList = feSub.getVectorNodeListNonConst ();
-                    vec_int_Type nodeListP = elementsPressure->getElement(T).getSubElements()->getElement(surface).getVectorNodeListNonConst();
                     int numNodes_T = nodeList.size();
                     vec_dbl_Type solution_u = getSolution(nodeList, u_rep,dim);
-                    vec2D_dbl_Type nodes;
-                    nodes = getCoordinates(nodeList, pointsRep);
 
                     vec_dbl_Type p1(dim),p2(dim),v_E(dim,1.);
 
@@ -5339,12 +5336,12 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
                         {
                             localVelocity += u_h_q[d] * v_E[d]/norm_v_E;
                         }
-
+                        localVelocity = 0.5*(localVelocity - std::sqrt(std::pow(localVelocity,2)+std::pow(1.e-13,2)));
                         // We only assemble for negative flow
-                        if(localVelocity < 0.)                     
+                        if(localVelocity < -1.e-13)                     
                         {  
                             std::cout << " ---------------------------------------------------------- " <<std::endl;
-                            std::cout << " Global IDs of edge nodes: " << map->getGlobalElement( nodeList[0] ) << " and " << map->getGlobalElement( nodeList[1] ) <<std::endl;
+                            std::cout << " Global IDs of edge nodes: " << map->getGlobalElement( nodeList[0] ) << " and " << map->getGlobalElement( nodeList[1] ) << " and " << map->getGlobalElement( nodeList[2] ) <<std::endl;
                             std::cout << " Normal vector at surface " << surface << " is " << v_E[0]/norm_v_E << " " << v_E[1]/norm_v_E << std::endl;
                             std::cout << " Local velocity" <<" is " << localVelocity <<std::endl;
  

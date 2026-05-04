@@ -987,13 +987,16 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::stri
             AStabU->norm2(AStabUNorm());
             rMinusAStabU->norm2(diffNorm());
             
-            if(this->verbose_)
-                std::cout << "FSI_DEBUG PressureRHS residual greater than zero"
+            if(this->verbose_){
+                std::cout << "----------------------------------------------------" << std::endl;
+                std::cout << "NavierStokes_FSI_DEBUG PressureRHS zero"
                         << " r_repeated_norm=" << rRepeatedNorm[0]
                         << " r_unique_norm=" << rUniqueNorm[0]
                         << " A_stab_u_norm=" << AStabUNorm[0]
                         << " r_minus_A_stab_u_norm=" << diffNorm[0]
                         << std::endl;
+                std::cout << "----------------------------------------------------" << std::endl;
+            }
     
         }
     }
