@@ -5338,13 +5338,17 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
                                 u_h_q[d] += solution_u[dim * i + d] * (*phi)[w][i];// Evaluation at each Qudrature point of basis function w
                             }
                         }
-                        
+
                         double localVelocity = 0.;
                         for (int d = 0; d < dim; d++)
                         {
                             localVelocity += u_h_q[d] * v_E[d]/norm_v_E;
                         }
+
+                        std::cout << " Local velocity at surface " << surface << " is " << localVelocity <<std::endl;
+
                         localVelocity = 0.5*(localVelocity - std::sqrt(std::pow(localVelocity,2)+std::pow(1.e-13,2)));
+
                         // We only assemble for negative flow
                         if(localVelocity < -1.e-13)                     
                         {  
