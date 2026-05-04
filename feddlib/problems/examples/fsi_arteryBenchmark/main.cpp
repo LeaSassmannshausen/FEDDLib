@@ -273,6 +273,8 @@ int main(int argc, char *argv[])
 
         
         ParameterListPtr_Type parameterListFluidAll(new Teuchos::ParameterList(*parameterListPrecFluidMono)) ;
+        sublist( parameterListFluidAll, "General" )->set( "Flag Inlet Fluid",parameterListProblem->sublist("General").get("Flag Inlet Fluid",4) );
+        sublist( parameterListFluidAll, "General" )->set( "Flag Outlet Fluid",parameterListProblem->sublist("General").get("Flag Outlet Fluid",5)  );
         sublist(parameterListFluidAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Fluid") );
         sublist(parameterListFluidAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
 
