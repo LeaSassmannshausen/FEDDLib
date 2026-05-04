@@ -5285,6 +5285,7 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
     
     double rho_f = params->sublist("Parameter").get("Density",1.0); 
     double beta = params->sublist("Parameter").get("Beta",1.0); 
+    double normalScale = params->sublist("Parameter Fluid").get("Normal Scale",1.0); 
 
     SC elScaling;
     SmallMatrix<SC> B(dim);
@@ -5345,16 +5346,22 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
                             localVelocity += u_h_q[d] * v_E[d]/norm_v_E;
                         }
 
-                        std::cout << " Local velocity at surface " << surface << " is " << localVelocity <<std::endl;
-
                         localVelocity = 0.5*(localVelocity - std::sqrt(std::pow(localVelocity,2)+std::pow(1.e-13,2)));
 
                         // We only assemble for negative flow
                         if(localVelocity < -1.e-13)                     
                         {  
                             std::cout << " ---------------------------------------------------------- " <<std::endl;
-                            std::cout << " Global IDs of edge nodes: " << map->getGlobalElement( nodeList[0] ) << " and " << map->getGlobalElement( nodeList[1] ) << " and " << map->getGlobalElement( nodeList[2] ) <<std::endl;
-                            std::cout << " Normal vector at surface " << surface << " is " << v_E[0]/norm_v_E << " " << v_E[1]/norm_v_E << std::endl;
+                            std::cout << " Global IDs of suface nodes: " ;
+                            for(int i=0; i<nodeList.size(); i++)
+                                std::cout << map->getGlobalElement( nodeList[i] ) << ", ";
+                            std::cout<<std::endl;
+                            
+                            std::cout << " Normal vector at surface " ;
+                            for(int i=0; i<dim; i++){
+                                std::cout << v_E[i]/norm_v_E ;
+                            }
+                            std::cout<< std::endl;
                             std::cout << " Local velocity" <<" is " << localVelocity <<std::endl;
  
                             // Matrix Assembly for backflow stabilization                         
