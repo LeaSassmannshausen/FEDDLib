@@ -3986,6 +3986,169 @@ void MeshStructured<SC,LO,GO,NO>::buildSurfaces(int flagsOption, std::string FET
     bool skip = false;  
     switch (this->dim_) {
         case 2:
+            {
+            int numNodesEdge;
+            if(FEType == "P1")
+                    numNodesEdge = 2;
+                else if(FEType=="P2")
+                    numNodesEdge = 3;
+                else
+                    TEUCHOS_TEST_FOR_EXCEPTION(true,std::logic_error,"For flag option and discretization no surfaces are available");
+
+                auto flipSurface = [](vec_LO_Type &surfaceElements_vec) {
+                    LO id1 = surfaceElements_vec[0];
+                    surfaceElements_vec[0] = surfaceElements_vec[1];
+                    surfaceElements_vec[1] = id1;
+                };
+
+                for( int T =0; T< this->elementsC_->numberElements(); T++){
+
+                    vec_int_Type nodeList = this->elementsC_->getElement(T).getVectorNodeList();
+
+                    vec2D_LO_Type surfaceElements_vec(3,vec_LO_Type(numNodesEdge)); // three edges per triangle
+
+                    if(FEType == "P1"){
+                        surfaceElements_vec[0] = {nodeList[0],nodeList[1]};
+                        surfaceElements_vec[1] = {nodeList[1],nodeList[2]};
+                        surfaceElements_vec[2] = {nodeList[2],nodeList[0]};
+                    }
+                    else if(FEType=="P2"){
+                        surfaceElements_vec[0] = {nodeList[0],nodeList[1],nodeList[3]};
+                        surfaceElements_vec[1] = {nodeList[1],nodeList[2],nodeList[4]};
+                        surfaceElements_vec[2] = {nodeList[2],nodeList[0],nodeList[5]};
+                    }
+
+                    for (int i=0; i<3; i++) {
+
+                        vec_dbl_Type v_E(2);
+                        v_E[0] = this->pointsRep_->at(surfaceElements_vec[i][0]).at(1) - this->pointsRep_->at(surfaceElements_vec[i][1]).at(1);
+                        v_E[1] = -(this->pointsRep_->at(surfaceElements_vec[i][0]).at(0) - this->pointsRep_->at(surfaceElements_vec[i][1]).at(0));
+
+                        vec_dbl_Type midpoint(2);
+                        midpoint[0] = (this->pointsRep_->at(surfaceElements_vec[i][0]).at(0) + this->pointsRep_->at(surfaceElements_vec[i][1]).at(0)) / 2.;
+                        midpoint[1] = (this->pointsRep_->at(surfaceElements_vec[i][0]).at(1) + this->pointsRep_->at(surfaceElements_vec[i][1]).at(1)) / 2.;
+
+                        int flag = 10;
+
+                        if (flagsOption == 1) {
+                            if (midpoint.at(1) < (coorRec[1] + tol)) {
+                                flag = 1;
+                                if(v_E[1] > 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(1) > (coorRec[1] + height - tol)) {
+                                flag = 1;
+                                if(v_E[1] < 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(0) < (coorRec[0] + tol)) {
+                                flag = 2;
+                                if(v_E[0] > 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(0) > (coorRec[0] + length - tol)) {
+                                flag = 3;
+                                if(v_E[0] < 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                        }
+                        else if (flagsOption == 2) {
+                            if (midpoint.at(1) < (coorRec[1] + tol)) {
+                                flag = 1;
+                                if(v_E[1] > 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(1) > (coorRec[1] + height - tol)) {
+                                flag = 1;
+                                if(v_E[1] < 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(0) > (coorRec[0] - tol) &&
+                                midpoint.at(0) < (coorRec[0] + 1. + tol) &&
+                                midpoint.at(1) > (coorRec[1] + 1. - tol) &&
+                                midpoint.at(1) < (coorRec[1] + 1. + tol)) {
+                                flag = 1;
+                                if(v_E[1] < 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(1) > (coorRec[1] - tol) &&
+                                midpoint.at(1) < (coorRec[1] + 1. + tol) &&
+                                midpoint.at(0) > (coorRec[0] + 1. - tol) &&
+                                midpoint.at(0) < (coorRec[0] + 1. + tol)) {
+                                flag = 1;
+                                if(v_E[0] < 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(0) < (coorRec[0] + tol) &&
+                                midpoint.at(1) > (coorRec[1] + 1. - tol) &&
+                                midpoint.at(1) < (coorRec[1] + height + tol)) {
+                                flag = 2;
+                                if(v_E[0] > 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(0) > (coorRec[0] + length - tol) &&
+                                midpoint.at(1) > (coorRec[1] + tol) &&
+                                midpoint.at(1) < (coorRec[1] + height - tol)) {
+                                flag = 3;
+                                if(v_E[0] < 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                        }
+                        else if (flagsOption == 3) {
+                            if (midpoint.at(1) < (coorRec[1] + tol)) {
+                                flag = 1;
+                                if(v_E[1] > 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(0) < (coorRec[0] + tol)) {
+                                flag = 2;
+                                if(v_E[0] > 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(0) > (coorRec[0] + length - tol)) {
+                                flag = 3;
+                                if(v_E[0] < 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(1) > (coorRec[1] + height - tol)) {
+                                flag = 4;
+                                if(v_E[1] < 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                        }
+                        else if (flagsOption == 5) {
+                            if (midpoint.at(1) < (coorRec[1] + tol)) {
+                                flag = 1;
+                                if(v_E[1] > 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(0) < (coorRec[0] + tol)) {
+                                flag = 1;
+                                if(v_E[0] > 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(0) > (coorRec[0] + length - tol)) {
+                                flag = 1;
+                                if(v_E[0] < 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                            if (midpoint.at(1) > (coorRec[1] + height - tol)) {
+                                flag = 2;
+                                if(v_E[1] < 0)
+                                    flipSurface(surfaceElements_vec[i]);
+                            }
+                        }
+
+                        if(flag != 10){
+                            FiniteElement feSurface( surfaceElements_vec[i], flag);
+                            if ( !this->elementsC_->getElement(T).subElementsInitialized() )
+                                this->elementsC_->getElement(T).initializeSubElements( FEType, 1 );
+
+                            this->elementsC_->getElement(T).addSubElement( feSurface );
+                        }
+                    }
+                }
+            }
             break;
         
         case 3:
@@ -4213,6 +4376,23 @@ void MeshStructured<SC,LO,GO,NO>::buildSurfaces(int flagsOption, std::string FET
 // We allways want a outward normal direction
 template <class SC, class LO, class GO, class NO>
 void MeshStructured<SC,LO,GO,NO>::flipSurface(vec_int_Type &surfaceElements_vec){
+
+    if (surfaceElements_vec.size() == 2) {
+        LO id1 = surfaceElements_vec[0];
+        surfaceElements_vec[0] = surfaceElements_vec[1];
+        surfaceElements_vec[1] = id1;
+        return;
+    }
+
+    if (surfaceElements_vec.size() == 3) {
+        LO id1 = surfaceElements_vec[0];
+        LO id2 = surfaceElements_vec[1];
+        LO id3 = surfaceElements_vec[2];
+        surfaceElements_vec[0] = id1;
+        surfaceElements_vec[1] = id3;
+        surfaceElements_vec[2] = id2;
+        return;
+    }
 
     LO id1,id2,id3,id4,id5,id6;
     id1= surfaceElements_vec[0];

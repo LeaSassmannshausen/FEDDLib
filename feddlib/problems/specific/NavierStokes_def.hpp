@@ -790,12 +790,80 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, dou
     // this->updateConvectionDiffusionOperator();
     
     this->reAssemble("FixedPoint");
+
     // We need to account for different parameters of time discretizations here
     // This is ok for bdf with 1.0 scaling of the system. Would be wrong for Crank-Nicolson - might be ok now for CN
+    
+    if(this->parameterList_->sublist("Parameter").get("Backflow Stabilization",false))      
+    {
+        MatrixPtr_Type A_stab = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
+        MultiVectorPtr_Type r = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
+
+        this->feFactory_->assemblyBackflowStabilization(this->dim_,this->getDomain(0)->getFEType(), A_stab,r,u_rep_, this->parameterList_, 0);
+
+       
+        MatrixPtr_Type ANW_stab = Teuchos::rcp(new Matrix_Type(
+            this->getDomain(0)->getMapVecFieldUnique(),
+            this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow()
+        ));
+        this->system_->getBlock(0,0)->addMatrix(1.0, ANW_stab, 0.);
+
+        A_stab->addMatrix(-1.0,ANW_stab, 1.0);
+
+        ANW_stab->fillComplete(this->getDomain(0)->getMapVecFieldUnique(),    this->getDomain(0)->getMapVecFieldUnique());
+
+        this->system_->addBlock( ANW_stab, 0, 0 );
+
+        MultiVectorPtr_Type rUnique = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
+        rUnique->putScalar(0.);
+        rUnique->exportFromVector( r, false, "Add" );
+
+        // if (!type.compare("standard")){    
+        //     this->residualVec_->getBlockNonConst(0)->update(1.,*rUnique,1.);
+            
+        // }
+        // else if(!type.compare("reverse")){
+        //     this->residualVec_->getBlockNonConst(0)->update(-1.,*rUnique,1.); // this = -1*this + 1*rhs
+        // }
+
+        {     
+            MultiVectorPtr_Type AStabU = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
+            AStabU->putScalar(0.);
+            A_stab->apply( *this->solution_->getBlock(0), *AStabU );
+
+            MultiVectorPtr_Type rMinusAStabU = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique() ));
+            rMinusAStabU->putScalar(0.);
+            rMinusAStabU->update( 1., *rUnique, 0. );
+            rMinusAStabU->update( -1., *AStabU, 1. );
+        
+            typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
+            Teuchos::Array<Magnitude_Type> rRepeatedNorm(1);
+            Teuchos::Array<Magnitude_Type> rUniqueNorm(1);
+            Teuchos::Array<Magnitude_Type> AStabUNorm(1);
+            Teuchos::Array<Magnitude_Type> diffNorm(1);
+            r->norm2(rRepeatedNorm());
+            rUnique->norm2(rUniqueNorm());
+            AStabU->norm2(AStabUNorm());
+            rMinusAStabU->norm2(diffNorm());
+            
+            if(this->verbose_){
+                std::cout << "----------------------------------------------------" << std::endl;
+                std::cout << "NavierStokes_DEBUG PressureRHS zero"
+                        << " r_repeated_norm=" << rRepeatedNorm[0]
+                        << " r_unique_norm=" << rUniqueNorm[0]
+                        << " A_stab_u_norm=" << AStabUNorm[0]
+                        << " r_minus_A_stab_u_norm=" << diffNorm[0]
+                        << std::endl;
+                std::cout << "----------------------------------------------------" << std::endl;
+            }
+        }
+    }
+
     if (this->coeff_.size() == 0)
         this->system_->apply( *this->solution_, *this->residualVec_ );
     else
         this->system_->apply( *this->solution_, *this->residualVec_, this->coeff_ );
+
     
     if (!type.compare("standard")){
 //        if ( !this->sourceTerm_.is_null() )
