@@ -799,8 +799,9 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, dou
         MatrixPtr_Type A_stab = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
         MultiVectorPtr_Type r = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
 
-        this->feFactory_->assemblyBackflowStabilization(this->dim_,this->getDomain(0)->getFEType(), A_stab,r,u_rep_, this->parameterList_, 0);
+        u_rep_->importFromVector(this->solution_->getBlock(0), true);
 
+        this->feFactory_->assemblyBackflowStabilization(this->dim_,this->getDomain(0)->getFEType(), A_stab,r,u_rep_, this->parameterList_, 0);
        
         MatrixPtr_Type ANW_stab = Teuchos::rcp(new Matrix_Type(
             this->getDomain(0)->getMapVecFieldUnique(),
@@ -947,6 +948,8 @@ void NavierStokes<SC,LO,GO,NO>::calculateNonLinResidualVecWithMeshVelo(std::stri
     {
         MatrixPtr_Type A_stab = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
         MultiVectorPtr_Type r = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
+
+        u_rep_->importFromVector(this->solution_->getBlock(0), true);
 
         this->feFactory_->assemblyBackflowStabilization(this->dim_,this->getDomain(0)->getFEType(), A_stab,r,u_rep_, this->parameterList_, 0);
        
