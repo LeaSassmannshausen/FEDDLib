@@ -592,19 +592,18 @@ int main(int argc, char *argv[])
             // bcFactoryGeometry->addBC(zeroDirichlet3D, 1, 0, domainGeometry, "Dirichlet", dim); // inflow/outflow strip fixed in y direction
             // bcFactoryGeometry->addBC(zeroDirichlet3D, 2, 0, domainGeometry, "Dirichlet", dim); // inlet fixed in Z direction
             // bcFactoryGeometry->addBC(zeroDirichlet3D, 3, 0, domainGeometry, "Dirichlet", dim); // inlet fixed in X direction
-            bcFactoryGeometry->addBC(zeroDirichlet3D, 6, 0, domainGeometry, "Dirichlet", dim); // Interface
+            bcFactoryGeometry->addBC(zeroDirichlet3D, 3, 0, domainGeometry, "Dirichlet_X", dim); // Outlet fixed in X direction
+            bcFactoryGeometry->addBC(zeroDirichlet3D, 2, 0, domainGeometry, "Dirichlet_Z", dim); // inlet fixed in Z direction
 
-            if(usefullinterface){
-                bcFactoryGeometry->addBC(zeroDirichlet3D, 4, 0, domainGeometry, "Dirichlet", dim); // inlet Ring
-                bcFactoryGeometry->addBC(zeroDirichlet3D, 5, 0, domainGeometry, "Dirichlet", dim); // outlet Ring
-            }
+            bcFactoryGeometry->addBC(zeroDirichlet3D, 6, 0, domainGeometry, "Dirichlet", dim); // Interface
+            bcFactoryGeometry->addBC(zeroDirichlet3D, 4, 0, domainGeometry, "Dirichlet_Z", dim); // inlet Ring
+            bcFactoryGeometry->addBC(zeroDirichlet3D, 5, 0, domainGeometry, "Dirichlet_X", dim); // outlet Ring
+            
             // Die RW, welche nicht Null sind in der rechten Seite (nur Interface) setzen wir spaeter per Hand.
             // Hier erstmal Dirichlet Nullrand, wird spaeter von der Sturkturloesung vorgegeben
             if (preconditionerMethod == "FaCSI" || preconditionerMethod == "FaCSI-Teko"){
-                if(usefullinterface){
-                    bcFactoryFluidInterface->addBC(zeroDirichlet3D, 4, 0, domainFluidVelocity, "Dirichlet", dim);
-                    bcFactoryFluidInterface->addBC(zeroDirichlet3D, 5, 0, domainFluidVelocity, "Dirichlet", dim);
-                }
+                bcFactoryFluidInterface->addBC(zeroDirichlet3D, 4, 0, domainFluidVelocity, "Dirichlet", dim);
+                bcFactoryFluidInterface->addBC(zeroDirichlet3D, 5, 0, domainFluidVelocity, "Dirichlet", dim);
                 bcFactoryFluidInterface->addBC(zeroDirichlet3D, 6, 0, domainFluidVelocity, "Dirichlet", dim);
 
             }

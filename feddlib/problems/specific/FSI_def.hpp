@@ -1137,8 +1137,17 @@ void FSI<SC,LO,GO,NO>::setupSubTimeProblems(ParameterListPtr_Type parameterListF
     this->problemTimeStructure_->setTimeDef(defStructure);
     this->problemTimeStructure_->setTimeParameters(massCoeffStructure,problemCoeffStructure);
 
-    this->problemTimeFluid_->assemble( "MassSystem" );
-    this->problemTimeStructure_->assemble( "MassSystem" );
+    if(this->verbose_)
+        std::cout << "-- Setup FSI fluid mass system ... " << std::flush;
+    this->problemTimeFluid_->assembleMassSystem();
+    if(this->verbose_)
+        std::cout << "done -- " << std::endl;
+
+    if(this->verbose_)
+        std::cout << "-- Setup FSI structure mass system ... " << std::flush;
+    this->problemTimeStructure_->assembleMassSystem();
+    if(this->verbose_)
+        std::cout << "done -- " << std::endl;
 }
 
 
