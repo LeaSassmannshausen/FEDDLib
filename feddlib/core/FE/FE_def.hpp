@@ -5327,6 +5327,17 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
                     Helper::buildTransformationSurface( nodeList, pointsRep, B, b, FEType);
                     elScaling = B.computeScaling( );
                     
+                    std::cout << " ---------------------------------------------------------- " <<std::endl;
+                    std::cout << " Global IDs of suface nodes: " ;
+                    for(int i=0; i<nodeList.size(); i++)
+                        std::cout << map->getGlobalElement( nodeList[i] ) << ", ";
+                    std::cout<<std::endl;
+                    
+                    std::cout << " Normal vector at surface " ;
+                    for(int i=0; i<dim; i++){
+                        std::cout << v_E[i]/norm_v_E << ", ";
+                    }
+                    std::cout<< std::endl;
                     
                     for (UN w=0; w < phi->size(); w++) { // Quadrature points
         
