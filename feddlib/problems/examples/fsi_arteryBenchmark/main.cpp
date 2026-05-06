@@ -285,6 +285,7 @@ int main(int argc, char *argv[])
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         sublist(parameterListStructureAll, "Parameter Solid")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
+        sublist(parameterListStructureAll, "Timestepping Parameter")->setParameters( parameterListProblem->sublist("Timestepping Parameter") );
 
         parameterListStructureAll->setParameters(*parameterListPrecStructure);
         
