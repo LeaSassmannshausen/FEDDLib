@@ -129,6 +129,19 @@ template<class SC,class LO,class GO,class NO>
 void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
 {
     timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
+    timeSteppingTool_->updateParameter();
+
+    // std::cout << " ###### Timestep in SCI dt_prev" << timeSteppingTool_->dt_prev_ << " dt= " << timeSteppingTool_->dt_ <<" time= " << timeSteppingTool_->t_ << " ####### " << std::endl;
+
+    if(this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true) && (this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true )){
+        // Dummy c
+        MultiVectorPtr_Type c = Teuchos::rcp(new MultiVector_Type(this->getDomain(0)->getMapRepeated(), 1)); 
+
+
+        MultiVectorConstPtr_Type d = this->solution_->getBlock(0);
+        u_rep_->importFromVector(d, true); 
+        this->feFactory_->advanceInTimeAssemblyFEElements(timeSteppingTool_->dt_, u_rep_, c );    
+    }
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -149,7 +162,7 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
         this->getComm()->barrier();
 
         { 
-            NONLINELAS_START(Assembly," Assembling Jacobian and Residual");    
+        NONLINELAS_START(Assembly," Assembling Jacobian and Residual");    
         #ifdef FEDD_HAVE_ACEGENINTERFACE
             bool useInterface = this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true);
             // std::cout << " Checking useInterface parameter for assembly: " << useInterface << std::endl;

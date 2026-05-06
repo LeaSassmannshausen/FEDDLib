@@ -1645,6 +1645,9 @@ void FSI<SC,LO,GO,NO>::updateTime() const
 {
     this->newtonStep_ = 0;
     timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
+
+    this->problemTimeFluid_->updateTime(this->timeSteppingTool_->t_);
+    this->problemTimeStructure_->updateTime(this->timeSteppingTool_->t_);
 }
 
 template<class SC,class LO,class GO,class NO>
