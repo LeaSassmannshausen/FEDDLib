@@ -138,7 +138,6 @@ void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
 
         MultiVectorConstPtr_Type d = this->solution_->getBlock(0);
         u_rep_->importFromVector(d, true); 
-        std::cout << "Updating time in NonLinElasticity with AceGen Interface and SCI/FSCI ... " << std::endl;
         this->feFactory_->advanceInTimeAssemblyFEElements(timeSteppingTool_->dt_, u_rep_, c );    
      }
 }

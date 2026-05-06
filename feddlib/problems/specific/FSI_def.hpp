@@ -1646,7 +1646,6 @@ void FSI<SC,LO,GO,NO>::updateTime() const
     this->newtonStep_ = 0;
     timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
 
-    std::cout << "FSI: Update time to " << timeSteppingTool_->currentTime() << std::endl;
     this->problemTimeFluid_->updateTime(this->timeSteppingTool_->t_);
     this->problemStructureNonLin_->assemble("UpdateTime");
 }

@@ -10,6 +10,21 @@
  @author Christian Hochmuth
  @version 1.0
  @copyright CH
+
+ The operator implemented in applyImpl() applies the FaCSI block
+ preconditioner to a product vector. The standard block ordering is
+
+   0: fluid velocity       (fv)
+   1: fluid pressure       (fp)
+   2: structure            (s)
+   3: interface multiplier (l)
+
+ If a geometry block is present, block 4 stores the geometry unknowns (g).
+ If an SCI block is present without geometry, block 4 stores the chemical
+ unknowns. If geometry and SCI are both present, block 5 stores the chemical
+ unknowns. The algorithm is applied block-wise: structure/SCI solve, optional
+ geometry correction, interface correction, fluid condensation and fluid solve,
+ followed by the final coupling residual update.
  */
 
 namespace FEDD {
@@ -47,6 +62,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::setGE(ThyraLinOpPtr_Type C1,
                                      ThyraLinOpPtr_Type fF,
                                      ThyraLinOpPtr_Type fBT){
 
+    // GE setup: FaCSI without a geometry inverse. The structure block is
+    // handled by sInv_, the fluid velocity-pressure block by fInv_, and
+    // C1_/C1T_/C2_ provide the interface coupling used in applyImpl().
     setC1(C1);
     setC1T(C1T);
     setC2(C2);
@@ -69,6 +87,8 @@ void PrecOpFaCSI<SC,LO,GO,NO>::setGE(ThyraLinOpPtr_Type C1,
                                      ThyraLinOpPtr_Type fF,
                                      ThyraLinOpPtr_Type fBT){
 
+    // GE setup with SCI: use the structure-chemical inverse instead of a
+    // standalone structure inverse.
     setC1(C1);
     setC1T(C1T);
     setC2(C2);
@@ -93,6 +113,8 @@ void PrecOpFaCSI<SC,LO,GO,NO>::setGI(ThyraLinOpPtr_Type C1,
                                      ThyraLinOpPtr_Type fBT,
                                      ThyraLinOpPtr_Type gInv){
     
+    // GI setup: extend GE by adding the geometry coupling C4_ and geometry
+    // inverse gInv_.
     setC1(C1);
     setC1T(C1T);
     setC2(C2);
@@ -120,17 +142,20 @@ void PrecOpFaCSI<SC,LO,GO,NO>::setGI(ThyraLinOpPtr_Type C1,
                                      ThyraLinOpPtr_Type fBT,
                                      ThyraLinOpPtr_Type gInv){
     
-    setC1(C1); // C1
-    setC1T(C1T); // C1T
-    setC2(C2); // C2
-    setC4(C4); // C4
-    setSCIC(sciC); // SCI C
-    setSCIS(sciS); // SCI S
-    setSCIInv(sciInv); // SCI Inv
-    setFluidInv(fInv); // Fluid Inv
-    setFluidF(fF); // Fluid F
-    setFluidBT(fBT); // Fluid BT
-    setGeoInv(gInv); // Geo Inv
+    // GI setup with SCI: geometry and structure-chemical blocks are both
+    // active, so applyImpl() expects the chemical block after the geometry
+    // block in the product vector.
+    setC1(C1);
+    setC1T(C1T);
+    setC2(C2);
+    setC4(C4);
+    setSCIC(sciC);
+    setSCIS(sciS);
+    setSCIInv(sciInv);
+    setFluidInv(fInv);
+    setFluidF(fF);
+    setFluidBT(fBT);
+    setGeoInv(gInv);
 
     initializeWithSCI();
 }
@@ -148,6 +173,8 @@ void PrecOpFaCSI<SC,LO,GO,NO>::setGIShape(ThyraLinOpPtr_Type C1,
                                           ThyraLinOpPtr_Type shape_v,
                                           ThyraLinOpPtr_Type shape_p){
     
+    // Shape-derivative variant of GI: after the geometry solve, shape_v_ and
+    // shape_p_ correct the fluid velocity and pressure residuals.
     setC1(C1);
     setC1T(C1T);
     setC2(C2);
@@ -172,6 +199,8 @@ void PrecOpFaCSI<SC,LO,GO,NO>::setCE(ThyraLinOpPtr_Type C1,
                                      ThyraLinOpPtr_Type fF,
                                      ThyraLinOpPtr_Type fBT){
 
+    // CE setup: SCI preconditioning without an explicit chemical coupling
+    // block in applyImpl().
     setC1(C1);
     setC1T(C1T);
     setC2(C2);
@@ -243,6 +272,10 @@ void PrecOpFaCSI<SC,LO,GO,NO>::initialize(){
     TEUCHOS_TEST_FOR_EXCEPTION(fInv_.is_null(), std::runtime_error,"Can not initialize FaCSI preconditioner: Fluid preconditioner not set.");
     TEUCHOS_TEST_FOR_EXCEPTION(sInv_.is_null(), std::runtime_error,"Can not initialize FaCSI preconditioner: Structure preconditioner not set.");
     TEUCHOS_TEST_FOR_EXCEPTION(C1_.is_null(), std::runtime_error,"Can not initialize FaCSI preconditioner: C1 not set.");
+
+    // Product vector spaces mirror the block layout used in applyImpl():
+    // fluid velocity, fluid pressure, structure and interface multiplier,
+    // followed by an optional geometry block.
     Teuchos::Array< Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > > vectorSpacesRange( 4 );
     Teuchos::Array< Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > > vectorSpacesDomain( 4 );
     vectorSpacesRange[0] = fF_->range();
@@ -281,6 +314,10 @@ void PrecOpFaCSI<SC,LO,GO,NO>::initializeWithSCI(){
     TEUCHOS_TEST_FOR_EXCEPTION(fInv_.is_null(), std::runtime_error,"Can not initialize FaCSCI preconditioner: Fluid preconditioner not set.");
     TEUCHOS_TEST_FOR_EXCEPTION(sciInv_.is_null(), std::runtime_error,"Can not initialize FaCSCI preconditioner: Structure preconditioner not set.");
     TEUCHOS_TEST_FOR_EXCEPTION(C1_.is_null(), std::runtime_error,"Can not initialize FaCSCI preconditioner: C1 not set.");
+
+    // SCI uses the same first four FaCSI blocks, but the structure space is
+    // taken from sciS_. Optional geometry and chemical blocks are appended in
+    // the same order expected by applyImpl().
     Teuchos::Array< Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > > vectorSpacesRange( 4 );
     Teuchos::Array< Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > > vectorSpacesDomain( 4 );
     vectorSpacesRange[0] = fF_->range();
@@ -348,6 +385,10 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
     typedef RCP<const LinearOpBase<SC> > ConstLinearOpPtr;
 
     int rank = comm_->getRank();
+
+    // Diagnostic mode: skip the FaCSI coupling steps and return the diagonal
+    // block action. This is useful for comparing the fully coupled
+    // preconditioner against the unpreconditioned block residual.
     if (onlyDiagonal_) {
         
         Teuchos::RCP<const Thyra::ProductMultiVectorBase<SC> > X
@@ -387,7 +428,11 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         
         Y_inout->assign(0.);
 
-        // SOLID PART
+        // Step 1: structure block.
+        // Start from the structure right-hand side and apply either the
+        // standalone structure inverse sInv_ or the SCI inverse. In the SCI
+        // case the structure and chemical blocks are packed into the
+        // monolithic SCI work vectors before applying sciInv_.
         Teuchos::RCP< const MultiVectorBase< SC > > X_s = X->getMultiVectorBlock(2);
         Teuchos::RCP< MultiVectorBase< SC > > Y_s = Y->getNonconstMultiVectorBlock(2);
         assign(Y_s.ptr(), *X_s);  
@@ -396,7 +441,6 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         // Teuchos::rcp_dynamic_cast< const Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( X_s );
     
         
-        // apply solid preconditioner
         if (useSolidPreconditioner_){
             if(!sInv_.is_null())
                 sInv_->apply(NOTRANS, *X_s, Y_s.ptr(), 1., 0.);
@@ -457,7 +501,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
 
         Teuchos::RCP< const MultiVectorBase< SC > > X_g;
         Teuchos::RCP< MultiVectorBase< SC > > Y_g;
-        // apply geometry preconditioner
+        // Step 2: optional geometry block.
+        // Remove the contribution of the already preconditioned structure
+        // block through C4_, then apply the geometry inverse.
         if ( !gInv_.is_null() ) {
             X_g = X->getMultiVectorBlock(4);
             Y_g = Y->getNonconstMultiVectorBlock(4);
@@ -469,6 +515,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
             gInv_->apply(NOTRANS, *Y_g, Y_g.ptr(), 1., 0.);
         }
         
+        // Step 3: interface multiplier block.
+        // Correct the multiplier right-hand side with the structure coupling
+        // C2_ * Y_s before the fluid condensation step uses Y_l.
         Teuchos::RCP< const MultiVectorBase< SC > > X_l = X->getMultiVectorBlock(3);
         Teuchos::RCP< MultiVectorBase< SC > > Y_l = Y->getNonconstMultiVectorBlock(3);
 
@@ -484,6 +533,8 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         Teuchos::RCP< MultiVectorBase< SC > > Y_fp = Y->getNonconstMultiVectorBlock(1);
         assign(Y_fp.ptr(), *X_fp);
 
+        // If shape derivatives are available, subtract the geometry
+        // contribution from the fluid velocity and pressure residuals.
         if (!shape_v_.is_null() && !shape_p_.is_null()) {
             shape_v_->apply(NOTRANS, *Y_g, Y_fv.ptr(), -1., 1.);
             shape_p_->apply(NOTRANS, *Y_g, Y_fp.ptr(), -1., 1.);
@@ -495,7 +546,14 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         else
             assign(Z_fv_.ptr(), *Y_fv);
         
-        // fluid condensation
+        // Step 4: fluid condensation.
+        // Store the uncondensed velocity residual in Z_fv_. Then eliminate the
+        // interface contribution from the fluid velocity equation:
+        //
+        //   Y_fv <- Y_fv - C1T_ * C1_ * Y_fv + C1T_ * Y_l
+        //
+        // The modified (Y_fv, Y_fp) pair is the right-hand side for the fluid
+        // preconditioner in the next step.
         if (tmp_l_.is_null())
             tmp_l_ = Y_l->clone_mv();
 
@@ -531,6 +589,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
     //    Y_fp->describe(*out,Teuchos::VERB_EXTREME);
     //    comm_->barrier();    comm_->barrier();    comm_->barrier();
         
+        // Step 5: fluid block.
+        // Apply the velocity-pressure fluid preconditioner either in the
+        // monolithic storage used by fInv_ or as a Thyra product vector.
         if (useFluidPreconditioner_){
         
             if (fluidPrecMonolithic_) {
@@ -561,6 +622,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         }
 
     
+        // Step 6: final multiplier update.
+        // Reconstruct the fluid momentum residual left after the fluid solve,
+        // then map it back to the multiplier block with C1_.
         fBT_->apply(NOTRANS, *Y_fp, Z_fv_.ptr(), -1., 1.);
        
         fF_->apply(NOTRANS, *Y_fv, Z_fv_.ptr(), -1., 1.);
