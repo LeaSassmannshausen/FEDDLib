@@ -131,7 +131,6 @@ void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
     timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
     timeSteppingTool_->updateParameter();
 
-    // std::cout << " ###### Timestep in SCI dt_prev" << timeSteppingTool_->dt_prev_ << " dt= " << timeSteppingTool_->dt_ <<" time= " << timeSteppingTool_->t_ << " ####### " << std::endl;
 
     if(this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true) && (this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true )){
         // Dummy c
