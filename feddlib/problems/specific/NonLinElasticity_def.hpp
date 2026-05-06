@@ -115,7 +115,7 @@ void NonLinElasticity<SC,LO,GO,NO>::assemble(std::string type) const{
     else if(type == "UpdateTime")
     {
         if(this->verbose_)
-            std::cout << "-- Reassembly (UpdateTime)" << '\n';
+            std::cout << "-- Reassembly (UpdateTime) in nonlinear Elasticity ..." << '\n';
 
         updateTime();
         return;
