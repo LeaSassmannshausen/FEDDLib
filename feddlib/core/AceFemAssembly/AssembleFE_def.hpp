@@ -79,6 +79,9 @@ void AssembleFE<SC,LO,GO,NO>::updateParams( ParameterListPtr_Type params){
 
 template <class SC, class LO, class GO, class NO>
 void AssembleFE<SC,LO,GO,NO>::advanceInTime( double dt){
+	if (this->globalElementID_ == 0)
+	{std::cout << " Advancing in time for FE elements with dt = " << dt << std::endl;
+	}
 	timeIncrement_ = dt;
 	timeStep_ = timeStep_ + dt;
 };

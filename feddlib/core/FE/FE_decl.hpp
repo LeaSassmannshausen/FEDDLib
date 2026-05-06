@@ -610,6 +610,7 @@ class FE {
         
         vec_dbl_Type solution_c;
 	    vec_dbl_Type solution_d;
+        std::cout << "Advancing in time for FE elements with dt = " << dt << " and element size = " << assemblyFEElements_.size() << std::endl;
         for (UN T=0; T<assemblyFEElements_.size(); T++) {
 		    vec_dbl_Type solution(0);
 
