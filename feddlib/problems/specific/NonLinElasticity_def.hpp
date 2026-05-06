@@ -132,7 +132,7 @@ void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
     timeSteppingTool_->updateParameter();
 
 
-    // if(this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true) && (this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true )){
+    if(this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true) && (this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true )){
         // Dummy c
         MultiVectorPtr_Type c = Teuchos::rcp(new MultiVector_Type(this->getDomain(0)->getMapRepeated(), 1)); 
 
@@ -140,7 +140,7 @@ void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
         u_rep_->importFromVector(d, true); 
         std::cout << "Updating time in NonLinElasticity with AceGen Interface and SCI/FSCI ... " << std::endl;
         this->feFactory_->advanceInTimeAssemblyFEElements(timeSteppingTool_->dt_, u_rep_, c );    
-    // }
+     }
 }
 
 template<class SC,class LO,class GO,class NO>
