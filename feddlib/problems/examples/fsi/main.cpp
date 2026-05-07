@@ -372,8 +372,7 @@ int main(int argc, char *argv[])
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         sublist(parameterListStructureAll, "Parameter Solid")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
-
-        parameterListStructureAll->setParameters(*parameterListPrecStructure);
+        sublist(parameterListStructureAll, "Timestepping Parameter")->setParameters( parameterListProblem->sublist("Timestepping Parameter") );
 
         std::string meshName = parameterListProblem->sublist("Parameter Fluid").get("Mesh Name Inflow","fsi_fluid_2mm");
 

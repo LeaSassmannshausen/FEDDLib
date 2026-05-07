@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
          ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListPrecStructure));
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
-        parameterListStructureAll->setParameters(*parameterListPrecStructure);
+        sublist(parameterListStructureAll, "Timestepping Parameter")->setParameters( parameterListProblem->sublist("Timestepping Parameter") );
 
      
         ParameterListPtr_Type parameterListChemAll(new Teuchos::ParameterList(*parameterListPrecChem));
@@ -378,8 +378,6 @@ int main(int argc, char *argv[])
         sublist(parameterListSCIAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         sublist(parameterListSCIAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Diffusion") );
         sublist(parameterListSCIAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
-        
-        parameterListStructureAll->setParameters(*parameterListPrecStructure);
         
         // Fuer das Geometrieproblem, falls GE
         // CH: We might want to add a paramterlist, which defines the Geometry problem

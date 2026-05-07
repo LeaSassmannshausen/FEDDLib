@@ -35,6 +35,8 @@ verbose_(false),
 exporterTxtTime_(),
 exporterTxtDt_(),
 exporterTxtError_(),
+timeParametersVec_(),
+numSegments_(0),
 beta_(0.25),
 gamma_(0.5)
 {
@@ -105,6 +107,8 @@ verbose_(comm->getRank() == 0),
 exporterTxtTime_(),
 exporterTxtDt_(),
 exporterTxtError_(),
+timeParametersVec_(),
+numSegments_(0),
 beta_(0.25),
 gamma_(0.5)
 {
@@ -127,18 +131,33 @@ gamma_(0.5)
     }
 
     setParameter();
+    updateParameter();
 }
 
 void TimeSteppingTools::updateParameter(){
     // We save the previous dt
-    dt_prev_ = dt_;
-    for(int i=0; i<numSegments_-1 ; i++){
-        if(t_ <= timeParametersVec_[i+1][0] && t_+1.0e-12 > timeParametersVec_[i][0] ){
-            dt_=timeParametersVec_[i][1];
-            i=numSegments_;//break
-            // std::cout << " updated to " << dt_ << " at time " << t_ << std::endl;
-        }
+    const double oldDt = dt_;
+    dt_prev_ = oldDt;
+
+    const int numStoredSegments = static_cast<int>(timeParametersVec_.size());
+    if (numStoredSegments == 0)
+        return;
+
+    // Pick the active interval by its start time. The last segment whose
+    // start time has been reached stays active until the next start time.
+    // This includes exact interval boundaries and the final segment.
+    int activeSegment = 0;
+    for(int i=0; i<numStoredSegments; i++){
+        if(t_ + 1.0e-12 >= timeParametersVec_[i][0])
+            activeSegment = i;
+        else
+            break;
     }
+
+    dt_=timeParametersVec_[activeSegment][1];
+    if (t_ <= 1.0e-12)
+        dt_prev_ = dt_;
+    // std::cout << " updated to " << dt_ << " at time " << t_ << std::endl;
 
 }
 void TimeSteppingTools::setParameter(){

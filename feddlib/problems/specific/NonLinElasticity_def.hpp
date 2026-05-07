@@ -49,11 +49,29 @@ u_rep_()
 //    // Berechne daraus nun E (Youngsches Modul) und die erste Lamé-Konstante \lambda
 //    E_ = mue_*2.*(1. + poissonRatio_);
 //    lambda_ = (poissonRatio_*E_)/((1 + poissonRatio_)*(1 - 2*poissonRatio_));
-    loadStepping_ =    !(parameterList->sublist("Timestepping Parameter").get("Class","Singlestep")).compare("Loadstepping");
+    TEUCHOS_TEST_FOR_EXCEPTION(
+        !this->parameterList_->isSublist("Timestepping Parameter"),
+        std::runtime_error,
+        "NonLinElasticity requires a 'Timestepping Parameter' sublist. "
+        "Check that the structure problem parameter list receives the problem timestepping parameters after preconditioner defaults are applied.");
+
+    ParameterListPtr_Type timeSteppingParameters = sublist(this->parameterList_, "Timestepping Parameter");
+
+    loadStepping_ =    !(timeSteppingParameters->get("Class","Singlestep")).compare("Loadstepping");
     externalForce_ =   parameterList->sublist("Parameter").get("External Force",false);
     nonlinearExternalForce_ = parameterList->sublist("Parameter").get("Nonlinear External Force",false);
 
-    timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter") , this->comm_));
+    if(this->verbose_){
+        const bool hasIntervals = timeSteppingParameters->isSublist("Timestepping Intervalls");
+        const int numSegments = hasIntervals ? timeSteppingParameters->sublist("Timestepping Intervalls").get("Number of Segments",0) : 0;
+        std::cout << "NonLinElasticity: Timestepping Parameter dt = "
+                  << timeSteppingParameters->get("dt",-1.0)
+                  << ", Final time = " << timeSteppingParameters->get("Final time",-1.0)
+                  << ", Number of Segments = " << numSegments
+                  << std::endl;
+    }
+
+    timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(timeSteppingParameters, this->comm_));
 
     postProcessingnames_.resize(11);
     postProcessingnames_ = {"vonMisesStress", "SCirc","SAxial","SRadial","W","a11","a12","a13","a21","a22","a23"};
@@ -131,6 +149,8 @@ void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
     timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
     timeSteppingTool_->updateParameter();
 
+    if(this->verbose_)
+        std::cout << "NonLinElasticity: Update time to " << timeSteppingTool_->currentTime() << " with dt = " << timeSteppingTool_->dt_prev_ << std::endl;
 
     if(this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true) && (this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true )){
         // Dummy c
@@ -259,7 +279,7 @@ void NonLinElasticity<SC,LO,GO,NO>::assembleSourceTermLoadstepping(double time) 
             funcParameter[1] =this->parameterList_->sublist("Parameter").get("Volume force",0.00211);
 
             funcParameter[3] =this->parameterList_->sublist("Parameter").get("Final time force",1.0);
-            funcParameter[4] =this->parameterList_->sublist("Parameter").get("dt",0.1);
+            funcParameter[4] =dt;
 
 
             if(nonlinearExternalForce_){

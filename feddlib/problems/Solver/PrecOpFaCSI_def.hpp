@@ -386,9 +386,24 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
 
     int rank = comm_->getRank();
 
-    // Diagnostic mode: skip the FaCSI coupling steps and return the diagonal
-    // block action. This is useful for comparing the fully coupled
-    // preconditioner against the unpreconditioned block residual.
+    // Traditional notation used below:
+    //
+    //   X_fv, X_fp, X_s, X_l, X_g
+    //       = r_u_f, r_p, r_d_s, r_lambda, r_d_f
+    //
+    //   Y_fv, Y_fp, Y_s, Y_l, Y_g
+    //       = u_f, p, d_s, lambda, d_f
+    //
+    // Here u_f, p, d_s, lambda and d_f denote the preconditioned corrections
+    // produced by this operator. Hat variables denote intermediate corrected
+    // residuals used before the corresponding block solve.
+
+    // Diagnostic mode: skip the FaCSI coupling steps and copy the four primary
+    // blocks. This is useful for comparing the fully coupled preconditioner
+    // against the unpreconditioned block residual.
+    //
+    //   Y_fv = X_fv,  Y_fp = X_fp,  Y_s = X_s,  Y_l = X_l
+    //   u_f = r_u_f,  p = r_p,  d_s = r_d_s,  lambda = r_lambda
     if (onlyDiagonal_) {
         
         Teuchos::RCP<const Thyra::ProductMultiVectorBase<SC> > X
@@ -433,6 +448,17 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         // standalone structure inverse sInv_ or the SCI inverse. In the SCI
         // case the structure and chemical blocks are packed into the
         // monolithic SCI work vectors before applying sciInv_.
+        //
+        //   standard: Y_s = sInv_ * X_s
+        //   SCI:      [Y_s, Y_chem]^T = sciInv_ * [X_s, X_chem]^T
+        //
+        //   standard: d_s = S^{-1} r_d_s
+        //   SCI:      [d_s, c]^T = SCI^{-1} [r_d_s, r_c]^T
+        //
+        // If structure preconditioning is disabled, the code keeps
+        //
+        //   Y_s = X_s  and, for SCI,  Y_chem = X_chem.
+        //   d_s = r_d_s  and, for SCI,  c = r_c.
         Teuchos::RCP< const MultiVectorBase< SC > > X_s = X->getMultiVectorBlock(2);
         Teuchos::RCP< MultiVectorBase< SC > > Y_s = Y->getNonconstMultiVectorBlock(2);
         assign(Y_s.ptr(), *X_s);  
@@ -504,6 +530,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         // Step 2: optional geometry block.
         // Remove the contribution of the already preconditioned structure
         // block through C4_, then apply the geometry inverse.
+        //
+        //   Y_g = gInv_ * (X_g - C4_ * Y_s)
+        //   d_f = G^{-1} (r_d_f - C4 d_s)
         if ( !gInv_.is_null() ) {
             X_g = X->getMultiVectorBlock(4);
             Y_g = Y->getNonconstMultiVectorBlock(4);
@@ -518,6 +547,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         // Step 3: interface multiplier block.
         // Correct the multiplier right-hand side with the structure coupling
         // C2_ * Y_s before the fluid condensation step uses Y_l.
+        //
+        //   Y_l = X_l - C2_ * Y_s
+        //   r_hat_lambda = r_lambda - C2 d_s
         Teuchos::RCP< const MultiVectorBase< SC > > X_l = X->getMultiVectorBlock(3);
         Teuchos::RCP< MultiVectorBase< SC > > Y_l = Y->getNonconstMultiVectorBlock(3);
 
@@ -535,25 +567,43 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
 
         // If shape derivatives are available, subtract the geometry
         // contribution from the fluid velocity and pressure residuals.
+        //
+        //   Y_fv = X_fv - shape_v_ * Y_g
+        //   Y_fp = X_fp - shape_p_ * Y_g
+        //   r_hat_u_f = r_u_f - shape_v d_f
+        //   r_hat_p   = r_p   - shape_p d_f
+        //
+        // Without shape derivatives, this remains
+        //
+        //   Y_fv = X_fv,  Y_fp = X_fp.
+        //   r_hat_u_f = r_u_f,  r_hat_p = r_p.
         if (!shape_v_.is_null() && !shape_p_.is_null()) {
             shape_v_->apply(NOTRANS, *Y_g, Y_fv.ptr(), -1., 1.);
             shape_p_->apply(NOTRANS, *Y_g, Y_fp.ptr(), -1., 1.);
         }
         
-        
+        // Keep a copy of the original velocity residual. Step 6 uses it to
+        // rebuild the momentum residual after the fluid block has been solved.
+        //
+        //   Z_fv_ = Y_fv
+        //   z_u_f = r_hat_u_f
         if (Z_fv_.is_null())
             Z_fv_ = Y_fv->clone_mv();
         else
             assign(Z_fv_.ptr(), *Y_fv);
         
         // Step 4: fluid condensation.
-        // Store the uncondensed velocity residual in Z_fv_. Then eliminate the
-        // interface contribution from the fluid velocity equation:
+        // Eliminate the interface contribution from the fluid velocity
+        // equation:
         //
         //   Y_fv <- Y_fv - C1T_ * C1_ * Y_fv + C1T_ * Y_l
+        //   r_tilde_u_f = r_hat_u_f - C1^T C1 r_hat_u_f
+        //                 + C1^T r_hat_lambda
+        //              = [r_tilde_u_f_I,r_lambda_Gamma]^T
         //
         // The modified (Y_fv, Y_fp) pair is the right-hand side for the fluid
         // preconditioner in the next step.
+        // Replace Interface values of u with lamba values bc.: x_\Gamma = r_\lambda
         if (tmp_l_.is_null())
             tmp_l_ = Y_l->clone_mv();
 
@@ -592,6 +642,14 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         // Step 5: fluid block.
         // Apply the velocity-pressure fluid preconditioner either in the
         // monolithic storage used by fInv_ or as a Thyra product vector.
+        //
+        //   [Y_fv, Y_fp]^T = fInv_ * [Y_fv, Y_fp]^T
+        //   [u_f, p]^T = F_f^{-1} [r_tilde_u_f, r_hat_p]^T
+        //
+        // If fluid preconditioning is disabled, the code restores
+        //
+        //   Y_fv = X_fv,  Y_fp = X_fp.
+        //   u_f = r_u_f,  p = r_p.
         if (useFluidPreconditioner_){
         
             if (fluidPrecMonolithic_) {
@@ -625,6 +683,12 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         // Step 6: final multiplier update.
         // Reconstruct the fluid momentum residual left after the fluid solve,
         // then map it back to the multiplier block with C1_.
+        //
+        //   Z_fv_ = Z_fv_ - fBT_ * Y_fp - fF_ * Y_fv
+        //   Y_l   = C1_ * Z_fv_
+        //
+        //   z_u_f  = r_hat_u_f - B^T p - F u_f
+        //   lambda = C1 z_u_f
         fBT_->apply(NOTRANS, *Y_fp, Z_fv_.ptr(), -1., 1.);
        
         fF_->apply(NOTRANS, *Y_fv, Z_fv_.ptr(), -1., 1.);
@@ -638,7 +702,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
 // private
 template<class SC, class LO, class GO, class NO>
 void PrecOpFaCSI<SC,LO,GO,NO>::copyToMono( Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > X_fluid ) const{
-    
+
+    // Pack the product fluid vector (velocity, pressure) into the monolithic
+    // layout expected by monolithic fluid preconditioners.
     Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_v = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(X_fluid[0]->range());
     Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_p = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(X_fluid[1]->range());
     
@@ -675,7 +741,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::copyToMono( Teuchos::Array< Teuchos::RCP< Thyra::
 
 template<class SC, class LO, class GO, class NO>
 void PrecOpFaCSI<SC,LO,GO,NO>::copyFromMono(Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_fluid) const{
-    
+
+    // Scatter the monolithic fluid preconditioner result back into velocity
+    // and pressure product-vector blocks.
 
     Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_v = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(Y_fluid[0]->range());
     Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_p = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(Y_fluid[1]->range());
@@ -713,7 +781,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::copyFromMono(Teuchos::Array< Teuchos::RCP< Thyra:
 
 template<class SC, class LO, class GO, class NO>
 void PrecOpFaCSI<SC,LO,GO,NO>::copyToMonoSCI( Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > X_sci ) const{
-    
+
+    // Pack the SCI product vector (structure, chemical) into the monolithic
+    // layout expected by sciInv_.
     Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_d = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(X_sci[0]->range());
     Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_c = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(X_sci[1]->range());
     
@@ -750,7 +820,9 @@ void PrecOpFaCSI<SC,LO,GO,NO>::copyToMonoSCI( Teuchos::Array< Teuchos::RCP< Thyr
 
 template<class SC, class LO, class GO, class NO>
 void PrecOpFaCSI<SC,LO,GO,NO>::copyFromMonoSCI(Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_sci) const{
-    
+
+    // Scatter the SCI preconditioner result back into the structure and
+    // chemical product-vector blocks.
 
     Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_d = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(Y_sci[0]->range());
     Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_c = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(Y_sci[1]->range());

@@ -150,6 +150,8 @@ exporterGeo_()
     }
     p_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(1)->getMapRepeated() ) );
     
+    timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter") , this->comm_));
+
 
 }
 
@@ -283,7 +285,7 @@ void FSI<SC,LO,GO,NO>::assemble( std::string type ) const
         // ###########################
         // Korrekte Skalierung der entsprechenden Bloecke
         // ###########################
-        double dt = this->parameterList_->sublist("Timestepping Parameter").get("dt",0.02);
+        double dt = timeSteppingTool_->get_dt();
         if(this->verbose_)
             std::cout << "FSI_DEBUG assemble coupling"
                       << " C2_scaled_with_parameter_dt=" << dt
@@ -362,7 +364,6 @@ void FSI<SC,LO,GO,NO>::assemble( std::string type ) const
         this->setFromPartialVectorsInit();
         
         // Fuer die Zeitprobleme
-        timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter") , this->comm_));
         ParameterListPtr_Type plStructure;
         if (materialModel_=="linear")
             plStructure = this->problemStructure_->getParameterList();
@@ -385,7 +386,7 @@ template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::reAssemble(std::string type) const
 {
 
-    double dt = this->parameterList_->sublist("Timestepping Parameter").get("dt",0.02);
+    double dt = this->timeSteppingTool_->get_dt();
 
     // Fluid-Dichte
     double density = this->problemFluid_->getParameterList()->sublist("Parameter").get("Density",1.);
@@ -746,7 +747,7 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
     
     *w_rep_ = *meshDisplacementNew_rep_;
     w_rep_->update(-1.0, *meshDisplacementOld_rep_, 1.0);
-    double dt = this->parameterList_->sublist("Timestepping Parameter").get("dt",0.02);
+    double dt = this->timeSteppingTool_->get_dt();
     if(this->verbose_)
         std::cout << "FSI_DEBUG residual mesh_velocity_dt"
                   << " parameter_dt=" << dt
@@ -1644,9 +1645,14 @@ template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::updateTime() const
 {
     this->newtonStep_ = 0;
+    timeSteppingTool_->updateParameter();
     timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
 
+    if(this->verbose_)
+        std::cout << "FSI: Update time to " << timeSteppingTool_->currentTime() << " with dt = " << timeSteppingTool_->dt_prev_ << std::endl;
+
     this->problemTimeFluid_->updateTime(this->timeSteppingTool_->t_);
+
     this->problemStructureNonLin_->assemble("UpdateTime");
 }
 
