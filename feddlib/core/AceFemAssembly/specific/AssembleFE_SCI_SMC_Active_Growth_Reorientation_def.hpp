@@ -350,12 +350,12 @@ namespace FEDD
 			vec2D_dbl_Type gaussFibers = computeElementGaussFibersP2Tet();
 			for(int i=0; i<gaussFibers.size(); i++)
 			{
-				this->historyUpdated_[39 + i*this->history_.size()] = gaussFibers[i][0]; // a11
-				this->historyUpdated_[40 + i*this->history_.size()] = gaussFibers[i][1]; // a12
-				this->historyUpdated_[41 + i*this->history_.size()] = gaussFibers[i][2]; // a13
-				this->historyUpdated_[42 + i*this->history_.size()] = gaussFibers[i][3]; // a21
-				this->historyUpdated_[43 + i*this->history_.size()] = gaussFibers[i][4]; // a22
-				this->historyUpdated_[44 + i*this->history_.size()] = gaussFibers[i][5]; // a23
+				this->historyUpdated_[39 + i*this->history_.size()/4] = gaussFibers[i][0]; // a11
+				this->historyUpdated_[40 + i*this->history_.size()/4] = gaussFibers[i][1]; // a12
+				this->historyUpdated_[41 + i*this->history_.size()/4] = gaussFibers[i][2]; // a13
+				this->historyUpdated_[42 + i*this->history_.size()/4] = gaussFibers[i][3]; // a21
+				this->historyUpdated_[43 + i*this->history_.size()/4] = gaussFibers[i][4]; // a22
+				this->historyUpdated_[44 + i*this->history_.size()/4] = gaussFibers[i][5]; // a23
 			}
 			// 39 -- "a11"
 			// 40 -- "a12"
@@ -368,7 +368,9 @@ namespace FEDD
 				std::cout << " Initial fiber direction in element " << this->globalElementID_ << ": " << std::endl;
 				for(int i=0; i<gaussFibers.size(); i++)
 				{
-					std::cout << " Gauss Point " << i << ": a11: " << this->historyUpdated_[39 + i*this->history_.size()] << " a12: " << this->historyUpdated_[40 + i*this->history_.size()] << " a13: " << this->historyUpdated_[41 + i*this->history_.size()] << " a21: " << this->historyUpdated_[42 + i*this->history_.size()] << " a22: " << this->historyUpdated_[43 + i*this->history_.size()] << " a23: " << this->historyUpdated_[44 + i*this->history_.size()] << std::endl;
+					std::cout << " Gauss Point " << i << ": a11: " << this->historyUpdated_[39 + i*this->history_.size()/4] << " a12: " << this->historyUpdated_[40 + i*this->history_.size()/4] << " a13: " << this->historyUpdated_[41 + i*this->history_.size()/4] << " a21: " << this->historyUpdated_[42 + i*this->history_.size()/4] << " a22: " << this->historyUpdated_[43 + i*this->history_.size()/4] << " a23: " << this->historyUpdated_[44 + i*this->history_.size()/4] << std::endl;
+
+					std::cout << " Gauss Point before " << i << ": a11: " << this->history_[39 + i*this->history_.size()/4] << " a12: " << this->history_[40 + i*this->history_.size()/4] << " a13: " << this->history_[41 + i*this->history_.size()/4] << " a21: " << this->history_[42 + i*this->history_.size()/4] << " a22: " << this->history_[43 + i*this->history_.size()/4] << " a23: " << this->history_[44 + i*this->history_.size()/4] << std::endl;
 				}
 			}
 		}
