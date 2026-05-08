@@ -218,6 +218,8 @@ namespace FEDD
 		// if(this->globalElementID_<10)
 		// 	cout << " Element initialized with timestep " << this->timeStep_ << endl;
 		// We check this here also in case we do a restart.
+
+	
 #endif
 	}
 
@@ -343,6 +345,33 @@ namespace FEDD
 		// if (this->timeStep_ - 1.e-13 < 0) // only in this one instance T=0 we set the dt beforehand, as the initial dt is set through the paramterlist and this is error prone
 		// this->timeIncrement_ = dt;
 
+		if(this->timeStep_ - 1.e-13 < 0 && dt > 1.e-13) 
+		{
+			vec2D_dbl_Type gaussFibers = computeElementGaussFibersP2Tet();
+			for(int i=0; i<gaussFibers.size(); i++)
+			{
+				this->historyUpdated_[39 + i*this->history_.size()] = gaussFibers[i][0]; // a11
+				this->historyUpdated_[40 + i*this->history_.size()] = gaussFibers[i][1]; // a12
+				this->historyUpdated_[41 + i*this->history_.size()] = gaussFibers[i][2]; // a13
+				this->historyUpdated_[42 + i*this->history_.size()] = gaussFibers[i][3]; // a21
+				this->historyUpdated_[43 + i*this->history_.size()] = gaussFibers[i][4]; // a22
+				this->historyUpdated_[44 + i*this->history_.size()] = gaussFibers[i][5]; // a23
+			}
+			// 39 -- "a11"
+			// 40 -- "a12"
+			// 41 -- "a13"
+			// 42 -- "a21"
+			// 43 -- "a22"
+			// 44 -- "a23"
+			if(this->globalElementID_ <10)
+			{
+				std::cout << " Initial fiber direction in element " << this->globalElementID_ << ": " << std::endl;
+				for(int i=0; i<gaussFibers.size(); i++)
+				{
+					std::cout << " Gauss Point " << i << ": a11: " << this->historyUpdated_[39 + i*this->history_.size()] << " a12: " << this->historyUpdated_[40 + i*this->history_.size()] << " a13: " << this->historyUpdated_[41 + i*this->history_.size()] << " a21: " << this->historyUpdated_[42 + i*this->history_.size()] << " a22: " << this->historyUpdated_[43 + i*this->history_.size()] << " a23: " << this->historyUpdated_[44 + i*this->history_.size()] << std::endl;
+				}
+			}
+		}
 		this->timeStep_ = this->timeStep_ + this->timeIncrement_;
 
 		this->timeIncrement_ = dt;
@@ -708,6 +737,192 @@ namespace FEDD
 		// cout << " !!!! Position " << position << " of " << dataName << " found " << endl;
 		this->domainData_[position] = dataValue;
 	}
+
+	template <class SC, class LO, class GO, class NO>
+	vec2D_dbl_Type AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::computeElementGaussFibersP2Tet()
+	{
+		// Xe[a][i] = global coordinate i of node a
+		// Xe size should be 10 x 3
+
+		const double a = 0.5854101966249685;
+		const double b = 0.1381966011250105;
+
+		std::vector<std::vector<double>> gp = {
+			{b, b, b},
+			{a, b, b},
+			{b, a, b},
+			{b, b, a}
+		};
+
+		vec2D_dbl_Type fibers(4,vec_dbl_Type(6,0));
+
+		for (int g = 0; g < 4; ++g)
+		{
+			double xi   = gp[g][0];
+			double eta  = gp[g][1];
+			double zeta = gp[g][2];
+
+			double L1 = 1.0 - xi - eta - zeta;
+			double L2 = xi;
+			double L3 = eta;
+			double L4 = zeta;
+
+			std::vector<double> N(10);
+
+			N[0] = L1 * (2.0*L1 - 1.0);
+			N[1] = L2 * (2.0*L2 - 1.0);
+			N[2] = L3 * (2.0*L3 - 1.0);
+			N[3] = L4 * (2.0*L4 - 1.0);
+
+			N[4] = 4.0 * L1 * L2;
+			N[5] = 4.0 * L2 * L3;
+			N[6] = 4.0 * L1 * L3;
+			N[7] = 4.0 * L1 * L4;
+			N[8] = 4.0 * L2 * L4;
+			N[9] = 4.0 * L3 * L4;
+
+			double x1 = 0.0;
+			double x2 = 0.0;
+			double x3 = 0.0;
+
+			for (int A = 0; A < 10; ++A)
+			{
+				x1 += N[A] * this->getNodesRefConfig()[A][0];
+				x2 += N[A] * this->getNodesRefConfig()[A][1];
+				x3 += N[A] * this->getNodesRefConfig()[A][2];
+			}
+
+			fibers[g] = computeFiberDirections(x1, x2, x3);
+		}
+
+		return fibers;
+	}
+
+	template <class SC, class LO, class GO, class NO>
+	vec_dbl_Type AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::computeFiberDirections(double x1, double x2, double x3)
+	{
+		double pi = 3.14159265358979323846;
+		double beta = fA_ * pi / 180.0;
+
+		const double cb = std::cos(beta);
+		const double sb = std::sin(beta);
+
+		// ------------------------------------------------------------
+		// Compute alpha (same logic as FEAP code)
+		// ------------------------------------------------------------
+
+		double alpha;
+
+		if (x1 < 1.0) {
+			alpha = -std::atan(std::abs(x3) / std::abs(1.0 - x1));
+		}
+		else {
+			alpha = -0.5 * pi;
+		}
+
+		// ------------------------------------------------------------
+		// Shift point by center (1,0,0)
+		// ------------------------------------------------------------
+
+		const double xs = x1 - 1.0;
+		const double ys = x2;
+		const double zs = x3;
+
+		// ------------------------------------------------------------
+		// rotate2643 convention
+		// ROTATION_SIGN = -1
+		// Rotate point by alpha around y-axis
+		// ------------------------------------------------------------
+
+		const double ca = std::cos(alpha);
+		const double sa = std::sin(alpha);
+
+		double xt = ca*xs - sa*zs;
+		double yt = ys;
+		double zt = sa*xs + ca*zs;
+
+		// shift back
+		xt += 1.0;
+
+		// ------------------------------------------------------------
+		// Radius in rotated frame
+		// ------------------------------------------------------------
+
+		double r = std::sqrt(xt*xt + yt*yt);
+
+		if (r < 1.0e-12)
+			r = 1.0e-12;
+
+		// ------------------------------------------------------------
+		// Local fibre directions
+		// ------------------------------------------------------------
+
+		// +43°
+		double a1x_local = -yt/r * cb;
+		double a1y_local =  xt/r * cb;
+		double a1z_local = -sb;
+
+		// -43°
+		double a2x_local = -yt/r * cb;
+		double a2y_local =  xt/r * cb;
+		double a2z_local =  sb;
+
+		// ------------------------------------------------------------
+		// Rotate fibres back by -alpha
+		// ------------------------------------------------------------
+
+		const double ca2 = std::cos(-alpha);
+		const double sa2 = std::sin(-alpha);
+
+		// fibre family 1
+		double a11 = ca2*a1x_local - sa2*a1z_local;
+		double a12 = a1y_local;
+		double a13 = sa2*a1x_local + ca2*a1z_local;
+
+		// fibre family 2
+		double a21 = ca2*a2x_local - sa2*a2z_local;
+		double a22 = a2y_local;
+		double a23 = sa2*a2x_local + ca2*a2z_local;
+
+		// ------------------------------------------------------------
+		// Normalize
+		// ------------------------------------------------------------
+
+		double n1 = std::sqrt(a11*a11 + a12*a12 + a13*a13);
+		double n2 = std::sqrt(a21*a21 + a22*a22 + a23*a23);
+
+		if (n1 > 1.0e-12) {
+			a11 /= n1;
+			a12 /= n1;
+			a13 /= n1;
+		}
+
+		if (n2 > 1.0e-12) {
+			a21 /= n2;
+			a22 /= n2;
+			a23 /= n2;
+		}
+
+		// ------------------------------------------------------------
+		// Output:
+		//
+		// v[0] = {a11,a12,a13}
+		// v[1] = {a21,a22,a23}
+		// ------------------------------------------------------------
+
+		vec_dbl_Type v(6,0);
+
+		v[0] = a11;
+		v[1] = a12;
+		v[2] = a13;
+
+		v[3] = a21;
+		v[4] = a22;
+		v[5] = a23;
+
+		return v;
+	}
+
 
 } // namespace FEDD
 #endif // AssembleFE_SCI_SMC_Active_Growth_Reorientation_DEF_hpp

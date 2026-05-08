@@ -73,16 +73,21 @@ namespace FEDD
 
 		void updateDomainData(std::string dataName, double dataValue);
 
-                std::vector<std::string> getPostDataNames() { return postDataNames_; }
-                std::map<std::string, int> getFieldNameToPosition() { return fieldNameToPosition_; }
 
-	protected:
+        std::vector<std::string> getPostDataNames() { return postDataNames_; }
+        std::map<std::string, int> getFieldNameToPosition() { return fieldNameToPosition_; }
+
+      protected:
 		AssembleFE_SCI_SMC_Active_Growth_Reorientation(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type params, tuple_disk_vec_ptr_Type tuple);
 
 	private:
           void checkingReorientationActiveGrowth();
 		  
           void assemble_SCI_SMC_Active_Growth_Reorientation(bool computeTangent);
+
+          vec_dbl_Type computeFiberDirections(double x1, double x2, double x3);
+          vec2D_dbl_Type computeElementGaussFibersP2Tet();
+
 
           friend class AssembleFEFactory<SC, LO, GO, NO>; // Must have for specfic classes
 
