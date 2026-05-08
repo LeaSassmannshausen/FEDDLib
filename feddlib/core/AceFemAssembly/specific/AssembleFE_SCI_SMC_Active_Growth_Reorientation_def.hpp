@@ -14,7 +14,8 @@ namespace FEDD
 	AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::AssembleFE_SCI_SMC_Active_Growth_Reorientation(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type params, tuple_disk_vec_ptr_Type tuple) : AssembleFE<SC, LO, GO, NO>(flag, nodesRefConfig, params, tuple),
 																																																						   timeParametersVecActive_(0),
 																																																						   timeParametersVecGrowth_(0),
-																																																						   timeParametersVecReorientation_(0)
+																																																						   timeParametersVecReorientation_(0),
+																																																						   fA_(43.0)
 	{
 		activeAcceleratedEndTime_ = this->params_->sublist("Parameter").get("Accelerated Active Until",0.);
 		TEUCHOS_TEST_FOR_EXCEPTION(activeAcceleratedEndTime_ < 0, std::logic_error, "!!! Warning: Accelerated Active Until not set correctly. Please Check Parameterlist !!!");
@@ -59,6 +60,8 @@ namespace FEDD
 			subString[i] = domainDataNames_[i].substr(pos1 + 1, pos2 - pos1 - 1);
 			this->domainDataNames_[i] = subString[i];
 			this->domainData_[i] = this->params_->sublist("Parameter Solid").sublist(std::to_string(materialID)).get(subString[i], 1.0);
+			if (subString[i] == "Fibre angle")
+				fA_ = this->domainData_[i];
 			// std::cout << " DomainDataNames_ " << i << " "  << this->domainDataNames_[i] << " with value " << this->domainData_[i] << std::endl;
 
 			TEUCHOS_TEST_FOR_EXCEPTION(this->domainData_[i] > 1.e12, std::logic_error, " Parameter not set correctly. Parameter " << this->domainDataNames_[i] << " received default value!!");
@@ -348,29 +351,34 @@ namespace FEDD
 		if(this->timeStep_ - 1.e-13 < 0 && dt > 1.e-13) 
 		{
 			vec2D_dbl_Type gaussFibers = computeElementGaussFibersP2Tet();
-			for(int i=0; i<gaussFibers.size(); i++)
+			TEUCHOS_TEST_FOR_EXCEPTION(this->numberOfIntegrationPoints_ <= 0, std::logic_error, "Ace element reports no integration points.");
+			const int historyPerGP = this->historyLength_ / this->numberOfIntegrationPoints_;
+			const int fiberOffset = 28;
+			const int fiberComponents = 6;
+
+			TEUCHOS_TEST_FOR_EXCEPTION(this->historyLength_ % this->numberOfIntegrationPoints_ != 0, std::logic_error, "History length is not divisible by the number of integration points.");
+			TEUCHOS_TEST_FOR_EXCEPTION(historyPerGP < fiberOffset + fiberComponents, std::logic_error, "History layout is too short for the fiber direction entries.");
+			TEUCHOS_TEST_FOR_EXCEPTION((int)gaussFibers.size() != this->numberOfIntegrationPoints_, std::logic_error, "Number of computed Gauss-point fibers does not match the Ace element integration rule.");
+
+			for(int i=0; i<this->numberOfIntegrationPoints_; i++)
 			{
-				this->historyUpdated_[39 + i*this->history_.size()/4] = gaussFibers[i][0]; // a11
-				this->historyUpdated_[40 + i*this->history_.size()/4] = gaussFibers[i][1]; // a12
-				this->historyUpdated_[41 + i*this->history_.size()/4] = gaussFibers[i][2]; // a13
-				this->historyUpdated_[42 + i*this->history_.size()/4] = gaussFibers[i][3]; // a21
-				this->historyUpdated_[43 + i*this->history_.size()/4] = gaussFibers[i][4]; // a22
-				this->historyUpdated_[44 + i*this->history_.size()/4] = gaussFibers[i][5]; // a23
+				this->historyUpdated_[i * historyPerGP + fiberOffset + 0] = gaussFibers[i][0]; // a11
+				this->historyUpdated_[i * historyPerGP + fiberOffset + 1] = gaussFibers[i][1]; // a12
+				this->historyUpdated_[i * historyPerGP + fiberOffset + 2] = gaussFibers[i][2]; // a13
+				this->historyUpdated_[i * historyPerGP + fiberOffset + 3] = gaussFibers[i][3]; // a21
+				this->historyUpdated_[i * historyPerGP + fiberOffset + 4] = gaussFibers[i][4]; // a22
+				this->historyUpdated_[i * historyPerGP + fiberOffset + 5] = gaussFibers[i][5]; // a23
 			}
-			// 39 -- "a11"
-			// 40 -- "a12"
-			// 41 -- "a13"
-			// 42 -- "a21"
-			// 43 -- "a22"
-			// 44 -- "a23"
+			// Fiber directions are stored per Gauss point at offsets 28--33:
+			// a11, a12, a13, a21, a22, a23.
 			if(this->globalElementID_ <10)
 			{
 				std::cout << " Initial fiber direction in element " << this->globalElementID_ << ": " << std::endl;
-				for(int i=0; i<gaussFibers.size(); i++)
+				for(int i=0; i<this->numberOfIntegrationPoints_; i++)
 				{
-					std::cout << " Gauss Point " << i << ": a11: " << this->historyUpdated_[39 + i*this->history_.size()/4] << " a12: " << this->historyUpdated_[40 + i*this->history_.size()/4] << " a13: " << this->historyUpdated_[41 + i*this->history_.size()/4] << " a21: " << this->historyUpdated_[42 + i*this->history_.size()/4] << " a22: " << this->historyUpdated_[43 + i*this->history_.size()/4] << " a23: " << this->historyUpdated_[44 + i*this->history_.size()/4] << std::endl;
+					std::cout << " Gauss Point " << i << ": a11: " << this->historyUpdated_[i * historyPerGP + fiberOffset + 0] << " a12: " << this->historyUpdated_[i * historyPerGP + fiberOffset + 1] << " a13: " << this->historyUpdated_[i * historyPerGP + fiberOffset + 2] << " a21: " << this->historyUpdated_[i * historyPerGP + fiberOffset + 3] << " a22: " << this->historyUpdated_[i * historyPerGP + fiberOffset + 4] << " a23: " << this->historyUpdated_[i * historyPerGP + fiberOffset + 5] << std::endl;
 
-					std::cout << " Gauss Point before " << i << ": a11: " << this->history_[39 + i*this->history_.size()/4] << " a12: " << this->history_[40 + i*this->history_.size()/4] << " a13: " << this->history_[41 + i*this->history_.size()/4] << " a21: " << this->history_[42 + i*this->history_.size()/4] << " a22: " << this->history_[43 + i*this->history_.size()/4] << " a23: " << this->history_[44 + i*this->history_.size()/4] << std::endl;
+					std::cout << " Gauss Point before " << i << ": a11: " << this->history_[i * historyPerGP + fiberOffset + 0] << " a12: " << this->history_[i * historyPerGP + fiberOffset + 1] << " a13: " << this->history_[i * historyPerGP + fiberOffset + 2] << " a21: " << this->history_[i * historyPerGP + fiberOffset + 3] << " a22: " << this->history_[i * historyPerGP + fiberOffset + 4] << " a23: " << this->history_[i * historyPerGP + fiberOffset + 5] << std::endl;
 				}
 			}
 		}
@@ -630,6 +638,7 @@ namespace FEDD
 			if (stringArray[i] == subString)
 				return i;
 		}
+		return -1;
 	}
 
 	template <class SC, class LO, class GO, class NO>
@@ -737,6 +746,7 @@ namespace FEDD
 	{
 		int position = findPosition(dataName, this->domainDataNames_);
 		// cout << " !!!! Position " << position << " of " << dataName << " found " << endl;
+		TEUCHOS_TEST_FOR_EXCEPTION(position < 0, std::logic_error, "Domain data entry '" << dataName << "' was not found in the Ace element domain data list.");
 		this->domainData_[position] = dataValue;
 	}
 
