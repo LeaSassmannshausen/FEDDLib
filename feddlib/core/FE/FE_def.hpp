@@ -5363,18 +5363,18 @@ double FE<SC,LO,GO,NO>::assemblyBackflowStabilization(int dim,
                         // We only assemble for negative flow
                         if(localVelocity < -1.e-13)                     
                         {  
-                            std::cout << " ---------------------------------------------------------- " <<std::endl;
-                            std::cout << " Global IDs of suface nodes: " ;
-                            for(int i=0; i<nodeList.size(); i++)
-                                std::cout << map->getGlobalElement( nodeList[i] ) << ", ";
-                            std::cout<<std::endl;
+                            // std::cout << " ---------------------------------------------------------- " <<std::endl;
+                            // std::cout << " Global IDs of suface nodes: " ;
+                            // for(int i=0; i<nodeList.size(); i++)
+                            //     std::cout << map->getGlobalElement( nodeList[i] ) << ", ";
+                            // std::cout<<std::endl;
                             
-                            std::cout << " Normal vector at surface " ;
-                            for(int i=0; i<dim; i++){
-                                std::cout << v_E[i]/norm_v_E << ", ";
-                            }
-                            std::cout<< std::endl;
-                            std::cout << " Local velocity" <<" is " << localVelocity <<std::endl;
+                            // std::cout << " Normal vector at surface " ;
+                            // for(int i=0; i<dim; i++){
+                            //     std::cout << v_E[i]/norm_v_E << ", ";
+                            // }
+                            // std::cout<< std::endl;
+                            // std::cout << " Local velocity" <<" is " << localVelocity <<std::endl;
  
                             // Matrix Assembly for backflow stabilization                         
                             for (UN i=0; i < phi->at(0).size(); i++) {
