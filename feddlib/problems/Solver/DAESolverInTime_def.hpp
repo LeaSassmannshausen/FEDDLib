@@ -1487,11 +1487,17 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
 
             MultiVectorPtr_Type u_rep = Teuchos::rcp(new MultiVector_Type ( problemTime_->getDomain(0)->getMapVecFieldRepeated() ) );   
             u_rep->importFromVector(problemTime_->getSolution()->getBlock(0),false,"Insert");
-            fe.assemblyFlowRate(problemTime_->getDomain(0)->getDimension(), flowRateInlet, problemTime_->getDomain(0)->getFEType() , problemTime_->getDomain(0)->getDimension(), flagInlet , u_rep);
-            fe.assemblyFlowRate(problemTime_->getDomain(0)->getDimension(), flowRateOutlet, problemTime_->getDomain(0)->getFEType() , problemTime_->getDomain(0)->getDimension(), flagOutlet , u_rep);
+            int isneg1= fe.assemblyFlowRate(problemTime_->getDomain(0)->getDimension(), flowRateInlet, problemTime_->getDomain(0)->getFEType() , problemTime_->getDomain(0)->getDimension(), flagInlet , u_rep);
+            int isneg2= fe.assemblyFlowRate(problemTime_->getDomain(0)->getDimension(), flowRateOutlet, problemTime_->getDomain(0)->getFEType() , problemTime_->getDomain(0)->getDimension(), flagOutlet , u_rep);
 
-            exporterFlowRateInlet->exportData(  timeSteppingTool_->currentTime() , flowRateInlet );
-            exporterFlowRateOutlet->exportData(  timeSteppingTool_->currentTime() ,flowRateOutlet );
+            double sign1 =1.;
+            double sign2 =1.;
+            if(isneg1==-1)
+                sign1=-1.;
+            if(isneg2==-1)
+                sign2=-1.;
+            exporterFlowRateInlet->exportData(  timeSteppingTool_->currentTime() , sign1*flowRateInlet );
+            exporterFlowRateOutlet->exportData(  timeSteppingTool_->currentTime() , sign2*flowRateOutlet );
 
             exporterPressureOutlet->exportData(  timeSteppingTool_->currentTime() , fsi->getPressureOutlet() );
 
