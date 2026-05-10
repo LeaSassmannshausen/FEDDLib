@@ -1492,9 +1492,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
 
             double sign1 =1.;
             double sign2 =1.;
-            if(isneg1==-1)
+            if(isneg1==1)
                 sign1=-1.;
-            if(isneg2==-1)
+            if(isneg2==1)
                 sign2=-1.;
             exporterFlowRateInlet->exportData(  timeSteppingTool_->currentTime() , sign1*flowRateInlet );
             exporterFlowRateOutlet->exportData(  timeSteppingTool_->currentTime() , sign2*flowRateOutlet );
