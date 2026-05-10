@@ -393,8 +393,7 @@ int main(int argc, char *argv[])
 							//                TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error,"P1/P1 for FSI not implemented!");
 						}
                         // domainFluidVelocity->preProcessMesh(true,false);
-                        domainFluidVelocity->exportNodeFlags("Fluid");
-                        domainStructure->exportNodeFlags("Solid");
+                        
                         // Calculate distances is done in: identifyInterfaceParallelAndDistance
                         domainP1fluid->identifyInterfaceParallelAndDistance(domainP1struct, idsInterface);
                         if (!discType.compare("P2"))
@@ -417,6 +416,9 @@ int main(int argc, char *argv[])
 
                domainFluidVelocity->exportDistribution("Fluid");
                domainStructure->exportDistribution("Solid");
+
+               domainFluidVelocity->exportNodeFlags("Fluid");
+                domainStructure->exportNodeFlags("Solid");
 
             }
            
