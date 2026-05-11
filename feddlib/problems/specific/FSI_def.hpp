@@ -294,7 +294,6 @@ void FSI<SC,LO,GO,NO>::assemble( std::string type ) const
         C2->resumeFill();
         C3_T->resumeFill();
 
-        C2->scale( -(1.0/dt) ); // this will be used in a first order approximation of the solid velocity
         C3_T->scale( -1.0 );
         
         // ACHTUNG: Die Interface-Variable \lambda wird eindeutig von der Fluid-Seite gehalten.
@@ -302,9 +301,9 @@ void FSI<SC,LO,GO,NO>::assemble( std::string type ) const
         C2->fillComplete(this->getDomain(2)->getMapVecFieldUnique(), this->getDomain(0)->getInterfaceMapVecFieldUnique());
         C3_T->fillComplete(this->getDomain(0)->getInterfaceMapVecFieldUnique(), this->getDomain(2)->getMapVecFieldUnique());
 
-        // C2 in Membervariable C2_ speichern, fuer rechte Seite im Interface-Block:
-        // C2*d_s^n
-        C2_ = C2;
+        C2_unscaled_ = Teuchos::rcp(new Matrix_Type(C2));
+        C2_ = Teuchos::rcp(new Matrix_Type(C2_unscaled_));
+        C2_->scale( -(1.0/dt) ); // this will be used in a first order approximation of the solid velocity
 
         if(!geometryExplicit_)
         {
@@ -340,7 +339,7 @@ void FSI<SC,LO,GO,NO>::assemble( std::string type ) const
         this->system_->addBlock( C1_T, 0, 3 );
         this->system_->addBlock( C3_T, 2, 3 );
         this->system_->addBlock( C1, 3, 0 );
-        this->system_->addBlock( C2, 3, 2 );
+        this->system_->addBlock( C2_, 3, 2 );
 
         if (!dummyC.is_null())
             this->system_->addBlock( dummyC, 3, 3 );
@@ -1649,7 +1648,7 @@ void FSI<SC,LO,GO,NO>::updateTime() const
     timeSteppingTool_->updateParameter();
 
     if(this->verbose_)
-        std::cout << "FSI: Update time to " << timeSteppingTool_->currentTime() << " with dt = " << timeSteppingTool_->dt_prev_ << std::endl;
+        std::cout << "FSI: Update time to " << timeSteppingTool_->currentTime() << " with dt_prev_ = " << timeSteppingTool_->dt_prev_ << std::endl;
 
     this->problemTimeFluid_->updateTime(this->timeSteppingTool_->t_);
 
@@ -1695,6 +1694,18 @@ void FSI<SC,LO,GO,NO>::addInterfaceBlockRHS() const
 
     C2_->apply(*(this->solution_->getBlock(2)), *vectorToAdd);
     this->rhs_->addBlock(vectorToAdd, 3);
+}
+
+template<class SC,class LO,class GO,class NO>
+void FSI<SC,LO,GO,NO>::updateInterfaceBlockScaling(double dt) const
+{
+    TEUCHOS_TEST_FOR_EXCEPTION(C2_unscaled_.is_null(), std::runtime_error, "Unscaled FSI interface block C2 is null.");
+
+    C2_ = Teuchos::rcp(new Matrix_Type(C2_unscaled_));
+    C2_->scale( -(1.0/dt) );
+
+    if (!this->system_.is_null())
+        this->system_->addBlock(C2_, 3, 2);
 }
 
 

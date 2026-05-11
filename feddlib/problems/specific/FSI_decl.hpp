@@ -166,6 +166,8 @@ public:
     // Fuegt den Block C2*d_s^n in die RHS in den Interface-Block
     void addInterfaceBlockRHS() const;
 
+    void updateInterfaceBlockScaling(double dt) const;
+
     // Macht setupTimeStepping() auf problemTimeFluid_ und problemTimeStructure_
     void setupSubTimeProblems(ParameterListPtr_Type parameterListFluid, ParameterListPtr_Type parameterListStructure) const;
 
@@ -227,6 +229,7 @@ public:
     MultiVectorPtr_Type p_rep_;
 
     mutable MatrixPtr_Type C2_;
+    mutable MatrixPtr_Type C2_unscaled_;
 
     mutable MatrixPtr_Type 	P_;
     mutable int counterP;
