@@ -146,7 +146,7 @@ void NonLinElasticity<SC,LO,GO,NO>::assemble(std::string type) const{
 template<class SC,class LO,class GO,class NO>
 void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
 {
-    timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
+    timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_;
     timeSteppingTool_->updateParameter();
 
     if(this->verbose_)

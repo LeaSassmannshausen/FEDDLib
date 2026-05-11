@@ -148,14 +148,14 @@ void TimeSteppingTools::updateParameter(){
     // This includes exact interval boundaries and the final segment.
     int activeSegment = 0;
     for(int i=0; i<numStoredSegments; i++){
-        if(t_ + 1.0e-12 >= timeParametersVec_[i][0])
+        if(t_ + 1.0e-8 >= timeParametersVec_[i][0])
             activeSegment = i;
         else
             break;
     }
 
     dt_=timeParametersVec_[activeSegment][1];
-    if (t_ <= 1.0e-12)
+    if (t_ <= 1.0e-8)
         dt_prev_ = dt_;
     // std::cout << " updated to " << dt_ << " at time " << t_ << std::endl;
 

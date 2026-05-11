@@ -1645,8 +1645,8 @@ template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::updateTime() const
 {
     this->newtonStep_ = 0;
+    timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_;
     timeSteppingTool_->updateParameter();
-    timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
 
     if(this->verbose_)
         std::cout << "FSI: Update time to " << timeSteppingTool_->currentTime() << " with dt = " << timeSteppingTool_->dt_prev_ << std::endl;
