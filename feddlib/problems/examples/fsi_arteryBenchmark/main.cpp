@@ -615,7 +615,7 @@ int main(int argc, char *argv[])
                     bcFactoryFluidInterface->addBC(zeroDirichlet3D, 5, 0, domainFluidVelocity, "Dirichlet", dim);
                 }
                 bcFactoryFluidInterface->addBC(zeroDirichlet3D, 6, 0, domainFluidVelocity, "Dirichlet", dim);
-                }
+                
             }
             fsi.problemGeometry_->addBoundaries(bcFactoryGeometry);
             if ( preconditionerMethod == "FaCSI" || preconditionerMethod == "FaCSI-Teko")
