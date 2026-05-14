@@ -5147,7 +5147,7 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
     //     else 
     //         flowRateUse = 0.;
     // }
-    if(params->sublist("Parameter Fluid").get("Use Inflow",false) )
+    if(params->sublist("Parameter Fluid").get("Use Inflow",false) && funcParameter[0] < unsteadyStart )
             flowRateUse = flowRateInlet;
 
     double A_bar = 1./((std::sqrt(beta*std::sqrt(areaOutlet_init)+p_ref_input)-std::sqrt(beta*std::sqrt(areaOutlet_init)))*2.*std::sqrt(2.)*(1./std::sqrt(density))*(1./flowRateInput));
