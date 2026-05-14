@@ -74,6 +74,12 @@ public:
                        ThyraLinOpPtr_Type pressureInv,
                        ThyraLinOpPtr_Type BT);
 
+    /// Triangular preconditioner with AL for unsteady definitions with S = - M_p - B Mu B^T
+    void setTriangularAL( ThyraLinOpPtr_Type velocityInv,
+                        ThyraLinOpPtr_Type pressureInv,
+                        ThyraLinOpPtr_Type laplaceInverse,
+                        ThyraLinOpPtr_Type BT);    
+
     /// Pressure-Convection-Diffusion (PCD) block triangular preconditioner
     void setTriangular(ThyraLinOpPtr_Type velocityInv,
                         ThyraLinOpPtr_Type laplaceInverse,

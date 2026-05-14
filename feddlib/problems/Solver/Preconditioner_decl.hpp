@@ -183,8 +183,12 @@ private:
     // For Stokes-type block diagonal and triangular precondtioner
     ThyraLinOpPtr_Type precVelocity_;
     ThyraLinOpPtr_Type precSchur_;
+    ThyraLinOpPtr_Type precSchur_AL_;
+
     MinPrecProblemPtr_Type probVelocity_;
     MinPrecProblemPtr_Type probSchur_;
+    MinPrecProblemPtr_Type probSchur_AL_;
+
     // mutable MatrixPtr_Type pressureMassMatrix_;
 
     // For LSC and PCD preconditioner

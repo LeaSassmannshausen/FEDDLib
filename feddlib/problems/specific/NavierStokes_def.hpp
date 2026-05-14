@@ -381,8 +381,36 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
         SC kinVisco = this->parameterList_->sublist("Parameter").get("Viscosity",1.);
 
         if(augmentedLagrange_){
-            double gamma = this->parameterList_->sublist("General").get("Gamma",1.0);
-            Mpressure->scale(-1./(kinVisco+gamma));
+            if(this->parameterList_->sublist("Timestepping Parameter").get("dt",-1.)> -1 ){ // In case we have a timeproblem
+                MatrixPtr_Type Mvelocity(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getApproxEntriesPerRow()*this->dim_ ) );
+
+                this->feFactory_->assemblyMass( this->dim_, this->domain_FEType_vec_.at(0), "Vector", Mvelocity, true );
+                double dt = this->parameterList_->sublist("Timestepping Parameter").get("dt",-1.);
+                // Mvelocity->scale(1./dt);
+                MatrixPtr_Type BMuBT(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow()*2 ) );
+
+                MatrixPtr_Type MuInv = Mvelocity->buildDiagonalInverse("Diagonal");
+
+                MatrixPtr_Type B_Mu(new Matrix_Type( this->getDomain(1)->getMapUnique(),this->getDomain(0)->getApproxEntriesPerRow() ) );
+                B_Mu->Multiply(B_,false,MuInv,false);
+
+
+                MatrixPtr_Type B_Mu_BT(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
+                B_Mu_BT->Multiply(B_Mu,false,this->system_->getBlock(0,1),false);
+                B_Mu_BT->resumeFill();
+                B_Mu_BT->scale(-1./dt);
+                B_Mu_BT->fillComplete();
+
+                this->getPreconditionerConst()->setPressureLaplaceMatrix( B_Mu_BT );
+
+                Mpressure->scale(-1./kinVisco);
+
+
+            }
+            else{
+                double gamma = this->parameterList_->sublist("General").get("Gamma",1.0);
+                Mpressure->scale(-1./(kinVisco+gamma));
+            }
         }
         else{
             Mpressure->scale(-1./kinVisco);

@@ -432,15 +432,15 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                             }
                             // Teuchos::RCP<const Tpetra::Map<LO,GO,NO> > mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated()->getTpetraMap();
                             // Teuchos::RCP<Tpetra::Map<LO,GO,NO> > mapTmp = Teuchos::rcp_const_cast<Tpetra::Map<LO,GO,NO> > (mapConstTmp);
-                            MapConstPtr_Type mapConstTmp;//->getTpetraMap();
+                            MapConstPtr_Type mapConstTmp= timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->getTpetraMap();
 
-                            if(augmentedLagrange && useAugmentedOverlap){
-                                mapConstTmp = buildMultiplicityOneMap(timeProblem_->getDomain(i)->getMapVecFieldRepeated(),timeProblem_->getDomain(i)->getMapVecFieldUnique());
-                                if(verbose)
-                                    std::cout << " Using augmented map for overlap construction in FROSch with augmented Lagrange " << std::endl;
-                            }    
-                            else
-                                mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->get
+                            // if(augmentedLagrange && useAugmentedOverlap){
+                            //     mapConstTmp = buildMultiplicityOneMap(timeProblem_->getDomain(i)->getMapVecFieldRepeated(),timeProblem_->getDomain(i)->getMapVecFieldUnique());
+                            //     if(verbose)
+                            //         std::cout << " Using augmented map for overlap construction in FROSch with augmented Lagrange " << std::endl;
+                            // }    
+                            // else
+                            //     mapConstTmp = timeProblem_->getDomain(i)->getMapVecFieldRepeated();//->get
 
 
                             XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
@@ -532,7 +532,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
             if(numberOfBlocks == 1) // For one level preconditioner in 1x1 block system
                 pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("Repeated Map",repeatedMaps[0]);
 
-            if(numberOfBlocks == 1 && augmentedLagrange && useAugmentedOverlap){ // For one level preconditioner in 1x1 block system
+            if(numberOfBlocks == 1 && augmentedLagrange && useAugmentedOverlap){ //} && (UN) pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").get( "DofsPerNode" + std::to_string(1), 1)>1 ){ // For one level preconditioner in 1x1 block system
                 MapConstPtr_Type mapConstTmp = buildMultiplicityOneMap(problem_->getDomain(0)->getMapVecFieldRepeated(),problem_->getDomain(0)->getMapVecFieldUnique());
                 
                 XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
@@ -1691,6 +1691,16 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
             domain2.push_back( timeProblem_->getDomain(1) );
             probSchur_->initializeDomains( domain2 );
             probSchur_->initializeLinSolverBuilder( timeProblem_->getLinearSolverBuilder() );
+
+            // If we have a time problem and AL we need another component for the Schur complement
+            if(parameterList->sublist("General").get("Augmented Lagrange", false)){
+                probSchur_AL_ = Teuchos::rcp( new MinPrecProblem_Type( plSchur, comm ) );
+                DomainConstPtr_vec_Type domain2(0);
+                domain2.push_back( timeProblem_->getDomain(1) );
+                probSchur_AL_->initializeDomains( domain2 );
+                probSchur_AL_->initializeLinSolverBuilder( timeProblem_->getLinearSolverBuilder() );       
+
+            }
         }
         else
         {
@@ -1711,14 +1721,27 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
 
     if(type == "Diagonal" || type == "Triangular"){
         BlockMatrixPtr_Type Mp = Teuchos::rcp( new BlockMatrix_Type(1) );
-            
+             
         Mp->addBlock( pressureMassMatrixPtr_, 0, 0 );
         
         probSchur_->initializeSystem( Mp );
         
         if(parameterList->sublist("General").get("Augmented Lagrange", false)){
-            std::string typeDiag = parameterList->sublist("General").get("Diagonal Approximation","Diagonal");
-            precSchur_ = pressureMassMatrixPtr_->buildDiagonalInverse(typeDiag)->getThyraLinOpNonConst();
+            if(timeProblem_.is_null()){
+                std::string typeDiag = parameterList->sublist("General").get("Diagonal Approximation","Diagonal");
+                precSchur_ = pressureMassMatrixPtr_->buildDiagonalInverse(typeDiag)->getThyraLinOpNonConst();
+            }
+            else{
+                std::string typeDiag = parameterList->sublist("General").get("Diagonal Approximation","Diagonal");
+                precSchur_ = pressureMassMatrixPtr_->buildDiagonalInverse(typeDiag)->getThyraLinOpNonConst();
+
+                BlockMatrixPtr_Type BMuBT = Teuchos::rcp( new BlockMatrix_Type(1) );
+                BMuBT->addBlock( pressureLaplaceMatrixPtr_, 0, 0 ); // Since this is the discrete pressure laplabe we do not need to add another variable here
+
+                probSchur_AL_->initializeSystem( BMuBT );
+                probSchur_AL_->setupPreconditioner( "Monolithic" ); // single matrix
+                precSchur_AL_ = probSchur_AL_->getPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
+            }
         }
         else{
             probSchur_->setupPreconditioner( "Monolithic" ); // single matrix
@@ -1890,9 +1913,11 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerBlock2x2( )
     }
     else if (type == "Triangular") {
         ThyraLinOpPtr_Type BT = system->getBlock(0,1)->getThyraLinOpNonConst();
-        blockPrec2x2->setTriangular(precVelocity_,
-                                    precSchur_,
-                                    BT);
+        if(parameterList->sublist("General").get("Augmented Lagrange", false) && !timeProblem_.is_null()){
+            blockPrec2x2->setTriangularAL(precVelocity_, precSchur_,precSchur_AL_ , BT);
+        }    
+        else
+            blockPrec2x2->setTriangular(precVelocity_, precSchur_, BT);
     }
     else if (type == "PCD") {
         if (!timeProblem_.is_null()){

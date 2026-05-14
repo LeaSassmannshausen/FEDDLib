@@ -65,6 +65,26 @@ void PrecBlock2x2<SC,LO,GO,NO>::setTriangular(
     initialize();
 }
 
+template<class SC, class LO, class GO, class NO>
+void PrecBlock2x2<SC,LO,GO,NO>::setTriangularAL(
+                                              ThyraLinOpPtr_Type velocityInv,
+                                              ThyraLinOpPtr_Type pressureInv,
+                                              ThyraLinOpPtr_Type laplaceInverse,
+                                              ThyraLinOpPtr_Type BT
+                                              ){
+    setVeloctiyInv(velocityInv);
+    
+    laplaceInverse_ = laplaceInverse; // We call it laplace inverse because B M_u B^T is also a discrete laplace operator but with bc info
+
+    setPressureInv(pressureInv); // We call it laplace inverse because B M_u B^T is also a discrete laplace operator but with bc info
+
+    setType("Triangular");
+
+    BT_ = BT;
+    
+    initialize();
+}
+
 
 template<class SC, class LO, class GO, class NO>
 void PrecBlock2x2<SC,LO,GO,NO>::setTriangular(ThyraLinOpPtr_Type velocityInv,
@@ -228,7 +248,12 @@ void PrecBlock2x2<SC,LO,GO,NO>::applyImpl(
     else if (type_ == "Triangular"){
 
         pressureInv_->apply(NOTRANS, *X_1, Y_1.ptr(), 1., 0.); // Apply input vector pressure component to Schur complement inverse approximation
+                                                               // Here: 1/nu Mp^{-1} * X1 = Y1
         
+        if(!laplaceInverse_.is_null()){
+            // Alternative option to use the Laplace constructed via B M_v B^T (but BC is unclear then)
+            laplaceInverse_->apply(NOTRANS, *Y_1, Y_1.ptr(), 1., 1); //y = B M_v^-1 B^T * Y_1 + Y_1
+        }    
         Teuchos::RCP< MultiVectorBase< SC > > Z_0 = X_0->clone_mv();
         
         BT_->apply(NOTRANS, *Y_1, Z_0.ptr(), -1., 1.); //Z0= BT*Y1 + X0

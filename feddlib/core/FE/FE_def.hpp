@@ -5136,6 +5136,11 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
     double flowRateUse = flowRateOutlet;
     if(params->sublist("Parameter Fluid").get("Average Flowrate",false) )
             flowRateUse = flowRateOutletAveraged;
+
+    if(params->sublist("Parameter Fluid").get("Nonlinear Boundary Conditions",false)){
+        if(isNeg==1)
+           flowRateUse = 0.; 
+    }
     // if(isNeg==1){
     //     if(params->sublist("Parameter Fluid").get("Use Inflow",false) )
     //         flowRateUse = flowRateInlet;
