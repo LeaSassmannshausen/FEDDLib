@@ -397,14 +397,14 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
 
                 MatrixPtr_Type B_Mu_BT(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
                 B_Mu_BT->Multiply(B_Mu,false,this->system_->getBlock(0,1),false);
-                B_Mu_BT->resumeFill();
+                // B_Mu_BT->resumeFill();
                 B_Mu_BT->scale(-1./dt);
-                B_Mu_BT->fillComplete();
+                // std::cout << "Scaling B_Mu_BT with " << -1./dt << std::endl;
+                // B_Mu_BT->fillComplete();
 
                 this->getPreconditionerConst()->setPressureLaplaceMatrix( B_Mu_BT );
-
+                // B_Mu_BT->writeMM("B_Mu_BT.mm");
                 Mpressure->scale(-1./kinVisco);
-
 
             }
             else{

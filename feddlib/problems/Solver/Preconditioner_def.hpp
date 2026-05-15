@@ -533,8 +533,12 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerMonolithic( )
                 pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").set("Repeated Map",repeatedMaps[0]);
 
             if(numberOfBlocks == 1 && augmentedLagrange && useAugmentedOverlap){ //} && (UN) pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").get( "DofsPerNode" + std::to_string(1), 1)>1 ){ // For one level preconditioner in 1x1 block system
-                MapConstPtr_Type mapConstTmp = buildMultiplicityOneMap(problem_->getDomain(0)->getMapVecFieldRepeated(),problem_->getDomain(0)->getMapVecFieldUnique());
-                
+                MapConstPtr_Type mapConstTmp;
+                if((UN) pListThyraPrec->sublist("Preconditioner Types").sublist("FROSch").get( "DofsPerNode" + std::to_string(1), 1)>1) // Vector valued problem
+                    mapConstTmp = buildMultiplicityOneMap(problem_->getDomain(0)->getMapVecFieldRepeated(),problem_->getDomain(0)->getMapVecFieldUnique());
+                else
+                    mapConstTmp = buildMultiplicityOneMap(problem_->getDomain(0)->getMapRepeated(),problem_->getDomain(0)->getMapUnique());
+
                 XpetraMapConstPtr_Type mapConstX = Xpetra::MapFactory<LO,GO,NO>::Build( Xpetra::UseTpetra, mapConstTmp->getGlobalNumElements(), mapConstTmp->getNodeElementList(), mapConstTmp->getIndexBase(), mapConstTmp->getComm() );
                 Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > mapXOverlap= Teuchos::rcp_const_cast<Xpetra::Map<LO,GO,NO> > (mapConstX);
                                            
