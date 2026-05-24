@@ -283,6 +283,8 @@ namespace FEDD
           double rho_;
           double typeOfInterpol_;
           double subiterationTolerance_;
+
+          bool computeFA_;
 	};
 
 }

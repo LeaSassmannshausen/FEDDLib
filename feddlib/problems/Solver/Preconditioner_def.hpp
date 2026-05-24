@@ -1083,7 +1083,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerTeko( )
             else if(!tekoPList->sublist("Preconditioner Types").sublist("Teko").get("Inverse Type", "SIMPLE").compare("Triangular")){
                 // Pressure Mass appriximation for the schur complement
                 Teko::LinearOp thyraPressureMass;
-                if(parameterList->sublist("General").get("Augmented Lagrange", false)){
+                if(parameterList->sublist("General").get("Augmented Lagrange", false) || parameterList->sublist("General").get("Diagonal Inverse", false) ){
                     std::string typeDiag = parameterList->sublist("General").get("Diagonal Approximation","Diagonal");
                     precSchur_ = pressureMassMatrixPtr_->buildDiagonalInverse(typeDiag)->getThyraLinOpNonConst();
                     thyraPressureMass = precSchur_;

@@ -290,6 +290,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
     // ######################
     while(timeSteppingTool_->continueTimeStepping())
     {
+        timeSteppingTool_->updateParameter();
         timeSteppingTool_->printInfo();
 
         // Stelle (massCoeff*M + problemCoeff*A) auf
@@ -313,7 +314,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
         }
         if (printStress){
 
-            std::cout << "Exporting stresses and co. " << std::endl;
 
             double modValue = parameterList_->sublist("General").get("Every X Second",1.) ;
 
@@ -322,8 +322,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
          
 
             if(fabs(remainder(time,modValue)) < 0. + 1.e-8 ){
-                std::cout << "Exporting stresses and co. at time " << timeSteppingTool_->currentTime() << std::endl;
-
                 BlockMultiVectorPtr_Type stressVecTmp= nonlinElas->getPostProcessingData();
                 stressVec = stressVecTmp;
                 this->exportPostprocess(stressVec,problemTime_->getDomain(0),nonlinElas->getPostprocessingNames()); 
