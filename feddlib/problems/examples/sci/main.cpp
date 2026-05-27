@@ -655,10 +655,7 @@ int main(int argc, char *argv[])
 		    	volumeID = 15;
 		    		    	
 		    partitionerP1.readAndPartition(volumeID);
-		    
-            domainP1struct->exportElementFlags();
-            domainP1struct->exportNodeFlags();
-		    
+		        
             if (!discType.compare("P2")){
 				domainP2chem->buildP2ofP1Domain( domainP1struct );
 				domainP2struct->buildP2ofP1Domain( domainP1struct );
@@ -676,7 +673,6 @@ int main(int argc, char *argv[])
      
         domainChem->setReferenceConfiguration();
         domainStructure->setReferenceConfiguration();
-        domainStructure->exportNodeFlags();
 
         // Defining diffusion tensor. Only used for explicit approach
         vec2D_dbl_Type diffusionTensor(dim,vec_dbl_Type(3));

@@ -898,7 +898,7 @@ void SCI<SC,LO,GO,NO>::updateTime() const
     this->problemTimeChem_->updateTime(timeSteppingTool_->t_);
     this->problemTimeStructure_->updateTime(timeSteppingTool_->t_);
 
- 
+    this->newtonStep_ = 0; // reset newton step counter at the beginning of each time step 
 }
 
 
