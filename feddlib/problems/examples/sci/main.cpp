@@ -555,16 +555,19 @@ int main(int argc, char *argv[])
                     
 		// parameterListAll->setParameters(*parameterListProblemStructure);
         
-        ParameterListPtr_Type parameterListChemAll(new Teuchos::ParameterList(*parameterListPrecChem)) ;
-        sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Diffusion") );
-        // sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
+        ParameterListPtr_Type parameterListChemAll(new Teuchos::ParameterList(*parameterListProblem)) ;
         parameterListChemAll->setParameters(*parameterListSolverSCI);
         parameterListChemAll->setParameters(*parameterListPrecChem);
+        sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Diffusion") );
+        // sublist(parameterListChemAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
+
 
         
-        ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListPrec));
-        sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
+        ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListProblem));
         parameterListStructureAll->setParameters(*parameterListPrec);
+        parameterListAll->setParameters(*parameterListSolverSCI);
+        sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
+
         // parameterListStructureAll->setParameters(*parameterListProblem);
         // parameterListStructureAll->setParameters(*parameterListProblemStructure);
 		
