@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
         NonLinElasAssFE.addBoundaries(bcFactory); // Dem Problem RW hinzufuegen
     
         double force = parameterListAll->sublist("Parameter").get("Volume force",0.);
-        double finalTimeRamp = parameterListAll->sublist("Timestepping Parameter").get("Final time force",0.1);
+        double finalTimeRamp = parameterListAll->sublist("Timestepping Parameter").get("Final time load",0.1);
         double dt = parameterListAll->sublist("Timestepping Parameter").get("dt",0.1);
 
         double degree = 0;

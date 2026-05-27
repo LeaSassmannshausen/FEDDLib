@@ -1063,6 +1063,12 @@ void TimeProblem<SC,LO,GO,NO>::evalModelImplMonolithic( const Thyra::ModelEvalua
                 {
                     this->problem_->setupPreconditioner( "Monolithic" );
                 }
+                else if(this->time_ < this->parameterList_->sublist("Timestepping Parameter").get("Final time load",0.0) )
+                {
+                    this->problem_->setupPreconditioner( "Monolithic" );
+                    if (this->verbose_)
+                        std::cout << " \t\t TimeProblem<SC,LO,GO,NO>::evalModelImplMonolithic: Rebuilding preconditioner for load stepping." << std::endl;
+                }
                 else{
                     if (this->verbose_)
                         std::cout << " \t\t TimeProblem<SC,LO,GO,NO>::evalModelImplMonolithic: Skipping preconditioner reconstruction" << std::endl;

@@ -69,7 +69,7 @@
         <Parameter name="Class"                                 type="string"		value="Newmark"/> <!--Multistep, Singlestep, Newmark-->
         <Parameter name="BDF"		                    		type="int"		   	value="1"/>
         <Parameter name="Timestepping type"                    	type="string"   	value="non-adaptive"/><!--non-adaptive,adaptive-->
-        <Parameter name="Final time force"	                    type="double"   	value="1."/>
+        <Parameter name="Final time load"	                    type="double"   	value="1."/>
         <Parameter name="Final time"	                    	type="double"   	value=".01"/>
         <Parameter name="dt"			                    	type="double"   	value="0.01"/>
         <Parameter name="beta"			                    	type="double"   	value="0.25"/> <!-- newmark method parameter-->

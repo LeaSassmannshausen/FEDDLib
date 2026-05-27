@@ -160,6 +160,8 @@ void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
         u_rep_->importFromVector(d, true); 
         this->feFactory_->advanceInTimeAssemblyFEElements(timeSteppingTool_->dt_, u_rep_, c );    
      }
+    this->newtonStep_ = 0; // Resetting newton step
+
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -278,7 +280,7 @@ void NonLinElasticity<SC,LO,GO,NO>::assembleSourceTermLoadstepping(double time) 
             // how can we use different parameters for different blocks here?
             funcParameter[1] =this->parameterList_->sublist("Parameter").get("Volume force",0.00211);
 
-            funcParameter[3] =this->parameterList_->sublist("Parameter").get("Final time force",1.0);
+            funcParameter[3] =this->parameterList_->sublist("Parameter").get("Final time load",1.0);
             funcParameter[4] =dt;
 
 

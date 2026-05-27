@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
                 TEUCHOS_TEST_FOR_EXCEPTION(true, std::runtime_error, "Unknown boundary function.");
 
             double force = this->parameterList_->sublist("Parameter").get("Volume force",0.);
-            double finalTimeRamp = parameterListAll->sublist("Timestepping Parameter").get("Final time force",0.1);
+            double finalTimeRamp = parameterListAll->sublist("Timestepping Parameter").get("Final time load",0.1);
             double degree = 0;
             
             LinElas.addParemeterRhs( force );
