@@ -262,7 +262,7 @@ void rhsHeartBeatArtery(double* x, double* res, double* parameters){
     
 
     double t_min = t - fmod(t,1.0)+heartBeatStart+0.5-std::floor(t)-0.02; //FlowConditions::t_start_unsteady;
-    double t_max = t_min + 0.5; // One heartbeat lasts 0.5 seconds    
+    double t_max = t_min + 0.52; // One heartbeat lasts 0.5 seconds    
     double y = M_PI * ( 2.0*( t-t_min ) / ( t_max - t_min ) -1.0)  ;
     
     for(int i=0; i< 20; i++)
