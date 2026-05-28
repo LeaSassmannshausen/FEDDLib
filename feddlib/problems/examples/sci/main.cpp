@@ -261,8 +261,8 @@ void rhsHeartBeatArtery(double* x, double* res, double* parameters){
     double Q = 0.5*a0;
     
 
-    double t_min = t - fmod(t,1.0)+heartBeatStart-std::floor(t); ; //FlowConditions::t_start_unsteady;
-    double t_max = t_min + 1.0; // One heartbeat lasts 1.0 second    
+    double t_min = t - fmod(t,1.0)+heartBeatStart+0.5-std::floor(t); ; //FlowConditions::t_start_unsteady;
+    double t_max = t_min + 0.5; // One heartbeat lasts 0.5 seconds    
     double y = M_PI * ( 2.0*( t-t_min ) / ( t_max - t_min ) -1.0)  ;
     
     for(int i=0; i< 20; i++)
@@ -273,7 +273,6 @@ void rhsHeartBeatArtery(double* x, double* res, double* parameters){
     Q -= 0.026039341343493;
     Q = (Q - 2.85489)/(7.96908-2.85489);
     
-    bool Qtrue=false;
     if(parameters[0]+1e-12 < TRamp)
         lambda = 0.875*(parameters[0]+loadStepSize)/ TRamp;
     else if(parameters[0] <= TRamp+1.e-12)
@@ -286,7 +285,6 @@ void rhsHeartBeatArtery(double* x, double* res, double* parameters){
     	lambda= 0.75;
     else{
         lambda = 0.75+0.25*Q -0.13;//*0.005329; // 0.775+0.125 * cos(4*M_PI*(parameters[0]));
-        Qtrue = true; 
     } 
   
     double forceDirection = force/fabs(force);
