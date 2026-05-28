@@ -284,10 +284,10 @@ void rhsHeartBeatArtery(double* x, double* res, double* parameters){
     else if( parameters[0] >= heartBeatStart + 0.5 && (parameters[0] - std::floor(parameters[0]))+1.e-10< 0.5)
     	lambda= 0.75;
     else{
-        lambda = 0.75+0.25*Q -0.13;//*0.005329; // 0.775+0.125 * cos(4*M_PI*(parameters[0]));
+        lambda = 0.75+0.25*Q;// -0.13;//*0.005329; // 0.775+0.125 * cos(4*M_PI*(parameters[0]));
     } 
   
-    double forceDirection = force/fabs(force);
+    // double forceDirection = force/fabs(force);
     if(parameters[5]==6){
         res[0] =lambda*force;//+forceDirection*Q;
         res[1] =lambda*force;//+forceDirection*Q;
