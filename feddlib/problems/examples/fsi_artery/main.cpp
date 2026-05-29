@@ -303,13 +303,12 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
         sublist( parameterListFluidAll, "Timestepping Parameter" )->setParameters( parameterListProblem->sublist("Timestepping Parameter") );
 
         // parameterListFluidAll->setParameters(*parameterListPrecFluidTeko);
-
-        
+         
         ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListPrecStructure));
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
+        sublist(parameterListStructureAll, "Parameter Solid")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
         sublist(parameterListStructureAll, "Timestepping Parameter")->setParameters( parameterListProblem->sublist("Timestepping Parameter") );
-
 
         
         // Fuer das Geometrieproblem, falls GE
