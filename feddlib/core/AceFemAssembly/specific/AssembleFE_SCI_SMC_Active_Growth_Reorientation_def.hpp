@@ -59,7 +59,7 @@ namespace FEDD
 
 			subString[i] = domainDataNames_[i].substr(pos1 + 1, pos2 - pos1 - 1);
 			this->domainDataNames_[i] = subString[i];
-			this->domainData_[i] = this->params_->sublist("Parameter Solid").sublist(std::to_string(materialID)).get(subString[i], 1.);
+			this->domainData_[i] = this->params_->sublist("Parameter Solid").sublist(std::to_string(materialID)).get(subString[i], 1.e13);
 			if (subString[i] == "Fibre angle")
 				fA_ = this->domainData_[i];
 
@@ -68,7 +68,7 @@ namespace FEDD
 				std::cout << " DomainDataNames_ " << i << " "  << this->domainDataNames_[i] << " with value " << this->domainData_[i] << std::endl;
 			}
 
-			TEUCHOS_TEST_FOR_EXCEPTION(this->domainData_[i] > 1.e12, std::logic_error, " Parameter not set correctly. Parameter " << this->domainDataNames_[i] << " received default value!!");
+			// TEUCHOS_TEST_FOR_EXCEPTION(this->domainData_[i] > 1.e12, std::logic_error, " Parameter not set correctly. Parameter " << this->domainDataNames_[i] << " received default value!!");
 
 			// Pre-compute which parameters need acceleration/deceleration (optimization)
 			if (domainDataNames_[i].find("LambdaBarCDotMax") != std::string::npos || 
@@ -457,6 +457,8 @@ namespace FEDD
 			this->concentrations_[i] = (*this->solution_)[i + 30];
 			solutionC_n1_[i] = (*this->solution_)[i + 30]; // in each newtonstep solution for n+1 is updated.
 		}
+
+		
 		// this->element_.setConcentrations(this->concentrations_.data());
 
 		// this->element_.setAccelerations(this->accelerations_.data());

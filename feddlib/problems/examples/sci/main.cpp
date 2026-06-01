@@ -648,14 +648,17 @@ int main(int argc, char *argv[])
             
             pListPartitioner->set("Build Edge List",true);
 		    pListPartitioner->set("Build Surface List",true);
-		                    
-		    MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
+		     
+            MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
 		    
 		    int volumeID=10;
 		    if(bcType=="Artery" || bcType == "Plaque")
 		    	volumeID = 15;
 		    		    	
-		    partitionerP1.readAndPartition(volumeID);
+            if(parameterListProblem->sublist("Parameter").get("Convert Mesh",false)) 
+                partitionerP1.readAndPartition(volumeID,"dm",true);
+            else
+		        partitionerP1.readAndPartition(volumeID);
 		        
             if (!discType.compare("P2")){
 				domainP2chem->buildP2ofP1Domain( domainP1struct );
