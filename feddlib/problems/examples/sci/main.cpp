@@ -624,8 +624,10 @@ int main(int argc, char *argv[])
             n = (int)(std::pow( size/minNumberSubdomains, 1/3.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
             std::vector<double> x(3);
             x[0]=0.0;    x[1]=0.0;	x[2]=0.0;
-            domainStructure.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., 1., comm));
-            domainChem.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., 1., comm));
+            double length = parameterListAll->sublist("Parameter").get("Length",1.0);
+
+            domainStructure.reset(new Domain<SC,LO,GO,NO>( x, length, length, length, comm));
+            domainChem.reset(new Domain<SC,LO,GO,NO>( x, length, length, length, comm));
         
 		    domainStructure->buildMesh( 3,"Square5Element", dim, discType, n, m, numProcsCoarseSolve);
 		    domainChem->buildMesh( 3,"Square5Element", dim, discType, n, m, numProcsCoarseSolve);
