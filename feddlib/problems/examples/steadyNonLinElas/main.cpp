@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
 
         if (!meshType.compare("structured")) {
 		    TEUCHOS_TEST_FOR_EXCEPTION( size%minNumberSubdomains != 0 , std::logic_error, "Wrong number of processors for structured mesh.");
-            n = (int)(std::pow( size/minNumberSubdomains, 1/3.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
+            int n = (int)(std::pow( size/minNumberSubdomains, 1/3.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
             std::vector<double> x(3);
             x[0]=0.0;    x[1]=0.0;	x[2]=0.0;
             domain.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., 1., comm));
