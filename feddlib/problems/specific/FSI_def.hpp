@@ -857,6 +857,7 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
         this->residualVec_->norm2(resFull());
 
         if(this->verbose_)
+            std::cout << "------------------------------------- " << std::endl;
             std::cout << "FSI_DEBUG calculateNonLinResidualVec"
                       << " res0_norm=" << res0[0]
                       << " res1_norm=" << res1[0]
@@ -866,6 +867,8 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
                     << " resFull_norm=" << resFull[0]
                       << " bc_time=" << this->timeSteppingTool_->currentTime()
                       << std::endl;
+            std::cout << "------------------------------------- " << std::endl;
+
     }
     // might also be called in the sub calculateNonLinResidualVec() methods which where used above
     if (type == "reverse")
