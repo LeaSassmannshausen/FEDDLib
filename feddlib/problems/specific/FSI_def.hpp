@@ -846,16 +846,27 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
     }
     {
         typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
-        Teuchos::Array<Magnitude_Type> rhsNormBefore(1);
-        Teuchos::Array<Magnitude_Type> sourceNormBefore(1);
-        this->rhs_->getBlock(0)->norm2(rhsNormBefore());
-        this->sourceTerm_->getBlock(0)->norm2(sourceNormBefore());
+        Teuchos::Array<Magnitude_Type> res0(1);
+        Teuchos::Array<Magnitude_Type> res1(1);
+        Teuchos::Array<Magnitude_Type> res2(1);
+        Teuchos::Array<Magnitude_Type> res3(1);
+        Teuchos::Array<Magnitude_Type> res4(1);
+
+        this->residualVec_->getBlock(0)->norm2(res0());
+        this->residualVec_->getBlock(1)->norm2(res1());
+        this->residualVec_->getBlock(2)->norm2(res2());
+        this->residualVec_->getBlock(3)->norm2(res3());
+        if(!geometryExplicit_)
+            this->residualVec_->getBlock(4)->norm2(res4());
+
         if(this->verbose_)
-            std::cout << "FSI_DEBUG residual_rhs_state_after_bc"
-                      << " rhs0_norm=" << rhsNormBefore[0]
-                      << " sourceTerm0_norm=" << sourceNormBefore[0]
+            std::cout << "FSI_DEBUG calculateNonLinResidualVec"
+                      << " res0_norm=" << res0[0]
+                      << " res1_norm=" << res1[0]
+                      << " res2_norm=" << res2[0]
+                      << " res3_norm=" << res3[0]
+                      << " res4_norm=" << res4[0]
                       << " bc_time=" << this->timeSteppingTool_->currentTime()
-                      << " setBoundariesRHS_skipped=1"
                       << std::endl;
     }
 

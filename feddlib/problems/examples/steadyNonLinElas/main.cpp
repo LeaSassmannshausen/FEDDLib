@@ -224,7 +224,6 @@ int main(int argc, char *argv[])
         string		meshType    	= parameterListProblem->sublist("Parameter").get("Mesh Type","structured");
         string		meshName    	= parameterListProblem->sublist("Parameter").get("Mesh Name","cube_0_1.mesh");
         string		meshDelimiter   = parameterListProblem->sublist("Parameter").get("Mesh Delimiter"," ");
-        int         n;
         int 		m				= parameterListProblem->sublist("Parameter").get("H/h",5);
         string      FEType        = parameterListProblem->sublist("Parameter").get("Discretization","P2");
 

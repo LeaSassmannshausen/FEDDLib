@@ -1,5 +1,5 @@
 <ParameterList name="solver">
-    <Parameter name="Zero Initial Guess" type="bool" value="true"/>
+    <Parameter name="Zero Initial Guess" type="bool" value="false"/>
     <ParameterList name="ThyraSolver">
         <Parameter name="Linear Solver Type" type="string" value="Belos"/>
         <ParameterList name="Linear Solver Types">
