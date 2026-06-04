@@ -837,13 +837,6 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
         this->system_->getBlock(4,2)->apply( *this->solution_->getBlock(2) , *residualGeometryFSI, Teuchos::NO_TRANS, -1., 1. );
         
     }
-    // might also be called in the sub calculateNonLinResidualVec() methods which where used above
-    if (type == "reverse")
-        this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );
-    else if (type == "standard"){
-        this->residualVec_->scale(-1.);
-        this->bcFactory_->setVectorMinusBC( this->residualVec_, this->solution_, time );
-    }
     {
         typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
         Teuchos::Array<Magnitude_Type> res0(1);
@@ -874,6 +867,14 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
                       << " bc_time=" << this->timeSteppingTool_->currentTime()
                       << std::endl;
     }
+    // might also be called in the sub calculateNonLinResidualVec() methods which where used above
+    if (type == "reverse")
+        this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );
+    else if (type == "standard"){
+        this->residualVec_->scale(-1.);
+        this->bcFactory_->setVectorMinusBC( this->residualVec_, this->solution_, time );
+    }
+    
 
 
 }
