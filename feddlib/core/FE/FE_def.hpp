@@ -722,7 +722,6 @@ void FE<SC,LO,GO,NO>::assemblyAceDeformDiffu(int dim,
 	std::string SCIModel = params->sublist("Parameter").get("Structure Model","SCI_NH");
 
 	if(assemblyFEElements_.size()== 0){
-        std::cout << " ######## Assembly Modell all elements: " << SCIModel << " ############ " <<  std::endl;
        	initAssembleFEElements(SCIModel,problemDisk,elementsChem, params,pointsRep,domainVec_.at(FElocSolid)->getElementMap());
     }
 	else if(assemblyFEElements_.size() != elementsChem->numberElements())
