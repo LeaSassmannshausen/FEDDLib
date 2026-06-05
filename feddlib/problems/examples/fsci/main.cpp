@@ -191,10 +191,12 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
     // parameters[3] heartbeat start
     // we use x[0] for the laplace solution in the considered point. Therefore, point coordinates are missing
     double heartBeatStart = parameters[3];
+    double lambda=0.;
+    double TRamp = parameters[1];
 
-    if(t < parameters[1])
+    if(t < TRamp)
     {
-        res[0] = parameters[2] * 0.5 * ( ( 1. - cos( M_PI*t/parameters[1]) ));
+        res[0] = parameters[2] * 0.5 * ( ( 1. - cos( M_PI*t/TRamp) ));
     }
     else if(t > heartBeatStart)
     {
@@ -210,8 +212,22 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
         double Q = 0.5*a0;
         
 
-        double t_min = t - fmod(t,1.0)+heartBeatStart-std::floor(t); ; //FlowConditions::t_start_unsteady;
-        double t_max = t_min + 1.0; // One heartbeat lasts 1.0 second    
+        // double t_min = t - fmod(t,1.0)+heartBeatStart-std::floor(t); ; //FlowConditions::t_start_unsteady;
+        // double t_max = t_min + 1.0; // One heartbeat lasts 1.0 second    
+        // double y = M_PI * ( 2.0*( t-t_min ) / ( t_max - t_min ) -1.0)  ;
+        
+        // for(int i=0; i< 20; i++)
+        //     Q += (a[i]*std::cos((i+1.)*y) + b[i]*std::sin((i+1.)*y) ) ;
+        
+        
+        // // Remove initial offset due to FFT
+        // Q -= 0.026039341343493;
+        // Q = (Q - 2.85489)/(7.96908-2.85489);
+
+        // res[0] =  parameters[2] + (parameters[2]+1)*  Q  - 0.13 ;
+
+        double t_min = std::floor(t) + 0.5-0.02; //FlowConditions::t_start_unsteady;
+        double t_max = t_min + 0.52; // One heartbeat lasts 0.5 seconds    
         double y = M_PI * ( 2.0*( t-t_min ) / ( t_max - t_min ) -1.0)  ;
         
         for(int i=0; i< 20; i++)
@@ -221,8 +237,17 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
         // Remove initial offset due to FFT
         Q -= 0.026039341343493;
         Q = (Q - 2.85489)/(7.96908-2.85489);
-
-        res[0] =  parameters[2] + (parameters[2]+1)*  Q  - 0.13 ;
+        
+        if( t+1.0e-10 < heartBeatStart + 0.5)
+            lambda = 1+0.0625*cos(2*M_PI*t);
+        else if( t >= heartBeatStart + 0.5 && (t - std::floor(t))+1.e-10< 0.5)
+            lambda= 0.9;
+        else{
+            lambda = 0.9+0.25*Q;// -0.13;//*0.005329; // 0.775+0.125 * cos(4*M_PI*(parameters[0]));
+        } 
+           
+        res[0] =lambda*parameters[2];//+forceDirection*Q;   
+        
         
     }
     else
