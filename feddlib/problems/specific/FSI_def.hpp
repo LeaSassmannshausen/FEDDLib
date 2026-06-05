@@ -856,7 +856,7 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
 
         this->residualVec_->norm2(resFull());
 
-        if(this->verbose_)
+        if(this->verbose_){
             std::cout << "------------------------------------- " << std::endl;
             std::cout << "FSI_DEBUG calculateNonLinResidualVec"
                       << " res0_norm=" << res0[0]
@@ -868,7 +868,7 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
                       << " bc_time=" << this->timeSteppingTool_->currentTime()
                       << std::endl;
             std::cout << "------------------------------------- " << std::endl;
-
+        }
     }
     // might also be called in the sub calculateNonLinResidualVec() methods which where used above
     if (type == "reverse")
@@ -878,6 +878,39 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
         this->bcFactory_->setVectorMinusBC( this->residualVec_, this->solution_, time );
     }
     
+    {
+        typedef typename Teuchos::ScalarTraits<SC>::magnitudeType Magnitude_Type;
+        Teuchos::Array<Magnitude_Type> res0(1);
+        Teuchos::Array<Magnitude_Type> res1(1);
+        Teuchos::Array<Magnitude_Type> res2(1);
+        Teuchos::Array<Magnitude_Type> res3(1);
+        Teuchos::Array<Magnitude_Type> res4(1);
+        Teuchos::Array<Magnitude_Type> resFull(1);
+
+
+        this->residualVec_->getBlock(0)->norm2(res0());
+        this->residualVec_->getBlock(1)->norm2(res1());
+        this->residualVec_->getBlock(2)->norm2(res2());
+        this->residualVec_->getBlock(3)->norm2(res3());
+        if(!geometryExplicit_)
+            this->residualVec_->getBlock(4)->norm2(res4());
+
+        this->residualVec_->norm2(resFull());
+
+        if(this->verbose_){
+            std::cout << "------------------------------------- " << std::endl;
+            std::cout << "FSI_DEBUG calculateNonLinResidualVec after vector BC application"
+                      << " res0_norm=" << res0[0]
+                      << " res1_norm=" << res1[0]
+                      << " res2_norm=" << res2[0]
+                      << " res3_norm=" << res3[0]
+                      << " res4_norm=" << res4[0]
+                    << " resFull_norm=" << resFull[0]
+                      << " bc_time=" << this->timeSteppingTool_->currentTime()
+                      << std::endl;
+            std::cout << "------------------------------------- " << std::endl;
+        }
+    }
 
 
 }
