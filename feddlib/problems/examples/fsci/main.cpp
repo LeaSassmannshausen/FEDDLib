@@ -240,11 +240,11 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
         Q = (Q - 2.85489)/(7.96908-2.85489);
         
         if( t+1.0e-10 < heartBeatStart + 0.5)
-            lambda = 0.9375+0.0625*cos(2*M_PI*t);
+            lambda = 0.8+0.2*cos(2*M_PI*t);
         else if( t >= heartBeatStart + 0.5 && (t - std::floor(t))+1.e-10< 0.5)
-            lambda= 0.875;
+            lambda= 0.6;
         else{
-            lambda = 0.875+0.125*Q;// -0.13;//*0.005329; // 0.775+0.125 * cos(4*M_PI*(parameters[0]));
+            lambda = 0.6+1.4*Q;// -0.13;//*0.005329; // 0.775+0.125 * cos(4*M_PI*(parameters[0]));
         } 
            
         res[0] =lambda*parameters[2];//+forceDirection*Q;   
