@@ -197,6 +197,7 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
     if(t < TRamp)
     {
         res[0] = parameters[2] * 0.5 * ( ( 1. - cos( M_PI*t/TRamp) ));
+        std::cout << "Flowrate: " << res[0] << std::endl;
     }
     else if(t > heartBeatStart)
     {
@@ -239,11 +240,11 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
         Q = (Q - 2.85489)/(7.96908-2.85489);
         
         if( t+1.0e-10 < heartBeatStart + 0.5)
-            lambda = 1+0.0625*cos(2*M_PI*t);
+            lambda = 0.8125+0.0625*cos(2*M_PI*t);
         else if( t >= heartBeatStart + 0.5 && (t - std::floor(t))+1.e-10< 0.5)
-            lambda= 0.9;
+            lambda= 0.75;
         else{
-            lambda = 0.9+0.25*Q;// -0.13;//*0.005329; // 0.775+0.125 * cos(4*M_PI*(parameters[0]));
+            lambda = 0.75+0.25*Q;// -0.13;//*0.005329; // 0.775+0.125 * cos(4*M_PI*(parameters[0]));
         } 
            
         res[0] =lambda*parameters[2];//+forceDirection*Q;   
@@ -384,9 +385,11 @@ int main(int argc, char *argv[])
         parameterListFluidAll->setParameters(*parameterListPrecFluidTeko);
 
         
-         ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListPrecStructure));
+        ParameterListPtr_Type parameterListStructureAll(new Teuchos::ParameterList(*parameterListProblem));
+        parameterListStructureAll->setParameters(*parameterListPrecStructure);
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
+        sublist(parameterListStructureAll, "Parameter Solid")->setParameters( parameterListProblem->sublist("Parameter Solid") );
         sublist(parameterListStructureAll, "Timestepping Parameter")->setParameters( parameterListProblem->sublist("Timestepping Parameter") );
 
      

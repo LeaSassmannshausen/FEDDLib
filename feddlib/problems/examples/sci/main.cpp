@@ -565,6 +565,7 @@ int main(int argc, char *argv[])
         parameterListStructureAll->setParameters(*parameterListPrec);
         parameterListAll->setParameters(*parameterListSolverSCI);
         sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter Solid") );
+        sublist(parameterListStructureAll, "Parameter")->setParameters( parameterListProblem->sublist("Parameter") );
 
         // parameterListStructureAll->setParameters(*parameterListProblem);
         // parameterListStructureAll->setParameters(*parameterListProblemStructure);

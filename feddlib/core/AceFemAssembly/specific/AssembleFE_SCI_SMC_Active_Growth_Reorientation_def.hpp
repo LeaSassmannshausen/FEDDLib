@@ -63,10 +63,10 @@ namespace FEDD
 			if (subString[i] == "Fibre angle")
 				fA_ = this->domainData_[i];
 
-			// if(this->domainData_[i] > 1.e10)
-			// {
-			// 	std::cout << " DomainDataNames_ " << i << " "  << this->domainDataNames_[i] << " with value " << this->domainData_[i] << std::endl;
-			// }
+			if(this->domainData_[i] > 1.e10)
+			{
+				std::cout << " DomainDataNames_ " << i << " "  << this->domainDataNames_[i] << " with value " << this->domainData_[i] << std::endl;
+			}
 
 			// TEUCHOS_TEST_FOR_EXCEPTION(this->domainData_[i] > 1.e12, std::logic_error, " Parameter not set correctly. Parameter " << this->domainDataNames_[i] << " received default value!!");
 
