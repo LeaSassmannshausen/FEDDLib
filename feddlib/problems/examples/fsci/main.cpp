@@ -197,7 +197,6 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
     if(t < TRamp)
     {
         res[0] = parameters[2] * 0.5 * ( ( 1. - cos( M_PI*t/TRamp) ));
-        std::cout << "Flowrate: " << res[0] << std::endl;
     }
     else if(t > heartBeatStart)
     {
