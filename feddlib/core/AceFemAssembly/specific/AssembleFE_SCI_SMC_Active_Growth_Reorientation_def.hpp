@@ -51,6 +51,8 @@ namespace FEDD
 		this->postDataNames_.resize(this->postDataLength_);
 		this->domainData_.resize(this->domainDataLength_, 0.0);
 
+		
+
 		for (int i = 0; i < this->domainDataLength_; i++)
 		{
 			this->domainDataNames_[i] = std::string(domainDataNames[i]);
@@ -63,11 +65,14 @@ namespace FEDD
 			if (subString[i] == "Fibre angle")
 				fA_ = this->domainData_[i];
 
-			// if(this->domainData_[i] > 1.e10)
-			// {
-			// 	std::cout << " DomainDataNames_ " << i << " "  << this->domainDataNames_[i] << " with value " << this->domainData_[i] << std::endl;
-			// }
-
+			if(this->getGlobalElementID()==0){
+				std::cout << " DomainDataNames_ " << i << " "  << this->domainDataNames_[i] << " with value " << this->domainData_[i] << std::endl;
+			
+				if(this->domainData_[i] > 1.e10)
+				{
+					std::cout << " !WARNING! DomainDataNames_ " << i << " "  << this->domainDataNames_[i] << " with value " << this->domainData_[i] << "received dafault value " <<std::endl;
+				}
+			}
 			// TEUCHOS_TEST_FOR_EXCEPTION(this->domainData_[i] > 1.e12, std::logic_error, " Parameter not set correctly. Parameter " << this->domainDataNames_[i] << " received default value!!");
 
 			// Pre-compute which parameters need acceleration/deceleration (optimization)
@@ -346,6 +351,22 @@ namespace FEDD
 	template <class SC, class LO, class GO, class NO>
 	void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::advanceInTime(double dt)
 	{
+
+		if(this->timeStep_ - 1.e-13 < 0 && dt > 1.e-13 && this->getGlobalElementID()==0) 
+		{
+			for (int i = 0; i < this->domainDataLength_; i++)
+			{
+
+				std::cout << " DomainDataNames_ " << i << " "  << this->domainDataNames_[i] << " with value " << this->domainData_[i] << std::endl;
+			
+				if(this->domainData_[i] > 1.e10)
+				{
+					std::cout << " !WARNING! DomainDataNames_ " << i << " "  << this->domainDataNames_[i] << " with value " << this->domainData_[i] << "received dafault value " <<std::endl;
+				}
+			}
+			
+		}
+
 		// If we have a time segment setting we switch to the demanded time increment
 		/*for(int i=0; i<numSegments_ ; i++){
 			if(this->timeStep_+1.0e-12 > timeParametersVec_[i][0])
