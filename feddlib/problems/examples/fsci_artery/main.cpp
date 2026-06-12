@@ -662,7 +662,7 @@ int main(int argc, char *argv[])
         Teuchos::RCP<HDF5Import<SC,LO,GO,NO>> importer = Teuchos::RCP(new HDF5Import<SC,LO,GO,NO>(domainFluidVelocity->getMapUnique() ,"laplace_parabolic_"+meshName+"_"+discType));
                                                                                                     
         Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer->readVariablesHDF5("solution");
-        solutionLaplace = solutionImported; // This must me normalized to 1!!
+        inflowProfile = solutionImported; // This must me normalized to 1!!
 
                     
         std::vector<double> parameter_vec(1, parameterListProblem->sublist("Parameter Fluid").get("Max Velocity",1.));
