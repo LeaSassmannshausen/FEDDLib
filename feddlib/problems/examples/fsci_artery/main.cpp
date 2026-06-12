@@ -681,9 +681,9 @@ int main(int argc, char *argv[])
         {
             Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactoryFluid( new BCBuilder<SC,LO,GO,NO>( ) );
 
-            bcFactory->addBC(parabolicInflow3D, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3D); // inflow ring
+            bcFactory->addBC(parabolicInflow3D, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, inflowProfile,true, flowrate3D); // inflow ring
                         //bcFactory->addBC(parabolicInflow3DArtery, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace); // inflow
-            bcFactoryFluid->addBC(parabolicInflow3D, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3D); // inflow ring
+            bcFactoryFluid->addBC(parabolicInflow3D, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, inflowProfile,true, flowrate3D); // inflow ring
             bcFactory->addBC(zeroDirichlet3D, 9, 0, domainFluidVelocity, "Dirichlet_Z", dim); // interface
             bcFactoryFluid->addBC(zeroDirichlet3D, 9, 0, domainFluidVelocity, "Dirichlet_Z", dim); // interface
      
