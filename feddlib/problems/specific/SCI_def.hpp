@@ -228,6 +228,10 @@ void SCI<SC,LO,GO,NO>::solveChemistryProblem() const
     problemCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(1);
     double  coeffSourceTermChem = timeSteppingTool_->getInformationBDF(1);
 
+    std::cout << "Mass coeff Chem: " << massCoeffChem[0][0] << std::endl;
+    std::cout << "Problem coeff Chem: " << problemCoeffChem[0][0] << std::endl;
+    std::cout << " dt : " << dt << std::endl;
+
     this->problemTimeChem_->setTimeDef(defChem);
     this->problemTimeChem_->setTimeParameters(massCoeffChem,problemCoeffChem);
     // 1. Assemble Mass System

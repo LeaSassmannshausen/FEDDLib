@@ -1,0 +1,409 @@
+<ParameterList name="FSI">
+    <ParameterList name="Parameter">
+        <Parameter name="Dimension" type="int" value="3"/>
+        <Parameter name="Discretization" type="string" value="P2"/><!--P2-->
+        
+        <Parameter name="Model Geometry" type="string" value="Laplace"/>
+        
+        <Parameter name="FSCI" type="bool" value="true"/>
+        <Parameter name="Geometry Explicit" type="bool" value="false"/>
+        <Parameter name="Chemistry Explicit" type="bool" value="true"/>
+
+        <Parameter name="Accelerated Active Until" type="double" value="6.0"/>
+        <Parameter name="Active Acceleration Multiplier" type="double" value="4.0"/>
+    
+
+        <Parameter name="relNonLinTol" type="double" value="1.0e-8"/>
+        <Parameter name="absNonLinTol" type="double" value="1.0e-8"/>
+        <Parameter name="updateTol" type="double" value="1.0e-6"/>
+        <Parameter name="Combo" type="string" value="OR"/>
+        <Parameter name="Use update tol" type="bool" value="true"/>
+        <Parameter name="Use WRMS" type="bool" value="false"/>
+        
+        <!-- BUILDING PRECONDITIONER ONLY THE FIRST X (newtonLimit) NEWTON STEP(S) -->
+        <Parameter name="newtonLimit" type="int" value="1"/>
+        <Parameter name="Rebuild Preconditioner every Newton Iteration" type="bool" value="false"/>
+            <!--  -->
+        <Parameter name="MaxNonLinIts" type="int" value="20"/>
+
+        <Parameter name="Criterion" type="string" value="Update"/>
+        <!-- Criterion for nonlinear solve, Residual or Update: 
+        Residual is the norm of the nonlinear residual; Update is the norm of the update -->
+</ParameterList>
+
+<ParameterList name="Parameter Solid">
+    <Parameter name="E" type="double" value="3800"/> <!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48 | NH_3 = 3800, NH_2 = 2000-->
+    <Parameter name="Density" type="double"   value="1.e-3"/>
+    <Parameter name="Poisson Ratio"	type="double"   value="0.49e-0"/>        
+    <Parameter name="Mu" type="double" value="1275.2"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 1476.5 | NH_3: 1275.2 | NH_2: 671-->
+    
+    <Parameter name="Structure Model" type="string" value="SCI_SMC_Active_Growth_Reorientation"/> <!-- SCI_SMC_MLCK, SCI_SMC_Active_Growth_Reorientation -->
+
+    <!-- Parameters for Media using the psi_A Model  -->
+    <!--Units: cm,kg,s -->
+    <!-- ######################################## -->
+    <Parameter name="Number of Materials" type="int" value="3"/> <!--number of different materials-->  
+    
+    <!-- ######################################## -->
+    <ParameterList name="1"><!-- Adventitia -->
+
+      	<Parameter name="Volume Flag" type="int" value="15"/>  <!--corresponding element flag to material-->    
+      	<!-- PSI_A -->
+      	<Parameter name="Compute FA" type="bool" value="false"/>
+      	
+		<Parameter name="Fibre angle" type="double" value="30." /> <!-- degrees -->
+		<Parameter name="kFiberDistribution" type="double" value="0.1333333" /> <!-- dimensionless -->	
+		    
+		<!-- modified according to Dan artery -->    
+		<Parameter name="Alpha1" type="double" value="11.125089414955605e1" /><!-- 1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha2" type="double" value="151.73775e1" /> <!-- 1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha3" type="double" value="2.75662" /> <!-- dimensionless -->
+		<Parameter name="Alpha4" type="double" value="370.4226454637631e1" /><!--1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha5" type="double" value="4.0" /> <!-- dimensionless -->
+
+		<!-- Chemical Model -->
+		<Parameter name="K2" type="double" value="0.2e0"/> 
+		<Parameter name="K5" type="double" value="0.2e0"/>     
+		<Parameter name="K3" type="double" value="0.134" /> <!-- s^-1 -->
+		<Parameter name="K4" type="double" value="0.00166" /> <!-- s^-1 -->
+		<Parameter name="K7" type="double" value="0.66e-4" /> <!-- s^-1 -->
+		<Parameter name="Ca50" type="double" value="0.4" /> <!-- microMoles -->
+		<Parameter name="Gamma2" type="double" value="50.0" /> <!-- microMoles^-1 -->
+		<Parameter name="Gamma3" type="double" value="0.9" />  <!-- microMoles -->
+		<Parameter name="LambdaC50" type="double" value="1.2" /> 
+		<Parameter name="Gamma4" type="double" value="200." />
+		<Parameter name="Zeta1" type="double" value="100." /> <!-- s -->
+		<Parameter name="Gamma5" type="double" value="50." /> <!-- s -->
+		<Parameter name="Zeta2" type="double" value="1000." /> <!-- s -->
+		<Parameter name="DeltaLambdaBarPMin" type="double" value="-1.e-5" />
+		<Parameter name="Gamma6" type="double" value="1.5" /> <!-- s^-1 -->
+		<Parameter name="LambdaP50" type="double" value="1.0" />     
+
+		<!-- Active chemo-mechanical material model -->
+		<Parameter name="Eta" type="double" value="0.1624" /> <!-- s^-1 -->
+		<Parameter name="Gamma1" type="double" value="0.5131" /> <!-- microMoles -->
+		<Parameter name="LambdaBarCDotMax" type="double" value="0.0443" /> <!-- s^-1 -->
+		<Parameter name="LambdaBarCDotMin" type="double" value="-0.0443" /> <!-- s^-1 -->
+		<Parameter name="KDotMin" type="double" value="-0.0010694" /> <!-- s^-2 -->
+		<Parameter name="KDotMax" type="double" value="0.0009735" /> <!-- s^-2 -->
+		<Parameter name="LambdaBarDotPMin" type="double" value="-0.0002323" /> <!-- s^-1 -->
+		<Parameter name="LambdaBarDotPMax" type="double" value="0.0000699" /> <!-- s^-1 -->
+		<Parameter name="Kappa" type="double" value="148.262e1" /> <!-- Kg/(s^2 cm) or kPa-->
+		<Parameter name="Beta1" type="double" value="0.001006" /> <!-- s^-1 -->
+		<Parameter name="Beta2" type="double" value="26.68e1" /> <!-- Kg/(s^2 mm) or kPa-->
+		<Parameter name="MuA" type="double" value="11.857e1" /> <!-- Kg/(s^2 cm) or kPa-->
+		<Parameter name="KMin" type="double" value="0.015" />
+
+		<!-- Concentration interaction / drug tissue interaction --> 
+		<Parameter name="D0" type="double" value="0.001" />
+		<Parameter name="M" type="double" value="0.0" />
+		<Parameter name="P" type="double" value="2.9580835205796716" />
+		<Parameter name="P1" type="double" value="0.6" />
+		<Parameter name="P3" type="double" value="0.6" />
+		<Parameter name="Gamma1Max" type="double" value="0.5131" /> <!-- microMoles -->
+		<Parameter name="Gamma1Min" type="double" value="0.07797910389823641" />
+		<Parameter name="Gamma3Min" type="double" value="0.13677878297366072" />
+		<Parameter name="Gamma3Max" type="double" value="0.9" />
+		<Parameter name="C50" type="double" value="0.6673453235597163" />	
+
+		<Parameter name="growthStartTime" type="double" value="10000.0" />
+		<Parameter name="reorientationStartTime" type="double" value="10000.0" />
+		<Parameter name="growthEndTime" type="double" value="10000.0" />
+		<Parameter name="reorientationEndTime" type="double" value="10000.0" />			 
+		<Parameter name="Density" type="double" value="1.e-3" />
+		<Parameter name="ActiveBool" type="double" value="0" />
+		<Parameter name="growthBool" type="double" value="0" />
+		<Parameter name="reorientationBool" type="double" value="0" />
+		<Parameter name="growthDirectionBool" type="double" value="0" />
+		<Parameter name="PostProcessingType" type="double" value="1." />
+		<Parameter name="PostProcessingPower" type="double" value="1." />
+        <Parameter name="ActiveStartTime" type="double" value="10000.0" />
+	  </ParameterList>
+    <!-- ######################################## -->
+    
+    <!-- ######################################## -->
+    <ParameterList name="2"> <!-- Media -->
+
+		<Parameter name="Volume Flag" type="int" value="16"/>  <!--corresponding element flag to material-->
+		<!-- PSI_A -->
+		<Parameter name="Compute FA" type="bool" value="false"/>
+		<Parameter name="Fibre angle" type="double" value="30." /> <!-- degrees -->
+		<Parameter name="kFiberDistribution" type="double" value="0.1333333" /> <!-- dimensionless -->	    
+		
+		<!-- Material parameters correspond to -->
+		<Parameter name="Alpha1" type="double" value="11.52507e1" /><!-- 1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha2" type="double" value="151.73775e1" /> <!-- 1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha3" type="double" value="2.75662" /> <!-- dimensionless -->
+		<Parameter name="Alpha4" type="double" value="1.27631e1" /><!--1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha5" type="double" value="3.08798" /> <!-- dimensionless -->
+
+		<!-- Chemical Model -->
+		<Parameter name="K2" type="double" value="0.2e0"/> 
+		<Parameter name="K5" type="double" value="0.2e0"/>     
+		<Parameter name="K3" type="double" value="0.134" /> <!-- s^-1 -->
+		<Parameter name="K4" type="double" value="0.00166" /> <!-- s^-1 -->
+		<Parameter name="K7" type="double" value="0.66e-4" /> <!-- s^-1 -->
+		<Parameter name="Ca50" type="double" value="0.4" /> <!-- microMoles -->
+		<Parameter name="Gamma2" type="double" value="50.0" /> <!-- microMoles^-1 -->
+		<Parameter name="Gamma3" type="double" value="0.9" />  <!-- microMoles -->
+		<Parameter name="LambdaC50" type="double" value="1.2" /> 
+		<Parameter name="Gamma4" type="double" value="200." />
+		<Parameter name="Zeta1" type="double" value="100." /> <!-- s -->
+		<Parameter name="Gamma5" type="double" value="50." /> <!-- s -->
+		<Parameter name="Zeta2" type="double" value="1000." /> <!-- s -->
+		<Parameter name="DeltaLambdaBarPMin" type="double" value="-1.e-5" />
+		<Parameter name="Gamma6" type="double" value="1.5" /> <!-- s^-1 -->
+		<Parameter name="LambdaP50" type="double" value="1.0" />     
+
+		<!-- Active chemo-mechanical material model -->
+		<Parameter name="Eta" type="double" value="0.1624" /> <!-- s^-1 -->
+		<Parameter name="Gamma1" type="double" value="0.5131" /> <!-- microMoles -->
+		<Parameter name="LambdaBarCDotMax" type="double" value="0.0443" /> <!-- s^-1 -->
+		<Parameter name="LambdaBarCDotMin" type="double" value="-0.0443" /> <!-- s^-1 -->
+		<Parameter name="KDotMin" type="double" value="-0.0010694" /> <!-- s^-2 -->
+		<Parameter name="KDotMax" type="double" value="0.0009735" /> <!-- s^-2 -->
+		<Parameter name="LambdaBarDotPMin" type="double" value="-0.0002323" /> <!-- s^-1 -->
+		<Parameter name="LambdaBarDotPMax" type="double" value="0.0000699" /> <!-- s^-1 -->
+		<Parameter name="Kappa" type="double" value="148.262e1" /> <!-- Kg/(s^2 cm) or kPa-->
+		<Parameter name="Beta1" type="double" value="0.001006" /> <!-- s^-1 -->
+		<Parameter name="Beta2" type="double" value="26.68e1" /> <!-- Kg/(s^2 mm) or kPa-->
+		<Parameter name="MuA" type="double" value="11.857e1" /> <!-- Kg/(s^2 cm) or kPa-->
+		<Parameter name="KMin" type="double" value="0.015" />
+
+		<!-- Concentration interaction / drug tissue interaction --> 
+		<Parameter name="D0" type="double" value="0.001" />
+		<Parameter name="M" type="double" value="0.0" />
+		<Parameter name="P" type="double" value="2.9580835205796716" />
+		<Parameter name="P1" type="double" value="0.6" />
+		<Parameter name="P3" type="double" value="0.6" />
+		<Parameter name="Gamma1Max" type="double" value="0.5131" /> <!-- microMoles -->
+		<Parameter name="Gamma1Min" type="double" value="0.07797910389823641" />
+		<Parameter name="Gamma3Min" type="double" value="0.13677878297366072" />
+		<Parameter name="Gamma3Max" type="double" value="0.9" />
+		<Parameter name="C50" type="double" value="0.6673453235597163" />	
+
+		<Parameter name="growthStartTime" type="double" value="10000.0" />
+		<Parameter name="reorientationStartTime" type="double" value="10000.0" />
+		<Parameter name="growthEndTime" type="double" value="10000.0" />
+		<Parameter name="reorientationEndTime" type="double" value="10000.0" />			 
+		<Parameter name="Density" type="double" value="1.e-3" />
+		<Parameter name="ActiveBool" type="double" value="0" />
+		<Parameter name="growthBool" type="double" value="0" />
+		<Parameter name="reorientationBool" type="double" value="0" />
+		<Parameter name="growthDirectionBool" type="double" value="0" />
+		<Parameter name="PostProcessingType" type="double" value="1." />
+		<Parameter name="PostProcessingPower" type="double" value="1." />
+		<Parameter name="ActiveStartTime" type="double" value="1.0" />
+		<ParameterList name="Timestepping Intervalls Active">
+			<Parameter name="Number of Segments" type="int" value="1" />
+			<ParameterList name="1">
+				<Parameter name="Start Time" type="double" value="1.0" />
+			<Parameter name="End Time" type="double" value="11.5" />
+			</ParameterList>
+		</ParameterList>
+	  </ParameterList>
+    <!-- ######################################## -->
+    
+    <!-- ######################################## -->
+    <ParameterList name="3"> <!-- Calcifications -->
+
+		<Parameter name="Volume Flag" type="int" value="17"/>  <!--corresponding element flag to material-->
+		<!-- PSI_A -->
+		<Parameter name="Compute FA" type="bool" value="false"/>
+		<Parameter name="Fibre angle" type="double" value="30." /> <!-- degrees -->
+		<Parameter name="kFiberDistribution" type="double" value="0.1333333" /> <!-- dimensionless -->	  
+		  
+		<Parameter name="Alpha1" type="double" value="11525.07e1" /><!-- 1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha2" type="double" value="151.73775e1" /> <!-- 1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha3" type="double" value="2.75662" /> <!-- dimensionless -->
+		<Parameter name="Alpha4" type="double" value="0.0e1" /><!--1kg⋅cm/s² * 1/cm²-->
+		<Parameter name="Alpha5" type="double" value="3.08798" /> <!-- dimensionless -->
+
+		<!-- Chemical Model -->
+		<Parameter name="K2" type="double" value="0.2e0"/> 
+		<Parameter name="K5" type="double" value="0.2e0"/>     
+		<Parameter name="K3" type="double" value="0.134" /> <!-- s^-1 -->
+		<Parameter name="K4" type="double" value="0.00166" /> <!-- s^-1 -->
+		<Parameter name="K7" type="double" value="0.66e-4" /> <!-- s^-1 -->
+		<Parameter name="Ca50" type="double" value="0.4" /> <!-- microMoles -->
+		<Parameter name="Gamma2" type="double" value="50.0" /> <!-- microMoles^-1 -->
+		<Parameter name="Gamma3" type="double" value="0.9" />  <!-- microMoles -->
+		<Parameter name="LambdaC50" type="double" value="1.2" /> 
+		<Parameter name="Gamma4" type="double" value="200." />
+		<Parameter name="Zeta1" type="double" value="100." /> <!-- s -->
+		<Parameter name="Gamma5" type="double" value="50." /> <!-- s -->
+		<Parameter name="Zeta2" type="double" value="1000." /> <!-- s -->
+		<Parameter name="DeltaLambdaBarPMin" type="double" value="-1.e-5" />
+		<Parameter name="Gamma6" type="double" value="1.5" /> <!-- s^-1 -->
+		<Parameter name="LambdaP50" type="double" value="1.0" />     
+
+		<!-- Active chemo-mechanical material model -->
+		<Parameter name="Eta" type="double" value="0.1624" /> <!-- s^-1 -->
+		<Parameter name="Gamma1" type="double" value="0.5131" /> <!-- microMoles -->
+		<Parameter name="LambdaBarCDotMax" type="double" value="0.0443" /> <!-- s^-1 -->
+		<Parameter name="LambdaBarCDotMin" type="double" value="-0.0443" /> <!-- s^-1 -->
+		<Parameter name="KDotMin" type="double" value="-0.0010694" /> <!-- s^-2 -->
+		<Parameter name="KDotMax" type="double" value="0.0009735" /> <!-- s^-2 -->
+		<Parameter name="LambdaBarDotPMin" type="double" value="-0.0002323" /> <!-- s^-1 -->
+		<Parameter name="LambdaBarDotPMax" type="double" value="0.0000699" /> <!-- s^-1 -->
+		<Parameter name="Kappa" type="double" value="148.262e1" /> <!-- Kg/(s^2 cm) or kPa-->
+		<Parameter name="Beta1" type="double" value="0.001006" /> <!-- s^-1 -->
+		<Parameter name="Beta2" type="double" value="26.68e1" /> <!-- Kg/(s^2 mm) or kPa-->
+		<Parameter name="MuA" type="double" value="11.857e1" /> <!-- Kg/(s^2 cm) or kPa-->
+		<Parameter name="KMin" type="double" value="0.1" />
+
+		<!-- Concentration interaction / drug tissue interaction --> 
+		<Parameter name="D0" type="double" value="0.001" />
+		<Parameter name="M" type="double" value="0.0" />
+		<Parameter name="P" type="double" value="2.9580835205796716" />
+		<Parameter name="P1" type="double" value="0.6" />
+		<Parameter name="P3" type="double" value="0.6" />
+		<Parameter name="Gamma1Max" type="double" value="0.5131" /> <!-- microMoles -->
+		<Parameter name="Gamma1Min" type="double" value="0.07797910389823641" />
+		<Parameter name="Gamma3Min" type="double" value="0.13677878297366072" />
+		<Parameter name="Gamma3Max" type="double" value="0.9" />
+		<Parameter name="C50" type="double" value="0.6673453235597163" />	
+
+		<Parameter name="growthStartTime" type="double" value="10000.0" />
+		<Parameter name="reorientationStartTime" type="double" value="10000.0" />
+		<Parameter name="growthEndTime" type="double" value="10000.0" />
+		<Parameter name="reorientationEndTime" type="double" value="10000.0" />			 
+		<Parameter name="Density" type="double" value="1.e-3" />
+		<Parameter name="ActiveBool" type="double" value="0" />
+		<Parameter name="growthBool" type="double" value="0" />
+		<Parameter name="reorientationBool" type="double" value="0" />
+		<Parameter name="growthDirectionBool" type="double" value="0" />
+		<Parameter name="PostProcessingType" type="double" value="1." />
+		<Parameter name="PostProcessingPower" type="double" value="1." />
+		<Parameter name="ActiveStartTime" type="double" value="1000.0" />
+	  </ParameterList>
+    <!-- ######################################## -->
+    
+  </ParameterList>
+
+
+    <ParameterList name="Parameter Diffusion"> 
+        <Parameter name="Inflow Start Time" type="double" value="5.0"/><!-- Start of diffusion process -->
+        <Parameter name="D0" type="double" value="0.02"/> <!-- Diffusion coeffient in  -->
+        <!-- ######################################## -->
+    </ParameterList>
+
+    
+  <ParameterList name="Parameter Fluid">
+    <Parameter name="Preconditioner Method" type="string" value="Monolithic"/><!--only relevant for block preconditioner for fluid -->
+    <Parameter name="Use Pressure Projection" type="bool" value="false"/>    <!-- use pressure projection to correct pressure in P2-P1 case-->
+
+    <Parameter name="Ramp type" type="string" value="cos"/><!--cos, linear -->
+    <Parameter name="Max Velocity" type="double" value="118.28"/><!--2d:2.0, Richter 3d: 1.0-->
+    <Parameter name="Max Ramp Time" type="double" value="0.1"/>
+    <Parameter name="Heart Beat Start" type="double" value="10.0"/>                                                                                                                                        
+
+    <Parameter name="Flowrate" type="double" value="4.0"/><!-- For Absorbing BC-->
+
+    <Parameter name="Use Inflow" type="bool" value="true"/>    <!-- use inflow flowrate -->
+
+    <Parameter name="Viscosity" type="double" value="2.91e-2"/> <!-- kinematic viscosity cm^2/s converted from dynamic visco 0.003 Pa s -->
+    <Parameter name="Density" type="double" value="1.03e-03"/><!-- kg/cm³ -->
+    <Parameter name="Symmetric gradient" type="bool" value="true"/>
+
+    <Parameter name="Pressure Boundary Condition" type="string" value="Absorbing Paper"/>         <!-- Resistance , Absorbing , Absorbing Resistance-->
+    <Parameter name="Unsteady Start" type="double" value="0.1"/><!-- Start of 'unsteady' phase -->
+    <Parameter name="Average Flowrate" type="bool" value="true"/>
+    <Parameter name="BC Ramp" type="double" value="0.0"/>
+    <Parameter name="Normal Scale" type="double" value="-1.0"/>
+    <Parameter name="Poisson Ratio" type="double" value="0.49"/>
+    <!-- Absorbing boundary condition -->
+    <Parameter name="Reference fluid pressure" type="double" value="18.67e1"/> <!-- 1kg⋅cm/s² * 1/cm² 16kPa - 120 mmHg  -->
+    <Parameter name="Wall thickness" type="double" value="0.1"/> <!-- cm -->
+    <Parameter name="E" type="double" value="120.0e1"/> <!-- 1kg⋅cm/s² * 1/cm²-->
+    <!-- Resistance boundary condition -->
+  </ParameterList>
+
+    <ParameterList name="Parameter Geometry">
+        <Parameter name="Poisson Ratio" type="double" value="0.49e-0"/>
+        <Parameter name="Mu" type="double" value="126.700e1"/>
+        <Parameter name="Model Geometry" type="string" value="Laplace"/>
+        <Parameter name="Model" type="string" value="Laplace"/>
+        <Parameter name="Distance Laplace" type="double" value="0.1"/>
+        <Parameter name="Coefficient Laplace" type="double" value="1000."/>
+    </ParameterList>
+
+
+    <ParameterList name="Mesh Partitioner">
+        <Parameter name="Contiguous" type="bool" value="true"/>
+        
+        <Parameter name="Mesh 1 Name" type="string" value="arterie_with_plaque_initma_media_adventitia_fluid_fine.mesh"/>
+        <Parameter name="Mesh 2 Name" type="string" value="arterie_with_plaque_initma_media_adventitia_solid_fine.mesh"/>
+        
+        <Parameter name="Automatic partition" type="bool" value="false"/> <!-- find ratio for ranks based on the number of elements of each mesh -->
+        
+        <Parameter name="Mesh 1 fraction ranks" type="int" value="-1"/> <!-- percentage of ranks for mesh 1; if Automatic partition=true this will be ignored; if set below 0 number of ranks will be used -->
+        <Parameter name="Mesh 1 number ranks" type="int" value="-1"/><!-- number of ranks for this mesh; if Automatic partition=true this will be ignored; if fraction ranks>=0 this will be ignored -->
+        
+        <Parameter name="Mesh 2 fraction ranks" type="int" value="-1"/>
+        <Parameter name="Mesh 2 number ranks" type="int" value="-1"/>    
+    </ParameterList>
+
+    <ParameterList name="Exporter">
+        <Parameter name="Write new mesh" type="bool" value="false"/>
+        <Parameter name="Export every X timesteps" type="int" value="1"/>
+        
+        <Parameter name="Export GE geometry solution" type="bool" value="true"/>
+        
+        <Parameter name="Export coarse functions" type="bool" value="false"/>
+        
+        <Parameter name="Name coarse functions block1" type="string" value="phiU"/>
+        <Parameter name="Name coarse functions block2" type="string" value="phiP"/>
+        <Parameter name="Name coarse functions block3" type="string" value="phiD"/>
+        <Parameter name="Exclude coarse functions block4" type="bool" value="true"/>
+        
+    </ParameterList>
+    <ParameterList name="General">
+        <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
+        <Parameter name="ParaViewExport" type="bool" value="true"/>
+        <Parameter name="ParaViewCoarse" type="bool" value="false"/>
+        <Parameter name="ParaView export subdomains" type="bool" value="true"/>
+        
+        <Parameter name="Export Suffix" type="string" value=""/>
+        <Parameter name="Export Data" type="bool" value="true"/>
+        <Parameter name="Export Extra Data" type="bool" value="false"/>
+        <Parameter name="Export Flow Rate" type="bool" value="true"/>
+        
+        <Parameter name="Preconditioner Method" type="string" value="FaCSCI"/><!-- Monolithic, FaCSI, FaCSI-Teko, FaCSI-Block -->
+        <Parameter name="Use Fluid Preconditioner" type="bool" value="true"/>
+        <Parameter name="Use Solid Preconditioner" type="bool" value="true"/>
+
+        <Parameter name="Only Diagonal" type="bool" value="false"/>
+
+        <Parameter name="Scale mass matrix" type="bool" value="true"/>
+        <Parameter name="Set Zeros" type="bool" value="true"/>
+        
+        <Parameter name="Linearization" type="string" value="NOX"/> <!-- FixedPoint, Newton, Extrapolation-->
+    </ParameterList>
+    <ParameterList name="Timestepping Parameter">
+        
+        <Parameter name="BDF" type="int" value="2"/>
+        <Parameter name="Class" type="string" value="Multistep"/>
+        <Parameter name="Timestepping type" type="string" value="non-adaptive"/><!--non-adaptive,adaptive:not working for BDF2-->
+    
+        <Parameter name="Final time" type="double" value="11.5"/>
+        <Parameter name="dt" type="double" value="0.005"/>
+        <Parameter name="beta" type="double" value="0.25"/> <!-- newmark method parameter-->
+        <Parameter name="gamma" type="double" value="0.5"/> <!-- newmark method parameter-->
+        <ParameterList name="Timestepping Intervalls">
+		  <Parameter name="Number of Segments" type="int" value="3"/>
+		  <ParameterList name="1">
+		    <Parameter name="Start Time" type="double" value="0."/>
+		    <Parameter name="dt" type="double" value="0.005"/>
+		  </ParameterList>
+		  <ParameterList name="2">
+		    <Parameter name="Start Time" type="double" value="1.0"/>
+		    <Parameter name="dt" type="double" value="0.01"/>
+		  </ParameterList>
+		  <ParameterList name="3">
+		    <Parameter name="Start Time" type="double" value="10.0"/>
+		    <Parameter name="dt" type="double" value="0.001"/>
+		  </ParameterList>
+		</ParameterList>
+ 	</ParameterList>
+</ParameterList>

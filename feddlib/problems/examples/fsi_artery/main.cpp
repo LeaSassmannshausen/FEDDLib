@@ -414,6 +414,8 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                         domainGeometry = domainP1fluid;
                         //                TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error,"P1/P1 for FSI not implemented!");
                     }
+                    domainFluidVelocity->preProcessMesh(true,true);
+                    domainStructure->preProcessMesh(true,true);
 
                     domainFluidVelocity->exportNodeFlags("Fluid");
                     domainStructure->exportNodeFlags("Solid");
