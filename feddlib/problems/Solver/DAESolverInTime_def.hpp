@@ -814,7 +814,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         {
             this->problemTime_->assemble("UpdateChemInTime");
 
-            this->problemTime_->assemble("MoveMesh");
+            // this->problemTime_->assemble("MoveMesh");
 
             this->problemTime_->assemble("SolveChemistryProblem");
             
@@ -833,7 +833,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
             
             if(timeSteppingTool_->currentTime() == 0.0 || (restart &&  timeSteppingTool_->currentTime() -1.e-5 < timeStepRestart ))
             {
-                // We extract the underlying FSI problem
+                // We extract the underlying SCI problem
                 MatrixPtr_Type massmatrix;
                 sci->setSolidMassmatrix( massmatrix );
                 this->problemTime_->systemMass_->addBlock( massmatrix, 0, 0 );
