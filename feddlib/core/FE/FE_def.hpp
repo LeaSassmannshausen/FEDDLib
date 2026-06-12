@@ -2104,20 +2104,21 @@ void FE<SC,LO,GO,NO>::assemblyLaplaceDiffusion(int dim,
     vec_dbl_Type v_j(dim);
 
 
- 	SmallMatrix<SC> diffusionT(dim);
-	// Linear Diffusion Tensor
-	if(diffusionTensor.size()==0 || diffusionTensor.size() < dim ){
-		vec2D_dbl_Type diffusionTensor(3,vec_dbl_Type(3,0));
-		for(int i=0; i< dim; i++){
-			diffusionTensor[i][i]=1.;
-		}
-	}
-
-	for(int i=0; i< dim; i++){
-		for(int j=0; j<dim; j++){
-			diffusionT[i][j]=diffusionTensor[i][j];
-		}
-	}
+    SmallMatrix<SC> diffusionT(dim);
+    // Linear diffusion tensor: use provided tensor or default to identity
+    if(diffusionTensor.size()==0 || diffusionTensor.size() < (size_t)dim ){
+        for(int i=0; i< dim; i++){
+            for(int j=0; j< dim; j++){
+                diffusionT[i][j] = (i==j) ? SC(1) : SC(0);
+            }
+        }
+    } else {
+        for(int i=0; i< dim; i++){
+            for(int j=0; j<dim; j++){
+                diffusionT[i][j]= static_cast<SC>( diffusionTensor[i][j] );
+            }
+        }
+    }
 	//Teuchos::ArrayRCP< SC >  linearDiff = diffusionTensor->getDataNonConst( 0 );
 	//std::cout << "Assembly Info " << "num Elements " <<  elements->numberElements() << " num Nodes " << pointsRep->size()  << std::endl;
     for (UN T=0; T<elements->numberElements(); T++) {
@@ -2155,6 +2156,7 @@ void FE<SC,LO,GO,NO>::assemblyLaplaceDiffusion(int dim,
 
 
     }
+    std::cout << "det B " << detB << " absDetB " << absDetB << std::endl;
     if (callFillComplete)
         A->fillComplete();
 
