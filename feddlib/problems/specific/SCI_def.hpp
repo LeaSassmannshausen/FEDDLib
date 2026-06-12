@@ -224,13 +224,9 @@ void SCI<SC,LO,GO,NO>::solveChemistryProblem() const
 
     // Always bdf 1
     defChem[0][0] = 1;
-    massCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(0) / dt;
-    problemCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(1);
-    double  coeffSourceTermChem = timeSteppingTool_->getInformationBDF(1);
-
-    std::cout << "Mass coeff Chem: " << massCoeffChem[0][0] << std::endl;
-    std::cout << "Problem coeff Chem: " << problemCoeffChem[0][0] << std::endl;
-    std::cout << " dt : " << dt << std::endl;
+    massCoeffChem[0][0] =  1. / dt;
+    problemCoeffChem[0][0] =1.0; //
+    double  coeffSourceTermChem = 1.0;
 
     this->problemTimeChem_->setTimeDef(defChem);
     this->problemTimeChem_->setTimeParameters(massCoeffChem,problemCoeffChem);
@@ -668,24 +664,19 @@ template<class SC,class LO,class GO,class NO>
 void SCI<SC,LO,GO,NO>::computeChemRHSInTime( ) const
 {
     //######################
-    // RHS nach BDF2
+    // RHS nach BDF1
     //######################
-    int sizeChem = this->problemChem_->getSystem()->size();
-    int sizeStructure =1; 
     
     double dt = timeSteppingTool_->get_dt();
     double dt_prev = timeSteppingTool_->get_dt_prev();
-    int nmbBDF = timeSteppingTool_->getBDFNumber();
 
-    vec_dbl_Type coeffPrevSteps(nmbBDF);
-    for(int i = 0; i < coeffPrevSteps.size(); i++)
-    {
-        coeffPrevSteps.at(i) = timeSteppingTool_->getInformationBDF(i+2) / dt_prev;
-    }
+    vec_dbl_Type coeffPrevSteps(1);
+    coeffPrevSteps.at(0) = 1. / dt_prev;
+    
 
     if (timeSteppingTool_->currentTime()==0.) {
-        SmallMatrix<double> tmpmassCoeff(sizeChem);
-        SmallMatrix<double> tmpproblemCoeff(sizeChem);
+        SmallMatrix<double> tmpmassCoeff(1);
+        SmallMatrix<double> tmpproblemCoeff(1);
         tmpmassCoeff[0][0] = 1. / dt;
         tmpproblemCoeff[0][0] =  1.; // ist das richtig? Vermutlich schon, da BDF so geschrieben ist, dass zu berechnende Lsg den Koeffizienten 1 hat
         this->problemTimeChem_->setTimeParameters(tmpmassCoeff, tmpproblemCoeff);
@@ -695,7 +686,7 @@ void SCI<SC,LO,GO,NO>::computeChemRHSInTime( ) const
         this->problemTimeChem_->updateMultistepRhsFSI(coeffPrevSteps,1);/*apply (mass matrix_t / dt) to u_t and more*/
     }
     else{
-        this->problemTimeChem_->updateMultistepRhsFSI(coeffPrevSteps,nmbBDF);/*apply (mass matrix_t / dt) to u_t and more*/
+        this->problemTimeChem_->updateMultistepRhsFSI(coeffPrevSteps,1.0);/*apply (mass matrix_t / dt) to u_t and more*/
     }
 
     // TODO
@@ -706,10 +697,10 @@ void SCI<SC,LO,GO,NO>::computeChemRHSInTime( ) const
     // Wieder zu den eigentlichen Parametern zuruecksetzen, nachdem die temporaeren
     // genommen wurden.
     if (timeSteppingTool_->currentTime()==0.) {
-        SmallMatrix<double> massCoeffChem(sizeChem);
-        SmallMatrix<double> problemCoeffChem(sizeChem);
-        massCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(0) / dt;
-        problemCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(1);
+        SmallMatrix<double> massCoeffChem(1);
+        SmallMatrix<double> problemCoeffChem(1);
+        massCoeffChem[0][0] = 1. / dt;
+        problemCoeffChem[0][0] = 1.0;
         this->problemTimeChem_->setTimeParameters(massCoeffChem, problemCoeffChem);
     }
 }

@@ -770,9 +770,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
 
         timeSteppingTool_->printInfo();
 
-        massCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(0) / dt; // 3/(2\Delta t)
-        problemCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(1); // 1
-        coeffSourceTermChem = timeSteppingTool_->getInformationBDF(1); // 1
+        massCoeffChem[0][0] = 1. / dt; // 3/(2\Delta t)
+        problemCoeffChem[0][0] = 1; // 1
+        coeffSourceTermChem = 1.; // 1
 
         if(!chemistryExplicit_){
             if(timeSteppingTool_->currentTime() > 0. + 1.e-12) 
