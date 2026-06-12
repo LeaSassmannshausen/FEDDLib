@@ -742,7 +742,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     // ######################
     // Time loop
     // ######################
-
+    vec_dbl_Type linearIterations(0);
+    vec_dbl_Type newtonIterations(0);
 
     double inflowRamp = parameterList_->sublist("Parameter").get("Inflow Ramp",0.01);
     std::string structureModel = parameterList_->sublist("Parameter").get("Structure Model","SCI_NH");
@@ -913,34 +914,12 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         if (printData) {
             exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
             exporterIterations->exportData(timeSteppingTool_->currentTime(), (*its)[0] );
+            linearIterations.push_back((*its)[0]);
+
             exporterNewtonIterations->exportData(timeSteppingTool_->currentTime(), (*its)[1] );
+            newtonIterations.push_back((*its)[1]);
 
-            // vec_dbl_Type d_s(0);
-            // double norm=0.;
-
-            // std::string name = parameterList_->sublist("General").get("Physic","Structure");             
-            // if(valueCorner != -1){
-
-            //     if(name == "Structure"){
-            //         for(int i=0; i< problemTime_->dimension_ ; i++)
-            //             d_s.push_back(problemTime_->getSolution()->getBlock(0)->getDataNonConst(0)[problemTime_->dimension_*valueCorner+i]);
-                    
-            //         for(int i=0; i< problemTime_->dimension_ ; i++)
-            //             norm += pow(d_s[i],2);
-            //         norm = sqrt(norm);
-            //     }
-            //     else{
-            //         norm = problemTime_->getSolution()->getBlock(1)->getDataNonConst(0)[valueCorner];
-            //     }
-
-
-            // }
-
-			// Teuchos::reduceAll<int, double> ( *this->comm_, Teuchos::REDUCE_MAX, norm , Teuchos::outArg (norm));
-
-            // exporterCornerValue->exportData(norm);
-
-
+    
         }
         if (printExtraData) {
             vec_dbl_Type v(3,-9999.);
@@ -987,10 +966,25 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     }
 
     comm_->barrier();
-    if (printExtraData) {
+    if (printData) {
         exporterTimeTxt->closeExporter();
         exporterIterations->closeExporter();
         exporterNewtonIterations->closeExporter();
+
+         double sumLinear=0., sumNewton=0.;
+        for(int i=0; i < linearIterations.size(); i++){
+            sumLinear += linearIterations[i];
+            sumNewton += newtonIterations[i];
+        }
+        sumLinear = sumLinear / linearIterations.size();
+        sumNewton = sumNewton / newtonIterations.size();
+
+        if (verbose_) {
+            std::cout << " ######################################################## "<< std::endl;
+            std::cout << " Average linear iteration count over all time steps:  " << sumLinear << std::endl;
+            std::cout << " Average Newton iteration count over all time steps:  " << sumNewton << std::endl;
+            std::cout << " ######################################################## \n"<< std::endl;
+        }
     }
     if (printExtraData) {
         exporterDisplXTxt->closeExporter();

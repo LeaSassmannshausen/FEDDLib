@@ -834,7 +834,6 @@ void SCI<SC,LO,GO,NO>::setSolidMassmatrix( MatrixPtr_Type& massmatrix ) const
     // Massematrix
     //######################
     double density = this->problemTimeStructure_->getParameterList()->sublist("Parameter").get("Density",1.0);
-
     int size = this->problemTimeStructure_->getSystem()->size();
 
     // bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
