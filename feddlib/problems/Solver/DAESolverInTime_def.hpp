@@ -1862,7 +1862,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
 
             fsci->problemSCI_->assemble("UpdateChemInTime");
 
-            fsci->problemSCI_->assemble("MoveMesh");
+            // fsci->problemSCI_->assemble("MoveMesh");
             
             this->problemTime_->assemble("SolveChemistryProblem");
         
