@@ -498,7 +498,7 @@ int main(int argc, char *argv[])
         // bool convertMesh = parameterListAll->sublist("Parameter").get("Convert Mesh",true);
         // string unit = parameterListAll->sublist("Parameter").get("Mesh Unit","cm");
 
-        partitionerP1.readAndPartition(15); 
+        partitionerP1.readAndPartition(15,"mm",true); // We convert the mesh of this test from mm to cm!! 
 
         if (!discType.compare("P2")){
             domainP2fluid->buildP2ofP1Domain( domainP1fluid );

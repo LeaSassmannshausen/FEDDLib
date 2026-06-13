@@ -2156,7 +2156,6 @@ void FE<SC,LO,GO,NO>::assemblyLaplaceDiffusion(int dim,
 
 
     }
-    std::cout << "det B " << detB << " absDetB " << absDetB << std::endl;
     if (callFillComplete)
         A->fillComplete();
 
