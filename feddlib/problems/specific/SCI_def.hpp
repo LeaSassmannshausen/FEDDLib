@@ -946,18 +946,11 @@ void SCI<SC,LO,GO,NO>::initializeCE(){
 template<class SC,class LO,class GO,class NO>
 void SCI<SC,LO,GO,NO>::updateChemInTime() const
 {
-    int nmbBDF = 1;
+    // int nmbBDF = 1;
     // FEDDLIB_NOTIFICATION("updateChemInTime", this->getComm()->getRank() == 0, " This was changed to accomodate also BDF 2 -- Keep in mind, AceGEN does BDF-1");
 
-    if (timeSteppingTool_->currentTime()!=0.){
-        this->problemTimeChem_->updateSolutionMultiPreviousStep(2);
-        this->problemTimeChem_->updateSystemMassMultiPreviousStep(2);
-    }
-    else{
-        this->problemTimeChem_->updateSolutionMultiPreviousStep(1);
-        this->problemTimeChem_->updateSystemMassMultiPreviousStep(1);
-    }
-
+    this->problemTimeChem_->updateSolutionMultiPreviousStep(1);
+    this->problemTimeChem_->updateSystemMassMultiPreviousStep(1);
     
 }
 template<class SC,class LO,class GO,class NO>

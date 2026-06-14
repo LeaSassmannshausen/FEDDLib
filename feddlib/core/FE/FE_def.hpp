@@ -2170,7 +2170,7 @@ void FE<SC,LO,GO,NO>::applyDiff( vec3D_dbl_Type& dPhiIn,
         for (UN i=0; i < dPhiIn[w].size(); i++) {
             for (UN d1=0; d1<dim; d1++) {
                 for (UN d2=0; d2<dim; d2++) {
-                    dPhiOut[w][i][d1] += dPhiIn[w][i][d2]* diffT[d2][d1];
+                    dPhiOut[w][i][d1] += dPhiIn[w][i][d2]* diffT[d1][d2];
                 }
             }
         }

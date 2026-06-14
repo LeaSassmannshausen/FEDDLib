@@ -58,9 +58,7 @@ void DiffusionReaction<SC,LO,GO,NO>::assembleConstantMatrices( std::string type 
     if (this->verbose_)
         std::cout << "-- Assembly Laplace with Diffusion Tensor ... " << std::flush;
 
-    A_.reset(new Matrix_Type( this->getDomain(0)->getMapUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );
-
-    
+    A_.reset(new Matrix_Type( this->getDomain(0)->getMapUnique(), this->getDomain(0)->getApproxEntriesPerRow() ) );    
 
     this->feFactory_->assemblyLaplaceDiffusion(this->dim_, this->domain_FEType_vec_.at(0), 2, A_, this->diffusionTensor_ );
 

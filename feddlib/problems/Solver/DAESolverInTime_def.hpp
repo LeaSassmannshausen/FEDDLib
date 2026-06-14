@@ -787,24 +787,16 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         // Ist noetig, falls wir extrapolieren, damit wir
         // immer die korrekten previousSolution_ haben.
         // TODO: Vermutlich reicht lediglich (da erstmal nur BDF2):
-        // this->problemTime_->updateSolutionMultiPreviousStep(nmbBDF);
-        if(nmbBDF<2  && !parameterList_->sublist("General").get("Linearization","FixedPoint").compare("Extrapolation"))
-        {// we need the last two solution for a second order extrapolation.
-            if (timeSteppingTool_->currentTime() != 0.0)
-            {
-                this->problemTime_->updateSolutionMultiPreviousStep(2);
-            }
-            else
-            {
-                this->problemTime_->updateSolutionMultiPreviousStep(1);
-            }
+    // this->problemTime_->updateSolutionMultiPreviousStep(nmbBDF);
+        if (timeSteppingTool_->currentTime() != 0.0)
+        {
+            this->problemTime_->updateSolutionMultiPreviousStep(2);
         }
         else
         {
-          this->problemTime_->updateSolutionMultiPreviousStep(nmbBDF);
+            this->problemTime_->updateSolutionMultiPreviousStep(1);
         }
-        
-
+  
         // Alte Gitterbewegung mit der Geometrieloesung ueberschreiben.
         // -- we can keep this as expicit update for the reaction-diffusion displacement
         this->problemTime_->assemble("UpdateMeshDisplacement");   
