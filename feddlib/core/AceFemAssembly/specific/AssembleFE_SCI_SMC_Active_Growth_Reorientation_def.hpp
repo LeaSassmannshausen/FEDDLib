@@ -578,7 +578,7 @@ namespace FEDD
 			for (int i = 0; i < this->historyLength_; i++)
 				this->historyUpdated_[i] = historyUpdated[i];
 		}
-
+		
 #endif
 	}
 

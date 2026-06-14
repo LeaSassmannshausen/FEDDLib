@@ -1307,7 +1307,7 @@ void Preconditioner<SC,LO,GO,NO>::buildPreconditionerFaCSI( std::string type )
 
         precGeo_ = probGeo_->getPreconditioner()->getThyraPrec()->getNonconstUnspecifiedPrecOp();
     }
-    bool shape = false;
+    bool shape = parameterList->sublist("General").get("Use Shape Derivatives", false);
     if (fsiSystem->size()>4) {
         if (shape){
             facsi->setGIShape(   fsiSystem->getBlock(3,0)->getThyraLinOpNonConst()/*C1*/,

@@ -946,23 +946,19 @@ void SCI<SC,LO,GO,NO>::initializeCE(){
 template<class SC,class LO,class GO,class NO>
 void SCI<SC,LO,GO,NO>::updateChemInTime() const
 {
-    int nmbBDF = timeSteppingTool_->getBDFNumber();
+    int nmbBDF = 1;
     // FEDDLIB_NOTIFICATION("updateChemInTime", this->getComm()->getRank() == 0, " This was changed to accomodate also BDF 2 -- Keep in mind, AceGEN does BDF-1");
 
-    if(nmbBDF<2 && !this->parameterList_->sublist("General").get("Linearization","FixedPoint").compare("Extrapolation")) {
-        if (timeSteppingTool_->currentTime()!=0.){
-            this->problemTimeChem_->updateSolutionMultiPreviousStep(2);
-            this->problemTimeChem_->updateSystemMassMultiPreviousStep(2);
-        }
-        else{
-            this->problemTimeChem_->updateSolutionMultiPreviousStep(1);
-            this->problemTimeChem_->updateSystemMassMultiPreviousStep(1);
-        }
+    if (timeSteppingTool_->currentTime()!=0.){
+        this->problemTimeChem_->updateSolutionMultiPreviousStep(2);
+        this->problemTimeChem_->updateSystemMassMultiPreviousStep(2);
     }
     else{
-        this->problemTimeChem_->updateSolutionMultiPreviousStep(nmbBDF);
-        this->problemTimeChem_->updateSystemMassMultiPreviousStep(nmbBDF);
+        this->problemTimeChem_->updateSolutionMultiPreviousStep(1);
+        this->problemTimeChem_->updateSystemMassMultiPreviousStep(1);
     }
+
+    
 }
 template<class SC,class LO,class GO,class NO>
 typename SCI<SC,LO,GO,NO>::BlockMultiVectorPtr_Type SCI<SC,LO,GO,NO>::getPostProcessingData() const

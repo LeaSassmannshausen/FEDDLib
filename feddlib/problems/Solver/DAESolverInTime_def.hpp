@@ -684,7 +684,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
 
     double beta = timeSteppingTool_->get_beta();
     double gamma = timeSteppingTool_->get_gamma();
-    int nmbBDF = timeSteppingTool_->getBDFNumber();
+    int nmbBDF = 1;
 
     // ######################
     // Chem: Mass-, Problem, SourceTerm Koeffizienten
@@ -747,7 +747,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
 
     double inflowRamp = parameterList_->sublist("Parameter").get("Inflow Ramp",0.01);
     std::string structureModel = parameterList_->sublist("Parameter").get("Structure Model","SCI_NH");
-    std::string couplingType = parameterList_->sublist("Parameter").get("Coupling Type","explicit");
 
     bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
     double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
@@ -814,7 +813,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         {
             this->problemTime_->assemble("UpdateChemInTime");
 
-            // this->problemTime_->assemble("MoveMesh");
+            //this->problemTime_->assemble("MoveMesh");
 
             this->problemTime_->assemble("SolveChemistryProblem");
             
@@ -842,28 +841,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
             //  this->problemTime_->getRhs()->addBlock( Teuchos::rcp_const_cast<MultiVector_Type>(rhs->getBlock(0)), 2 );
             this->problemTime_->assemble("ComputeSolidRHSInTime");
         }
-
-        // ######################
-        // Chem Zeitsystem
-        // ######################
-        // Fluid-Loesung aktualisieren fuer die naechste(n) BDF2-Zeitintegration(en)
-        // in diesem Zeitschritt.
-        {
-                //Do we need this, if BDF for FSI is used correctly? We still need it to save the mass matrices
-            if(couplingType=="explicit")
-                this->problemTime_->assemble("UpdateChemInTime");
-        }        
-
-        //MatrixPtr_Type massmatrix;
-        //sci->setChemMassmatrix( massmatrix );
-        //massmatrix->print();
-        //if(couplingType=="explicit" ) //|| structureModel=="SCI_sophisticated")
-        //    this->problemTime_->systemMass_->addBlock( massmatrix, 1, 1);
-
-        // RHS nach BDF2
-        //if(couplingType=="explicit" )//|| structureModel=="SCI_sophisticated")
-        //    this->problemTime_->assemble( "ComputeChemRHSInTime" ); // hier ist massmatrix nicht relevant
-        //this->problemTime_->getRhs()->addBlock( Teuchos::rcp_const_cast<MultiVector_Type>(rhs->getBlock(0)), 0 );
 
       
         // ######################
