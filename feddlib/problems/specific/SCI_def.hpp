@@ -242,6 +242,7 @@ void SCI<SC,LO,GO,NO>::solveChemistryProblem() const
 
     //this->problemTimeChem_->getRhs()->getBlockNonConst(0)->scale(-1.0); 
     this->problemTimeChem_->combineSystems();
+    
 
     this->problemTimeChem_->setBoundaries(timeSteppingTool_->currentTime()); 
 
@@ -672,22 +673,14 @@ void SCI<SC,LO,GO,NO>::computeChemRHSInTime( ) const
 
     vec_dbl_Type coeffPrevSteps(1);
     coeffPrevSteps.at(0) = 1. / dt_prev;
-    
+    SmallMatrix<double> massCoeff(1);
+    SmallMatrix<double> problemCoeff(1);
+    massCoeff[0][0] = 1. / dt;
+    problemCoeff[0][0] =  1.; // ist das richtig? Vermutlich schon, da BDF so geschrieben ist, dass zu berechnende Lsg den Koeffizienten 1 hat
+    this->problemTimeChem_->setTimeParameters(massCoeff, problemCoeff);
 
-    if (timeSteppingTool_->currentTime()==0.) {
-        SmallMatrix<double> tmpmassCoeff(1);
-        SmallMatrix<double> tmpproblemCoeff(1);
-        tmpmassCoeff[0][0] = 1. / dt;
-        tmpproblemCoeff[0][0] =  1.; // ist das richtig? Vermutlich schon, da BDF so geschrieben ist, dass zu berechnende Lsg den Koeffizienten 1 hat
-        this->problemTimeChem_->setTimeParameters(tmpmassCoeff, tmpproblemCoeff);
-    }
-    if (timeSteppingTool_->currentTime()==0.) {
-        vec_dbl_Type tmpcoeffPrevSteps(1, 1. / dt);
-        this->problemTimeChem_->updateMultistepRhsFSI(coeffPrevSteps,1);/*apply (mass matrix_t / dt) to u_t and more*/
-    }
-    else{
-        this->problemTimeChem_->updateMultistepRhsFSI(coeffPrevSteps,1.0);/*apply (mass matrix_t / dt) to u_t and more*/
-    }
+    this->problemTimeChem_->updateMultistepRhsFSI(coeffPrevSteps,1);/*apply (mass matrix_t / dt) to u_t and more*/
+    
 
     // TODO
     if (this->problemTimeChem_->hasSourceTerm()) {
@@ -696,13 +689,7 @@ void SCI<SC,LO,GO,NO>::computeChemRHSInTime( ) const
 
     // Wieder zu den eigentlichen Parametern zuruecksetzen, nachdem die temporaeren
     // genommen wurden.
-    if (timeSteppingTool_->currentTime()==0.) {
-        SmallMatrix<double> massCoeffChem(1);
-        SmallMatrix<double> problemCoeffChem(1);
-        massCoeffChem[0][0] = 1. / dt;
-        problemCoeffChem[0][0] = 1.0;
-        this->problemTimeChem_->setTimeParameters(massCoeffChem, problemCoeffChem);
-    }
+   
 }
 
 

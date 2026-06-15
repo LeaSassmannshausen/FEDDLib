@@ -805,7 +805,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         {
             this->problemTime_->assemble("UpdateChemInTime");
 
-            //this->problemTime_->assemble("MoveMesh");
+            this->problemTime_->assemble("MoveMesh");
 
             this->problemTime_->assemble("SolveChemistryProblem");
             
