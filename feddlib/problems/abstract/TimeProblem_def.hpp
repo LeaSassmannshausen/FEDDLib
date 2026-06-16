@@ -126,6 +126,9 @@ void TimeProblem<SC,LO,GO,NO>::combineSystems() const{
     systemMass_->addMatrix( massParameters_, systemCombined_, zeros );
     tmpSystem->addMatrix( timeParameters_, systemCombined_, ones );
 
+    std::cout << " Mass parameters in TimeProblem: " << massParameters_[0][0] << std::endl;
+    std::cout << " Time parameters in TimeProblem: " << timeParameters_[0][0] << std::endl; 
+
     for (int i=0; i<size; i++) {
         for (int j=0; j<size; j++) {
             if ( systemCombined_->blockExists(i,j) ) {

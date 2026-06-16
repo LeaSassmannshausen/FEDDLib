@@ -216,6 +216,8 @@ void SCI<SC,LO,GO,NO>::assemble( std::string type ) const
 template<class SC,class LO,class GO,class NO>
 void SCI<SC,LO,GO,NO>::solveChemistryProblem() const
 {
+    this->updateChemInTime();
+
     // Move Mesh operation was already called for chemistry domain
     SmallMatrix<double> massCoeffChem(1);
     SmallMatrix<double> problemCoeffChem(1);
