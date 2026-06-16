@@ -72,15 +72,12 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
     // parameters[0] is the maxium desired velocity
     // parameters[1] rampTime
     // parameters[2] flowrate
-    // parameters[3] heartbeat start
     // we use x[0] for the laplace solution in the considered point. Therefore, point coordinates are missing
     double heartBeatStart = parameters[3];
-    double lambda=0.;
-    double TRamp = parameters[1];
 
-    if(t < TRamp)
+    if(t < parameters[1])
     {
-        res[0] = parameters[2] * 0.5 * ( ( 1. - cos( M_PI*t/TRamp) ));
+        res[0] = parameters[2] * 0.5 * ( ( 1 - cos( M_PI*t/parameters[1]) ));
     }
     else if(t > heartBeatStart)
     {
@@ -94,9 +91,10 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
             0.013717154383988,0.012016806933609,-0.003415634499995,0.003188511626163};
                     
         double Q = 0.5*a0;
-    
-        double t_min = std::floor(t) + 0.5-0.02; //FlowConditions::t_start_unsteady;
-        double t_max = t_min + 0.52; // One heartbeat lasts 0.5 seconds    
+        
+
+        double t_min = t - fmod(t,1.0)+heartBeatStart-std::floor(t); ; //FlowConditions::t_start_unsteady;
+        double t_max = t_min + 1.0; // One heartbeat lasts 1.0 second    
         double y = M_PI * ( 2.0*( t-t_min ) / ( t_max - t_min ) -1.0)  ;
         
         for(int i=0; i< 20; i++)
@@ -106,17 +104,8 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
         // Remove initial offset due to FFT
         Q -= 0.026039341343493;
         Q = (Q - 2.85489)/(7.96908-2.85489);
-        
-        if( t+1.0e-10 < heartBeatStart + 0.5)
-            lambda = 0.75+0.25*cos(2*M_PI*t);
-        else if( t >= heartBeatStart + 0.5 && (t - std::floor(t))+1.e-10< 0.5)
-            lambda= 0.5;
-        else{
-            lambda = 0.5+1.0*Q;// -0.13;//*0.005329; // 0.775+0.125 * cos(4*M_PI*(parameters[0]));
-        } 
-           
-        res[0] =lambda*parameters[2];//+forceDirection*Q;   
-        
+
+        res[0] =  parameters[2] + (parameters[2]+2.) * Q  - 0.13 ; // 1.6563
         
     }
     else
@@ -124,7 +113,6 @@ void flowrate3D(double* x, double* res, double t, const double* parameters)
         res[0] = parameters[2] ;
 
     }
-
 
     return;
 }
@@ -659,10 +647,13 @@ int main(int argc, char *argv[])
             if (preconditionerMethod == "FaCSCI")
                 bcFactoryFluidInterface = Teuchos::rcp( new BCBuilder<SC,LO,GO,NO>( ) );
 
+            bcFactoryGeometry->addBC(zeroDirichlet3D, 3, 0, domainGeometry, "Dirichlet_X", dim); // Outlet fixed in X direction
+            bcFactoryGeometry->addBC(zeroDirichlet3D, 2, 0, domainGeometry, "Dirichlet_Z", dim); // inlet fixed in Z direction
             bcFactoryGeometry->addBC(zeroDirichlet3D, 4, 0, domainGeometry, "Dirichlet", dim); // inlet Ring
             bcFactoryGeometry->addBC(zeroDirichlet3D, 5, 0, domainGeometry, "Dirichlet", dim); // outlet Ring
+
             bcFactoryGeometry->addBC(zeroDirichlet3D, 6, 0, domainGeometry, "Dirichlet", dim); // Interface
-          
+       
             // Die RW, welche nicht Null sind in der rechten Seite (nur Interface) setzen wir spaeter per Hand.
             // Hier erstmal Dirichlet Nullrand, wird spaeter von der Sturkturloesung vorgegeben
             if (preconditionerMethod == "FaCSCI"){
