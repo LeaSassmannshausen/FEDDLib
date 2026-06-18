@@ -546,7 +546,7 @@ void FSCI<SC,LO,GO,NO>::updateTime() const
     this->timeSteppingTool_->updateParameter();
 
     if(this->verbose_)
-        std::cout << "FSI: Update time to " << timeSteppingTool_->currentTime() << " with dt_prev_ = " << timeSteppingTool_->dt_prev_ << std::endl;
+        std::cout << "FSCI: Update time to " << this->timeSteppingTool_->currentTime() << " with dt_prev_ = " << this->timeSteppingTool_->dt_prev_ << std::endl;
 
     this->problemTimeFluid_->updateTime(this->timeSteppingTool_->t_);
     this->problemSCI_->reAssemble("UpdateTime");
