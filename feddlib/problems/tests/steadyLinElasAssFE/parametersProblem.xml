@@ -1,11 +1,15 @@
 <ParameterList name="steady linear elasticity">
     <ParameterList name="Parameter">
-        <Parameter name="Surface force" type="double" value="1"/>
-        <Parameter name="H/h"							    	type="int"   	value="6"/>        
+        <Parameter name="Surface force" type="double" value="-160.00"/>
+                <Parameter name="Mesh Type" type="string" value="structured"/> <!--structured, unstructured -->
+  			<Parameter name="Dimension"							    type="int"   	value="3"/>
+        <Parameter name="Discretization"                        type="string"   value="P2"/><!--P1, P2-->
+    
+        <Parameter name="H/h"							    	type="int"   	value="4"/>        
 	    <Parameter name="Density"					            type="double"   value="1."/>
-	    <Parameter name="Poisson Ratio"					        type="double"   value="0.3e-0"/>
-        <Parameter name="Mu" type="double" value="384.6153846153146"/> <!-- choose as: E/(2*(1+poissonRatio)--> 
-        <Parameter name="E" type="double" value="1000"/>
+	    <Parameter name="Poisson Ratio"					        type="double"   value="0.49e-0"/>
+        <Parameter name="Mu" type="double" value="1275.1677852349"/> <!-- choose as: E/(2*(1+poissonRatio)--> 
+        <Parameter name="E" type="double" value="3800"/>
     </ParameterList>
     
     <ParameterList name="Mesh Partitioner">

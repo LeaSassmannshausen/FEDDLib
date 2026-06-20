@@ -7,6 +7,7 @@
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 #include "feddlib/problems/specific/LinElas.hpp"
 #include <Teuchos_GlobalMPISession.hpp>
+#include <Teuchos_StackedTimer.hpp>
 #include <Xpetra_DefaultPlatform.hpp>
 
 void zeroDirichlet(double* x, double* res, double t, const double* parameters)
@@ -101,6 +102,9 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    Teuchos::RCP<StackedTimer> stackedTimer = rcp(new StackedTimer("Steady Linear Elasticity", true));
+    TimeMonitor::setStackedTimer(stackedTimer);
+
     bool verbose (comm->getRank() == 0); // Print-Ausgaben nur auf rank = 0
     if (verbose) {
         cout << "###############################################################" <<endl;
@@ -117,42 +121,69 @@ int main(int argc, char *argv[])
         parameterListAll->setParameters(*parameterListPrec);
         parameterListAll->setParameters(*parameterListSolver);
 
-        int 		dim				= 3;
-        parameterListAll->sublist("Parameter").set("Dimension",3); // Here, we always have a surface force
 
-        string		meshName    	= parameterListProblem->sublist("Parameter").get("Mesh Name","dfg_fsi_solid.mesh");
-        string		meshDelimiter   = " ";
+        int 		dim				= parameterListProblem->sublist("Parameter").get("Dimension",3);
+        string		meshType    	= parameterListProblem->sublist("Parameter").get("Mesh Type","structured");
+        string		meshName    	= parameterListProblem->sublist("Parameter").get("Mesh Name","cube_0_1.mesh");
+        string		meshDelimiter   = parameterListProblem->sublist("Parameter").get("Mesh Delimiter"," ");
         int         n;
         int 		m				= parameterListProblem->sublist("Parameter").get("H/h",5);
-        string      FEType        = "P2";
+        string      FEType        = parameterListProblem->sublist("Parameter").get("Discretization","P2");
 
         int numProcsCoarseSolve = parameterListProblem->sublist("General").get("Mpi Ranks Coarse",0);
         int size = comm->getSize() - numProcsCoarseSolve;
 
+        Teuchos::RCP<Teuchos::Time> totalTimeAssFE(Teuchos::TimeMonitor::getNewCounter("main: Total Time Solve AssFE"));
+        Teuchos::RCP<Teuchos::Time> totalTimeFEDD(Teuchos::TimeMonitor::getNewCounter("main: Total Time Solve FEDD"));
         Teuchos::RCP<Teuchos::Time> totalTime(Teuchos::TimeMonitor::getNewCounter("main: Total Time"));
         Teuchos::RCP<Teuchos::Time> buildMesh(Teuchos::TimeMonitor::getNewCounter("main: Build Mesh"));
-        Teuchos::RCP<Teuchos::Time> solveTime(Teuchos::TimeMonitor::getNewCounter("main: Solve problem time"));
+        Teuchos::RCP<Teuchos::Time> assemblyTimeAssFE(Teuchos::TimeMonitor::getNewCounter("main: Assembly AssFE"));
+        Teuchos::RCP<Teuchos::Time> assemblyTimeFEDD(Teuchos::TimeMonitor::getNewCounter("main: Assembly FEDD"));
+        Teuchos::RCP<Teuchos::Time> solveTimeAssFE(Teuchos::TimeMonitor::getNewCounter("main: Solve problem time AssFE"));
+        Teuchos::RCP<Teuchos::Time> solveTimeFEDD(Teuchos::TimeMonitor::getNewCounter("main: Solve problem time FEDD"));
+        Teuchos::RCP<Teuchos::Time> exportTime(Teuchos::TimeMonitor::getNewCounter("main: Export results"));
+        Teuchos::RCP<Teuchos::Time> errorTime(Teuchos::TimeMonitor::getNewCounter("main: Error calculation"));
+
+        Teuchos::TimeMonitor totalTimeMonitor(*totalTime);
 
         DomainPtr_Type domain;
+        int minNumberSubdomains=1;
+
 
         // ########################
         // P1 und P2 Gitter bauen
         // ########################
+        {
+            Teuchos::TimeMonitor buildMeshMonitor(*buildMesh);
+            if (!meshType.compare("structured")) {
+                TEUCHOS_TEST_FOR_EXCEPTION( size%minNumberSubdomains != 0 , std::logic_error, "Wrong number of processors for structured mesh.");
+                n = (int)(std::pow( size/minNumberSubdomains, 1/3.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
+                std::vector<double> x(3);
+                x[0]=0.0;    x[1]=0.0;	x[2]=0.0;
+                domain.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., 1., comm));
+            
+                domain->buildMesh( 3,"Square5Element", dim, FEType, n, m, numProcsCoarseSolve);
 
-        domain.reset( new Domain<SC,LO,GO,NO>( comm, dim ) );
-        MeshPartitioner_Type::DomainPtrArray_Type domainP1Array(1);
-        domainP1Array[0] = domain;
-        
-        ParameterListPtr_Type pListPartitioner = sublist( parameterListProblem, "Mesh Partitioner" );
-        MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
-        
-        partitionerP1.readAndPartition();
-        if (FEType=="P2") {
-            Teuchos::RCP<Domain<SC,LO,GO,NO> > domainP2;
-            domainP2.reset( new Domain_Type( comm, dim ) );
-            domainP2->buildP2ofP1Domain( domain );
-            domain = domainP2;
+                domain->preProcessMesh(true,true);
+            }
+            else if (!meshType.compare("unstructured")) {
+                domain.reset( new Domain<SC,LO,GO,NO>( comm, dim ) );
+                MeshPartitioner_Type::DomainPtrArray_Type domainP1Array(1);
+                domainP1Array[0] = domain;
+                
+                ParameterListPtr_Type pListPartitioner = sublist( parameterListProblem, "Mesh Partitioner" );
+                MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
+                
+                partitionerP1.readAndPartition(15);
+                if (FEType=="P2") {
+                    Teuchos::RCP<Domain<SC,LO,GO,NO> > domainP2;
+                    domainP2.reset( new Domain_Type( comm, dim ) );
+                    domainP2->buildP2ofP1Domain( domain );
+                    domain = domainP2;
+                }
+            }
         }
+        
 
        // ########################
        // Setting boundary condition of cube problem. For explanation see 
@@ -175,6 +206,7 @@ int main(int argc, char *argv[])
         // Building object from AceGen Interface 
         parameterListAll->sublist("Parameter").set("Source Type","surface"); // Here, we always have a surface force
         double force = parameterListAll->sublist("Parameter").get("Surface force",0.);
+        parameterListAll->sublist("Parameter").set("Use AceGen Interface",true); 
 
         LinElas<SC,LO,GO,NO> LinElasAssFE( domain, FEType, parameterListAll );
 
@@ -186,15 +218,24 @@ int main(int argc, char *argv[])
         // ######################
         // Assembly + BC
         // ######################
-        LinElasAssFE.initializeProblem();
-        LinElasAssFE.assemble();                
-        LinElasAssFE.setBoundaries(); // In der Klasse Problem
+        {
+            Teuchos::TimeMonitor assemblyMonitorAssFE(*assemblyTimeAssFE);
+            LinElasAssFE.initializeProblem();
+            LinElasAssFE.assemble();                
+            LinElasAssFE.setBoundaries(); // In der Klasse Problem
+        }
         if (verbose) {
             cout << "###############################################################" <<endl;
             cout << "############ Solving AceGen Linear Elasticity ... ############" <<endl;
             cout << "###############################################################" <<endl;
         }
-        int itsAssFE = LinElasAssFE.solve();
+        int itsAssFE;
+        {
+            Teuchos::TimeMonitor totalTimeMonitorAssFE(*totalTimeAssFE);
+            Teuchos::TimeMonitor solveMonitorAssFE(*solveTimeAssFE);
+            itsAssFE = LinElasAssFE.solve();
+            comm->barrier();
+        }
 
        
         // ----------------------------------------
@@ -214,16 +255,25 @@ int main(int argc, char *argv[])
         // ######################
         // Assembly + BC
         // ######################
-        LinElas.initializeProblem();
-        LinElas.assemble();                
-        LinElas.setBoundaries(); // In der Klasse Problem
+        {
+            Teuchos::TimeMonitor assemblyMonitorFEDD(*assemblyTimeFEDD);
+            LinElas.initializeProblem();
+            LinElas.assemble();                
+            LinElas.setBoundaries(); // In der Klasse Problem
+        }
         if (verbose) {
             cout << "###############################################################" <<endl;
             cout << "############ Solving original Linear Elasticity ...############" <<endl;
             cout << "###############################################################" <<endl;
         }
         // Solve
-        int its = LinElas.solve();
+        int its;
+        {
+            Teuchos::TimeMonitor totalTimeMonitorFEDD(*totalTimeFEDD);
+            Teuchos::TimeMonitor solveMonitorFEDD(*solveTimeFEDD);
+            its = LinElas.solve();
+            comm->barrier();
+        }
 
         
 		if(comm->getRank() ==0){
@@ -234,49 +284,63 @@ int main(int argc, char *argv[])
 
 		}
 		
-		Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
+        // {
+        //     Teuchos::TimeMonitor exportMonitor(*exportTime);
+        //     Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
 
-		exPara->setup( "displacements", domain->getMesh(), FEType );
+        //     exPara->setup( "displacements", domain->getMesh(), FEType );
 
-		MultiVectorConstPtr_Type valuesSolidConst1 = LinElas.getSolution()->getBlock(0);
-		exPara->addVariable( valuesSolidConst1, "valuesLinElas", "Vector", dim, domain->getMapUnique());
+        //     MultiVectorConstPtr_Type valuesSolidConst1 = LinElas.getSolution()->getBlock(0);
+        //     exPara->addVariable( valuesSolidConst1, "valuesLinElas", "Vector", dim, domain->getMapUnique());
 
-		MultiVectorConstPtr_Type valuesSolidConst2 = LinElasAssFE.getSolution()->getBlock(0);
-		exPara->addVariable( valuesSolidConst2, "valuesLinElasAssFE", "Vector", dim, domain->getMapUnique());
+        //     MultiVectorConstPtr_Type valuesSolidConst2 = LinElasAssFE.getSolution()->getBlock(0);
+        //     exPara->addVariable( valuesSolidConst2, "valuesLinElasAssFE", "Vector", dim, domain->getMapUnique());
 
-		exPara->save(0.0);
+        //     exPara->save(0.0);
+        // }
 
-		// Calculating the error per node
-		Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValues = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( valuesSolidConst1->getMap() ) ); 
-		//this = alpha*A + beta*B + gamma*this
-		errorValues->update( 1., valuesSolidConst2, -1. ,valuesSolidConst1, 0.);
+        {
+            Teuchos::TimeMonitor errorMonitor(*errorTime);
 
-		// Taking abs norm
-		Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbs = errorValues;
+            MultiVectorConstPtr_Type valuesSolidConst1 = LinElas.getSolution()->getBlock(0);
+            MultiVectorConstPtr_Type valuesSolidConst2 = LinElasAssFE.getSolution()->getBlock(0);
+            // Calculating the error per node
+            Teuchos::RCP<MultiVector<SC,LO,GO,NO> > errorValues = Teuchos::rcp(new MultiVector<SC,LO,GO,NO>( valuesSolidConst1->getMap() ) ); 
+            //this = alpha*A + beta*B + gamma*this
+            errorValues->update( 1., valuesSolidConst2, -1. ,valuesSolidConst1, 0.);
 
-		errorValues->abs(errorValuesAbs);
+            // Taking abs norm
+            Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > errorValuesAbs = errorValues;
 
-		Teuchos::Array<SC> norm(1); 
-		//errorValues->print();
-		errorValues->norm2(norm);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
-		double res = norm[0];
-		if(comm->getRank() ==0)
-			cout << " 2 Norm of Error of Solutions " << res << endl;
-		double infNormError = res;
-	
-		LinElas.getSolution()->norm2(norm);
-		res = norm[0];
-		if(comm->getRank() ==0)
-			cout << " Relative error Norm of solution linear elasticity " << infNormError/res << endl;
+            errorValues->abs(errorValuesAbs);
 
-		LinElasAssFE.getSolution()->norm2(norm);
-		res = norm[0];
-		if(comm->getRank() ==0)
-			cout << " Relative error Norm of solutions linear elasticity assemFE " << infNormError/res << endl;
-	
-        TEUCHOS_TEST_FOR_EXCEPTION( std::abs(infNormError/res) > 1e-11 , std::logic_error, "Relative error between calculated solutions is too great. Exceeded 1e-11. ");
+            Teuchos::Array<SC> norm(1); 
+            //errorValues->print();
+            errorValues->normInf(norm);//const Teuchos::ArrayView<typename Teuchos::ScalarTraits<SC>::magnitudeType> &norms);
+            double res = norm[0];
+            if(comm->getRank() ==0)
+                cout << " Infinity Norm of Error of Solutions " << res << endl;
+            double infNormError = res;
+        
+            LinElas.getSolution()->normInf(norm);
+            res = norm[0];
+            if(comm->getRank() ==0)
+                cout << " Relative error Norm of solution linear elasticity " << infNormError/res << endl;
+
+            LinElasAssFE.getSolution()->normInf(norm);
+            res = norm[0];
+            if(comm->getRank() ==0)
+                cout << " Relative error Norm of solutions linear elasticity assemFE " << infNormError/res << endl;
+        
+            TEUCHOS_TEST_FOR_EXCEPTION( std::abs(infNormError/res) > 1e-11 , std::logic_error, "Relative error between calculated solutions is too great. Exceeded 1e-11. ");
+        }
 
     }
+    Teuchos::TimeMonitor::report(cout);
+    stackedTimer->stop("Steady Linear Elasticity");
+    StackedTimer::OutputOptions options;
+    options.output_fraction = options.output_histogram = options.output_minmax = true;
+    stackedTimer->report((std::cout), comm, options);
 
     return(EXIT_SUCCESS);
 }
