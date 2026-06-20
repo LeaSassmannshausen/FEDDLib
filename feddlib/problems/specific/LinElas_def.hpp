@@ -72,11 +72,11 @@ void LinElas<SC,LO,GO,NO>::assemble( std::string type ) const
     // Hole die Dichte \rho (density) und die Paramter \nu (Poisson-ratio) und \mu (zweite Lamé-Konstante)
     double density = this->parameterList_->sublist("Parameter").get("Density",1.);
     
-    double poissonRatio = this->parameterList_->sublist("Parameter").get("Poisson Ratio",0.4);
-    double mu = this->parameterList_->sublist("Parameter").get("Mu",2.0e+6);
+    double poissonRatio = this->parameterList_->sublist("Parameter").get("Poisson Ratio",0.49);
+    double mu = this->parameterList_->sublist("Parameter").get("Mu",1275.1677852349);
 
     // Berechne daraus nun E (Youngsches Modul) und die erste Lamé-Konstanten \lambda
-    double youngModulus = mu*2.*(1 + poissonRatio);
+    double youngModulus = this->parameterList_->sublist("Parameter").get("E",3800.);
 
     double lambda = (poissonRatio*youngModulus)/((1 + poissonRatio)*(1 - 2*poissonRatio));
 
