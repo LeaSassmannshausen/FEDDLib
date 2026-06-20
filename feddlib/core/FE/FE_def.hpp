@@ -8145,16 +8145,16 @@ void FE<SC,LO,GO,NO>::assemblyShapeDerivativeVelocity(int dim,
                                     ( u23[0][k] * dPhiTransU[k][j][2] + u33[0][k] * dPhiTransU[k][j][1] ) * dPhiTransU[k][i][2] );
                         valDK1_31 = valDK1_31 +  weights->at(k) *
                                     ( ( u31[0][k] * dPhiTransU[k][j][0] + u11[0][k] * dPhiTransU[k][j][2] ) * dPhiTransU[k][i][0] +
-                                    ( u31[0][k] * dPhiTransU[k][j][1] + u21[0][k] * dPhiTransU[k][j][2] ) * dPhiTransU[k][i][1] ) +
-                                    2 * u31[0][k] * dPhiTransU[k][j][2] * dPhiTransU[k][i][2];
+                                    ( u31[0][k] * dPhiTransU[k][j][1] + u21[0][k] * dPhiTransU[k][j][2] ) * dPhiTransU[k][i][1]  +
+                                    2 * u31[0][k] * dPhiTransU[k][j][2] * dPhiTransU[k][i][2]);
                         valDK1_32 = valDK1_32 +  weights->at(k) *
                                     ( ( u32[0][k] * dPhiTransU[k][j][0] + u12[0][k] * dPhiTransU[k][j][2] ) * dPhiTransU[k][i][0] +
-                                    ( u32[0][k] * dPhiTransU[k][j][1] + u22[0][k] * dPhiTransU[k][j][2] ) * dPhiTransU[k][i][1] ) +
-                                    2 * u32[0][k] * dPhiTransU[k][j][2] * dPhiTransU[k][i][2];
+                                    ( u32[0][k] * dPhiTransU[k][j][1] + u22[0][k] * dPhiTransU[k][j][2] ) * dPhiTransU[k][i][1]  +
+                                    2 * u32[0][k] * dPhiTransU[k][j][2] * dPhiTransU[k][i][2]);
                         valDK1_33 = valDK1_33 +  weights->at(k) *
                                     ( ( u33[0][k] * dPhiTransU[k][j][0] + u13[0][k] * dPhiTransU[k][j][2] ) * dPhiTransU[k][i][0] +
-                                    ( u33[0][k] * dPhiTransU[k][j][1] + u23[0][k] * dPhiTransU[k][j][2] ) * dPhiTransU[k][i][1] ) +
-                                    2 * u33[0][k] * dPhiTransU[k][j][2] * dPhiTransU[k][i][2];
+                                    ( u33[0][k] * dPhiTransU[k][j][1] + u23[0][k] * dPhiTransU[k][j][2] ) * dPhiTransU[k][i][1]  +
+                                    2 * u33[0][k] * dPhiTransU[k][j][2] * dPhiTransU[k][i][2]);
 
                         // DK2
                         valDK2_11 = valDK2_11 +  weights->at(k) *
