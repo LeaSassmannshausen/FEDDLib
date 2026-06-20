@@ -504,7 +504,7 @@ void FSCI<SC,LO,GO,NO>::reAssemble(std::string type) const
             MatrixPtr_Type shapeVelocity = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() *2 ) );
             MatrixPtr_Type shapeDiv = Teuchos::rcp(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow() *2  ) ); // shape fuer div-Nebenbedingung
 
-            double massShapeCoeff = timeSteppingTool_->getInformationBDF(0) / dt - 1.0 / dt;  
+            double massShapeCoeff = this->timeSteppingTool_->getInformationBDF(0) / dt - 1.0 / dt;  
 
             this->feFactory_->assemblyShapeDerivativeVelocity(this->dim_, this->domain_FEType_vec_.at(4), this->domain_FEType_vec_.at(1),
                             shapeVelocity, 4, this->u_rep_, this->w_rep_, this->p_rep_, dt, density, viscosity, massShapeCoeff, true);
