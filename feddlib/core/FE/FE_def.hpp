@@ -7558,6 +7558,7 @@ void FE<SC,LO,GO,NO>::assemblyShapeDerivativeVelocity(int dim,
                                     double dt, // Zeitschrittweite
                                     double rho, // Dichte vom Fluid
                                     double nu, // Viskositaet vom Fluid
+                                    double massShapeCoeff,
                                     bool callFillComplete)
 {
     // int FEloc = this->checkFE(dim,FEType1);
@@ -8322,15 +8323,15 @@ void FE<SC,LO,GO,NO>::assemblyShapeDerivativeVelocity(int dim,
                                     ( dPhiTransU[k][j][2] * u3Loc[0][k] * phiU->at(k).at(i) );
                     }
 
-                    val11 = -rho*nu*valDK1_11 + valDK2_11 + rho*valDN_11 - rho*valDP_11 - (1.0/dt)*rho*valDW_11 + (0.5/dt)*rho*valDM_11;
-                    val12 = -rho*nu*valDK1_12 + valDK2_12 + rho*valDN_12 - rho*valDP_12 - (1.0/dt)*rho*valDW_12 + (0.5/dt)*rho*valDM_12;
-                    val13 = -rho*nu*valDK1_13 + valDK2_13 + rho*valDN_13 - rho*valDP_13 - (1.0/dt)*rho*valDW_13 + (0.5/dt)*rho*valDM_13;
-                    val21 = -rho*nu*valDK1_21 + valDK2_21 + rho*valDN_21 - rho*valDP_21 - (1.0/dt)*rho*valDW_21 + (0.5/dt)*rho*valDM_21;
-                    val22 = -rho*nu*valDK1_22 + valDK2_22 + rho*valDN_22 - rho*valDP_22 - (1.0/dt)*rho*valDW_22 + (0.5/dt)*rho*valDM_22;
-                    val23 = -rho*nu*valDK1_23 + valDK2_23 + rho*valDN_23 - rho*valDP_23 - (1.0/dt)*rho*valDW_23 + (0.5/dt)*rho*valDM_23;
-                    val31 = -rho*nu*valDK1_31 + valDK2_31 + rho*valDN_31 - rho*valDP_31 - (1.0/dt)*rho*valDW_31 + (0.5/dt)*rho*valDM_31;
-                    val32 = -rho*nu*valDK1_32 + valDK2_32 + rho*valDN_32 - rho*valDP_32 - (1.0/dt)*rho*valDW_32 + (0.5/dt)*rho*valDM_32;
-                    val33 = -rho*nu*valDK1_33 + valDK2_33 + rho*valDN_33 - rho*valDP_33 - (1.0/dt)*rho*valDW_33 + (0.5/dt)*rho*valDM_33;
+                    val11 = -rho*nu*valDK1_11 + valDK2_11 + rho*valDN_11 - rho*valDP_11 - (1.0/dt)*rho*valDW_11 + massShapeCoeff*rho*valDM_11;
+                    val12 = -rho*nu*valDK1_12 + valDK2_12 + rho*valDN_12 - rho*valDP_12 - (1.0/dt)*rho*valDW_12 + massShapeCoeff*rho*valDM_12;
+                    val13 = -rho*nu*valDK1_13 + valDK2_13 + rho*valDN_13 - rho*valDP_13 - (1.0/dt)*rho*valDW_13 + massShapeCoeff*rho*valDM_13;
+                    val21 = -rho*nu*valDK1_21 + valDK2_21 + rho*valDN_21 - rho*valDP_21 - (1.0/dt)*rho*valDW_21 + massShapeCoeff*rho*valDM_21;
+                    val22 = -rho*nu*valDK1_22 + valDK2_22 + rho*valDN_22 - rho*valDP_22 - (1.0/dt)*rho*valDW_22 + massShapeCoeff*rho*valDM_22;
+                    val23 = -rho*nu*valDK1_23 + valDK2_23 + rho*valDN_23 - rho*valDP_23 - (1.0/dt)*rho*valDW_23 + massShapeCoeff*rho*valDM_23;
+                    val31 = -rho*nu*valDK1_31 + valDK2_31 + rho*valDN_31 - rho*valDP_31 - (1.0/dt)*rho*valDW_31 + massShapeCoeff*rho*valDM_31;
+                    val32 = -rho*nu*valDK1_32 + valDK2_32 + rho*valDN_32 - rho*valDP_32 - (1.0/dt)*rho*valDW_32 + massShapeCoeff*rho*valDM_32;
+                    val33 = -rho*nu*valDK1_33 + valDK2_33 + rho*valDN_33 - rho*valDP_33 - (1.0/dt)*rho*valDW_33 + massShapeCoeff*rho*valDM_33;
 
                     val11 = absDetB * val11;
                     val12 = absDetB * val12;

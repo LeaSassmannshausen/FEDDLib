@@ -495,6 +495,7 @@ class FE {
                                         double dt, // Zeitschrittweite
                                         double rho, // Dichte vom Fluid
                                         double nu, // Viskositaet vom Fluid
+                                        double massShapeCoeff,
                                         bool callFillComplete = true);
 
 
