@@ -171,7 +171,7 @@ void FSCI<SC,LO,GO,NO>::assemble( std::string type ) const
         // C2*d_s^n
         // this->C2_ = C2;
         this->C2_unscaled_ = Teuchos::rcp(new Matrix_Type(C2));
-        this->C2_ = Teuchos::rcp(new Matrix_Type(C2_unscaled_));
+        this->C2_ = Teuchos::rcp(new Matrix_Type(this->C2_unscaled_));
         this->C2_->scale( -(1.0/dt) ); // th
         
         if(!this->geometryExplicit_)
