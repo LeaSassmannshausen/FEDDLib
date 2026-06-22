@@ -544,8 +544,8 @@ template<class SC,class LO,class GO,class NO>
 void FSCI<SC,LO,GO,NO>::updateTime() const
 {
     this->newtonStep_ = 0;
-    this->timeSteppingTool_->t_ = this->timeSteppingTool_->t_ + this->timeSteppingTool_->dt_prev_;
     this->timeSteppingTool_->updateParameter();
+    this->timeSteppingTool_->t_ = this->timeSteppingTool_->t_ + this->timeSteppingTool_->dt_prev_;
 
     if(this->verbose_)
         std::cout << "FSCI: Update time to " << this->timeSteppingTool_->currentTime() << " with dt_prev_ = " << this->timeSteppingTool_->dt_prev_ << std::endl;
