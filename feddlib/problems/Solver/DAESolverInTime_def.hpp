@@ -1774,8 +1774,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
             }
         }
 
-        for(int i = 0; i < 2; i++) {
-            for(int j = 0; j < 2; j++) {
+        for(int i = 0; i < 1; i++) {
+            for(int j = 0; j < 1; j++) {
                 if(timeStepDef_[i + 2][j + 2] > 0 && i == j) {
                     massCoeffStructure[i][j] = 1.0 / (dt * dt * beta);
                 }
