@@ -1881,6 +1881,11 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
         // Massematrix fuer FSI holen und fuer timeProblemFluid setzen (fuer BDF2)
         MatrixPtr_Type massmatrixC;
         fsci->setChemMassmatrix( massmatrixC );
+        if(!chemistryExplicit_)
+        {
+            int chemBlock = geometryExplicit ? 4 : 5;
+            this->problemTime_->systemMass_->addBlock( massmatrixC, chemBlock, chemBlock );
+        }
        
 
         // ######################
@@ -1892,9 +1897,10 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
             for (int i = 0; i < 2; i++)
             {
                 for (int j = 0; j < 2; j++){
-                    if (massCoeffFSI[i][j] != 0.)
+                    if (massCoeffFSI[i][j] != 0.) {
                         massCoeffFSI[i][j] = 1./dt ;
                         massCoeffFluidTmp[i][j] = 1./dt;
+                    }
                 }
             }
             this->problemTime_->setTimeParameters(massCoeffFSI, problemCoeffFSI);
@@ -1992,6 +1998,15 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
             //     stressVec = stressVecTmp;
             //     this->exportPostprocess(stressVec,problemTime_->getDomain(2),fsci->problemSCI_->getPostprocessingNames());
             // }
+            double modValue = parameterList_->sublist("General").get("Every X Second",1.) ;
+
+            double time = timeSteppingTool_->currentTime();
+
+            if(fabs(remainder(time,modValue)) < 0. + 1.e-8 ){
+                BlockMultiVectorPtr_Type stressVecTmp= fsci->getPostProcessingData();
+                stressVec = stressVecTmp;
+                this->exportPostprocess(stressVec,problemTime_->getDomain(2),fsci->getPostprocessingNames()); 
+            }
         }
         if (print)
         {
