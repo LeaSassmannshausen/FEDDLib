@@ -1577,11 +1577,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
     bool geometryExplicit = this->parameterList_->sublist("Parameter").get("Geometry Explicit",true);
     bool chemistryExplicit_ = this->parameterList_->sublist("Parameter").get("Chemistry Explicit",false);
 
-    //std::string couplingType = parameterList_->sublist("Parameter").get("Coupling Type","explicit");
-
-
-
-
     timeSteppingTool_->updateParameter(); // We update the paramters in case of adaptive time stepping or different intervalls
     
     double dt = timeSteppingTool_->get_dt();
@@ -1589,150 +1584,6 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
     double gamma = timeSteppingTool_->get_gamma();
     int nmbBDF = timeSteppingTool_->getBDFNumber();
 
-    // ######################
-    // Fluid: Mass-, Problem, SourceTerm Koeffizienten
-    // ######################
-    // SmallMatrix<double> massCoeffFluid(sizeFluid);
-    // SmallMatrix<double> problemCoeffFluid(sizeFluid);
-    // double coeffSourceTermFluid = 0.0;
-
-    // for (int i=0; i<sizeFluid; i++) {
-    //     for (int j=0; j<sizeFluid; j++) {
-    //         if (timeStepDef_[i][j]>0 && i==j) {
-    //             massCoeffFluid[i][j] = timeSteppingTool_->getInformationBDF(0) / dt;
-    //         }
-    //         else{
-    //             massCoeffFluid[i][j] = 0.0;
-    //         }
-    //     }
-    // }
-    // for (int i=0; i<sizeFluid; i++) {
-    //     for (int j=0; j<sizeFluid; j++){
-    //         if (timeStepDef_[i][j]>0){
-    //             problemCoeffFluid[i][j] = timeSteppingTool_->getInformationBDF(1);
-    //             coeffSourceTermFluid = timeSteppingTool_->getInformationBDF(1);
-    //         }
-    //         else{
-    //             problemCoeffFluid[i][j] = 1.;
-    //         }
-    //     }
-    // }
-
-
-    // // ######################
-    // // Struktur: Mass-, Problem, SourceTerm Koeffizienten
-    // // ######################
-    // // Koeffizienten vor der Massematrix und vor der Systemmatrix des steady-Problems
-    // SmallMatrix<double> massCoeffStructure(sizeStructure);
-    // SmallMatrix<double> problemCoeffStructure(sizeStructure);
-    // double coeffSourceTermStructure = 0.0; // Koeffizient fuer den Source-Term (= rechte Seite der DGL); mit Null initialisieren
-
-    // // Koeffizient vor der Massematrix
-    // for(int i = 0; i < sizeStructure; i++)
-    // {
-    //     for(int j = 0; j < sizeStructure; j++)
-    //     {
-    //         // Falls in dem Block von timeStepDef_ zeitintegriert werden soll.
-    //         // i == j, da vektorwertige Massematrix blockdiagonal ist
-    //         if(timeStepDef_[i + sizeFluid][j + sizeFluid] > 0  && i == j) // Weil: (u_f, p, d_s,...) und timeStepDef_ von FSI
-    //         {
-    //         // Vorfaktor der Massematrix in der LHS
-    //             massCoeffStructure[i][j] = 1.0/(dt*dt*beta);
-    //         }
-    //         else
-    //         {
-    //             massCoeffStructure[i][j] = 0.;
-    //         }
-    //     }
-    // }
-
-    
-    // // Die anderen beiden Koeffizienten
-    // for(int i = 0; i < sizeStructure; i++)
-    // {
-    //     for(int j = 0; j < sizeStructure; j++)
-    //     {
-    //         if(timeStepDef_[i + sizeFluid][j + sizeFluid] > 0 )
-    //         {
-    //             problemCoeffStructure[i][j] =  1.0;
-    //             // Der Source Term ist schon nach der Assemblierung mit der Dichte \rho skaliert worden
-    //             coeffSourceTermStructure = 1.0; // ACHTUNG FUER SOURCE TERM, DER NICHT IN DER ZEIT DISKRETISIERT WIRD!
-    //         }
-    //         else // Die steady-Systemmatrix ist nicht zwingend blockdiagonal
-    //         {
-    //             problemCoeffStructure[i][j] = 1.0;
-    //         }
-    //     }
-    // }
-
-    // // ######################
-    // // Chem: Mass-, Problem, SourceTerm Koeffizienten
-    // // ######################
-    // SmallMatrix<double> massCoeffChem(sizeChem);
-    // SmallMatrix<double> problemCoeffChem(sizeChem);
-    // double coeffSourceTermChem = 0.0;
-    
-    // massCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(0) / dt; // 3/(2\Delta t)
-    // problemCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(1); // 1
-    // coeffSourceTermChem = timeSteppingTool_->getInformationBDF(1); // 1
-
-    // // ######################
-    // // FSI: Mass-, Problem-Koeffizienten
-    // // ######################
-    // SmallMatrix<double> massCoeffFSI(sizeFSI);
-    // SmallMatrix<double> problemCoeffFSI(sizeFSI);
-    // for (int i = 0; i < sizeFluid; i++)
-    // {
-    //     for (int j = 0; j < sizeFluid; j++)
-    //     {
-    //         massCoeffFSI[i][j] = massCoeffFluid[i][j];
-    //         problemCoeffFSI[i][j] = problemCoeffFluid[i][j];
-    //     }
-    // }
-
-    // for (int i = 0; i < sizeStructure; i++)
-    // {
-    //     for (int j = 0; j < sizeStructure; j++)
-    //     {
-    //         massCoeffFSI[i + sizeFluid][j + sizeFluid] = massCoeffStructure[i][j];
-    //         problemCoeffFSI[i + sizeFluid][j + sizeFluid] = problemCoeffStructure[i][j];
-    //     }
-    // }
-
-    // // Setze noch Einsen an die Stellen, wo Eintraege (Kopplungsbloecke) vorhanden sind.
-    // problemCoeffFSI[0][3] = 1.0; // C1_T
-    // problemCoeffFSI[2][3] = 1.0; // C3_T
-    // problemCoeffFSI[3][0] = 1.0; // C1
-    // problemCoeffFSI[3][2] = 1.0; // C2
-    
-    // if(!geometryExplicit)
-    // {
-    //     problemCoeffFSI[4][2] = 1.0; // C4
-    //     problemCoeffFSI[4][4] = 1.0; // H (Geometrie)
-    //     std::string linearization = this->parameterList_->sublist("General").get("Linearization","Extrapolation");
-    //     if(linearization == "Newton" || linearization == "NOX")
-    //     {
-    //         problemCoeffFSI[0][4] = 1.0; // Shape-Derivatives Velocity
-    //         problemCoeffFSI[1][4] = 1.0; // Shape-Derivatives Div-Nebenbedingung
-    //     }
-    //     if(!chemistryExplicit_){
-
-    //         massCoeffFSI[5][5] = massCoeffChem[0][0];
-    //         problemCoeffFSI[5][5] = problemCoeffChem[0][0];
-    //         problemCoeffFSI[2][5] = 1.; // SCI Coupling 1
-    //         problemCoeffFSI[5][2] = 1.; // SCI Coupling 2
-    //     }
-
-    // }
-    // else{
-    //     if(!chemistryExplicit_){
-
-    //         massCoeffFSI[4][4] = massCoeffChem[0][0];
-    //         problemCoeffFSI[4][4] = problemCoeffChem[0][0];
-    //         problemCoeffFSI[2][4] = 1.; // SCI Coupling 1
-    //         problemCoeffFSI[4][2] = 1.; // SCI Coupling 2
-    //     }
-    // }
     // ##########################################################################
     // ##########################################################################
     // ##########################################################################
@@ -1897,7 +1748,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
 
         timeSteppingTool_->printInfo();
 
-        problemTime_->updateTime ( timeSteppingTool_->currentTime() );
+        // problemTime_->updateTime ( timeSteppingTool_->currentTime() );
 
 
        
