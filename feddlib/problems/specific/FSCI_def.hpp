@@ -36,7 +36,8 @@ problemSCI_()
     defTSSCI.reset( new SmallMatrix<int> (1) );
     if(!chemistryExplicit_){
         defTSSCI.reset( new SmallMatrix<int> (2) );
-        (*defTSSCI)[1][1] = (*defTS)[4][4];
+        int chemBlock = this->geometryExplicit_ ? 4 : 5;
+        (*defTSSCI)[1][1] = (*defTS)[chemBlock][chemBlock];
 
     }
     (*defTSSCI)[0][0] = (*defTS)[2][2];
@@ -154,12 +155,11 @@ void FSCI<SC,LO,GO,NO>::assemble( std::string type ) const
         // ###########################
         // Korrekte Skalierung der entsprechenden Bloecke
         // ###########################
-        double dt = this->parameterList_->sublist("Timestepping Parameter").get("dt",0.02);
+        double dt = this->timeSteppingTool_->get_dt();
 
         C2->resumeFill();
         C3_T->resumeFill();
 
-        C2->scale( -(1.0/dt) ); // this will be used in a first order approximation of the solid velocity
         C3_T->scale( -1.0 );
         
         // ACHTUNG: Die Interface-Variable \lambda wird eindeutig von der Fluid-Seite gehalten.
@@ -172,7 +172,7 @@ void FSCI<SC,LO,GO,NO>::assemble( std::string type ) const
         // this->C2_ = C2;
         this->C2_unscaled_ = Teuchos::rcp(new Matrix_Type(C2));
         this->C2_ = Teuchos::rcp(new Matrix_Type(this->C2_unscaled_));
-        this->C2_->scale( -(1.0/dt) ); // th
+        this->C2_->scale( -(1.0/dt) ); // this will be used in a first order approximation of the solid velocity
         
         if(!this->geometryExplicit_)
         {
@@ -230,7 +230,7 @@ void FSCI<SC,LO,GO,NO>::assemble( std::string type ) const
         this->system_->addBlock( C1_T, 0, 3 );
         this->system_->addBlock( C3_T, 2, 3 );
         this->system_->addBlock( C1, 3, 0 );
-        this->system_->addBlock( C2, 3, 2 );
+        this->system_->addBlock( this->C2_, 3, 2 );
 
         if (!dummyC.is_null())
             this->system_->addBlock( dummyC, 3, 3 );
