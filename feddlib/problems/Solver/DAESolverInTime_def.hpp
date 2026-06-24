@@ -725,7 +725,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
 
         massCoeffSCI[1][1] = massCoeffChem[0][0];
         problemCoeffSCI[1][1] = problemCoeffChem[0][0];
-           
+        problemCoeffSCI[0][1] = 1;
+        problemCoeffSCI[1][0] = 1;
     }
    
     this->problemTime_->setTimeParameters(massCoeffSCI, problemCoeffSCI);
