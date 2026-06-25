@@ -497,7 +497,7 @@ int main(int argc, char *argv[])
         
         // bool convertMesh = parameterListAll->sublist("Parameter").get("Convert Mesh",true);
         // string unit = parameterListAll->sublist("Parameter").get("Mesh Unit","cm");
-        if( meshName == "plaque_fluid_fine_int")
+        if( meshName == "plaque_fluid_length_0_5")
             partitionerP1.readAndPartition(15,"mm",true); // We convert the mesh of this test from mm to cm!! 
         else
             partitionerP1.readAndPartition(15); 
