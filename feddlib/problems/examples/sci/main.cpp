@@ -536,6 +536,8 @@ int main(int argc, char *argv[])
         string      discType        = parameterListProblem->sublist("Parameter").get("Discretization","P2");
         string precMethod = parameterListProblem->sublist("General").get("Preconditioner Method","Monolithic");
         int         n;
+          string		meshName    	= parameterListProblem->sublist("Mesh Partitioner").get("Mesh 1 Name","fsi_fluid_2mm.mesh");
+        meshName =     meshName.substr(0, meshName.size() - 5);
 
         ParameterListPtr_Type parameterListAll(new Teuchos::ParameterList(*parameterListProblem)) ;     
        
@@ -660,6 +662,8 @@ int main(int argc, char *argv[])
 		    		    	
             if(parameterListProblem->sublist("Parameter").get("Convert Mesh",false)) 
                 partitionerP1.readAndPartition(volumeID,"dm",true);
+            else if(meshName=="arterie_with_plaque_initma_media_adventitia_solid_fine")
+                partitionerP1.readAndPartition(volumeID,"mm",true);
             else
 		        partitionerP1.readAndPartition(volumeID);
 		        
