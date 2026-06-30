@@ -876,6 +876,9 @@ void SCI<SC,LO,GO,NO>::updateTime() const
 
     MultiVectorConstPtr_Type d = this->solution_->getBlock(0);
     d_rep_->importFromVector(d, true); 
+
+    c_rep_->importFromVector(c, true);
+
     this->feFactory_->advanceInTimeAssemblyFEElements(timeSteppingTool_->dt_, d_rep_, c_rep_ );    
 
     this->problemTimeChem_->updateTime(timeSteppingTool_->t_);

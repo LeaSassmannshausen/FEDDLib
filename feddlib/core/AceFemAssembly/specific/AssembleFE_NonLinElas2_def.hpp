@@ -23,7 +23,7 @@ The function skr3 computes the element stiffness matrix and residual vector for 
 The computed stiffness matrix is then stored in the elementMatrix_ member variable, which is used to assemble the global Jacobian matrix.
 
 The energy density function used in the AceGen code is based on the Neo-Hookean material model and in this case:
-W = \mu / s ( J^{-2/3} I_1 - 3 ) - \kappa / 2 (J-1 )^2
+W = \mu / 2 ( J^{-2/3} I_1 - 3 ) - \kappa / 2 (J-1 )^2
 where \mu is the shear modulus, \kappa the bulk modulus, and I1 is the first invariant of the deformation gradient, and J is the determinant of the deformation gradient.	
 
 */

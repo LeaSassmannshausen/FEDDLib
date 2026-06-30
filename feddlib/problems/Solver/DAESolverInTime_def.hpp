@@ -693,9 +693,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     SmallMatrix<double> problemCoeffChem(sizeChem);
     double coeffSourceTermChem = 0.0;
 
-    massCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(0) / dt; // 3/(2\Delta t)
-    problemCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(1); // 1
-    coeffSourceTermChem = timeSteppingTool_->getInformationBDF(1); // 1
+    massCoeffChem[0][0] = 1/ dt; // 3/(2\Delta t)
+    problemCoeffChem[0][0] = 1; // 1
+    coeffSourceTermChem = 1; // 1
 
     // ######################
     // Struktur: Mass-, Problem, SourceTerm Koeffizienten
@@ -783,12 +783,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         }
         problemTime_->updateTime ( timeSteppingTool_->currentTime() );
 
-        //string linearization = this->parameterList_->sublist("General").get("Linearization","Extrapolation");
 
-        // Ist noetig, falls wir extrapolieren, damit wir
-        // immer die korrekten previousSolution_ haben.
-        // TODO: Vermutlich reicht lediglich (da erstmal nur BDF2):
-    // this->problemTime_->updateSolutionMultiPreviousStep(nmbBDF);
         if (timeSteppingTool_->currentTime() != 0.0)
         {
             this->problemTime_->updateSolutionMultiPreviousStep(2);
@@ -1645,10 +1640,10 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
             }
         }
 
-        massCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(0) / dt; // 3/(2\Delta t)
-        problemCoeffChem[0][0] = timeSteppingTool_->getInformationBDF(1); // 1
-        coeffSourceTermChem = timeSteppingTool_->getInformationBDF(1); // 1
 
+        massCoeffChem[0][0] = 1/ dt; // 3/(2\Delta t)
+        problemCoeffChem[0][0] = 1; // 1
+        coeffSourceTermChem = 1; // 1
 
         for (int i = 0; i < sizeFSI; i++) {
             for (int j = 0; j < sizeFSI; j++) {
