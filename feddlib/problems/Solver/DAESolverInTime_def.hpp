@@ -1877,11 +1877,11 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
         // Massematrix fuer FSI holen und fuer timeProblemFluid setzen (fuer BDF2)
         MatrixPtr_Type massmatrixC;
         fsci->setChemMassmatrix( massmatrixC );
-        if(!chemistryExplicit_)
-        {
-            int chemBlock = geometryExplicit ? 4 : 5;
-            this->problemTime_->systemMass_->addBlock( massmatrixC, chemBlock, chemBlock );
-        }
+        // if(!chemistryExplicit_)
+        // {
+        //     int chemBlock = geometryExplicit ? 4 : 5;
+        //     this->problemTime_->systemMass_->addBlock( massmatrixC, chemBlock, chemBlock );
+        // }
        
 
         // ######################
