@@ -767,7 +767,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
             this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
         
         
-
+        // std:: cout << "Time: " << timeSteppingTool_->currentTime() << " dt: " << dt << std::endl;
         timeSteppingTool_->printInfo();
 
         massCoeffChem[0][0] = 1. / dt; // 3/(2\Delta t)

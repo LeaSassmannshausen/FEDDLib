@@ -674,7 +674,7 @@ void SCI<SC,LO,GO,NO>::computeChemRHSInTime( ) const
     double dt_prev = timeSteppingTool_->get_dt_prev();
 
     vec_dbl_Type coeffPrevSteps(1);
-    coeffPrevSteps.at(0) = 1. / dt_prev;
+    coeffPrevSteps.at(0) = 1. / dt;
     SmallMatrix<double> massCoeff(1);
     SmallMatrix<double> problemCoeff(1);
     massCoeff[0][0] = 1. / dt;
