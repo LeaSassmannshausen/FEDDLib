@@ -156,6 +156,10 @@ public:
     // Bei GE nur einmal pro Zeitschritt, bei GI in jeder nichtlinearen Iteration
     void setFluidMassmatrix(MatrixPtr_Type& massmatrix) const;
 
+    BlockMultiVectorPtr_Type getPostProcessingData() const;
+
+    vec_string_Type getPostprocessingNames();
+
     // Berechne die rechte Seite nach BDF2-Integration. Diese Funktion wird
     // einmal pro Zeitschritt aufgerufen
     //void computeFluidRHSInTime( ) const;

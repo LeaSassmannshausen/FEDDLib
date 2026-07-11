@@ -1011,5 +1011,18 @@ void FSCI<SC,LO,GO,NO>::importValuesOfInterest()
     problemSCI_->importValuesOfInterest();   
 }
 
+template<class SC,class LO,class GO,class NO>
+typename FSCI<SC,LO,GO,NO>::BlockMultiVectorPtr_Type FSCI<SC,LO,GO,NO>::getPostProcessingData() const
+{
+    return this->problemSCI_->getPostProcessingData();
+}
+
+template<class SC,class LO,class GO,class NO>
+vec_string_Type FSCI<SC,LO,GO,NO>::getPostprocessingNames()
+{
+    return this->problemSCI_->getPostprocessingNames();
+}
+
+
 }
 #endif
