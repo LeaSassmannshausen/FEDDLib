@@ -493,12 +493,14 @@ int main(int argc, char *argv[])
             pListPartitioner->set("Build Edge List",false);
             pListPartitioner->set("Build Surface List",false);
         }
+        pListPartitioner->set( "Weight ID", 21 );
+
         MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
         
         // bool convertMesh = parameterListAll->sublist("Parameter").get("Convert Mesh",true);
         // string unit = parameterListAll->sublist("Parameter").get("Mesh Unit","cm");
         if( meshName == "plaque_fluid_length_0_5")
-            partitionerP1.readAndPartition(15,"mm",true); // We convert the mesh of this test from mm to cm!! 
+            partitionerP1.readAndPartitionCustom(15,"mm",true); // We convert the mesh of this test from mm to cm!! 
         else
             partitionerP1.readAndPartition(15); 
 
