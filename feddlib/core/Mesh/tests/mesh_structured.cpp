@@ -19,11 +19,13 @@
 using namespace std;
 using namespace Teuchos;
 
+
 typedef unsigned UN;
-typedef double SC;
-typedef int LO;
+typedef default_sc SC;
+typedef default_lo LO;
 typedef default_go GO;
-typedef Tpetra::KokkosClassic::DefaultNode::DefaultNodeType NO;
+typedef default_no NO;
+
 using namespace FEDD;
 int main(int argc, char *argv[]) {
 

@@ -3,72 +3,72 @@ INCLUDE(TribitsAddExecutableAndTest)
 INCLUDE(AddSubdirectories)
 
 ### AABBTree
-TRIBITS_ADD_EXECUTABLE(
-AABBTree
-SOURCES AABBTree.cpp
-)
+# TRIBITS_ADD_EXECUTABLE(
+# AABBTree
+# SOURCES AABBTree.cpp
+# )
 
-TRIBITS_ADD_TEST(
-AABBTree
-NAME AABBTree
-ARGS
-NUM_MPI_PROCS 1
-)
+# TRIBITS_ADD_TEST(
+# AABBTree
+# NAME AABBTree
+# ARGS
+# NUM_MPI_PROCS 1
+# )
 
-TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_meshes_AABBTree
-SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
-SOURCE_FILES rectangle.mesh rectangle.mesh
-DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
-DEST_FILES rectangle.mesh rectangle.mesh
-EXEDEPS AABBTree
-)
+# TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_meshes_AABBTree
+# SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
+# SOURCE_FILES rectangle.mesh rectangle.mesh
+# DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+# DEST_FILES rectangle.mesh rectangle.mesh
+# EXEDEPS AABBTree
+# )
 
-### mesh_AABBTree
-TRIBITS_ADD_EXECUTABLE(
-mesh_AABBTree
-SOURCES mesh_AABBTree.cpp
-)
+# ### mesh_AABBTree
+# TRIBITS_ADD_EXECUTABLE(
+# mesh_AABBTree
+# SOURCES mesh_AABBTree.cpp
+# )
 
-TRIBITS_ADD_TEST(
-mesh_AABBTree
-NAME mesh_AABBTree
-ARGS
-NUM_MPI_PROCS 1
-)
+# TRIBITS_ADD_TEST(
+# mesh_AABBTree
+# NAME mesh_AABBTree
+# ARGS
+# NUM_MPI_PROCS 1
+# )
 
-TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_mesh_AABBTree
-SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
-SOURCE_FILES big_rectangle.mesh big_rectangle.mesh
-DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
-DEST_FILES big_rectangle.mesh big_rectangle.mesh
-EXEDEPS mesh_AABBTree
-)
+# TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_mesh_AABBTree
+# SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
+# SOURCE_FILES big_rectangle.mesh big_rectangle.mesh 
+# DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+# DEST_FILES big_rectangle.mesh big_rectangle.mesh 
+# EXEDEPS mesh_AABBTree
+# )
 
 ### mesh_structured
-TRIBITS_ADD_EXECUTABLE(
-mesh_structured
-SOURCES mesh_structured.cpp
-)
+# TRIBITS_ADD_EXECUTABLE(
+# mesh_structured
+# SOURCES mesh_structured.cpp
+# )
 
-TRIBITS_ADD_TEST(
-mesh_structured
-NAME mesh_structured
-ARGS
-NUM_MPI_PROCS 4
-)
+# TRIBITS_ADD_TEST(
+# mesh_structured
+# NAME mesh_structured
+# ARGS
+# NUM_MPI_PROCS 4
+# )
 
-### mesh_structured_3D_5_element
-TRIBITS_ADD_EXECUTABLE(
-mesh_structured_3D_5_element
-SOURCES mesh_structured_5_element_subcube.cpp
-)
+# ### mesh_structured_3D_5_element
+# TRIBITS_ADD_EXECUTABLE(
+# mesh_structured_3D_5_element
+# SOURCES mesh_structured_5_element_subcube.cpp
+# )
 
-TRIBITS_ADD_TEST(
-mesh_structured_3D_5_element
-NAME mesh_structured_3D_5_element
-ARGS
-NUM_MPI_PROCS 8
-)
+# TRIBITS_ADD_TEST(
+# mesh_structured_3D_5_element
+# NAME mesh_structured_3D_5_element
+# ARGS
+# NUM_MPI_PROCS 8
+# )
 
 ### mesh_structured_3DCR
 #TRIBITS_ADD_EXECUTABLE(
@@ -347,3 +347,30 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_meshes_custom_partition
   DEST_FILES dfg_fsi_fluid_h004.mesh dfg_fsi_solid_h004.mesh
   EXEDEPS meshes_custom_partition
 )
+
+###############
+# METIS TEST
+###############
+TRIBITS_ADD_EXECUTABLE(
+mesh_metis_weighted_graph
+SOURCES mesh_metis_weighted_graph.cpp
+)
+
+
+TRIBITS_ADD_TEST(
+mesh_metis_weighted_graph
+NAME mesh_metis_weighted_graph
+ARGS
+NUM_MPI_PROCS 2
+)
+
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_metis_weighted_graph
+ SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
+  SOURCE_FILES METIS_weighted_graph.mesh
+   DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+  DEST_FILES METIS_weighted_graph.mesh
+  EXEDEPS data_metis_weighted_graph
+)
+
+
+

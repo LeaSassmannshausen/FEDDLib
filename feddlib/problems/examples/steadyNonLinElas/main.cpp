@@ -250,6 +250,8 @@ int main(int argc, char *argv[])
 		    domain->buildMesh( 3,"Square5Element", dim, FEType, n, m, numProcsCoarseSolve);
 
             domain->preProcessMesh(true,true);
+
+            domain->exportDistribution("procs");
 		}
         else if (!meshType.compare("unstructured")) {
             domain.reset( new Domain<SC,LO,GO,NO>( comm, dim ) );

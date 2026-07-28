@@ -472,6 +472,8 @@ int main(int argc, char *argv[]) {
                     exParaVelocity->save(0.0);
                     exParaPressure->save(0.0);
 
+                    domainVelocity->exportDistribution();
+
                 }
             }
         }

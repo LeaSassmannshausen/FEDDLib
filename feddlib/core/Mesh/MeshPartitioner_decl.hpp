@@ -77,7 +77,9 @@ public:
 		highest given flag. 
 	*/
     void readAndPartition(int volumeID=10, std::string meshUnit = "cm", bool convertToCM = false);
-        
+
+    void readAndPartitionCustom(int volumeID=10, std::string meshUnit = "cm", bool convertToCM = false);
+
     /*! \brief Only used in 3D to set the edges as subelements to surfaces*/
     void setEdgesToSurfaces(int meshNumber);
     
@@ -110,7 +112,7 @@ public:
     void determineRanks();
 
     void determineRanksFromNumberRanks(vec_int_Type& ranks);
-    
+
     void determineRanksFromFractions(vec_int_Type& fractions);
     
     void makeContinuousElements(ElementsPtr_Type elements, vec_idx_Type& eind_vec, vec_idx_Type& eptr_vec );
@@ -144,6 +146,9 @@ private:
 	*/
     void readAndPartitionMesh( int meshNumber );
     
+    void readAndPartitionMeshCustom(int meshNumber);
+
+
     ParameterListPtr_Type pList_;
     DomainPtrArray_Type domains_;
     CommConstPtr_Type comm_;

@@ -16,7 +16,7 @@
         <Parameter name="Mesh 1 Name" type="string" value="dfg_fsi_fluid_h004.mesh"/>
         <Parameter name="Mesh 2 Name" type="string" value="dfg_fsi_solid_h004.mesh"/>
 
-        <Parameter name="Automatic partition" type="bool" value="true"/> <!-- find ratio for ranks based on the number of elements of each mesh -->
+        <Parameter name="Automatic partition" type="bool" value="false"/> <!-- find ratio for ranks based on the number of elements of each mesh -->
         
         <Parameter name="Mesh 1 fraction ranks" type="int" value="0"/> <!-- percentage of ranks for mesh 1; if Automatic partition=true this will be ignored; if set below 0 number of ranks will be used -->
         <Parameter name="Mesh 1 number ranks" type="int" value="0"/><!-- number of ranks for this mesh; if Automatic partition=true this will be ignored; if fraction ranks>=0 this will be ignored -->

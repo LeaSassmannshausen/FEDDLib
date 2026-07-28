@@ -62,6 +62,34 @@ void MeshPartitioner<SC,LO,GO,NO>::readAndPartition( int volumeID, std::string m
     }
     
 }
+
+template <class SC, class LO, class GO, class NO>
+void MeshPartitioner<SC,LO,GO,NO>::readAndPartitionCustom( int volumeID, std::string meshUnit, bool convertToCM)
+{
+	if(volumeID != 10 ){
+		if(this->comm_->getRank()==0){
+			std::cout << " #### WARNING: The volumeID was set manually and is no longer 10. Please make sure your volumeID corresponds to the volumeID in your mesh file. #### " << std::endl;
+		}
+	}
+    //Read
+    std::string delimiter = pList_->get( "Delimiter", " " );
+    for (int i=0; i<domains_.size(); i++) {
+        std::string meshName = pList_->get( "Mesh " + std::to_string(i+1) + " Name", "noName" );
+        TEUCHOS_TEST_FOR_EXCEPTION( meshName == "noName", std::runtime_error, "No mesh name given.");
+        domains_[i]->initializeUnstructuredMesh( domains_[i]->getDimension(), "P1",volumeID, meshUnit, convertToCM ); //we only allow to read P1 meshes.
+        domains_[i]->readMeshSize( meshName, delimiter );
+    }
+    
+    this->determineRanks();
+
+    for (int i=0; i<domains_.size(); i++){
+        this->readAndPartitionMeshCustom( i );
+        domains_[i]->getMesh()->rankRange_ = rankRanges_[i];
+    }
+    
+}
+
+
 template <class SC, class LO, class GO, class NO>
 void MeshPartitioner<SC,LO,GO,NO>::determineRanks(){
     bool verbose ( comm_->getRank() == 0 );
@@ -223,9 +251,463 @@ void MeshPartitioner<SC,LO,GO,NO>::determineRanksFromNumberRanks( vec_int_Type& 
     }
     
 }
+template <class SC, class LO, class GO, class NO>
+void MeshPartitioner<SC,LO,GO,NO>::readAndPartitionMeshCustom( int meshNumber ){
+            
+    typedef Teuchos::OrdinalTraits<GO> OTGO;
+
+    MeshUnstrPtr_Type meshUnstr = Teuchos::rcp_dynamic_cast<MeshUnstr_Type>( domains_[meshNumber]->getMesh() );
+    
+	// Reading nodes
+    meshUnstr->readMeshEntity("node");
+    // We delete the point at this point. We only need the flags to determine surface elements. We will load them again later.
+    meshUnstr->pointsRep_.reset();
+    // Reading elements
+    meshUnstr->readMeshEntity("element");
+    // Reading surfaces
+    meshUnstr->readMeshEntity("surface");
+    // Reading line segments 
+    meshUnstr->readMeshEntity("line");
+
+
+    
+    bool verbose ( comm_->getRank() == 0 );
+    bool buildEdges = pList_->get("Build Edge List", true);
+    bool buildSurfaces = pList_->get("Build Surface List", true);
+
+	// Adding surface as subelement to elements
+    if (buildSurfaces)
+        this->setSurfacesToElements( meshNumber );
+    else
+        meshUnstr->deleteSurfaceElements();
+    
+	// Serially distributed elements
+    ElementsPtr_Type elementsMesh = meshUnstr->getElementsC();
+    
+    // Setup Metis
+    idx_t options[METIS_NOPTIONS];
+    METIS_SetDefaultOptions(options);
+
+    // METIS DOKU: https://www.lrz.de/services/software/mathematik/metis/metis_5_0.pdf
+
+    /* 
+    options[METIS_OPTION_NUMBERING]
+    Used to indicate which numbering scheme is used for the adjacency structure of a graph or the element-
+    node structure of a mesh. The possible values are:
+     0 C-style numbering is assumed that starts from 0.
+     1 Fortran-style numbering is assumed that starts from 1.
+    */
+    options[METIS_OPTION_NUMBERING] = 0;
+
+    /*
+    options[METIS_OPTION_SEED]
+    Specifies the seed for the random number generator.
+    */
+    options[METIS_OPTION_SEED] = 666;
+
+    /*
+    ptions[METIS_OPTION_CONTIG]
+    Specifies that the partitioning routines should try to produce partitions that are contiguous. Note that if the
+    input graph is not connected this option is ignored.
+    */
+    options[METIS_OPTION_CONTIG] = pList_->get("Contiguous",false); //0: Does not force contiguous partitions; 1: Forces contiguous partitions.
+    
+    /*
+    options[METIS_OPTION_NCUTS]
+    Specifies the number of different partitionings that it will compute. The final partitioning is the one that
+    achieves the best edgecut or communication volume. Default is 1.
+    */
+    options[METIS_OPTION_NCUTS] = pList_->get("NCUTS",1);
+
+    /*
+    options[METIS_OPTION_MINCONN]
+    Specifies that the partitioning routines should try to minimize the maximum degree of the subdomain graph,
+    i.e., the graph in which each partition is a node, and edges connect subdomains with a shared interface.
+    */
+    options[METIS_OPTION_MINCONN] = pList_->get("MINCONN",1); //0; // 1: Explicitly minimize the maximum connectivity.
+    
+    /* 
+     options[METIS_OPTION_OBJTYPE]: Specifies the type of objective. Possible values are:
+     METIS_OBJTYPE_CUT Edge-cut minimization.
+     METIS_OBJTYPE_VOL Total communication volume minimization.
+    */
+    idx_t objtype = METIS_OBJTYPE_CUT;
+    if( pList_->get("OBJTYPE","METIS_OBJTYPE_CUT") == "METIS_OBJTYPE_CUT")
+        objtype =METIS_OBJTYPE_CUT;
+    else if(pList_->get("OBJTYPE","METIS_OBJTYPE_CUT") == "METIS_OBJTYPE_VOL")
+        objtype = METIS_OBJTYPE_VOL;
+    options[METIS_OPTION_OBJTYPE] =objtype; // METIS_OBJTYPE_CUT;// or METIS_OBJTYPE_VOL
+    
+    /*
+     options[METIS_OPTION_RTYPE]
+     Determines the algorithm used for refinement. Possible values are:
+     METIS_RTYPE_FM FM-based cut refinement.
+     METIS_RTYPE_GREEDY Greedy-based cut and volume refinement.
+     METIS_RTYPE_SEP2SIDED Two-sided node FM refinement.
+     METIS_RTYPE_SEP1SIDED One-sided node FM refinement.
+    */
+    idx_t rtype = METIS_RTYPE_FM;
+    if(pList_->get("RTYPE","METIS_RTYPE_FM")=="METIS_RTYPE_FM")
+        rtype = METIS_RTYPE_FM;
+    else if(pList_->get("RTYPE","METIS_RTYPE_FM")== "METIS_RTYPE_GREEDY")
+         rtype = METIS_RTYPE_GREEDY;
+    else if(pList_->get("RTYPE","METIS_RTYPE_FM") == "METIS_RTYPE_SEP2SIDED")
+         rtype = METIS_RTYPE_SEP2SIDED;
+    else if(pList_->get("RTYPE","METIS_RTYPE_FM") == "METIS_RTYPE_SEP1SIDED")
+         rtype = METIS_RTYPE_SEP1SIDED;
+
+    options[METIS_OPTION_RTYPE] = rtype; //pList_->get("RTYPE","METIS_RTYPE_FM"); // METIS_RTYPE_GREEDY;
+
+    /*
+    options[METIS_OPTION_NITER]
+    Specifies the number of iterations for the refinement algorithms at each stage of the uncoarsening process.
+    Default is 10.
+    */
+    options[METIS_OPTION_NITER] = pList_->get("NITER",50); // 50; // default is 10
+    
+    /*
+     options[METIS_OPTION_CCORDER]
+     Specifies if the connected components of the graph should first be identified and ordered separately.
+    */
+    options[METIS_OPTION_CCORDER] = pList_->get("CCORDER",1);
+
+    /*options[METIS OPTION DBGLVL]
+     Specifies the amount of progress/debugging information will be printed during the execution of the algo-
+     rithms. The default value is 0 (no debugging/progress information). A non-zero value can be supplied that
+     is obtained by a bit-wise OR of the following values
+    */
+    options[METIS_OPTION_DBGLVL] =  pList_->get("DBGLVL",0);
+    
+    idx_t ne = meshUnstr->getNumElementsGlobal(); // Global number of elements
+    idx_t nn = meshUnstr->getNumGlobalNodes();	// Global number of nodes
+    idx_t ned = meshUnstr->getEdgeElements()->numberElements(); // Global number of edges
+
+        
+    int dim = meshUnstr->getDimension();
+    std::string FEType = domains_[meshNumber]->getFEType();
+
+	// Setup for paritioning with metis
+    vec_idx_Type eptr_vec(0); // Vector for local elements ptr (local is still global at this point)
+    vec_idx_Type eind_vec(0); // Vector for local elements ids
+    
+    makeContinuousElements(elementsMesh, eind_vec, eptr_vec);
+
+    idx_t *eptr = &eptr_vec.at(0);
+    idx_t *eind = &eind_vec.at(0);
+    
+    idx_t ncommon;
+    int orderSurface;
+    if (dim==2) {
+        if (FEType=="P1") {
+            ncommon = 2;
+        }
+        else if(FEType=="P2"){
+            ncommon = 3;
+        }
+    }
+    else if (dim==3) {
+        if (FEType=="P1") {
+            ncommon = 3;
+        }
+        else if(FEType=="P2"){
+            ncommon = 6;
+        }
+    }
+    else
+        TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Wrong Dimension.");
+    
+    idx_t objval = 0;
+    vec_idx_Type epart(ne,-1);
+    vec_idx_Type npart(nn,-1);
+
+    // Partitioning elements with metis
+    if (verbose)
+        std::cout << "-- Start partitioning with Metis ... " << std::flush;
+    
+    idx_t numflag = 0;
+    idx_t* xadj   = nullptr;
+    idx_t* adjncy = nullptr;
+    {
+        FEDD_TIMER_START(partitionTimer," : MeshPartitioner : Construct Dual Graph");
+
+        idx_t returnCode = METIS_MeshToDual(
+            &ne,
+            &nn,
+            eptr,
+            eind,
+            &ncommon,
+            &numflag,
+            &xadj,
+            &adjncy
+        );
+
+        if (returnCode != METIS_OK) {
+            throw std::runtime_error("METIS_MeshToDual failed");
+        }
+    }
+
+    if (verbose)
+        std::cout << "\t -- build weighted graph ... " << std::flush;
+
+    idx_t numberOfAdjacencies = xadj[ne];
+    std::vector<idx_t> adjwgt(numberOfAdjacencies, 1);
+    {
+        FEDD_TIMER_START(partitionTimer," : MeshPartitioner : Weighting Faces/Edges");
+     
+        idx_t weightID   = pList_->get("Weight ID",-1);
+
+        idx_t normalWeight    = pList_->get("Normal Weight",1000000);
+        idx_t interfaceWeight = pList_->get("Interface Weight",1);
+
+        for (idx_t e = 0; e < ne; ++e) {
+            for (idx_t k = xadj[e]; k < xadj[e + 1]; ++k) {
+                const idx_t neighbor = adjncy[k];
+
+                if (elementsMesh->getElement(e).getFlag() != elementsMesh->getElement(neighbor).getFlag()) {
+                    if(weightID>0){
+                        if(elementsMesh->getElement(e).getFlag() == weightID || elementsMesh->getElement(neighbor).getFlag() == weightID)
+                            adjwgt[k] = interfaceWeight;
+                        else
+                            adjwgt[k] = normalWeight;
+                    }
+                    else
+                        adjwgt[k] = interfaceWeight;
+                } else {
+                    adjwgt[k] = normalWeight;
+                }
+            }
+        }
+
+
+    }
+    if (verbose)
+        std::cout << "\t -- construct dual graph ... " << std::flush;
+
+    {
+
+        FEDD_TIMER_START(partitionTimer," : MeshPartitioner : Construct Dual Graph");
+
+        idx_t ncon   = 1;
+        idx_t objval = 0;
+        idx_t nparts = std::get<1>( rankRanges_[meshNumber] ) - std::get<0>( rankRanges_[meshNumber] ) + 1;
+        // std::vector<idx_t> epart(ne);
+        idx_t returnCode=METIS_OK;
+        if (nparts > 1) {
+            returnCode = METIS_PartGraphKway(
+                &ne,
+                &ncon,
+                xadj,
+                adjncy,
+                nullptr,          // element/vertex weights
+                nullptr,          // vertex sizes
+                adjwgt.data(),    // interface weights
+                &nparts,
+                nullptr,          // target partition weights
+                nullptr,          // imbalance tolerance
+                options,
+                &objval,
+                epart.data()
+            );
+        }
+        else {
+            std::fill(epart.begin(), epart.end(), 0);
+        }   
+
+        if (returnCode != METIS_OK) {
+            METIS_Free(xadj);
+            METIS_Free(adjncy);
+            throw std::runtime_error("METIS_PartGraphKway failed");
+        }
+
+        METIS_Free(xadj);
+        METIS_Free(adjncy);
+
+    }
+    
+     
+    //     idx_t nparts = std::get<1>( rankRanges_[meshNumber] ) - std::get<0>( rankRanges_[meshNumber] ) + 1;
+    //     if ( nparts > 1 ) {
+    //         int rank = this->comm_->getRank();
+    //         // upperRange - lowerRange +1
+    //         idx_t returnCode = METIS_PartMeshDual(&ne, &nn, eptr, eind, NULL, NULL, &ncommon, &nparts, NULL, options, &objval, &epart[0], &npart[0]);
+    //         if ( verbose )
+    //             std::cout << "\n--\t Metis return code: " << returnCode;
+    //     }
+    //     else{
+    //         for (int i=0; i<ne; i++)
+    //             epart[i] = 0;
+    //     }
+    // }
+
+    if (verbose){
+        std::cout << "\n--\t objval: " << objval << std::endl;
+        std::cout << "-- done!" << std::endl;
+    }
+    
+    if (verbose)
+        std::cout << "-- Set Elements ... " << std::flush;
+    
+    vec_GO_Type locepart(0);
+    vec_GO_Type pointsRepIndices(0);
+    // Global Edge IDs of local elements
+    vec_GO_Type locedpart(0);
+
+	// Getting global IDs of element's nodes
+    for (int i=0; i<ne; i++) {
+        if (epart[i] == comm_->getRank() - std::get<0>( rankRanges_[meshNumber] ) ){
+            locepart.push_back(i);
+            for (int j=eptr[i]; j<eptr[i+1]; j++)
+                pointsRepIndices.push_back( eind[j] ); // Ids of element nodes, globalIDs
+        }
+    }
+    // TODO KHo why erase the vectors here? eind points to the underlying array and is used later.
+    eind_vec.erase(eind_vec.begin(), eind_vec.end());
+    eptr_vec.erase(eptr_vec.begin(), eptr_vec.end());
+
+    // Sorting ids with global and corresponding local values to create repeated map
+    make_unique(pointsRepIndices);
+    if (verbose)
+        std::cout << "done!" << std::endl;
+    
+    //  Building repeated node map
+    Teuchos::ArrayView<GO> pointsRepGlobMapping =  Teuchos::arrayViewFromVector( pointsRepIndices );
+    meshUnstr->mapRepeated_.reset( new Map<LO,GO,NO>(OTGO::invalid(), pointsRepGlobMapping, 0, this->comm_) );
+    MapConstPtr_Type mapRepeated = meshUnstr->mapRepeated_;
+
+    // We keep the global elements if we want to build edges later. Otherwise they will be deleted
+    ElementsPtr_Type elementsGlobal = Teuchos::rcp( new Elements_Type( *elementsMesh ) );
+
+	// Resetting elements to add the corresponding local IDs instead of global ones
+    meshUnstr->elementsC_.reset(new Elements ( FEType, dim ) );
+    {
+        Teuchos::ArrayView<GO> elementsGlobalMapping =  Teuchos::arrayViewFromVector( locepart );
+        // elementsGlobalMapping -> elements per Processor
+
+        meshUnstr->elementMap_.reset(new Map<LO,GO,NO>( (GO) -1, elementsGlobalMapping, 0, this->comm_) );
+        
+        {
+            int localSurfaceCounter = 0;
+            for (int i=0; i<locepart.size(); i++) {
+                std::vector<int> tmpElement;
+                for (int j=eptr[locepart.at(i)]; j<eptr[locepart.at(i)+1]; j++) {
+                    //local indices
+                    int index = mapRepeated->getLocalElement( (long long) eind[j] );
+                    tmpElement.push_back(index);
+                }
+		        //std::sort(tmpElement.begin(), tmpElement.end());
+                FiniteElement fe( tmpElement, elementsGlobal->getElement( locepart.at(i) ).getFlag()  );
+                // convert global IDs of (old) globally owned subelements to local IDs
+                if (buildSurfaces) {
+                    FiniteElement feGlobalIDs = elementsGlobal->getElement( locepart.at(i) );
+                    if (feGlobalIDs.subElementsInitialized()){
+                        ElementsPtr_Type subEl = feGlobalIDs.getSubElements();
+                        subEl->globalToLocalIDs( mapRepeated );
+                        fe.setSubElements( subEl );
+                    }
+                }
+                meshUnstr->elementsC_->addElement( fe );
+            }
+        }
+    }
+
+	// Next we distribute the coordinates and flags correctly
+    
+          
+    meshUnstr->readMeshEntity("node"); // We reread the nodes, as they were deleted earlier
+    
+    if (verbose)
+        std::cout << "-- Build Repeated Points Volume ... " << std::flush;
+            
+    // building the unique map
+    meshUnstr->mapUnique_ = meshUnstr->mapRepeated_->buildUniqueMap( rankRanges_[meshNumber] );
+
+    // free(epart);
+    if (verbose)
+        std::cout << "-- Building unique & repeated points ... " << std::flush;
+    {
+        vec2D_dbl_Type points = *meshUnstr->getPointsRepeated();
+        vec_int_Type flags = *meshUnstr->getBCFlagRepeated();
+        meshUnstr->pointsRep_.reset( new std::vector<std::vector<double> >( meshUnstr->mapRepeated_->getNodeNumElements(), std::vector<double>(dim,-1.) ) );
+        meshUnstr->bcFlagRep_.reset( new std::vector<int> ( meshUnstr->mapRepeated_->getNodeNumElements(), 0 ) );
+        
+        int pointIDcont;
+        for (int i=0; i<pointsRepIndices.size() ; i++) {
+            pointIDcont = pointsRepIndices.at(i);
+            for (int j=0; j<dim; j++)
+                meshUnstr->pointsRep_->at(i).at(j) = points[pointIDcont][j];
+            meshUnstr->bcFlagRep_->at(i) =  flags[pointIDcont];
+        }
+    }
+
+	// Setting unique points and flags
+    meshUnstr->pointsUni_.reset(new std::vector<std::vector<double> >( meshUnstr->mapUnique_->getNodeNumElements(), std::vector<double>(dim,-1.) ) );
+    meshUnstr->bcFlagUni_.reset(new std::vector<int> ( meshUnstr->mapUnique_->getNodeNumElements(), 0) );
+    GO indexGlobal;
+    MapConstPtr_Type map = meshUnstr->getMapRepeated();
+    vec2D_dbl_ptr_Type pointsRep = meshUnstr->pointsRep_;
+    for (int i=0; i<meshUnstr->mapUnique_->getNodeNumElements() ; i++) {
+        indexGlobal = meshUnstr->mapUnique_->getGlobalElement(i);
+        for (int j=0; j<dim; j++) {
+            meshUnstr->pointsUni_->at(i).at(j) = pointsRep->at( map->getLocalElement( indexGlobal) ).at(j);
+        }
+        meshUnstr->bcFlagUni_->at(i) = meshUnstr->bcFlagRep_->at( map->getLocalElement( indexGlobal) );
+    }
+
+	// Finally we build the edges. As part of the edge build involves nodes and elements,
+	// they should be build last to avoid any local and global IDs mix up
+	if (!buildEdges)
+        elementsGlobal.reset();
+
+    locepart.erase(locepart.begin(),locepart.end());
+    if (verbose)
+        std::cout << "done!" << std::endl;
+        
+    if (buildSurfaces){
+        this->setEdgesToSurfaces( meshNumber ); // Adding edges as subelements in the 3D case. All dim-1-Subelements were already set
+		}
+    else
+        meshUnstr->deleteSurfaceElements();
+        
+    if (buildEdges) {
+        if (verbose)
+            std::cout << "-- Build edge element list ... " << std::endl << std::flush;
+                
+        buildEdgeListParallel( meshUnstr, elementsGlobal );
+        
+        if (verbose)
+            std::cout << std::endl << " done!"<< std::endl;
+        
+        MapConstPtr_Type elementMap =  meshUnstr->getElementMap();
+
+        FEDD_TIMER_START(partitionEdgesTimer," : MeshPartitioner : Partition Edges");
+        meshUnstr->getEdgeElements()->partitionEdges( elementMap, mapRepeated );
+        FEDD_TIMER_STOP(partitionEdgesTimer);
+
+        // edge global indices on different processors
+        for( int i=0; i<meshUnstr->getEdgeElements()->numberElements() ; i++){
+            locedpart.push_back(meshUnstr->getEdgeElements()->getGlobalID((LO) i));
+        }
+
+        // Setup for the EdgeMap
+        Teuchos::ArrayView<GO> edgesGlobalMapping =  Teuchos::arrayViewFromVector( locedpart );
+        meshUnstr->edgeMap_.reset(new Map<LO,GO,NO>( (GO) -1, edgesGlobalMapping, 0, this->comm_) );
+    }
+
+    
+    if (verbose)
+        std::cout << "done!" << std::endl;
+    
+    if (verbose)
+        std::cout << "-- Partition interface ... " << std::flush;
+    meshUnstr->partitionInterface();
+    
+    if (verbose)
+        std::cout << "done!" << std::endl;
+    
+}
+
 
 /// Reading and partioning of the mesh. Input File is .mesh. Reading is serial and at some point the mesh entities are distributed along the processors.
-
 template <class SC, class LO, class GO, class NO>
 void MeshPartitioner<SC,LO,GO,NO>::readAndPartitionMesh( int meshNumber ){
             
