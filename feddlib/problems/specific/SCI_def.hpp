@@ -362,7 +362,6 @@ void SCI<SC,LO,GO,NO>::reAssemble(std::string type) const
     
         this->feFactory_->assemblyAceDeformDiffu(this->dim_, this->getDomain(1)->getFEType(), this->getDomain(0)->getFEType(), 2, 1,this->dim_,c_rep_,d_rep_,systemTmp,this->residualVec_, this->parameterList_, "Jacobian", true/*call fillComplete*/);
         //this->feFactory_->globalAssembly(materialModel_, this->dim_, 2, blockSol, this->system_, this->residualVec_,this->parameterList_,"Jacobian",true);
-        this->system_->getBlock(0,0)->writeMM("Jacobian");
 
         if(chemistryExplicit_){
             this->system_->addBlock(systemTmp->getBlock(0,0),0,0);
@@ -374,6 +373,7 @@ void SCI<SC,LO,GO,NO>::reAssemble(std::string type) const
             this->system_->addBlock(systemTmp->getBlock(1,0),1,0);
             this->system_->addBlock(systemTmp->getBlock(1,1),1,1);
         }
+        this->system_->getBlock(0,0)->writeMM("Jacobian");
 
         if(nonlinearExternalForce_)
             computeSolidRHSInTime();
