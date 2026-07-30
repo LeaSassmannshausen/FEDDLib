@@ -203,12 +203,12 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
     else
         this->feFactory_->assemblyLaplaceVecField(this->dim_, this->domain_FEType_vec_.at(0), 2, A_, true);
     
-    A_->resumeFill();
+    // A_->resumeFill();
     
     A_->scale(viscosity);
     A_->scale(density);
     
-    A_->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
+    // A_->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
 
     if (this->system_.is_null())
         this->system_.reset(new BlockMatrix_Type(2));
@@ -344,10 +344,10 @@ void NavierStokes<SC,LO,GO,NO>::assembleConstantMatrices() const{
 
             SC kinVisco = this->parameterList_->sublist("Parameter").get("Viscosity",1.); // Ap need to be scaled with viscosity
 
-            Ap2->resumeFill();
+            // Ap2->resumeFill();
             Ap2->scale(kinVisco);
             // Ap2->scale(density);
-            Ap2->fillComplete(); 
+            // Ap2->fillComplete(); 
             
             
             MatrixPtr_Type K_robin(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow()*2 ) );          
@@ -433,9 +433,9 @@ void NavierStokes<SC,LO,GO,NO>::updateConvectionDiffusionOperator() const{
         SC kinVisco = this->parameterList_->sublist("Parameter").get("Viscosity",1.);
         SC density = this->parameterList_->sublist("Parameter").get("Density",1.);
 
-        Ap2->resumeFill();
+        // Ap2->resumeFill();
         Ap2->scale(kinVisco);
-        Ap2->fillComplete();
+        // Ap2->fillComplete();
 
         // ---------------------
         // Robin boundary
@@ -456,7 +456,7 @@ void NavierStokes<SC,LO,GO,NO>::updateConvectionDiffusionOperator() const{
         if(this->parameterList_->sublist("Timestepping Parameter").get("dt",-1.)> -1 ){ // In case we have a timeproblem
             MatrixPtr_Type Mp2(new Matrix_Type( Mp_ ) );
             double dt = this->parameterList_->sublist("Timestepping Parameter").get("dt",-1.);
-            Mp2->resumeFill();
+            // Mp2->resumeFill();
             if(this->parameterList_->sublist("Timestepping Parameter").get("BDF",1) == 1) // BDF 1
                 Mp2->scale(1./dt);
             else if(this->parameterList_->sublist("Timestepping Parameter").get("BDF",1) == 2) // BDF 1
@@ -465,7 +465,7 @@ void NavierStokes<SC,LO,GO,NO>::updateConvectionDiffusionOperator() const{
                 TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error, "PCD operator for transient problems only defined for BDF-1 and BDF-2.");
 
             // Mp2->scale(density);
-            Mp2->fillComplete();
+            // Mp2->fillComplete();
             Mp2->addMatrix(1.,Fp,1.);
         }
         // Fp->scale(1./density);
@@ -504,14 +504,14 @@ void NavierStokes<SC,LO,GO,NO>::assembleDivAndStab() const{
     
     this->feFactory_->assemblyDivAndDivTFast(this->dim_, this->getFEType(0), this->getFEType(1), 2, B, BT, this->getDomain(0)->getMapVecFieldUnique(), pressureMap, true );
     
-    B->resumeFill();
-    BT->resumeFill();
+    // B->resumeFill();
+    // BT->resumeFill();
     
     B->scale(-1.);
     BT->scale(-1.);
     
-    B->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), pressureMap );
-    BT->fillComplete( pressureMap, this->getDomain(0)->getMapVecFieldUnique() );
+    // B->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), pressureMap );
+    // BT->fillComplete( pressureMap, this->getDomain(0)->getMapVecFieldUnique() );
     
     this->system_->addBlock( BT, 0, 1 );
     this->system_->addBlock( B, 1, 0 );
@@ -519,9 +519,9 @@ void NavierStokes<SC,LO,GO,NO>::assembleDivAndStab() const{
     if ( !this->getFEType(0).compare("P1") ||  !this->getFEType(0).compare("Q1") ) {
         C.reset(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow() ) );
         this->feFactory_->assemblyBDStabilization( this->dim_, this->getFEType(0), C, true);
-        C->resumeFill();
+        // C->resumeFill();
         C->scale( -1. / ( viscosity * density ) ); // scaled with dynamic viscosity with mu = nu*rho
-        C->fillComplete( pressureMap, pressureMap );
+        // C->fillComplete( pressureMap, pressureMap );
         
         this->system_->addBlock( C, 1, 1 );
     }
@@ -539,9 +539,9 @@ void NavierStokes<SC,LO,GO,NO>::assembleDivAndStab() const{
 
         MatrixPtr_Type MpInv = Mp->buildDiagonalInverse("Diagonal");
 
-        MpInv->resumeFill();
+        // MpInv->resumeFill();
         MpInv->scale(gamma);
-        MpInv->fillComplete();
+        // MpInv->fillComplete();
 
 
         MatrixPtr_Type BT_M(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension()*this->getDomain(0)->getApproxEntriesPerRow() ) );
@@ -579,9 +579,9 @@ void NavierStokes<SC,LO,GO,NO>::reAssembleFSI(std::string type, MultiVectorPtr_T
         MatrixPtr_Type N = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
         this->feFactory_->assemblyAdvectionVecField( this->dim_, this->domain_FEType_vec_.at(0), N, u_minus_w, true );
         
-        N->resumeFill();
+        // N->resumeFill();
         N->scale(density);
-        N->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
+        // N->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
         A_->addMatrix(1.,ANW,0.);
 
         N->addMatrix(1.,ANW,1.);
@@ -624,9 +624,9 @@ void NavierStokes<SC,LO,GO,NO>::reAssemble(std::string type) const {
         MatrixPtr_Type N = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
         this->feFactory_->assemblyAdvectionVecField( this->dim_, this->domain_FEType_vec_.at(0), N, u_rep_, true );
         
-        N->resumeFill();
+        // N->resumeFill();
         N->scale(density);
-        N->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
+        // N->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
         
         A_->addMatrix(1.,ANW,0.);
         N->addMatrix(1.,ANW,1.);
@@ -636,9 +636,9 @@ void NavierStokes<SC,LO,GO,NO>::reAssemble(std::string type) const {
         
         MatrixPtr_Type W = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
         this->feFactory_->assemblyAdvectionInUVecField( this->dim_, this->domain_FEType_vec_.at(0), W, u_rep_, true );
-        W->resumeFill();
+        // W->resumeFill();
         W->scale(density);
-        W->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
+        // W->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
         this->system_->getBlock( 0, 0 )->addMatrix(1.,ANW,0.);
         W->addMatrix(1.,ANW,1.);
         
@@ -721,9 +721,9 @@ void NavierStokes<SC,LO,GO,NO>::reAssembleExtrapolation(BlockMultiVectorPtrArray
     MatrixPtr_Type N = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
     this->feFactory_->assemblyAdvectionVecField( this->dim_, this->domain_FEType_vec_.at(0), N, u_rep_, true );
 
-    N->resumeFill();
+    // N->resumeFill();
     N->scale(density);
-    N->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
+    // N->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
 
     A_->addMatrix(1.,ANW,0.);
     N->addMatrix(1.,ANW,1.);
