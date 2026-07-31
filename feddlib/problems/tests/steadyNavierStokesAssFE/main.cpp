@@ -317,23 +317,23 @@ int main(int argc, char *argv[]) {
             }
          
              // Flag Check
-            Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
+            // Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
 
-			Teuchos::RCP<MultiVector<SC,LO,GO,NO> > exportSolution(new MultiVector<SC,LO,GO,NO>(domainVelocity->getMapUnique()));
-			vec_int_ptr_Type BCFlags = domainVelocity->getBCFlagUnique();
+			// Teuchos::RCP<MultiVector<SC,LO,GO,NO> > exportSolution(new MultiVector<SC,LO,GO,NO>(domainVelocity->getMapUnique()));
+			// vec_int_ptr_Type BCFlags = domainVelocity->getBCFlagUnique();
 
-			Teuchos::ArrayRCP< SC > entries  = exportSolution->getDataNonConst(0);
-			for(int i=0; i< entries.size(); i++){
-				entries[i] = BCFlags->at(i);
-			}
+			// Teuchos::ArrayRCP< SC > entries  = exportSolution->getDataNonConst(0);
+			// for(int i=0; i< entries.size(); i++){
+			// 	entries[i] = BCFlags->at(i);
+			// }
 
-			Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionConst = exportSolution;
+			// Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionConst = exportSolution;
 
-			exPara->setup("FlagsFluid",domainVelocity->getMesh(), discVelocity);
+			// exPara->setup("FlagsFluid",domainVelocity->getMesh(), discVelocity);
 
-			exPara->addVariable(exportSolutionConst, "Flags", "Scalar", 1,domainVelocity->getMapUnique());
+			// exPara->addVariable(exportSolutionConst, "Flags", "Scalar", 1,domainVelocity->getMapUnique());
 
-			exPara->save(0.0);
+			// exPara->save(0.0);
 			// ---------------------
 			// Old Assembly Rouine
         
@@ -386,8 +386,8 @@ int main(int argc, char *argv[]) {
  //*/
 			Teuchos::TimeMonitor::report(cout,"Main");	
        
-			Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaVelocity(new ExporterParaView<SC,LO,GO,NO>());
-            Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaPressure(new ExporterParaView<SC,LO,GO,NO>());
+			// Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaVelocity(new ExporterParaView<SC,LO,GO,NO>());
+            // Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exParaPressure(new ExporterParaView<SC,LO,GO,NO>());
 
             Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionV = navierStokes.getSolution()->getBlock(0);
             Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > exportSolutionP = navierStokes.getSolution()->getBlock(1);
@@ -518,24 +518,24 @@ int main(int argc, char *argv[]) {
 //*/
             DomainPtr_Type dom = domainVelocity;
 
-            exParaVelocity->setup("velocity", dom->getMesh(), dom->getFEType());
+//             exParaVelocity->setup("velocity", dom->getMesh(), dom->getFEType());
                                 
-            UN dofsPerNode = dim;
-            exParaVelocity->addVariable(exportSolutionV, "u", "Vector", dofsPerNode, dom->getMapUnique());
-///*       
-            exParaVelocity->addVariable(exportSolutionVAssFE, "uAssFE", "Vector", dofsPerNode, dom->getMapUnique());
-            exParaVelocity->addVariable(errorValuesAbs, "u-uAssFE", "Vector", dofsPerNode, dom->getMapUnique());
-//*/
-            dom = domainPressure;
-            exParaPressure->setup("pressure", dom->getMesh(), dom->getFEType());
+//             UN dofsPerNode = dim;
+//             exParaVelocity->addVariable(exportSolutionV, "u", "Vector", dofsPerNode, dom->getMapUnique());
+// ///*       
+//             exParaVelocity->addVariable(exportSolutionVAssFE, "uAssFE", "Vector", dofsPerNode, dom->getMapUnique());
+//             exParaVelocity->addVariable(errorValuesAbs, "u-uAssFE", "Vector", dofsPerNode, dom->getMapUnique());
+// //*/
+//             dom = domainPressure;
+//             exParaPressure->setup("pressure", dom->getMesh(), dom->getFEType());
 
-            exParaPressure->addVariable(exportSolutionP, "p", "Scalar", 1, dom->getMapUnique());
- //*/
-            exParaPressure->addVariable(exportSolutionPAssFE, "pAssFE", "Scalar", 1, dom->getMapUnique());
+//             exParaPressure->addVariable(exportSolutionP, "p", "Scalar", 1, dom->getMapUnique());
+//  //*/
+//             exParaPressure->addVariable(exportSolutionPAssFE, "pAssFE", "Scalar", 1, dom->getMapUnique());
 
 
-            exParaVelocity->save(0.0);
-            exParaPressure->save(0.0); 
+//             exParaVelocity->save(0.0);
+//             exParaPressure->save(0.0); 
 
 
            TEUCHOS_TEST_FOR_EXCEPTION( relativeError > 1e-12 , std::logic_error, "Relative Error between calculated solutions is too great. Exceeded 1e-12. ");
