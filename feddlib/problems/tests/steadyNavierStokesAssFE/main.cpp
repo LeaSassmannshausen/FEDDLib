@@ -426,8 +426,16 @@ int main(int argc, char *argv[]) {
 			if(comm->getRank() ==0)
 				cout << " 2 rel. Norm of solutions navier stokes assemFE " << twoNormError/res << endl;
 
+          	if(comm->getRank() ==0){
+                cout << " --------------------------------------------------------- " << endl;
+				cout << " Comparison of Matrix Block (0,0) for Linearized System ... "  << endl;
+            }
+
+            navierStokes.reAssemble("Newton");
+            navierStokesAssFE.reAssemble("Newton");
+
 			MatrixPtr_Type Sum2= Teuchos::rcp(new Matrix_Type( domainVelocity->getMapVecFieldUnique(), domainVelocity->getDimension() * domainVelocity->getApproxEntriesPerRow() )  );
-			navierStokes.getSystem()->getBlock(0,0)->addMatrix(1, Sum2, 1);
+            navierStokes.getSystem()->getBlock(0,0)->addMatrix(1, Sum2, 1);
 			navierStokesAssFE.getSystem()->getBlock(0,0)->addMatrix(-1, Sum2, 1);
 
 			Teuchos::ArrayView<const GO> indices;
@@ -447,8 +455,11 @@ int main(int argc, char *argv[]) {
 			res = std::fabs(res);
 			reduceAll<int, double> (*comm, REDUCE_MAX, res, outArg (res));
            
-			if(comm->getRank() == 0)
-				cout << " Inf Norm of Difference between Block A: " << res << endl;
+			if(comm->getRank() == 0){
+				cout << "... Inf Norm of Difference between Block A+N+W: " << res << endl;
+                cout << " --------------------------------------------------------- " << endl;
+
+            }
 
             if(discVelocity=="P1"){
             MatrixPtr_Type Sum3= Teuchos::rcp(new Matrix_Type( domainPressure->getMapUnique(), domainPressure->getDimension() * domainPressure->getApproxEntriesPerRow() )  );

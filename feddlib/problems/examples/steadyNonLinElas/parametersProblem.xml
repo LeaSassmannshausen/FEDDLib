@@ -1,0 +1,162 @@
+<ParameterList name="steady nonlinear elasticity">
+    <ParameterList name="Parameter">
+        <Parameter name="Dimension" type="int" value="3"/>
+        <Parameter name="Discretization" type="string" value="P2"/><!--P1, P2-->
+        <Parameter name="Mesh Type" type="string" value="structured"/> <!--structured, unstructured -->
+        <Parameter name="Volume force" type="double" value="-213.3"/> <!-- 1kg⋅cm/s² , test p_min = 106.6, text p_max = 213.3-->
+	    <Parameter name="Source Type" type="string"   value="surface"/>
+        <Parameter name="External Force" type="bool" value="false"/>
+        <Parameter name="Mesh Delimiter" type="string"   value=" "/>
+        <Parameter name="H/h" type="int"   	value="8"/>   
+        <Parameter name="relNonLinTol" type="double" value="1.0e-8"/>
+        <Parameter name="absNonLinTol" type="double" value="1.0e-8"/>
+        <Parameter name="MaxNonLinIts" type="int" value="10"/>
+        <!-- Criterion for nonlinear solve, Residual or Update: Residual is the norm of the nonlinear residual; Update is
+        Update is the norm of the update -->    
+        <Parameter name="Criterion" type="string" value="Update"/>   
+
+        <!--Material Properties -->            
+ 		<Parameter name="Material model" type="string" value="Neo-Hooke"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
+        <Parameter name="Use AceGen Interface" type="bool" value="true"/>
+        <Parameter name="SCI" type="bool" value="true"/>
+ 		<Parameter name="Structure Model" type="string" value="SCI_SMC_Active_Growth_Reorientation"/> <!-- SCI_SMC_MLCK, SCI_SMC_Active_Growth_Reorientation -->
+        <Parameter name="Neo-Hooke Modell" type="int" value="1"/><!--different energy functions -->
+        <!--  -->
+
+        <!-- BUILDING PRECONDITIONER ONLY THE FIRST X (newtonLimit) NEWTON STEP(S) -->
+        <Parameter name="newtonLimit" type="int" value="3"/>
+        <Parameter name="Rebuild Preconditioner every Newton Iteration" type="bool" value="true"/>
+        <!--  -->
+    </ParameterList>
+    <ParameterList name="Parameter Solid">
+        <Parameter name="E" type="double" value="3800"/> <!-- 1kg⋅cm/s² * 1/cm² | NH4: 4398.48 | NH_3 = 3800, NH_2 = 2000-->
+        <Parameter name="Density" type="double"   value="1."/>
+	 	<Parameter name="Poisson Ratio"	type="double"   value="0.49e-0"/>        
+     	<Parameter name="Mu" type="double" value="1275.2"/><!-- 1kg⋅cm/s² * 1/cm² | NH4: 1476.5 | NH_3: 1275.2 | NH_2: 671-->
+     	
+     	<!-- Parameters for Media using the psi_A Model  -->
+     	<!--Units: cm,kg,s -->
+		<!-- ######################################## -->
+        <Parameter name="FA" type="double" value="43.0" /><!-- ° - degree-->
+        <Parameter name="Alpha1" type="double" value="17.5e1" /><!-- 1kg⋅cm/s² * 1/cm²-->
+        <Parameter name="Alpha2" type="double" value="499.8e1" /> <!-- 1kg⋅cm/s² * 1/cm²-->
+        <Parameter name="Alpha3" type="double" value="2.4" /> <!-- dimensionless -->
+        <Parameter name="Alpha4" type="double" value="30001.9e1" /><!--1kg⋅cm/s² * 1/cm²-->
+        <Parameter name="Alpha5" type="double" value="5.1" /> <!-- dimensionless -->
+        <!-- ######################################## -->
+		<!-- ######################################## -->
+        <Parameter name="Number of Materials" type="int" value="1"/> <!--number of different materials-->  
+      	<ParameterList name="1">
+			<!--linear,Neo-Hooke Only relevant for explicit coupling-->  
+         	<Parameter name="Volume Flag" type="int" value="0"/>  <!--corresponding element flag to material-->    
+         		<!-- PSI_A -->
+ 		        <Parameter name="Compute FA" type="bool" value="false"/>
+ 		        
+				<Parameter name="Fibre angle" type="double" value="30." /> <!-- degrees -->
+                <Parameter name="kFiberDistribution" type="double" value="0.0" /> <!-- dimensionless -->	    
+				<Parameter name="Alpha1" type="double" value="11.52507e1" /><!-- 1kg⋅cm/s² * 1/cm²-->
+				<Parameter name="Alpha2" type="double" value="151.73775e1" /> <!-- 1kg⋅cm/s² * 1/cm²-->
+				<Parameter name="Alpha3" type="double" value="2.75662" /> <!-- dimensionless -->
+				<Parameter name="Alpha4" type="double" value="1.27631e1" /><!--1kg⋅cm/s² * 1/cm²-->
+				<Parameter name="Alpha5" type="double" value="3.08798" /> <!-- dimensionless -->
+
+
+				<!-- Chemical Model -->
+				<Parameter name="K2" type="double" value="0.2e0"/> 
+				<Parameter name="K5" type="double" value="0.2e0"/>     
+				<Parameter name="K3" type="double" value="0.134" /> <!-- s^-1 -->
+				<Parameter name="K4" type="double" value="0.00166" /> <!-- s^-1 -->
+				<Parameter name="K7" type="double" value="0.66e-4" /> <!-- s^-1 -->
+				<Parameter name="Ca50" type="double" value="0.4" /> <!-- microMoles -->
+				<Parameter name="Gamma2" type="double" value="50.0" /> <!-- microMoles^-1 -->
+				<Parameter name="Gamma3" type="double" value="0.9" />  <!-- microMoles -->
+				<Parameter name="LambdaC50" type="double" value="1.2" /> 
+				<Parameter name="Gamma4" type="double" value="200." />
+				<Parameter name="Zeta1" type="double" value="100." /> <!-- s -->
+				<Parameter name="Gamma5" type="double" value="50." /> <!-- s -->
+				<Parameter name="Zeta2" type="double" value="1000." /> <!-- s -->
+				<Parameter name="DeltaLambdaBarPMin" type="double" value="-1.e-5" />
+				<Parameter name="Gamma6" type="double" value="1.5" /> <!-- s^-1 -->
+				<Parameter name="LambdaP50" type="double" value="1.0" />     
+				
+				<!-- Active chemo-mechanical material model -->
+				<Parameter name="Eta" type="double" value="0.1624" /> <!-- s^-1 -->
+				<Parameter name="Gamma1" type="double" value="0.5131" /> <!-- microMoles -->
+				<Parameter name="LambdaBarCDotMax" type="double" value="0.0443" /> <!-- s^-1 -->
+				<Parameter name="LambdaBarCDotMin" type="double" value="-0.0443" /> <!-- s^-1 -->
+				<Parameter name="KDotMin" type="double" value="-0.0010694" /> <!-- s^-2 -->
+				<Parameter name="KDotMax" type="double" value="0.0009735" /> <!-- s^-2 -->
+				<Parameter name="LambdaBarDotPMin" type="double" value="-0.0002323" /> <!-- s^-1 -->
+     			<Parameter name="LambdaBarDotPMax" type="double" value="0.0000699" /> <!-- s^-1 -->
+			    <Parameter name="Kappa" type="double" value="148.262e1" /> <!-- Kg/(s^2 cm) or kPa-->
+			    <Parameter name="Beta1" type="double" value="0.001006" /> <!-- s^-1 -->
+			    <Parameter name="MuA" type="double" value="11.857e1" /> <!-- Kg/(s^2 cm) or kPa-->
+     			<Parameter name="KMin" type="double" value="0.015" />
+				
+				
+				<Parameter name="growthStartTime" type="double" value="100.0" />
+				<Parameter name="reorientationStartTime" type="double" value="100.0" />
+				<Parameter name="growthEndTime" type="double" value="100.0" />
+				<Parameter name="reorientationEndTime" type="double" value="100.0" />			 
+				<Parameter name="Density" type="double" value="1.e0" />
+				<Parameter name="ActiveBool" type="double" value="0" />
+				<Parameter name="growthBool" type="double" value="0" />
+				<Parameter name="reorientationBool" type="double" value="0" />
+				<Parameter name="growthDirectionBool" type="double" value="0" />
+                <Parameter name="PostProcessingType" type="double" value="1." />
+                <Parameter name="PostProcessingPower" type="double" value="1." />
+                <Parameter name="ActiveStartTime" type="double" value="1.0" />
+				<ParameterList name="Timestepping Intervalls Active">
+				<Parameter name="Number of Segments" type="int" value="3" />
+				<ParameterList name="1">
+				  <Parameter name="Start Time" type="double" value="1.0" />
+				  <Parameter name="End Time" type="double" value="50.0" />
+				</ParameterList>
+			  </ParameterList>
+
+		</ParameterList>
+		<!-- ######################################## -->
+
+    </ParameterList>
+    
+    <ParameterList name="Exporter">
+        <Parameter name="Write new mesh" type="bool" value="false"/>
+     
+        <Parameter name="Export every X timesteps" type="int" value="1"/>       
+        <Parameter name="Export coarse functions" type="bool" value="false"/>     
+        <Parameter name="Name coarse functions block1" type="string" value="phiU"/>    
+    </ParameterList>
+        
+    <ParameterList name="General">
+        <Parameter name="Mpi Ranks Coarse"		                type="int"      value="0"/>
+        <Parameter name="ParaViewExport"			            type="bool"     value="false"/>
+        <Parameter name="Export Data"			            type="bool"     value="true"/>
+        <Parameter name="Export Stress" type="bool" value="false"/>
+        <Parameter name="Every X Second" type="double" value="0.1"/> <!-- Output frequency for stresses and co. during normal phase. 1 = every time step. 10 = every tenth time step -->
+
+        <Parameter name="Preconditioner Method"                 type="string"   value="Monolithic"/><!-- Monolithic, Diagonal, Triangular -->
+        <Parameter name="Set Zeros"		                        type="bool"     value="true"/>
+        <Parameter name="Linearization"                         type="string"   value="NOX"/> <!-- FixedPoint, Newton, Extrapolation-->
+    </ParameterList>
+
+
+    <ParameterList name="Timestepping Parameter">
+        <Parameter name="Class"                                 type="string"		value="Loadstepping"/> <!--Multistep, Singlestep, Newmark-->
+        <Parameter name="Final time load"	                    type="double"   	value="1.00"/>
+        <Parameter name="Final time"	                    	type="double"   	value="50.00"/>
+        <Parameter name="dt"			                    	type="double"   	value="0.1"/>
+        <ParameterList name="Timestepping Intervalls">
+            <Parameter name="Number of Segments" type="int" value="2"/>
+            <ParameterList name="1">
+                <Parameter name="Start Time" type="double" value="0."/>
+                <Parameter name="dt" type="double" value="0.1"/>
+            </ParameterList>
+             <ParameterList name="2">
+                <Parameter name="Start Time" type="double" value="1."/>
+                <Parameter name="dt" type="double" value="0.25"/>
+            </ParameterList>
+        </ParameterList>
+    </ParameterList>
+    
+
+</ParameterList>

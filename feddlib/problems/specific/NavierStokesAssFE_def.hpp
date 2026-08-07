@@ -173,9 +173,9 @@ void NavierStokesAssFE<SC,LO,GO,NO>::assembleConstantMatrices() const{
     if ( !this->getFEType(0).compare("P1") ) {
         MatrixPtr_Type C(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getApproxEntriesPerRow() ) );
         this->feFactory_->assemblyBDStabilization( this->dim_, "P1", C, true);
-        C->resumeFill();
+        // C->resumeFill();
         C->scale( -1. / ( viscosity * density ) );
-        C->fillComplete( pressureMap, pressureMap );
+        // C->fillComplete( pressureMap, pressureMap );
         
         this->system_->addBlock( C, 1, 1 );
     }
@@ -268,7 +268,7 @@ void NavierStokesAssFE<SC,LO,GO,NO>::reAssemble(std::string type) const {
 
    if (type=="Rhs") {
 
-   		this->system_->addBlock(ANW,0,0);
+   		// this->system_->addBlock(ANW,0,0); // I removed this, because when we only call asssemble RHS the system gets and empty matrix that is not even filled complete
         /* The next code line was unnecessary work load in solveNewton as it was also called but rewritten by assemble("Newton"), so instead we comment this out and call 
            in solveFixedPoint the assemble("FixedPoint") function, and here in "RHS" only F*current_solution is computed necessary for computing the residual vector */
         //this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_, this->residualVec_,this->coeff_,this->parameterList_, true, "FixedPoint",  true);      
@@ -287,7 +287,7 @@ void NavierStokesAssFE<SC,LO,GO,NO>::reAssemble(std::string type) const {
 
     }
 	
-    this->system_->addBlock(ANW,0,0);
+    // this->system_->addBlock(ANW,0,0);
 
     if (this->verbose_)
         std::cout << "done -- " << std::endl;
@@ -438,9 +438,9 @@ void NavierStokesAssFE<SC,LO,GO,NO>::reAssembleExtrapolation(BlockMultiVectorPtr
     MatrixPtr_Type N = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
     this->feFactory_->assemblyAdvectionVecField( this->dim_, this->domain_FEType_vec_.at(0), N, u_rep_, true );
 
-    N->resumeFill();
+    // N->resumeFill();
     N->scale(density);
-    N->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
+    // N->fillComplete( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getMapVecFieldUnique());
 
     A_->addMatrix(1.,ANW,0.);
     N->addMatrix(1.,ANW,1.);
