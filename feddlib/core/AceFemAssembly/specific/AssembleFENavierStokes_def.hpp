@@ -44,7 +44,7 @@ AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params,tuple)
 
 	dofsElement_ = dofsElementVelocity_+ dofsElementPressure_;
 
-	this->solution_.reset( new vec_dbl_Type (dofsElement_,0.) );
+	// this->solution_.reset( new vec_dbl_Type (dofsElement_,0.) );
 
 
 	SmallMatrix_Type coeff(2);
