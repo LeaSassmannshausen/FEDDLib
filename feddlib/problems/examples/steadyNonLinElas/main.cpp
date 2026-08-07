@@ -16,13 +16,6 @@
 #include <Teuchos_StackedTimer.hpp>
 
 
-void zeroDirichlet(double* x, double* res, double t, const double* parameters)
-{
-    res[0] = 0.;
-
-    return;
-}
-
 void zeroDirichlet2D(double* x, double* res, double t, const double* parameters)
 {
     res[0] = 0.;
@@ -40,47 +33,8 @@ void zeroDirichlet3D(double* x, double* res, double t, const double* parameters)
     return;
 }
 
-void zeroDirichletX(double* x, double* res, double t, const double* parameters)
-{
-    res[0] = 0.;
-    res[1] = x[1];
-    res[2] = x[2];
 
-    return;
-}
-
-void zeroDirichletY(double* x, double* res, double t, const double* parameters)
-{
-    res[0] = x[0];
-    res[1] = 0.;
-    res[2] = x[2];
-
-
-    return;
-}
-
-void zeroDirichletZ(double* x, double* res, double t, const double* parameters)
-{
-    res[0] = x[0];
-    res[1] = x[1];
-    res[2] = 0.;
-
-    return;
-}
-
-void dummyFunc(double* x, double* res, double t, const double* parameters)
-{
-    return;
-}
-
-void rhs2D(double* x, double* res, double* parameters){
-    // parameters[0] is the time, not needed here
-    res[0] = 0.;
-    res[1] = parameters[1];
-    
-    return;
-}
-
+// Right hand side function for square
 void rhsX(double* x, double* res, double* parameters){
     
     double force = parameters[1];
@@ -103,6 +57,7 @@ void rhsX(double* x, double* res, double* parameters){
     return;
 }
 
+// Right hand side function for cube
 void rhsYZ(double* x, double* res, double* parameters){
     // parameters[0] is the time, not needed here
 
@@ -128,11 +83,12 @@ void rhsYZ(double* x, double* res, double* parameters){
     return;
 }
 
+// Right hand side function for arterial wall tests - application of surface load and load stepping defined here
 void rhsInterface(double* x, double* res, double* parameters){
-    // parameters[0] is the time, not needed here
-    double force = parameters[1];
-    double TRamp = parameters[2];
-    double loadStepSize = parameters[3];
+    // parameters[0] contains time
+    double force = parameters[1]; // final desired surface load
+    double TRamp = parameters[2]; // final ramp of loading
+    double loadStepSize = parameters[3]; // load step size
 
   	res[0] =0.;
     res[1] =0.;
@@ -144,8 +100,7 @@ void rhsInterface(double* x, double* res, double* parameters){
         force = parameters[1];
 
 
-    if(parameters[5] == 6){
-
+    if(parameters[5] == 6){ // Flag of internal part where surface load is applied
       	res[0] = force;
         res[1] = force;
         res[2] = force;
@@ -167,21 +122,9 @@ using namespace std;
 int main(int argc, char *argv[])
 {
 
-    typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
-    typedef RCP<MeshUnstr_Type> MeshUnstrPtr_Type;
     typedef Domain<SC,LO,GO,NO> Domain_Type;
     typedef RCP<Domain_Type > DomainPtr_Type;
-    typedef ExporterParaView<SC,LO,GO,NO> ExporterPV_Type;
-    typedef RCP<ExporterPV_Type> ExporterPVPtr_Type;
     typedef MeshPartitioner<SC,LO,GO,NO> MeshPartitioner_Type;
-
-    typedef Map<LO,GO,NO> Map_Type;
-    typedef RCP<Map_Type> MapPtr_Type;
-    typedef MultiVector<SC,LO,GO,NO> MultiVector_Type;
-    typedef RCP<MultiVector_Type> MultiVectorPtr_Type;
-    typedef RCP<const MultiVector_Type> MultiVectorConstPtr_Type;
-    typedef BlockMultiVector<SC,LO,GO,NO> BlockMultiVector_Type;
-    typedef RCP<BlockMultiVector_Type> BlockMultiVectorPtr_Type;
 
     // MPI boilerplate
     Tpetra::ScopeGuard tpetraScope (&argc, &argv); // initializes MPI
@@ -190,8 +133,6 @@ int main(int argc, char *argv[])
     // Command Line Parameters
     Teuchos::CommandLineProcessor myCLP;
 
-    // int dim = 2;
-    // myCLP.setOption("dim",&dim,"dim");
     string xmlProblemFile = "parametersProblem.xml";
     myCLP.setOption("problemfile",&xmlProblemFile,".xml file with Inputparameters.");
     string xmlPrecFile = "parametersPrec.xml";
@@ -208,7 +149,6 @@ int main(int argc, char *argv[])
 
     Teuchos::RCP<StackedTimer> stackedTimer =  rcp(new StackedTimer("Steady Nonlinear Elasticity",true));
     TimeMonitor::setStackedTimer(stackedTimer);
-
 
     bool verbose (comm->getRank() == 0); // Print-Ausgaben nur auf rank = 0
     if (verbose) {
@@ -234,8 +174,7 @@ int main(int argc, char *argv[])
         int 		m				= parameterListProblem->sublist("Parameter").get("H/h",5);
         string      FEType        = parameterListProblem->sublist("Parameter").get("Discretization","P2");
 
-        int numProcsCoarseSolve = parameterListProblem->sublist("General").get("Mpi Ranks Coarse",0);
-        int size = comm->getSize() - numProcsCoarseSolve;
+        int size = comm->getSize();
 
         Teuchos::RCP<Teuchos::Time> totalTimeAssFE(Teuchos::TimeMonitor::getNewCounter("main: Total Time Solve AssFE"));
         Teuchos::RCP<Teuchos::Time> totalTimeFEDD(Teuchos::TimeMonitor::getNewCounter("main: Total Time Solve FEDD"));
@@ -251,16 +190,14 @@ int main(int argc, char *argv[])
 
             TEUCHOS_TEST_FOR_EXCEPTION( dim==2, std::logic_error, "No 2D case implemented for structured grid"); 
 
-
             TEUCHOS_TEST_FOR_EXCEPTION( size%minNumberSubdomains != 0 , std::logic_error, "Wrong number of processors for structured mesh.");
             int n = (int)(std::pow( size/minNumberSubdomains, 1/3.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
             std::vector<double> x(3);
             x[0]=0.0;    x[1]=0.0;	x[2]=0.0;
             domain.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., 1., comm));
         
-            domain->buildMesh( 3,"Square5Element", dim, FEType, n, m, numProcsCoarseSolve);
+            domain->buildMesh( 3,"Square5Element", dim, FEType, n, m, 0);
         
-
             domain->preProcessMesh(true,true);
 
 		}
@@ -291,11 +228,6 @@ int main(int argc, char *argv[])
             domain->exportElementFlags("solid");
 
         }
-        // ########################
-        // domain->exportNodeFlags();
-        // ########################
-
-        // TEUCHOS_TEST_FOR_EXCEPTION( dim==2, std::logic_error, "Only 3D tests allowed"); 
 
         Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactory( new BCBuilder<SC,LO,GO,NO>( ) );
       
@@ -317,29 +249,33 @@ int main(int argc, char *argv[])
             {
                 bcFactory->addBC(zeroDirichlet2D, 4, 0, domain, "Dirichlet", dim); // x=0
             }
-            else if(dim==3) // 3D grid used here is a 2mm tube. 
+            else if(dim==3) // 3D grid used here is a 2mm tube. (Unit is in cm)
             {
                 bcFactory->addBC(zeroDirichlet3D, 14, 0, domain, "Dirichlet_Y_Z", dim); // inflow/outflow strip/points fixed in y-z direction
                 bcFactory->addBC(zeroDirichlet3D, 13, 0, domain, "Dirichlet_X_Z", dim); // inflow/outflow strip/points fixed in x-y direction
                 bcFactory->addBC(zeroDirichlet3D, 7, 0, domain, "Dirichlet_Z", dim); // inlet fixed in Z direction
                 bcFactory->addBC(zeroDirichlet3D, 8, 0, domain, "Dirichlet_Z", dim); // outlet fixed in Z direction
                 bcFactory->addBC(zeroDirichlet3D, 9, 0, domain, "Dirichlet_Z", dim); // inlet ring in Z direction
-                bcFactory->addBC(zeroDirichlet3D, 1, 0, domain, "Dirichlet_Z", dim); // outer ring of inlet area
-                bcFactory->addBC(zeroDirichlet3D, 2, 0, domain, "Dirichlet_Z", dim); // outer ring of outlet area
                 bcFactory->addBC(zeroDirichlet3D, 10, 0, domain, "Dirichlet_Z", dim); // outlet ring in Z direction
+                // bcFactory->addBC(zeroDirichlet3D, 1, 0, domain, "Dirichlet_Z", dim); // outer ring of inlet area
+                // bcFactory->addBC(zeroDirichlet3D, 2, 0, domain, "Dirichlet_Z", dim); // outer ring of outlet area
             }
         }
         
         // LinElas Objekt erstellen
         NonLinElasticity<SC,LO,GO,NO> NonLinElasAssFE( domain, FEType, parameterListAll );
 
-        NonLinElasAssFE.addBoundaries(bcFactory); // Dem Problem RW hinzufuegen
+        NonLinElasAssFE.addBoundaries(bcFactory); // Add boundary conditions to problem
     
         double force = parameterListAll->sublist("Parameter").get("Volume force",0.);
         double finalTimeRamp = parameterListAll->sublist("Timestepping Parameter").get("Final time load",0.1);
         double dt = parameterListAll->sublist("Timestepping Parameter").get("dt",0.1);
-
         double degree = 0;
+
+        NonLinElasAssFE.addParemeterRhs( force );
+        NonLinElasAssFE.addParemeterRhs( finalTimeRamp );
+        NonLinElasAssFE.addParemeterRhs( dt );
+        NonLinElasAssFE.addParemeterRhs( degree );
 
         if (!meshType.compare("structured")) { // Case of Cube
             NonLinElasAssFE.addRhsFunction( rhsYZ );// rhsYZ
@@ -351,11 +287,6 @@ int main(int argc, char *argv[])
                 NonLinElasAssFE.addRhsFunction( rhsInterface );// rhsYZ
         }
 
-        NonLinElasAssFE.addParemeterRhs( force );
-        NonLinElasAssFE.addParemeterRhs( finalTimeRamp );
-        NonLinElasAssFE.addParemeterRhs( dt );
-        NonLinElasAssFE.addParemeterRhs( degree );
-        
         // ###############################
         // Initialize Problem and Assemble
         // ###############################
@@ -372,8 +303,6 @@ int main(int argc, char *argv[])
         defTS[0][0] = 1;
         daeTimeSolver.defineTimeStepping(defTS);
          
-
-        // Uebergebe das (nicht) lineare Problem
         daeTimeSolver.setProblem(NonLinElasAssFE);
 
         // Setup time stepping need to be called, for Load stepping nothing happens.
@@ -386,19 +315,10 @@ int main(int argc, char *argv[])
         if( parameterListProblem->sublist("General").get("ParaViewExport",false) ) {
 
             Teuchos::RCP<ExporterParaView<SC,LO,GO,NO> > exPara(new ExporterParaView<SC,LO,GO,NO>());
-
             exPara->setup( "displacements", domain->getMesh(), FEType );
-
-            MultiVectorConstPtr_Type valuesSolidConst1 = NonLinElasAssFE.getSolution()->getBlock(0);
-
-            exPara->addVariable( valuesSolidConst1, "solution", "Vector", dim, domain->getMapUnique());
-        
+            Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > valuesSolidConst1 = NonLinElasAssFE.getSolution()->getBlock(0);
+            exPara->addVariable( valuesSolidConst1, "solution", "Vector", dim, domain->getMapUnique());        
             exPara->save(0.0);
-            
-            domain->exportDistribution();
-
-            domain->exportNodeFlags();
-
         }
 
     }
