@@ -288,6 +288,8 @@ int main(int argc, char *argv[])
         if( parameterListProblem->sublist("General").get("ParaViewExport",false) ) {
             domain->exportDistribution("mesh_distribution");
             domain->exportNodeFlags("solid");
+            domain->exportElementFlags("solid");
+
         }
         // ########################
         // domain->exportNodeFlags();

@@ -1,6 +1,6 @@
 <ParameterList name="steady nonlinear elasticity">
     <ParameterList name="Parameter">
-        <Parameter name="Dimension" type="int" value="2"/>
+        <Parameter name="Dimension" type="int" value="3"/>
         <Parameter name="Discretization" type="string" value="P2"/><!--P1, P2-->
         <Parameter name="Mesh Type" type="string" value="unstructured"/> <!--structured, unstructured -->
         <Parameter name="Volume force" type="double" value="160.0"/> <!-- translated from kPa to 1kg⋅cm/s² (kPa * 10) | 16 kPa , works in direction of the normal vectors-->
@@ -42,7 +42,7 @@
     <ParameterList name="Mesh Partitioner">
         
         <Parameter name="Contiguous" type="bool" value="true"/>
-        <Parameter name="Mesh 1 Name" type="string" value="square_h02.mesh"/> <!-- 2D: square_h02.mesh , 3D: fsi_solid_2mm.mesh -->
+        <Parameter name="Mesh 1 Name" type="string" value="fsi_solid_2mm.mesh"/> <!-- 2D: square_h02.mesh , 3D: fsi_solid_2mm.mesh -->
 
     </ParameterList>
         
