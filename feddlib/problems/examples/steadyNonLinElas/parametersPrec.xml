@@ -16,7 +16,7 @@
                 <Parameter name="FROSch Preconditioner Type" type="string" value="TwoLevelBlockPreconditioner"/>
                 
                 <Parameter name="Recycling" type="bool" value="true"/>
-                <Parameter name="DofsPerNode1" type="int" value="2"/>
+                <Parameter name="DofsPerNode1" type="int" value="2"/> <!-- Degrees of freedom per node, change to 3 for 3D -->
                 <Parameter name="DofOrdering1" type="string" value="NodeWise"/>
                 
                 <Parameter name="Overlap" type="int" value="1"/>
