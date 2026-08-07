@@ -153,7 +153,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTime(){
                 advanceWithLoadStepping();
             }
         }
-        if (!parameterList_->sublist("Timestepping Parameter").get("Class","Singlestep").compare("Singlestep")) {
+        else if (!parameterList_->sublist("Timestepping Parameter").get("Class","Singlestep").compare("Singlestep")) {
             NonLinProbPtr_Type nonLinProb = Teuchos::rcp_dynamic_cast<NonLinProb_Type>(problem_);
             if (nonLinProb.is_null()) {
                 advanceInTimeLinear();
@@ -559,7 +559,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
     }
     // Groesse des Problems, Zeitschrittweite und Newmark-Parameter
     int size = timeStepDef_.size();
-    TEUCHOS_TEST_FOR_EXCEPTION( size>1, std::runtime_error, "Loadstepping only implemented or sensible for 1x1 Systems.");
+    TEUCHOS_TEST_FOR_EXCEPTION( size>1, std::runtime_error, "Loadstepping only implemented for 1x1 Systems.");
     double dt = timeSteppingTool_->get_dt();
    
 

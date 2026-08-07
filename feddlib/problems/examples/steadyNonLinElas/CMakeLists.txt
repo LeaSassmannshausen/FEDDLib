@@ -20,8 +20,8 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(data_steadyNonLinElas
 
 TRIBITS_COPY_FILES_TO_BINARY_DIR(mesh_steadyNonLinElas
 	SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
-	SOURCE_FILES cube_h_1.mesh 
+	SOURCE_FILES fsi_solid_2mm.mesh square_h02.mesh
 	DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
-	DEST_FILES cube_h_1.mesh 
+	DEST_FILES fsi_solid_2mm.mesh square_h02.mesh
 	EXEDEPS steadyNonLinElas
 )

@@ -17,6 +17,11 @@ namespace FEDD {
 @param[in] params Parameterlist for current problem
 @param[in} tuple Vector of tuples with Discretization information
 
+The energy density function used in the AceGen code is based on the Neo-Hookean material model and in this case:
+W = \mu / 2 ( I_1 - 3 ) - \mu ln(J) + \lambda / 2 ( ln(J) )^2
+where \mu is the shear modulus, \lambda first Lamè constant, and I1 is the first invariant of the deformation gradient, and J is the determinant of the deformation gradient.	
+
+
 */
 template <class SC, class LO, class GO, class NO>
 AssembleFE_NonLinElas<SC,LO,GO,NO>::AssembleFE_NonLinElas(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type params,tuple_disk_vec_ptr_Type tuple):

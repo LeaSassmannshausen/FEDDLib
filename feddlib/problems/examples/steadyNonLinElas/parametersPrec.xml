@@ -16,7 +16,7 @@
                 <Parameter name="FROSch Preconditioner Type" type="string" value="TwoLevelBlockPreconditioner"/>
                 
                 <Parameter name="Recycling" type="bool" value="true"/>
-                <Parameter name="DofsPerNode1" type="int" value="3"/>
+                <Parameter name="DofsPerNode1" type="int" value="2"/>
                 <Parameter name="DofOrdering1" type="string" value="NodeWise"/>
                 
                 <Parameter name="Overlap" type="int" value="1"/>
@@ -36,13 +36,8 @@
                     <ParameterList name="Solver">
                         <Parameter name="SolverType" type="string" value="Amesos2"/>
                         
-                        <Parameter name="Solver" type="string" value="mumps"/>
-                        <ParameterList name="Amesos2">
-                             <ParameterList name="MUMPS">
-                            	 <Parameter name="ICNTL(14)" type="int" value="60"/>
-                             </ParameterList>
-                    	</ParameterList>
-                        
+                        <Parameter name="Solver" type="string" value="klu2"/>
+                                               
                     </ParameterList>
                     
                 </ParameterList>
@@ -59,7 +54,7 @@
                     <Parameter name="Test Unconnected Interface" type="bool" value="false"/>
                     
                     <Parameter name="Reuse: Coarse Basis" type="bool" value="false"/>
-                    <Parameter name="Reuse: Coarse Matrix" type="bool" value="true"/>
+                    <Parameter name="Reuse: Coarse Matrix" type="bool" value="false"/>
                     
                     <Parameter name="Reuse: Extension Symbolic Factorization" type="bool" value="true"/>
                     <Parameter name="Reuse: Coarse Matrix Symbolic Factorization" type="bool" value="true"/>
@@ -82,12 +77,7 @@
                     
                     <ParameterList name="ExtensionSolver">
                         <Parameter name="SolverType" type="string" value="Amesos2"/>
-                        <Parameter name="Solver" type="string" value="mumps"/>
-                        <ParameterList name="Amesos2">
-                             <ParameterList name="MUMPS">
-                            	 <Parameter name="ICNTL(14)" type="int" value="60"/>
-                             </ParameterList>
-                    	</ParameterList>                    
+                        <Parameter name="Solver" type="string" value="klu2"/>             
                     </ParameterList>
                     
                     <ParameterList name="Distribution">
@@ -99,12 +89,7 @@
                     
                     <ParameterList name="CoarseSolver">
                         <Parameter name="SolverType" type="string" value="Amesos2"/>
-                        <Parameter name="Solver" type="string" value="mumps"/>
-                        <ParameterList name="Amesos2">
-                             <ParameterList name="MUMPS">
-                            	 <Parameter name="ICNTL(14)" type="int" value="60"/>
-                             </ParameterList>
-                    	</ParameterList>                    
+                        <Parameter name="Solver" type="string" value="klu2"/>              
                     </ParameterList>
                 </ParameterList>
                                 

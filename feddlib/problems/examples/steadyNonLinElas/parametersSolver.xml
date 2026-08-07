@@ -8,7 +8,7 @@
                 <Parameter name="Solver Type" type="string" value="Block GMRES"/>
                 <ParameterList name="Solver Types">
                     <ParameterList name="Block GMRES">
-                        <Parameter name="Convergence Tolerance" type="double" value="1e-4"/> <!-- If NOX is not used, this is the tolerance that is followed-->
+                        <Parameter name="Convergence Tolerance" type="double" value="1e-6"/> <!-- If NOX is not used, this is the tolerance that is followed-->
                         <Parameter name="Maximum Iterations" type="int" value="1000"/>
                         <Parameter name="Num Blocks" type="int" value="1000"/> <!-- number of search directions before restart-->
                         <Parameter name="Block Size" type="int" value="1"/>
@@ -32,16 +32,11 @@
                 <Parameter name="Forcing Term Initial Tolerance" type="double" value="1.e-3"/>
                 <Parameter name="Forcing Term Minimum Tolerance" type="double" value="1.e-8"/>
                 <Parameter name="Forcing Term Maximum Tolerance" type="double" value="1.e-3"/>
-                <!-- <Parameter name="Forcing Term Alpha" type="double" value="1."/>
-                <Parameter name="Forcing Term Gamma" type="double" value="1."/>-->
                 <Parameter name="Rescue Bad Newton Solve" type="bool" value="true"/>
                 <ParameterList name="Linear Solver">
-                    <Parameter name="Tolerance" type="double" value="1e-4"/> <!-- Value in case of Constant forcing term-->
+                    <Parameter name="Tolerance" type="double" value="1e-6"/> <!-- Value in case of Constant forcing term when we use NOX-->
                 </ParameterList>
             </ParameterList>
-        </ParameterList>
-        <ParameterList name="Line Search">
-            <Parameter name="Method" type="string" value="Backtrack"/><!-- Backtrack, More'-Thuente-->
         </ParameterList>
         <ParameterList name="Printing">
             <ParameterList name="Output Information">

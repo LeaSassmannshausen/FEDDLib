@@ -7,6 +7,7 @@
 #include "feddlib/core/Mesh/MeshPartitioner.hpp"
 #include "feddlib/core/General/ExporterParaView.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
+#include "feddlib/core/General/BCBuilder.hpp"
 #include "feddlib/problems/specific/LinElas.hpp"
 #include "feddlib/problems/specific/NonLinElasticity.hpp"
 #include "feddlib/problems/Solver/NonLinearSolver.hpp"
@@ -80,19 +81,25 @@ void rhs2D(double* x, double* res, double* parameters){
     return;
 }
 
-void rhsY(double* x, double* res, double* parameters){
-    // parameters[0] is the time, not needed here
-    res[0] = 0.;
-    res[1] = parameters[1];
-    res[2] = 0.;
-    return;
-}
-
 void rhsX(double* x, double* res, double* parameters){
-    // parameters[0] is the time, not needed here
-    res[0] = parameters[1];
-    res[1] = 0.;
-    res[2] = 0.;
+    
+    double force = parameters[1];
+    double TRamp = parameters[2];
+    double loadStepSize = parameters[3];
+
+  	res[0] =0.;
+    res[1] =0.;
+
+    if(parameters[0]+1.e-12 < TRamp)
+        force = (parameters[0]+loadStepSize) * parameters[1] / TRamp ;
+    else
+        force = parameters[1];
+
+    if(parameters[5] == 2){
+      	res[0] = force;
+        res[1] = force;
+    }
+    
     return;
 }
 
@@ -241,17 +248,21 @@ int main(int argc, char *argv[])
         int minNumberSubdomains=1;
 
         if (!meshType.compare("structured")) {
-		    TEUCHOS_TEST_FOR_EXCEPTION( size%minNumberSubdomains != 0 , std::logic_error, "Wrong number of processors for structured mesh.");
+
+            TEUCHOS_TEST_FOR_EXCEPTION( dim==2, std::logic_error, "No 2D case implemented for structured grid"); 
+
+
+            TEUCHOS_TEST_FOR_EXCEPTION( size%minNumberSubdomains != 0 , std::logic_error, "Wrong number of processors for structured mesh.");
             int n = (int)(std::pow( size/minNumberSubdomains, 1/3.) + 100*Teuchos::ScalarTraits<double>::eps()); // 1/H
             std::vector<double> x(3);
             x[0]=0.0;    x[1]=0.0;	x[2]=0.0;
             domain.reset(new Domain<SC,LO,GO,NO>( x, 1., 1., 1., comm));
         
-		    domain->buildMesh( 3,"Square5Element", dim, FEType, n, m, numProcsCoarseSolve);
+            domain->buildMesh( 3,"Square5Element", dim, FEType, n, m, numProcsCoarseSolve);
+        
 
             domain->preProcessMesh(true,true);
 
-            domain->exportDistribution("procs");
 		}
         else if (!meshType.compare("unstructured")) {
             domain.reset( new Domain<SC,LO,GO,NO>( comm, dim ) );
@@ -261,7 +272,11 @@ int main(int argc, char *argv[])
             ParameterListPtr_Type pListPartitioner = sublist( parameterListProblem, "Mesh Partitioner" );
             MeshPartitioner<SC,LO,GO,NO> partitionerP1 ( domainP1Array, pListPartitioner, "P1", dim );
             
-            partitionerP1.readAndPartition(15);
+            int volumeID = 10; // volume ID of elements. For short 3D tube grid, the volume ID is 15, for 2D in general 10.
+            if(dim==3)
+                volumeID = 15;
+
+            partitionerP1.readAndPartition(volumeID);
             if (FEType=="P2") {
                 Teuchos::RCP<Domain<SC,LO,GO,NO> > domainP2;
                 domainP2.reset( new Domain_Type( comm, dim ) );
@@ -270,34 +285,47 @@ int main(int argc, char *argv[])
             }
         }
         
+        if( parameterListProblem->sublist("General").get("ParaViewExport",false) ) {
+            domain->exportDistribution("mesh_distribution");
+            domain->exportNodeFlags("solid");
+        }
         // ########################
         // domain->exportNodeFlags();
         // ########################
 
-        TEUCHOS_TEST_FOR_EXCEPTION( dim==2, std::logic_error, "Only 3D tests allowed"); 
+        // TEUCHOS_TEST_FOR_EXCEPTION( dim==2, std::logic_error, "Only 3D tests allowed"); 
 
         Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactory( new BCBuilder<SC,LO,GO,NO>( ) );
       
         if (!meshType.compare("structured")) { // Case of Cube
-            bcFactory->addBC(zeroDirichlet3D, 1, 0, domain, "Dirichlet_X", dim); // x=0
-            bcFactory->addBC(zeroDirichlet3D, 2, 0, domain, "Dirichlet_Y", dim); // y=0
-            bcFactory->addBC(zeroDirichlet3D, 3, 0, domain, "Dirichlet_Z", dim); // z=0
-        
-            bcFactory->addBC(zeroDirichlet3D, 0, 0, domain, "Dirichlet", dim);
-            bcFactory->addBC(zeroDirichlet3D, 7, 0, domain, "Dirichlet_X_Y", dim); //x,y = 0
-            bcFactory->addBC(zeroDirichlet3D, 8, 0, domain, "Dirichlet_Y_Z", dim); // y,z= 0
-            bcFactory->addBC(zeroDirichlet3D, 9, 0, domain, "Dirichlet_X_Z", dim); // x,z = 0
+           
+                bcFactory->addBC(zeroDirichlet3D, 1, 0, domain, "Dirichlet_X", dim); // x=0
+                bcFactory->addBC(zeroDirichlet3D, 2, 0, domain, "Dirichlet_Y", dim); // y=0
+                bcFactory->addBC(zeroDirichlet3D, 3, 0, domain, "Dirichlet_Z", dim); // z=0
+            
+                bcFactory->addBC(zeroDirichlet3D, 0, 0, domain, "Dirichlet", dim);
+                bcFactory->addBC(zeroDirichlet3D, 7, 0, domain, "Dirichlet_X_Y", dim); //x,y = 0
+                bcFactory->addBC(zeroDirichlet3D, 8, 0, domain, "Dirichlet_Y_Z", dim); // y,z= 0
+                bcFactory->addBC(zeroDirichlet3D, 9, 0, domain, "Dirichlet_X_Z", dim); // x,z = 0
+            
         
         }
-        else if (!meshType.compare("unstructured")) { // Case of Artery Mesh
-            bcFactory->addBC(zeroDirichlet3D, 14, 0, domain, "Dirichlet_Y_Z", dim); // inflow/outflow strip fixed in y direction
-            bcFactory->addBC(zeroDirichlet3D, 13, 0, domain, "Dirichlet_X_Z", dim); // inflow/outflow strip fixed in y direction
-            bcFactory->addBC(zeroDirichlet3D, 7, 0, domain, "Dirichlet_Z", dim); // inlet fixed in Z direction
-            bcFactory->addBC(zeroDirichlet3D, 8, 0, domain, "Dirichlet_Z", dim); // outlet fixed in Z direction
-            bcFactory->addBC(zeroDirichlet3D, 9, 0, domain, "Dirichlet_Z", dim); // inlet ring in Z direction
-            bcFactory->addBC(zeroDirichlet3D, 1, 0, domain, "Dirichlet_Z", dim); // outer ring of inlet area
-            bcFactory->addBC(zeroDirichlet3D, 2, 0, domain, "Dirichlet_Z", dim); // outer ring of outlet area
-            bcFactory->addBC(zeroDirichlet3D, 10, 0, domain, "Dirichlet_Z", dim); // outlet ring in Z direction
+        else if (!meshType.compare("unstructured")) { // case of unstructured grids
+            if(dim==2) // BC for a 2D grid which is a unit square. It is held on the left egde corresponding to x=0.
+            {
+                bcFactory->addBC(zeroDirichlet2D, 4, 0, domain, "Dirichlet", dim); // x=0
+            }
+            else if(dim==3) // 3D grid used here is a 2mm tube. 
+            {
+                bcFactory->addBC(zeroDirichlet3D, 14, 0, domain, "Dirichlet_Y_Z", dim); // inflow/outflow strip/points fixed in y-z direction
+                bcFactory->addBC(zeroDirichlet3D, 13, 0, domain, "Dirichlet_X_Z", dim); // inflow/outflow strip/points fixed in x-y direction
+                bcFactory->addBC(zeroDirichlet3D, 7, 0, domain, "Dirichlet_Z", dim); // inlet fixed in Z direction
+                bcFactory->addBC(zeroDirichlet3D, 8, 0, domain, "Dirichlet_Z", dim); // outlet fixed in Z direction
+                bcFactory->addBC(zeroDirichlet3D, 9, 0, domain, "Dirichlet_Z", dim); // inlet ring in Z direction
+                bcFactory->addBC(zeroDirichlet3D, 1, 0, domain, "Dirichlet_Z", dim); // outer ring of inlet area
+                bcFactory->addBC(zeroDirichlet3D, 2, 0, domain, "Dirichlet_Z", dim); // outer ring of outlet area
+                bcFactory->addBC(zeroDirichlet3D, 10, 0, domain, "Dirichlet_Z", dim); // outlet ring in Z direction
+            }
         }
         
         // LinElas Objekt erstellen
@@ -315,7 +343,10 @@ int main(int argc, char *argv[])
             NonLinElasAssFE.addRhsFunction( rhsYZ );// rhsYZ
         }
         else if (!meshType.compare("unstructured")) { // Case of Artery Mesh
-            NonLinElasAssFE.addRhsFunction( rhsInterface );// rhsYZ
+            if(dim==2)
+                NonLinElasAssFE.addRhsFunction( rhsX );// rhsX
+            else if(dim==3)
+                NonLinElasAssFE.addRhsFunction( rhsInterface );// rhsYZ
         }
 
         NonLinElasAssFE.addParemeterRhs( force );
@@ -323,51 +354,32 @@ int main(int argc, char *argv[])
         NonLinElasAssFE.addParemeterRhs( dt );
         NonLinElasAssFE.addParemeterRhs( degree );
         
-        // ######################
-        // Matrix assemblieren, RW setzen und System loesen
-        // ######################
+        // ###############################
+        // Initialize Problem and Assemble
+        // ###############################
         NonLinElasAssFE.initializeProblem();
         NonLinElasAssFE.assemble();                
-        // NonLinElasAssFE.setBoundaries(); // In der Klasse Problem
-        // NonLinElasAssFE.setBoundariesRHS();
 
-		// std::string nlSolverType = parameterListProblem->sublist("General").get("Linearization","FixedPoint");
-        // NonLinearSolver<SC,LO,GO,NO> nlSolverAssFE( nlSolverType );
-        
-        // {
-        //     Teuchos::TimeMonitor totalTimeMonitorAssFE(*totalTimeAssFE);
-        //     nlSolverAssFE.solve( NonLinElasAssFE );
-        //     comm->barrier();
-        // }
-        // ######################
-        // Zeitintegration
-        // ######################
+        // ###########################################################
+        // Time integration - in this case this refers to Loadstepping
+        // ###########################################################
         DAESolverInTime<SC,LO,GO,NO> daeTimeSolver(parameterListAll, comm);
 
         // Only one block for structural problem
         SmallMatrix<int> defTS(1);
         defTS[0][0] = 1;
-
-        // Uebergebe auf welchen Bloecken die Zeitintegration durchgefuehrt werden soll
-        // und Uebergabe der parameterList, wo die Parameter fuer die Zeitintegration drin stehen
         daeTimeSolver.defineTimeStepping(defTS);
+         
 
         // Uebergebe das (nicht) lineare Problem
         daeTimeSolver.setProblem(NonLinElasAssFE);
 
-        // Setup fuer die Zeitintegration, wie z.B. Aufstellen der Massematrizen auf den Zeilen, welche in
-        // defTS definiert worden sind.
+        // Setup time stepping need to be called, for Load stepping nothing happens.
         daeTimeSolver.setupTimeStepping();
 
-        // Fuehre die komplette Zeitintegration + Newton + Loesen + Exporter durch
+        // Advancing in time or pseudo time steps via the dae solver
         daeTimeSolver.advanceInTime();
-
-		// if(comm->getRank() ==0){
-		// 	cout << " ############################################### " << endl;
-		// 	cout << " Nonlinear Iterations AceGEN Assembly  : " << nlSolverAssFE.getNonLinIts() << endl;
-		// 	cout << " ############################################### " << endl;
-
-		// }    
+  
 
         if( parameterListProblem->sublist("General").get("ParaViewExport",false) ) {
 

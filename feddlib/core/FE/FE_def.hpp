@@ -7301,6 +7301,12 @@ void FE<SC,LO,GO,NO>::epsilonTensor(vec_dbl_Type &basisValues, SmallMatrix<SC> &
  Subroutine                      : nh3d size: 4928
  Total size of Mathematica  code : 4928 subexpressions
  Total size of C code            : 10178 bytes */
+
+// The energy density function used in the AceGen code is based on the Neo-Hookean material model and in this case:
+// W = \mu / 2 ( I_1 - 3 ) - \mu ln(J) + \lambda / 2 ( ln(J) )^2
+// where \mu is the shear modulus, \lambda first Lamè constant, and I1 is the first invariant of the deformation gradient, and J is the determinant of the deformation gradient.	
+
+
 /******************* S U B R O U T I N E *********************/
 template <class SC, class LO, class GO, class NO>
 void FE<SC,LO,GO,NO>::nh3d(double* v, double (*E), double (*Nu), double** F , double** Pmat, double**** Amat)
@@ -7891,6 +7897,9 @@ void FE<SC,LO,GO,NO>::mr3d(double* v,double (*E),double (*Nu),double (*C)
  Total size of Mathematica  code : 2846 subexpressions
  Total size of C code            : 5830 bytes */
 
+// Strain energy density function of material model is:
+// \Psi(F) = \lambda / 2 (tr(E))² + \mu tr(E²), with E = 1/2 (C-I) , green-lagrange strain tensor with C=F^T F
+
 /******************* S U B R O U T I N E *********************/
 template <class SC, class LO, class GO, class NO>
 void FE<SC,LO,GO,NO>::stvk3d(double* v,double (*lam),double (*mue),double** F
@@ -8088,6 +8097,8 @@ void FE<SC,LO,GO,NO>::stvk3d(double* v,double (*lam),double (*mue),double** F
  Total size of Mathematica  code : 772 subexpressions
  Total size of C code            : 1672 bytes */
 
+// Strain energy density function of material model is:
+// \Psi(F) = \lambda / 2 (tr(E))² + \mu tr(E²), with E = 1/2 (C-I) , green-lagrange strain tensor with C=F^T F
 
 /******************* S U B R O U T I N E *********************/
 template <class SC, class LO, class GO, class NO>
