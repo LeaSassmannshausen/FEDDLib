@@ -74,7 +74,7 @@ u_rep_()
     timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(timeSteppingParameters, this->comm_));
 
     postProcessingnames_.resize(11);
-    postProcessingnames_ = {"vonMisesStress", "SCirc","SAxial","SRadial","W","a11","a12","a13","a21","a22","a23"};
+    postProcessingnames_ = {"vonMisesStress", "SCirc","SAxial","SRadial","W","a11","a12","a13","a21","a22","a23","Strech1","Strech2","nC1","nC2","nD1","nD2"};
 
 }
 
@@ -361,7 +361,7 @@ void NonLinElasticity<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type,
 template<class SC,class LO,class GO,class NO>
 typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticity<SC,LO,GO,NO>::getPostProcessingData() const
 {
-    BlockMultiVectorPtr_Type postProcess =Teuchos::rcp(new BlockMultiVector_Type(11)) ;
+    BlockMultiVectorPtr_Type postProcess =Teuchos::rcp(new BlockMultiVector_Type(17)) ;
         
     /*
     0 -- "Volume","
@@ -431,6 +431,13 @@ typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticit
         MultiVectorPtr_Type W = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
         this->feFactory_->postProcessing(23, W);
 
+        MultiVectorPtr_Type Strech1 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(27, Strech1);
+
+        MultiVectorPtr_Type Strech2 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(28, Strech2);
+ 
+
         MultiVectorPtr_Type a11 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
         this->feFactory_->postProcessing(39, a11);
         MultiVectorPtr_Type a12 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
@@ -443,6 +450,19 @@ typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticit
         this->feFactory_->postProcessing(43, a22);
         MultiVectorPtr_Type a23 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
         this->feFactory_->postProcessing(44, a23);
+
+          MultiVectorPtr_Type nC1 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(45, nC1);
+
+        MultiVectorPtr_Type nC2 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(46, nC2);
+
+        MultiVectorPtr_Type nD1 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(47, nD1);
+
+        MultiVectorPtr_Type nD2 = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapUnique() ));
+        this->feFactory_->postProcessing(48, nD2);
+
 
 
 
@@ -457,6 +477,15 @@ typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticit
         postProcess->addBlock(a21,8);   
         postProcess->addBlock(a22,9);
         postProcess->addBlock(a23,10);
+        postProcess->addBlock(Strech1,11);
+        postProcess->addBlock(Strech1,12);
+        postProcess->addBlock(nC1,13);
+        postProcess->addBlock(nC2,14);
+        postProcess->addBlock(nD1,15);
+        postProcess->addBlock(nD2,16);
+                              
+
+
     }
     
     return postProcess;
