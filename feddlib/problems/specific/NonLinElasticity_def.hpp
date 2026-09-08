@@ -211,7 +211,7 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
 
             NONLINELAS_STOP(Assembly);
         }
-        this->system_->getBlock(0,0)->writeMM("Jacobian");
+        // this->system_->getBlock(0,0)->writeMM("Jacobian");
         
         MultiVectorPtr_Type fUnique = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldUnique(), 1 ) );
         fUnique->putScalar(0.);
