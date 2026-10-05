@@ -88,6 +88,10 @@ public:
     double beta_;
     double gamma_;
 
+    // Vector for different time intervalls
+    vec2D_dbl_Type timeParametersVec_;
+    int numSegments_;
+
     /* --------------------------------------------------------------------------------- */
 
     TimeSteppingTools();
@@ -107,6 +111,8 @@ public:
     int getBDFNumber();
 
     double currentTime();
+
+    void updateParameter();
 
     bool continueTimeStepping();
 

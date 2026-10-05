@@ -6544,7 +6544,6 @@ void FE<SC,LO,GO,NO>::assemblySurfaceIntegralExternal(int dim,
                                               std::string FEType,
                                               MultiVectorPtr_Type f,
                                               MultiVectorPtr_Type d_rep,
-                                              std::vector<SC>& funcParameter,
                                               RhsFunc_Type func,
                                               ParameterListPtr_Type params,
                                               int FEloc) {
@@ -6562,6 +6561,15 @@ void FE<SC,LO,GO,NO>::assemblySurfaceIntegralExternal(int dim,
     int flagSurface = params->sublist("Parameter Solid").get("Flag Surface",5); 
     
     std::vector<double> valueFunc(dim);
+
+    vec_dbl_Type funcParameter(6,0.);
+    funcParameter[0] = timeSteppingTool_->t_;            
+    // how can we use different parameters for different blocks here?
+    funcParameter[1] =this->problemTimeStructure_->getParameterList()->sublist("Parameter").get("Volume force",0.00211);
+    funcParameter[2]= this->problemTimeStructure_->getParameterList()->sublist("Parameter").get("Load Step Size",1.);
+    funcParameter[3] = this->problemTimeStructure_->getParameterList()->sublist("Parameter").get("Load Ramp End",1.);
+    funcParameter[4] =this->problemTimeStructure_->getParameterList()->sublist("Parameter").get("Heart Beat Start",70.);
+    funcParameter[5] = 0.; // Dummy for surface flag
 
     SC* paramsFunc = &(funcParameter[0]);
 

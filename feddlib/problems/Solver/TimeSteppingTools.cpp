@@ -83,6 +83,22 @@ exporterTxtError_(),
 beta_(0.25),
 gamma_(0.5)
 {
+    // In case we have different time intervalls we need to extract that from the parameter list:
+    numSegments_ = parameterList->sublist("Timestepping Intervalls").get("Number of Segments",0);
+    if(numSegments_ >0 ){
+        vec2D_dbl_Type timeParametersVec(0,vec_dbl_Type(2));
+
+        for(int i=1; i <= numSegments_; i++){
+
+            double startTime = parameterList_->sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("Start Time",0.);
+            double dtTmp = parameterList_->sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("dt",0.1);
+            
+            vec_dbl_Type segment = {startTime,dtTmp};
+            timeParametersVec.push_back(segment);
+        }
+        timeParametersVec_ = timeParametersVec;
+    }
+
     setParameter();
 }
 
@@ -207,6 +223,18 @@ void TimeSteppingTools::adaptiveTimestep(BlockMultiVectorPtr_Type &sol, BlockMul
     solShort->update( -1., *sol, 1. );
 
     calculateNewDt(solShort, massSystem);
+
+}
+
+void TimeSteppingTools::updateParameter(){
+    // We save the previous dt
+    dt_prev_ = dt_;
+    for(int i=0; i<numSegments_-1 ; i++){
+        if(t_ < timeParametersVec_[i+1][0] && t_+1.0e-8 > timeParametersVec_[i][0] ){
+            dt_=timeParametersVec_[i][1];
+            i=numSegments_;//break
+        }
+    }
 
 }
 
