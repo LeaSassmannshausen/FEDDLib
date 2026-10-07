@@ -88,6 +88,9 @@ public:
     double beta_;
     double gamma_;
 
+    // Bool whether restart is activated or not
+    bool restart_;
+
     /* --------------------------------------------------------------------------------- */
 
     TimeSteppingTools();

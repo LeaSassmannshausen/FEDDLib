@@ -20,11 +20,21 @@ TRIBITS_ADD_ADVANCED_TEST(
     FAIL_FAST
 )
 
+SET(fsi_restart_parameter_files
+    parametersProblemFSI.xml
+    parametersProblemFSI_restart.xml
+    parametersPrecFluidMono.xml
+    parametersPrecStructure.xml
+    parametersPrecGeometry.xml
+    parametersSolverFSI.xml
+    parametersSolverGeometry.xml
+)
+
 TRIBITS_COPY_FILES_TO_BINARY_DIR(data_fsi_restartTest
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
-    SOURCE_FILES parametersPrecGE.xml parametersPrecGI.xml parametersPrecGeometry.xml parametersProblemFSI.xml parametersProblemFSI_restart.xml parametersProblemFluid.xml parametersProblemStructure.xml parametersSolverFSI.xml parametersSolverGeometry.xml parametersPrecFluidMono.xml parametersPrecFluidTeko.xml parametersPrecStructure.xml
+    SOURCE_FILES ${fsi_restart_parameter_files}
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
-    DEST_FILES parametersPrecGE.xml parametersPrecGI.xml parametersPrecGeometry.xml  parametersProblemFSI.xml parametersProblemFSI_restart.xml parametersProblemFluid.xml parametersProblemStructure.xml parametersSolverFSI.xml parametersSolverGeometry.xml parametersPrecFluidMono.xml parametersPrecFluidTeko.xml parametersPrecStructure.xml
+    DEST_FILES ${fsi_restart_parameter_files}
     EXEDEPS fsi_restart
 )
 

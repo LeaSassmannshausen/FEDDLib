@@ -58,7 +58,11 @@ ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_Re
   the continued velocity solution at the final time, on four and six MPI ranks.
 - `fsi_restart` runs an uninterrupted simulation and a restarted simulation on
   two MPI ranks, comparing fluid velocity, pressure, and solid displacement at
-  the same final time with relative tolerance `1e-8`.
+  the same final time with relative tolerance `1e-8`. Both phases load the case
+  from `parametersProblemFSI.xml`; `parametersProblemFSI_restart.xml` contains
+  only the overrides to resume at `0.01` and stop at `0.02`. The test disables
+  visualization and benchmark exports and reports the relative error for each
+  of the three fields.
 
 The restart tests use upstream meshes and do not require the new SCI meshes or
 the AceGen Interface2 material models.
