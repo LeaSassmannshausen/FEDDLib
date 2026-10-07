@@ -32,11 +32,17 @@ directory parameters default to the working directory. Checkpointing and restart
 are disabled by default. Use separate output and input directories if a resumed
 run also writes checkpoints, since creating an output file truncates it.
 
-Checkpoint times should coincide with time steps. For BDF/FSI, checkpoints are
-written when the next step begins; let the uninterrupted run advance one step
-past a checkpoint you need. A multistep restart needs the saved previous steps
-as well as the solution at the restart time. The tests restart after several
-steps, so that this history is available.
+Checkpoint times should coincide with time steps. Standalone BDF problems,
+including Navier-Stokes, write checkpoints after a successful solve and clock
+advancement. A run ending at a requested checkpoint time writes that checkpoint
+without an extra step. The current solution and required previous solutions are
+saved without shifting numerical history a second time. This covers fixed-step
+BDF integration and retains the existing solution files and time keys.
+
+FSI and standalone Newmark retain their existing checkpoint timing. For both,
+let the uninterrupted run advance one step past a checkpoint you need. A
+multistep restart needs the saved previous steps as well as the solution at the
+restart time. The tests restart after several steps so this history is available.
 
 The checkpoint files include `Solution<variable>.h5`, Newmark displacement,
 velocity and acceleration, and, for FSI, moving-mesh mass products and geometry.
@@ -50,14 +56,14 @@ not validate restart of stateful outlet boundary conditions.
 With tests enabled and the required Trilinos solvers available:
 
 ```sh
-cmake --build build --target problems_unsteadyNavierStokes_restart problems_fsi_restart
-ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_restart|fsi_restart)'
+cmake --build build --target problems_unsteadyNavierStokes_restart problems_fsi_restart problems_unsteadyNonLinElasticity_restart
+ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_restart|fsi_restart|unsteadyNonLinElasticity_restart)'
 ```
 
 - `unsteadyNavierStokes_restart` runs the 2D `BFS2d_1600.mesh` and 3D
   `BFS3dCC.mesh` cases with MPI rank pairs `4 -> 4` and `4 -> 6`. Each test runs
   an uninterrupted reference on four ranks, writes checkpoints at `0.01` and
-  `0.02`, then restarts on four or six ranks at `0.01`
+  `0.02`, stops exactly at `0.02`, then restarts on four or six ranks at `0.01`
   and compares velocity and pressure at `0.02` with relative tolerance `1e-12`.
   Absolute and relative l2 errors are printed for both fields. The shared
   linear and nonlinear solver tolerances are `1e-12` to resolve differences
@@ -65,7 +71,13 @@ ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_re
   settings are in `parametersProblem.xml`, linear solver settings in
   `parametersSolver.xml`, the mesh/dimension overrides in
   `parametersProblem2D.xml` and `parametersProblem3D.xml`, and the second-phase
-  overrides in `parametersProblem_restart.xml`. Test names include the rank
+  overrides in `parametersProblem_restart.xml`. Each test also runs an
+  independent reference stopping at `0.03` (`parametersProblem_reference.xml`),
+  then restarts the first run's final checkpoint at `0.02` and continues to
+  `0.03` (`parametersProblem_restart_final.xml`). This comparison reads from
+  `referenceCheckpoints/`, while restoration reads from `restartCheckpoints/`,
+  so the extended reference cannot supply a missing producer checkpoint.
+  Both comparisons use the same error bound. Test names include the rank
   pair (`2D_4_to_4`, `2D_4_to_6`, `3D_4_to_4`, `3D_4_to_6`). Each combination has
   its own working directory and generates its own checkpoints. The runner
   prepares the inputs quietly and streams both simulations' normal output;
@@ -77,6 +89,26 @@ ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_re
   only the overrides to resume at `0.01` and stop at `0.02`. The test disables
   visualization and benchmark exports and reports the relative error for each
   of the three fields.
+
+- `unsteadyNonLinElasticity_restart` uses the 2D P2 `square_solid.mesh` case
+  from the `unsteadyNonLinElasticity` example, with Saint Venant-Kirchhoff
+  material, a clamped left edge and a constant surface load on the right edge.
+  Newmark uses `beta = 0.25`, `gamma = 0.5` and `dt = 0.0025`. The uninterrupted
+  run writes checkpoints at `0.01` and `0.02`; the second phase resumes at
+  `0.01`. Rank pairs are `4 -> 4` and `4 -> 6`, in separate working directories.
+  Both phases stop at `0.0225` because the current Newmark loop finalizes and
+  writes the `0.02` state at the beginning of the following step. The test
+  compares runtime displacement history, velocity and acceleration at `0.02`
+  with the reference checkpoint, prints absolute/relative l2 errors and requires
+  relative errors at most `1e-12`. Each reference field must be nonzero.
+  Newmark checkpoint timing is deliberately retained for this baseline test.
+  Standalone nonlinear Newmark now also writes the primary displacement file
+  required by initialization; elasticity assembly preserves a restored field.
+  Both rank pairs pass at `1e-12`; the largest relative error in the initial
+  validation was approximately `4.66e-14` (acceleration, `4 -> 6`). In separate
+  disposable checkpoints, scaling only velocity or only acceleration at `0.01`
+  by `1.1` makes continuation fail the numerical comparison. The FSI regression
+  also passes with these changes.
 
 The restart tests use upstream meshes and do not require the new SCI meshes or
 the AceGen Interface2 material models.
@@ -120,3 +152,22 @@ with zero reported comparison error. In a disposable copy of the 2D four-rank
 checkpoint, scaling only velocity history at `0.008` by `1.1` left the fields
 at the restart time and the final reference unchanged. The restarted run
 failed as expected, with relative velocity error approximately `0.0103`.
+
+Increment 2 for standalone BDF: the linear and nonlinear multistep loops call
+`TimeProblem::writeMultistepCheckpoint(completedTime, dt)` after a successful
+step. Their history updates disable the legacy start-of-step export. The writer
+stores the current solution first, followed by the required unshifted history;
+it includes time-zero history for a first-step BDF2 restart and writes shared
+history entries only once for adjacent checkpoints. It does not change the
+solution, history or clock. `Safe all solution` retains
+initial-state output and also includes the final accepted solution. FSI and
+Newmark still use the legacy path and need a separate increment to finalize
+derivatives and moving-mesh state before writing a coupled checkpoint.
+
+Validation of the BDF increment: all four 2D/3D rank-pair cases pass both the
+intermediate and final-checkpoint continuation comparisons at `1e-12`. The
+largest relative error was approximately `1.60e-13`. The FSI regression and
+isolated first-step/adjacent-checkpoint and save-all checks also pass. Scaling
+only velocity history at `0.0175` by `1.1`, while leaving the restart state at
+`0.02` and the independent reference unchanged, makes continuation fail with
+relative velocity error approximately `0.0194`.

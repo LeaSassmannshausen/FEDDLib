@@ -1,30 +1,34 @@
-<ParameterList name="unsteady Navier-Stokes">
-    <!-- Shared settings for both BFS meshes and both phases of the restart test. -->
+<ParameterList name="unsteady nonlinear elasticity restart">
     <ParameterList name="Parameter">
-        <Parameter name="Viscosity" type="double" value="0.001"/>
-        <Parameter name="Density" type="double" value="1.0"/>
-        <Parameter name="MaxVelocity" type="double" value="1.5"/>
-        <!-- Resolve solver error below the restart comparison bound across MPI partitions. -->
+        <Parameter name="Dimension" type="int" value="2"/>
+        <Parameter name="Discretization" type="string" value="P2"/>
+        <Parameter name="Source Type" type="string" value="surface"/>
+        <Parameter name="Volume force" type="double" value="-0.32"/>
+        <Parameter name="Material model" type="string" value="Saint Venant-Kirchhoff"/>
+        <Parameter name="Density" type="double" value="1."/>
+        <Parameter name="Poisson Ratio" type="double" value="0.49"/>
+        <Parameter name="Mu" type="double" value="0.1275"/>
         <Parameter name="relNonLinTol" type="double" value="1.e-12"/>
         <Parameter name="MaxNonLinIts" type="int" value="10"/>
+        <Parameter name="Cancel MaxNonLinIts" type="bool" value="true"/>
         <Parameter name="Criterion" type="string" value="Residual"/>
-        <Parameter name="Symmetric gradient" type="bool" value="false"/>
     </ParameterList>
     <ParameterList name="Mesh Partitioner">
         <Parameter name="Contiguous" type="bool" value="true"/>
+        <Parameter name="Mesh 1 Name" type="string" value="square_solid.mesh"/>
     </ParameterList>
     <ParameterList name="General">
-        <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
         <Parameter name="Linearization" type="string" value="Newton"/>
         <Parameter name="Preconditioner Method" type="string" value="Monolithic"/>
         <Parameter name="ParaViewExport" type="bool" value="false"/>
         <Parameter name="Export Data" type="bool" value="false"/>
     </ParameterList>
     <ParameterList name="Timestepping Parameter">
-        <Parameter name="Class" type="string" value="Multistep"/>
-        <Parameter name="BDF" type="int" value="2"/>
+        <Parameter name="Class" type="string" value="Newmark"/>
         <Parameter name="Timestepping type" type="string" value="non-adaptive"/>
         <Parameter name="dt" type="double" value="0.0025"/>
+        <Parameter name="beta" type="double" value="0.25"/>
+        <Parameter name="gamma" type="double" value="0.5"/>
         <Parameter name="Restart" type="bool" value="false"/>
         <Parameter name="Checkpointing" type="bool" value="true"/>
         <Parameter name="Checkpoint directory" type="string" value="restartCheckpoints"/>
@@ -33,8 +37,9 @@
             <Parameter name="1" type="double" value="0.01"/>
             <Parameter name="2" type="double" value="0.02"/>
         </ParameterList>
-        <!-- The final accepted step must write the checkpoint at 0.02. -->
-        <Parameter name="Final time" type="double" value="0.02"/>
+        <!-- Newmark currently writes the 0.02 state when the next step starts. -->
+        <Parameter name="Final time" type="double" value="0.0225"/>
+        <Parameter name="Comparison time" type="double" value="0.02"/>
         <Parameter name="Restart tolerance" type="double" value="1.e-12"/>
     </ParameterList>
 </ParameterList>

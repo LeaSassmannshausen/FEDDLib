@@ -1,0 +1,8 @@
+<ParameterList name="unsteady nonlinear elasticity restart">
+    <ParameterList name="Timestepping Parameter">
+        <Parameter name="Checkpointing" type="bool" value="false"/>
+        <Parameter name="Restart" type="bool" value="true"/>
+        <Parameter name="Restart directory" type="string" value="restartCheckpoints"/>
+        <Parameter name="Time step" type="double" value="0.01"/>
+    </ParameterList>
+</ParameterList>

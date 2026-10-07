@@ -589,7 +589,7 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionPreviousStep(){
 }
 
 template<class SC,class LO,class GO,class NO>
-void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps){
+void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps, bool exportValues){
 
     int size = solutionPreviousTimesteps_.size();
     if (size<nmbSteps &&  size > 0) {
@@ -615,7 +615,61 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps){
     // #######
     // Check for export for restart
     // ######
-    checkForExportAndExport( solutionPreviousTimesteps_,"Solution" );
+    if (exportValues)
+        checkForExportAndExport( solutionPreviousTimesteps_,"Solution" );
+}
+
+template<class SC,class LO,class GO,class NO>
+void TimeProblem<SC,LO,GO,NO>::writeMultistepCheckpoint(double completedTime, double dt)
+{
+    const bool saveAll = parameterList_->sublist("General").get("Safe all solution", false);
+    auto& timeParameters = parameterList_->sublist("Timestepping Parameter");
+    const bool checkpointing = timeParameters.get("Checkpointing", false);
+    if (!saveAll && !checkpointing)
+        return;
+
+    TEUCHOS_TEST_FOR_EXCEPTION(!(dt > 0.), std::logic_error,
+                               "A multistep checkpoint requires a positive timestep.");
+    bool checkpointDue = false;
+    if (checkpointing) {
+        const int count = timeParameters.get("Number Checkpoints", 0);
+        for (int i = 1; i <= count; ++i) {
+            const double requestedTime = timeParameters.sublist("Checkpoints").get(std::to_string(i), 0.);
+            // The first accepted step reaching a requested time owns its checkpoint.
+            if (completedTime >= requestedTime - 1.e-10 && completedTime - dt < requestedTime - 1.e-10)
+                checkpointDue = true;
+        }
+    }
+    if (!saveAll && !checkpointDue)
+        return;
+
+    int nmbSteps = timeParameters.get("BDF", 1);
+    if (nmbSteps < 2 && parameterList_->sublist("General").get("Linearization", "FixedPoint") == "Extrapolation")
+        nmbSteps = 2;
+    TEUCHOS_TEST_FOR_EXCEPTION(!saveAll && solutionPreviousTimesteps_.size() < nmbSteps - 1,
+                               std::logic_error, "Insufficient solution history for a multistep checkpoint.");
+
+    const auto writeState = [&](double stateTime, BlockMultiVectorConstPtr_Type state) {
+        const std::string key = std::to_string(stateTime);
+        if (multistepCheckpointTimesWritten_.count(key))
+            return;
+        for (UN i = 0; i < state->size(); ++i)
+            getExporter("Solution", i)->writeVariablesHDF5(key, state->getBlock(i));
+        multistepCheckpointTimesWritten_.insert(key);
+    };
+    writeState(completedTime, problem_->getSolution());
+    // The buffers still hold u_(n-1), u_(n-2), ... after solving for u_n.
+    // Saving all solutions already wrote these entries on earlier steps.
+    if (!saveAll) {
+        for (int j = 1; j < nmbSteps; ++j) {
+            const double historyTime = completedTime - j * dt;
+            // At the first BDF2 checkpoint, u_0 is required to continue with BDF2.
+            if (historyTime >= 0.)
+                writeState(historyTime, solutionPreviousTimesteps_[j - 1]);
+        }
+    }
+    if (checkpointDue)
+        problem_->exportValuesOfInterest(completedTime);
 }
 
 
@@ -1294,8 +1348,8 @@ void TimeProblem<SC,LO,GO,NO>::restoreMultistepHistory(int nmbSteps, double rest
     {
         // Match the multistep convention: entry zero is the newest solution.
         const double historyTime = restartTime - j * dt;
-        TEUCHOS_TEST_FOR_EXCEPTION(!(historyTime > 0.), std::logic_error,
-                                   "You are trying to restart from a time with no previous exported time.");
+        TEUCHOS_TEST_FOR_EXCEPTION(!(historyTime >= 0.), std::logic_error,
+                                   "The requested multistep history extends before time zero.");
         solutionPreviousTimesteps_[j] = Teuchos::rcp(new BlockMultiVector_Type(problem_->getSolution()->getMap()));
         const std::string varName = std::to_string(historyTime);
         for (int i = 0; i < size; ++i)

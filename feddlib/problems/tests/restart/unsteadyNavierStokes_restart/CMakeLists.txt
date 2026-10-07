@@ -8,14 +8,16 @@ SET(navier_stokes_restart_parameter_files
     parametersProblem2D.xml
     parametersProblem3D.xml
     parametersProblem_restart.xml
+    parametersProblem_reference.xml
+    parametersProblem_restart_final.xml
     parametersPrec.xml
     parametersSolver.xml
 )
 SET(navier_stokes_restart_mesh_files BFS2d_1600.mesh BFS3dCC.mesh)
 
-# Each mesh/rank pair has its own clean directory. Phase 1 uses four ranks to
-# generate checkpoints at 0.01 and 0.02; phase 2 resumes on four or six ranks at
-# 0.01 and compares both fields at 0.02, including checkpoint redistribution.
+# Each mesh/rank pair has its own clean directory. A four-rank run stops at 0.02;
+# restart on four/six ranks from 0.01 to 0.02, then from the final checkpoint at
+# 0.02 to 0.03 against an independent four-rank reference that stops at 0.03.
 SET(reference_mpi_procs 4)
 FOREACH(dimension 2 3)
     FOREACH(restart_mpi_procs 4 6)

@@ -8,6 +8,7 @@
 #include "feddlib/core/General/HDF5Import.hpp"
 #include "feddlib/core/General/CheckpointFiles.hpp"
 #include <tuple>
+#include <set>
 
 #include <Thyra_StateFuncModelEvaluatorBase.hpp>
 
@@ -173,7 +174,33 @@ public:
     /// Restore additional problem-specific checkpoint state once.
     void importRestartValues();
 
-    void updateSolutionMultiPreviousStep(int nmbSteps);
+    /**
+     * @brief Prepare solution history for the next multistep solve.
+     * @param[in] nmbSteps Number of solution history entries to retain.
+     * @param[in] exportValues Use the legacy start-of-step export when true.
+     *            Standalone BDF loops pass false and write after successful steps.
+     */
+    void updateSolutionMultiPreviousStep(int nmbSteps, bool exportValues = true);
+
+    /**
+     * @brief Write a standalone BDF checkpoint after a successful timestep.
+     *
+     * Saves the current solution at completedTime and the required previous
+     * solutions from the unshifted history buffers. Does not modify numerical
+     * history or advance any clock. Uses the existing `Solution<variable>` files
+     * and time keys, so existing multistep restoration remains compatible.
+     * With "Safe all solution", writes every accepted solution; the caller
+     * may also call this once before the loop to save the initial state.
+     *
+     * @param[in] completedTime Physical time of the successfully completed step.
+     * @param[in] dt Time increment used for that step and its saved BDF history.
+     * @pre All ranks have completed the solve and the simulation clock has advanced.
+     *      History entry zero still holds the solution preceding the current one.
+     * @note Call collectively once per completed step, before the next history
+     *       shift. This operation covers fixed-step standalone BDF integration;
+     *       FSI and Newmark retain their existing checkpoint timing.
+     */
+    void writeMultistepCheckpoint(double completedTime, double dt);
 
     void updateSystemMassMultiPreviousStep(int nmbSteps);
 
@@ -305,7 +332,7 @@ private:
      *      checkpoints exist at every required history time.
      * @note Call collectively on the problem communicator. History times are
      *       converted to checkpoint keys with std::to_string().
-     * @throws std::logic_error If any required history time is not positive.
+     * @throws std::logic_error If any required history time is negative.
      * @see updateSolutionMultiPreviousStep()
      */
     void restoreMultistepHistory(int nmbSteps, double restartTime);
@@ -399,6 +426,7 @@ private:
     Teuchos::RCP<HDF5Export<SC, LO, GO, NO>> getExporter(std::string fileName, int i);
 
     std::vector<std::tuple<double,bool>> checkPointTupel_;
+    std::set<std::string> multistepCheckpointTimesWritten_; // shared history is written once per output file
     bool restartValuesImported_ = false; // importRestartValues() ran
     bool restartNewmarkUpdate_ = false; // after a restart: the imported Newmark state is that of t_{r-1} and is updated (see updateSolutionNewmarkPreviousStep)
     BlockMultiVectorPtrArray_Type restartMassSolutions_; // after a restart: the products M_i u_i of the checkpoint (see updateMultistepRhsFSI)

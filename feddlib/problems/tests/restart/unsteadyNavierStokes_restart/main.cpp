@@ -72,7 +72,10 @@ bool compareRestart(NavierStokes_Type& problem, ParameterListPtr_Type parameters
 
     for (int block = 0; block < 2; ++block) {
         auto solution = problem.getSolution()->getBlock(block);
-        HDF5Import<SC,LO,GO,NO> importer(solution->getMap(), restartFile(parameters, checkpointNames[block]));
+        const std::string referenceFile = timeParameters.isParameter("Reference directory")
+            ? joinPath(timeParameters.get<std::string>("Reference directory"), checkpointNames[block])
+            : restartFile(parameters, checkpointNames[block]);
+        HDF5Import<SC,LO,GO,NO> importer(solution->getMap(), referenceFile);
         auto reference = importer.readVariablesHDF5(std::to_string(finalTime));
         MultiVector_Type error(solution->getMap());
         error.update(1., *solution, -1., *reference, 0.);
@@ -102,10 +105,11 @@ int main(int argc, char* argv[])
     auto comm = Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
 
     std::string problemFile = "parametersProblem2D.xml";
-    std::string restartFileName;
+    std::string overrideFile;
     Teuchos::CommandLineProcessor commandLine;
     commandLine.setOption("problemfile", &problemFile, "2D or 3D BFS case parameters.");
-    commandLine.setOption("restartfile", &restartFileName, "Optional restart overrides for phase 2.");
+    commandLine.setOption("overridefile", &overrideFile, "Optional parameter overrides for this test phase.");
+    commandLine.setOption("restartfile", &overrideFile, "Alias for --overridefile for restart runs.");
     commandLine.throwExceptions(false);
     const auto parseResult = commandLine.parse(argc, argv);
     if (parseResult == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED)
@@ -113,11 +117,11 @@ int main(int argc, char* argv[])
     if (parseResult != Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL)
         return EXIT_FAILURE;
 
-    // Both phases use the same case and solver settings; phase 2 overrides only restart settings.
+    // All phases use the same case and solver settings, with separate run/restart overrides.
     auto parameters = Teuchos::getParametersFromXmlFile("parametersProblem.xml");
     parameters->setParameters(*Teuchos::getParametersFromXmlFile(problemFile));
-    if (!restartFileName.empty())
-        parameters->setParameters(*Teuchos::getParametersFromXmlFile(restartFileName));
+    if (!overrideFile.empty())
+        parameters->setParameters(*Teuchos::getParametersFromXmlFile(overrideFile));
     parameters->setParameters(*Teuchos::getParametersFromXmlFile("parametersPrec.xml"));
     parameters->setParameters(*Teuchos::getParametersFromXmlFile("parametersSolver.xml"));
 
@@ -127,7 +131,11 @@ int main(int argc, char* argv[])
         .sublist("FROSch").set("DofsPerNode1", dim);
     const bool restart = parameters->sublist("Timestepping Parameter").get<bool>("Restart");
     if (comm->getRank() == 0)
-        std::cout << dim << "D BFS restart test: " << (restart ? "restart" : "uninterrupted reference") << std::endl;
+        std::cout << dim << "D BFS restart test: " << (restart ? "restart" : "uninterrupted reference")
+                  << " on " << comm->getSize() << " ranks, from "
+                  << parameters->sublist("Timestepping Parameter").get("Time step", 0.)
+                  << " to " << parameters->sublist("Timestepping Parameter").get<double>("Final time")
+                  << std::endl;
 
     RCP<Domain_Type> pressureDomain = rcp(new Domain_Type(comm, dim));
     RCP<Domain_Type> velocityDomain = rcp(new Domain_Type(comm, dim));

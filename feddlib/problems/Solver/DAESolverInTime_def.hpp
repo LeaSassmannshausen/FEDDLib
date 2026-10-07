@@ -780,6 +780,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearNewmark()
         
         // Update u und berechne u' und u'' mit Hilfe der Newmark-Vorschrift
         problemTime_->updateSolutionNewmarkPreviousStep(dt, beta, gamma);
+        // Standalone Newmark restart also needs the primary displacement file.
+        // Write it alongside the derivative/history checkpoint at the same time.
+        problemTime_->checkForExportAndExport(problemTime_->getSolutionAllPreviousTimestep(), "Solution");
         
         double time = timeSteppingTool_->currentTime() + dt;
         problemTime_->updateTime ( time );
@@ -1350,9 +1353,13 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeLinearMultistep(){
 	//#########
     //time loop
     //#########
+    // Preserve initial-state output when every solution is requested.
+    if (parameterList_->sublist("General").get("Safe all solution", false))
+        problemTime_->writeMultistepCheckpoint(timeSteppingTool_->currentTime(), dt);
+
     while (timeSteppingTool_->continueTimeStepping()) {
 
-        problemTime_->updateSolutionMultiPreviousStep(nmbBDF);
+        problemTime_->updateSolutionMultiPreviousStep(nmbBDF, false);
 
         double time = timeSteppingTool_->currentTime() + dt;
         problemTime_->updateMultistepRhs(coeffPrevSteps,nmbBDF);/*apply mass matrix to u_t*/
@@ -1367,6 +1374,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeLinearMultistep(){
         problemTime_->solve();
 
         timeSteppingTool_->advanceTime(true/*output info*/);
+        problemTime_->writeMultistepCheckpoint(timeSteppingTool_->currentTime(), dt);
 
         if (print) {
             exportTimestep();
@@ -1451,6 +1459,10 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearMultistep(){
     vec_dbl_Type newtonIterations(0);
     NonLinearSolver<SC, LO, GO, NO> nlSolver(parameterList_->sublist("General").get("Linearization","FixedPoint"));
 
+    // Preserve initial-state output when every solution is requested.
+    if (parameterList_->sublist("General").get("Safe all solution", false))
+        problemTime_->writeMultistepCheckpoint(timeSteppingTool_->currentTime(), dt);
+
     while (timeSteppingTool_->continueTimeStepping()) {
 
         // For the first time step we use BDF1
@@ -1481,14 +1493,14 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearMultistep(){
         }
         if(nmbBDF<2 && !parameterList_->sublist("General").get("Linearization","FixedPoint").compare("Extrapolation")) {
             if (timeSteppingTool_->currentTime()!=0.){
-                problemTime_->updateSolutionMultiPreviousStep(2);
+                problemTime_->updateSolutionMultiPreviousStep(2, false);
             }
             else{
-                problemTime_->updateSolutionMultiPreviousStep(1);
+                problemTime_->updateSolutionMultiPreviousStep(1, false);
             }
         }
         else{
-            problemTime_->updateSolutionMultiPreviousStep(nmbBDF);
+            problemTime_->updateSolutionMultiPreviousStep(nmbBDF, false);
         }
         double time = timeSteppingTool_->currentTime() + dt;
         problemTime_->updateTime ( time );
@@ -1519,6 +1531,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearMultistep(){
         }
 
         timeSteppingTool_->advanceTime(true/*output info*/);
+        problemTime_->writeMultistepCheckpoint(timeSteppingTool_->currentTime(), dt);
         if (printData) {
             exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
             exporterIterations->exportData( (*its)[0] );

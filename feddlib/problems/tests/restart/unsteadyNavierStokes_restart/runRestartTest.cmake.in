@@ -1,4 +1,4 @@
-# Keep setup quiet and let both MPI runs stream their normal stdout/stderr.
+# Keep setup quiet and let each MPI run stream its normal stdout/stderr.
 IF(NOT DEFINED TEST_WORKING_DIRECTORY)
     SET(TEST_WORKING_DIRECTORY "@CMAKE_CURRENT_BINARY_DIR@/@restart_test_name@")
 ENDIF()
@@ -8,6 +8,8 @@ SET(input_files
     parametersProblem.xml
     parametersProblem@dimension@D.xml
     parametersProblem_restart.xml
+    parametersProblem_reference.xml
+    parametersProblem_restart_final.xml
     parametersPrec.xml
     parametersSolver.xml
     @restart_test_mesh@
@@ -24,24 +26,23 @@ SET(test_command
     "${EXECUTABLE}"
     --problemfile=parametersProblem@dimension@D.xml
 )
-EXECUTE_PROCESS(COMMAND ${mpi_command}
-    @MPI_EXEC_NUMPROCS_FLAG@ @reference_mpi_procs@
-    @MPI_EXEC_POST_NUMPROCS_FLAGS@
-    ${test_command}
-    WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
-    RESULT_VARIABLE result
-)
-IF(NOT result STREQUAL "0")
-    MESSAGE(FATAL_ERROR "Uninterrupted reference failed: ${result}")
-ENDIF()
+FUNCTION(run_phase phase mpi_procs)
+    EXECUTE_PROCESS(COMMAND ${mpi_command}
+        @MPI_EXEC_NUMPROCS_FLAG@ ${mpi_procs}
+        @MPI_EXEC_POST_NUMPROCS_FLAGS@
+        ${test_command} ${ARGN}
+        WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
+        RESULT_VARIABLE result
+    )
+    IF(NOT result STREQUAL "0")
+        MESSAGE(FATAL_ERROR "${phase} failed: ${result}")
+    ENDIF()
+ENDFUNCTION()
 
-EXECUTE_PROCESS(COMMAND ${mpi_command}
-    @MPI_EXEC_NUMPROCS_FLAG@ @restart_mpi_procs@
-    @MPI_EXEC_POST_NUMPROCS_FLAGS@
-    ${test_command} --restartfile=parametersProblem_restart.xml
-    WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
-    RESULT_VARIABLE result
-)
-IF(NOT result STREQUAL "0")
-    MESSAGE(FATAL_ERROR "Restart validation failed: ${result}")
-ENDIF()
+run_phase("Reference stopping at 0.02" @reference_mpi_procs@)
+run_phase("Restart from 0.01 to 0.02" @restart_mpi_procs@
+    --restartfile=parametersProblem_restart.xml)
+run_phase("Independent reference stopping at 0.03" @reference_mpi_procs@
+    --overridefile=parametersProblem_reference.xml)
+run_phase("Restart from final checkpoint at 0.02 to 0.03" @restart_mpi_procs@
+    --restartfile=parametersProblem_restart_final.xml)

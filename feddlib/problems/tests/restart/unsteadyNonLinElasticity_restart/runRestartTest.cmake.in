@@ -1,0 +1,25 @@
+# Stream normal solver output, as in the Navier-Stokes restart tests.
+IF(NOT DEFINED TEST_WORKING_DIRECTORY)
+    SET(TEST_WORKING_DIRECTORY "@CMAKE_CURRENT_BINARY_DIR@/@restart_test_name@")
+ENDIF()
+FILE(REMOVE_RECURSE "${TEST_WORKING_DIRECTORY}")
+FILE(MAKE_DIRECTORY "${TEST_WORKING_DIRECTORY}")
+FOREACH(input_file parametersProblem.xml parametersProblem_restart.xml
+        parametersPrec.xml parametersSolver.xml square_solid.mesh)
+    FILE(COPY "@CMAKE_CURRENT_BINARY_DIR@/${input_file}" DESTINATION "${TEST_WORKING_DIRECTORY}")
+ENDFOREACH()
+
+FUNCTION(run_phase phase mpi_procs)
+    EXECUTE_PROCESS(COMMAND "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@
+        @MPI_EXEC_NUMPROCS_FLAG@ ${mpi_procs} @MPI_EXEC_POST_NUMPROCS_FLAGS@
+        "${EXECUTABLE}" ${ARGN}
+        WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
+        RESULT_VARIABLE result)
+    IF(NOT result STREQUAL "0")
+        MESSAGE(FATAL_ERROR "${phase} failed: ${result}")
+    ENDIF()
+ENDFUNCTION()
+
+run_phase("Uninterrupted Newmark reference" @reference_mpi_procs@)
+run_phase("Newmark restart from 0.01, comparison at 0.02" @restart_mpi_procs@
+    --restartfile=parametersProblem_restart.xml)

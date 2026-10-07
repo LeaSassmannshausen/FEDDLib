@@ -78,7 +78,9 @@ void NonLinElasticity<SC,LO,GO,NO>::assemble(std::string type) const{
 
         this->setBoundariesRHS();
                     
-        this->solution_->putScalar(0.);
+        // initializeProblem() has already restored the displacement on restart.
+        if (!this->parameterList_->sublist("Timestepping Parameter").get("Restart", false))
+            this->solution_->putScalar(0.);
         
         u_rep_ = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
         MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
