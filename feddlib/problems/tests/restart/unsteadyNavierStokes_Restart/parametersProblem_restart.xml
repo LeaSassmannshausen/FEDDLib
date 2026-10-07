@@ -1,0 +1,10 @@
+<ParameterList name="unsteady Navier-Stokes">
+    <!-- Phase 2 inherits the shared settings and selected 2D/3D case. -->
+    <ParameterList name="Timestepping Parameter">
+        <Parameter name="Checkpointing" type="bool" value="false"/>
+        <Parameter name="Restart" type="bool" value="true"/>
+        <Parameter name="Restart directory" type="string" value="restartCheckpoints"/>
+        <Parameter name="Time step" type="double" value="0.01"/>
+        <Parameter name="Final time" type="double" value="0.02"/>
+    </ParameterList>
+</ParameterList>

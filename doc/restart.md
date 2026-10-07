@@ -54,11 +54,18 @@ cmake --build build --target problems_unsteadyNavierStokes_Restart problems_fsi_
 ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_Restart|fsi_restart)'
 ```
 
-- `unsteadyNavierStokes_Restart` reads the checked-in HDF5 fixture and compares
-  the continued velocity solution at the final time, on four and six MPI ranks.
+- `unsteadyNavierStokes_Restart` runs the 2D `BFS2d_1600.mesh` and 3D
+  `BFS3dCC.mesh` cases on four and six MPI ranks. Each test runs an uninterrupted
+  reference, writes checkpoints at `0.01` and `0.02`, then restarts at `0.01`
+  and compares velocity and pressure at `0.02` with relative tolerance `1e-12`.
+  Absolute and relative l2 errors are printed for both fields. The shared
+  settings are in `parametersProblem.xml`, the mesh/dimension overrides in
+  `parametersProblem2D.xml` and `parametersProblem3D.xml`, and the second-phase
+  overrides in `parametersProblem_restart.xml`. Each mesh/rank combination has
+  its own working directory and generates its own checkpoints.
 - `fsi_restart` runs an uninterrupted simulation and a restarted simulation on
-  two MPI ranks, comparing fluid velocity, pressure, and solid displacement at
-  the same final time with relative tolerance `1e-8`. Both phases load the case
+  four MPI ranks, comparing fluid velocity, pressure, and solid displacement at
+  the same final time with relative tolerance `1e-12`. Both phases load the case
   from `parametersProblemFSI.xml`; `parametersProblemFSI_restart.xml` contains
   only the overrides to resume at `0.01` and stop at `0.02`. The test disables
   visualization and benchmark exports and reports the relative error for each
