@@ -288,6 +288,97 @@ public:
     
     std::string description() const; //reimplement description function and use description of underlying nonLinearProblem
 private:
+
+    /**
+     * @brief Restore the solution history required by multistep integration.
+     *
+     * Fills solutionPreviousTimesteps_ from newest to oldest: entry j is read
+     * at restartTime - j * dt from `Solution<variable>.h5` in the configured
+     * restart directory. Here dt comes from getPreviousTimeIncrement(), not
+     * checkpoint metadata. The ALE geometry field d_f is skipped.
+     * This only loads history; shifting it and inserting the current solution
+     * remain the responsibility of updateSolutionMultiPreviousStep().
+     *
+     * @param[in] nmbSteps Number of history entries to restore; must be positive.
+     * @param[in] restartTime Checkpoint time of the newest history entry.
+     * @pre The primary solution blocks and their maps are initialized, and
+     *      checkpoints exist at every required history time.
+     * @note Call collectively on the problem communicator. History times are
+     *       converted to checkpoint keys with std::to_string().
+     * @throws std::logic_error If any required history time is not positive.
+     * @see updateSolutionMultiPreviousStep()
+     */
+    void restoreMultistepHistory(int nmbSteps, double restartTime);
+
+    /**
+     * @brief Restore historical mass-matrix/solution products for FSI.
+     *
+     * Loads restartMassSolutions_[j] from `Rhs<variable>.h5` at
+     * restartTime - j * dt, where dt is obtained from
+     * getPreviousTimeIncrement(). These are saved M_j * u_j products before
+     * applying time integration coefficients, rather than a complete RHS.
+     * On a moving mesh, the current mass matrix cannot replace a historical
+     * mass matrix. The saved products supply this history during the first
+     * resumed steps, until newly computed products replace them.
+     * Resets timeStepsSinceRestart_ to zero without assembling the RHS.
+     *
+     * @param[in] nmbSteps Number of historical products to restore; must be positive.
+     * @param[in] restartTime Checkpoint time of the newest saved product.
+     * @pre The solution maps, RHS block structure and massParameters_ are
+     *      initialized, and the required checkpoint entries exist.
+     * @note Call collectively on the problem communicator. Files are read
+     *       from the configured restart directory using std::to_string() keys.
+     * @see updateMultistepRhsFSI()
+     */
+    void restoreMassProductHistory(int nmbSteps, double restartTime);
+
+    /**
+     * @brief Restore the displacement history used by the first Newmark update.
+     *
+     * Reads `SolutionNewmark<variable>.h5` from the configured restart directory.
+     * The legacy checkpoint label depends on whether the caller's clock
+     * denotes the start or the end of the step; it does not always denote the
+     * physical time of the saved Newmark state.
+     *
+     * @param[in] restartTime Checkpoint label used with std::to_string().
+     * @param[in] updateFromPrevious If false, restore entries 0 and 1 from
+     *            labels restartTime and restartTime - dt, respectively; saved
+     *            derivatives already belong to the restart state. If true,
+     *            restore only entry 1 from label restartTime; the caller fills
+     *            entry 0 with the current solution and advances the saved
+     *            derivatives once using the Newmark formulas.
+     * @pre The primary solution blocks and maps are initialized. The caller
+     *      must fill entry 0 before using history when updateFromPrevious is true.
+     * @note Call collectively on the problem communicator. dt comes from
+     *       getPreviousTimeIncrement(). Sets restartNewmarkUpdate_ to tell the
+     *       caller whether to advance the restored derivatives; no numerical
+     *       update or clock change is performed here.
+     * @see restoreNewmarkDerivativeHistory()
+     * @see updateSolutionNewmarkPreviousStep()
+     */
+    void restoreNewmarkDisplacementHistory(double restartTime, bool updateFromPrevious);
+
+    /**
+     * @brief Restore the saved Newmark velocity and acceleration in block zero.
+     *
+     * Reads ds_Velocity.h5 and ds_Acceleration.h5 in the configured restart
+     * directory at the key std::to_string(restartTime), using the primary
+     * solution's block-zero map. Only block zero of the derivative buffers is
+     * replaced. The caller uses restartNewmarkUpdate_ to decide whether these
+     * derivatives still need a Newmark update, preventing a second update of
+     * derivatives already saved at the restart state.
+     *
+     * @param[in] restartTime Checkpoint label, with the same timing convention
+     *            as restoreNewmarkDisplacementHistory().
+     * @pre The primary solution map and entry zero of both
+     *      velocityPreviousTimesteps_ and accelerationPreviousTimesteps_ are
+     *      allocated. Displacement restoration has set restartNewmarkUpdate_.
+     * @note Call collectively on the problem communicator. This function loads
+     *       derivatives without advancing them or changing the simulation clock.
+     * @see restoreNewmarkDisplacementHistory()
+     * @see updateSolutionNewmarkPreviousStep()
+     */
+    void restoreNewmarkDerivativeHistory(double restartTime);
     
     virtual void evalModelImpl(
                                const ::Thyra::ModelEvaluatorBase::InArgs<SC> &inArgs,

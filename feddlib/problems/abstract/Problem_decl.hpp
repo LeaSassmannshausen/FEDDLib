@@ -163,7 +163,29 @@ public:
 
     void initializeProblem(int nmbVectors=1);
     
+    /// Allocate solution, RHS and source vectors without reading checkpoint files.
     void initializeVectors(int nmbVectors=1);
+
+    /**
+     * @brief Restore primary solution fields from a checkpoint.
+     *
+     * Reads each field from `Solution<variable>.h5` in the configured restart
+     * directory, using std::to_string(restartTime) as the checkpoint key and
+     * the allocated solution block's map for the distributed import.
+     * The ALE geometry field d_f is skipped; FSI restores it separately.
+     * Time integration history, the simulation clock and operators are not
+     * restored here.
+     *
+     * @param[in] restartTime Physical time used to identify the checkpoint.
+     * @pre initializeVectors() has allocated all solution blocks and maps.
+     * @pre Call before assembly or linking solution blocks to subproblems,
+     *      since importing replaces the solution block pointers.
+     * @note Call collectively on the problem communicator. The caller decides
+     *       whether restart is enabled; this function always reads the files.
+     * @throws std::logic_error If the solution vector has not been allocated.
+     * @see initializeProblem()
+     */
+    void restoreSolutionFromCheckpoint(double restartTime);
 
     BlockMultiVectorPtr_Type getRhs();
 

@@ -48,6 +48,9 @@ namespace FEDD
 
         this->initializeVectors(nmbVectors);
 
+        if (this->parameterList_->sublist("Timestepping Parameter").get("Restart", false))
+            this->restoreSolutionFromCheckpoint(this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0));
+
         this->initializeVectorsNonLinear(nmbVectors);
 
         // Init ThyraVectorSpcaes for NOX.

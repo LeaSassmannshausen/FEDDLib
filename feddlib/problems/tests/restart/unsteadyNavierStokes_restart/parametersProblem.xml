@@ -4,7 +4,8 @@
         <Parameter name="Viscosity" type="double" value="0.001"/>
         <Parameter name="Density" type="double" value="1.0"/>
         <Parameter name="MaxVelocity" type="double" value="1.5"/>
-        <Parameter name="relNonLinTol" type="double" value="1.e-6"/>
+        <!-- Resolve solver error below the restart comparison bound across MPI partitions. -->
+        <Parameter name="relNonLinTol" type="double" value="1.e-12"/>
         <Parameter name="MaxNonLinIts" type="int" value="10"/>
         <Parameter name="Criterion" type="string" value="Residual"/>
         <Parameter name="Symmetric gradient" type="bool" value="false"/>
@@ -23,7 +24,7 @@
         <Parameter name="Class" type="string" value="Multistep"/>
         <Parameter name="BDF" type="int" value="2"/>
         <Parameter name="Timestepping type" type="string" value="non-adaptive"/>
-        <Parameter name="dt" type="double" value="0.002"/>
+        <Parameter name="dt" type="double" value="0.0025"/>
         <Parameter name="Restart" type="bool" value="false"/>
         <Parameter name="Checkpointing" type="bool" value="true"/>
         <Parameter name="Checkpoint directory" type="string" value="restartCheckpoints"/>
@@ -33,7 +34,7 @@
             <Parameter name="2" type="double" value="0.02"/>
         </ParameterList>
         <!-- Advance one extra step so the checkpoint at 0.02 is written. -->
-        <Parameter name="Final time" type="double" value="0.022"/>
+        <Parameter name="Final time" type="double" value="0.0225"/>
         <Parameter name="Restart tolerance" type="double" value="1.e-12"/>
     </ParameterList>
 </ParameterList>

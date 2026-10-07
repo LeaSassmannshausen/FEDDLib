@@ -13,14 +13,17 @@ SET(navier_stokes_restart_parameter_files
 )
 SET(navier_stokes_restart_mesh_files BFS2d_1600.mesh BFS3dCC.mesh)
 
-# Each mesh/rank combination has its own clean directory. Phase 1 generates the
-# checkpoints at 0.01 and 0.02; phase 2 resumes at 0.01 and compares both fields at 0.02.
+# Each mesh/rank pair has its own clean directory. Phase 1 uses four ranks to
+# generate checkpoints at 0.01 and 0.02; phase 2 resumes on four or six ranks at
+# 0.01 and compares both fields at 0.02, including checkpoint redistribution.
+SET(reference_mpi_procs 4)
 FOREACH(dimension 2 3)
-    FOREACH(mpi_procs 4 6)
-        IF(NOT TPL_ENABLE_MPI OR mpi_procs GREATER MPI_EXEC_MAX_NUMPROCS)
+    FOREACH(restart_mpi_procs 4 6)
+        IF(NOT TPL_ENABLE_MPI OR reference_mpi_procs GREATER MPI_EXEC_MAX_NUMPROCS
+            OR restart_mpi_procs GREATER MPI_EXEC_MAX_NUMPROCS)
             CONTINUE()
         ENDIF()
-        SET(restart_test_name ${PACKAGE_NAME}_unsteadyNavierStokes_restart_${dimension}D_${mpi_procs})
+        SET(restart_test_name ${PACKAGE_NAME}_unsteadyNavierStokes_restart_${dimension}D_${reference_mpi_procs}_to_${restart_mpi_procs})
         SET(restart_test_script ${CMAKE_CURRENT_BINARY_DIR}/${restart_test_name}.cmake)
         IF(dimension EQUAL 2)
             SET(restart_test_mesh BFS2d_1600.mesh)
@@ -34,7 +37,7 @@ FOREACH(dimension 2 3)
                 -P ${restart_test_script}
         )
         SET_TESTS_PROPERTIES(${restart_test_name} PROPERTIES
-            PROCESSORS ${mpi_procs}
+            PROCESSORS ${restart_mpi_procs}
             LABELS ${PACKAGE_NAME}
             REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_unsteadyNavierStokes_restart>"
         )

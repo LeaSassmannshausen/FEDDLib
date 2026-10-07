@@ -139,6 +139,8 @@ namespace FEDD
 
         this->system_.reset(new BlockMatrix_Type(1));
         this->initializeVectors(nmbVectors);
+        if (parameterList_->sublist("Timestepping Parameter").get("Restart", false))
+            restoreSolutionFromCheckpoint(parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0));
     }
 
     template <class SC, class LO, class GO, class NO>
@@ -417,19 +419,23 @@ namespace FEDD
                 sourceTerm_->addBlock(sourceTermPart, i);
             }
 
-            bool restart = parameterList_->sublist("Timestepping Parameter").get("Restart",false);
+        }
+    }
 
-            if(restart && variableName_vec_[i] != "d_f") // We do not import the geometry solution right now.
-            {
-                // The solution at the restart time, from the checkpoint files in the restart directory (see CheckpointFiles.hpp)
-                std::string varName = std::to_string(parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0));
-
-                MapConstPtr_Type map = solution_->getBlock(i)->getMap();
-                HDF5Import<SC,LO,GO,NO> importer(map,restartFile(parameterList_, "Solution"+variableName_vec_[i]));
-                MultiVectorPtr_Type aImported = importer.readVariablesHDF5(varName);
-                solution_->addBlock(aImported,i);
-            }
-
+    template <class SC, class LO, class GO, class NO>
+    void Problem<SC, LO, GO, NO>::restoreSolutionFromCheckpoint(double restartTime)
+    {
+        TEUCHOS_TEST_FOR_EXCEPTION(solution_.is_null(), std::logic_error,
+                                   "Allocate problem vectors before restoring the solution.");
+        const std::string varName = std::to_string(restartTime);
+        for (UN i = 0; i < solution_->size(); ++i)
+        {
+            // FSI imports geometry into its ALE buffers through a separate path.
+            if (variableName_vec_[i] == "d_f")
+                continue;
+            MapConstPtr_Type map = solution_->getBlock(i)->getMap();
+            HDF5Import<SC,LO,GO,NO> importer(map, restartFile(parameterList_, "Solution" + variableName_vec_[i]));
+            solution_->addBlock(importer.readVariablesHDF5(varName), i);
         }
     }
 

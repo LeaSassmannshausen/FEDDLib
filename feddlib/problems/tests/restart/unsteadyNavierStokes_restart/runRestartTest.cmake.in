@@ -19,12 +19,15 @@ ENDFOREACH()
 
 SET(mpi_command "@MPI_EXEC@"
     @MPI_EXEC_PRE_NUMPROCS_FLAGS@
-    @MPI_EXEC_NUMPROCS_FLAG@ @mpi_procs@
-    @MPI_EXEC_POST_NUMPROCS_FLAGS@
+)
+SET(test_command
     "${EXECUTABLE}"
     --problemfile=parametersProblem@dimension@D.xml
 )
 EXECUTE_PROCESS(COMMAND ${mpi_command}
+    @MPI_EXEC_NUMPROCS_FLAG@ @reference_mpi_procs@
+    @MPI_EXEC_POST_NUMPROCS_FLAGS@
+    ${test_command}
     WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
     RESULT_VARIABLE result
 )
@@ -32,7 +35,10 @@ IF(NOT result STREQUAL "0")
     MESSAGE(FATAL_ERROR "Uninterrupted reference failed: ${result}")
 ENDIF()
 
-EXECUTE_PROCESS(COMMAND ${mpi_command} --restartfile=parametersProblem_restart.xml
+EXECUTE_PROCESS(COMMAND ${mpi_command}
+    @MPI_EXEC_NUMPROCS_FLAG@ @restart_mpi_procs@
+    @MPI_EXEC_POST_NUMPROCS_FLAGS@
+    ${test_command} --restartfile=parametersProblem_restart.xml
     WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
     RESULT_VARIABLE result
 )

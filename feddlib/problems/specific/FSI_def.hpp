@@ -150,13 +150,7 @@ exporterGeo_()
 
     if(this->parameterList_->sublist("Timestepping Parameter").get("Restart", false))
     {
-      Teuchos::RCP<HDF5Import<SC,LO,GO,NO>> importer =Teuchos::rcp(new HDF5Import<SC,LO,GO,NO>(this->getDomain(4)->getMapVecFieldUnique(),restartFile(this->parameterList_, "Solutiond_f")));
-      double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
-      std::string varName = std::to_string(timeStepRestart);
-
-      MultiVectorConstPtr_Type meshDisplacementOld  = importer->readVariablesHDF5(varName);
-      meshDisplacementOld_rep_->importFromVector(meshDisplacementOld, true);
-      meshDisplacementNew_rep_->importFromVector(meshDisplacementOld, true);
+        restoreGeometryFromCheckpoint(this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0));
     }
 
     u_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ) );
@@ -1758,6 +1752,17 @@ void FSI<SC,LO,GO,NO>::initializeGE(){
     }
 }
 
+
+template<class SC,class LO,class GO,class NO>
+void FSI<SC,LO,GO,NO>::restoreGeometryFromCheckpoint(double restartTime)
+{
+    HDF5Import<SC,LO,GO,NO> importer(this->getDomain(4)->getMapVecFieldUnique(),
+                                  restartFile(this->parameterList_, "Solutiond_f"));
+    MultiVectorConstPtr_Type displacement = importer.readVariablesHDF5(std::to_string(restartTime));
+    // Seed both buffers so their next difference measures motion from the checkpoint.
+    meshDisplacementOld_rep_->importFromVector(displacement, true);
+    meshDisplacementNew_rep_->importFromVector(displacement, true);
+}
 
 template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::exportValuesOfInterest(double time)
