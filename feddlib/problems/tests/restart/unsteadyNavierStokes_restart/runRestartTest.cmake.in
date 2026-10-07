@@ -1,0 +1,41 @@
+# Keep setup quiet and let both MPI runs stream their normal stdout/stderr.
+IF(NOT DEFINED TEST_WORKING_DIRECTORY)
+    SET(TEST_WORKING_DIRECTORY "@CMAKE_CURRENT_BINARY_DIR@/@restart_test_name@")
+ENDIF()
+FILE(REMOVE_RECURSE "${TEST_WORKING_DIRECTORY}")
+FILE(MAKE_DIRECTORY "${TEST_WORKING_DIRECTORY}")
+SET(input_files
+    parametersProblem.xml
+    parametersProblem@dimension@D.xml
+    parametersProblem_restart.xml
+    parametersPrec.xml
+    parametersSolver.xml
+    @restart_test_mesh@
+)
+FOREACH(input_file IN LISTS input_files)
+    FILE(COPY "@CMAKE_CURRENT_BINARY_DIR@/${input_file}"
+        DESTINATION "${TEST_WORKING_DIRECTORY}")
+ENDFOREACH()
+
+SET(mpi_command "@MPI_EXEC@"
+    @MPI_EXEC_PRE_NUMPROCS_FLAGS@
+    @MPI_EXEC_NUMPROCS_FLAG@ @mpi_procs@
+    @MPI_EXEC_POST_NUMPROCS_FLAGS@
+    "${EXECUTABLE}"
+    --problemfile=parametersProblem@dimension@D.xml
+)
+EXECUTE_PROCESS(COMMAND ${mpi_command}
+    WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
+    RESULT_VARIABLE result
+)
+IF(NOT result STREQUAL "0")
+    MESSAGE(FATAL_ERROR "Uninterrupted reference failed: ${result}")
+ENDIF()
+
+EXECUTE_PROCESS(COMMAND ${mpi_command} --restartfile=parametersProblem_restart.xml
+    WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
+    RESULT_VARIABLE result
+)
+IF(NOT result STREQUAL "0")
+    MESSAGE(FATAL_ERROR "Restart validation failed: ${result}")
+ENDIF()

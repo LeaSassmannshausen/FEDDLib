@@ -62,7 +62,9 @@ ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_Re
   settings are in `parametersProblem.xml`, the mesh/dimension overrides in
   `parametersProblem2D.xml` and `parametersProblem3D.xml`, and the second-phase
   overrides in `parametersProblem_restart.xml`. Each mesh/rank combination has
-  its own working directory and generates its own checkpoints.
+  its own working directory and generates its own checkpoints. The runner
+  prepares the inputs quietly and streams both simulations' normal output;
+  use `ctest -V` to display the solver output and restart errors.
 - `fsi_restart` runs an uninterrupted simulation and a restarted simulation on
   four MPI ranks, comparing fluid velocity, pressure, and solid displacement at
   the same final time with relative tolerance `1e-12`. Both phases load the case
