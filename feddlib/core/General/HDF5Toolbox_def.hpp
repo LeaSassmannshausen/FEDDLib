@@ -268,11 +268,12 @@ if (selStatus < 0) {
   std::cerr << "[Rank " << comm_->getRank()
             << "] ERROR selecting hyperslab: offset=" << Offset_t
             << " count=" << MySize_t << std::endl;
-} else {
-  std::cout << "[Rank " << comm_->getRank()
-            << "] Selected hyperslab: offset=" << Offset_t
-            << " count=" << MySize_t << std::endl;
-}
+} 
+// else {
+//   std::cout << "[Rank " << comm_->getRank()
+//             << "] Selected hyperslab: offset=" << Offset_t
+//             << " count=" << MySize_t << std::endl;
+// }
 
 // Create memory dataspace for local buffer
 hsize_t memSize_t = std::max<hsize_t>(MySize_t, 1);
@@ -299,11 +300,12 @@ if (status < 0) {
   std::cerr << "[Rank " << comm_->getRank()
             << "] ERROR during H5Dread (offset=" << Offset_t
             << ", count=" << MySize_t << ")\n";
-} else {
-  std::cout << "[Rank " << comm_->getRank()
-            << "] Successfully read " << MySize_t << " elements from dataset '"
-            << DataSetName << "'\n";
-}
+} 
+// else {
+//   std::cout << "[Rank " << comm_->getRank()
+//             << "] Successfully read " << MySize_t << " elements from dataset '"
+//             << DataSetName << "'\n";
+// }
 
 hid_t filespace = H5Dget_space(dataset_id);
 hsize_t totalElems = H5Sget_simple_extent_npoints(filespace);

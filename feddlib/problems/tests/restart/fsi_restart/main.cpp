@@ -2,10 +2,17 @@
 #include "feddlib/core/General/CheckpointFiles.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 #include "feddlib/core/General/HDF5Import.hpp"
+#include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 #include "feddlib/core/Mesh/MeshPartitioner.hpp"
 #include "feddlib/problems/Solver/DAESolverInTime.hpp"
+#include "feddlib/problems/Solver/Preconditioner.hpp"
 #include "feddlib/problems/specific/FSI.hpp"
+#include "feddlib/problems/specific/Geometry.hpp"
+#include "feddlib/problems/specific/LinElas.hpp"
+#include "feddlib/problems/specific/NavierStokes.hpp"
+#include <Teuchos_CommandLineProcessor.hpp>
 #include <Teuchos_GlobalMPISession.hpp>
+#include <Teuchos_XMLParameterListHelpers.hpp>
 #include <Xpetra_DefaultPlatform.hpp>
 #include <cmath>
 #include <cstdlib>
@@ -44,7 +51,7 @@ void inflow(double* x, double* result, double time, const double* parameters)
     result[1] = 0.;
 }
 
-bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, CommConstPtr_Type comm)
+bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, RCP<const Teuchos::Comm<int>> comm)
 {
     const auto& timeParameters = parameters->sublist("Timestepping Parameter");
     const double finalTime = timeParameters.get<double>("Final time");
@@ -58,15 +65,18 @@ bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, CommConstPt
         HDF5Import<SC,LO,GO,NO> importer(solution->getMap(), restartFile(parameters, checkpointNames[block]));
         auto reference = importer.readVariablesHDF5(std::to_string(finalTime));
         MultiVector_Type error(solution->getMap());
-        error.update(1., solution, -1., reference, 0.);
+        error.update(1., *solution, -1., *reference, 0.);
 
         Teuchos::Array<SC> errorNorm(1), solutionNorm(1);
         error.norm2(errorNorm);
         solution->norm2(solutionNorm);
         const double relativeError = errorNorm[0] / solutionNorm[0];
-        if (comm->getRank() == 0)
+        if (comm->getRank() == 0) {
+            std::cout << "Restart absolute error (" << fieldNames[block] << ", l2): "
+                      << errorNorm[0] << std::endl;
             std::cout << "Restart relative error (" << fieldNames[block] << "): "
                       << relativeError << " (tolerance " << tolerance << ")" << std::endl;
+        }
         if (!(relativeError <= tolerance))
             passed = false;
     }

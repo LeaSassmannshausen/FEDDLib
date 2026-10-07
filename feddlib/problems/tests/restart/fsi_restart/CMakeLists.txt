@@ -12,11 +12,11 @@ TRIBITS_ADD_ADVANCED_TEST(
     fsi_restart
     TEST_0 EXEC fsi_restart
         ARGS --problemfile=parametersProblemFSI.xml
-        NUM_MPI_PROCS 2
+        NUM_MPI_PROCS 4
     TEST_1 EXEC fsi_restart
         ARGS --problemfile=parametersProblemFSI_restart.xml
-        NUM_MPI_PROCS 2
-    OVERALL_NUM_MPI_PROCS 2
+        NUM_MPI_PROCS 4
+    OVERALL_NUM_MPI_PROCS 4
     FAIL_FAST
 )
 

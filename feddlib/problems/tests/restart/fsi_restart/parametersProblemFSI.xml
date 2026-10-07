@@ -1,4 +1,5 @@
 <ParameterList name="FSI">
+    <!-- Shared 2D Turek case for the reference and restart phases. -->
     <ParameterList name="Parameter">
         <Parameter name="MeanVelocity" type="double" value="2.0"/>
         <Parameter name="FSI" type="bool" value="true"/>
@@ -37,9 +38,6 @@
         <Parameter name="Preconditioner Method" type="string" value="FaCSI"/>
         <Parameter name="Use Fluid Preconditioner" type="bool" value="true"/>
         <Parameter name="Use Solid Preconditioner" type="bool" value="true"/>
-        <Parameter name="Only Diagonal" type="bool" value="false"/>
-        <Parameter name="Scale mass matrix" type="bool" value="true"/>
-        <Parameter name="Set Zeros" type="bool" value="true"/>
         <Parameter name="Linearization" type="string" value="Newton"/>
         <Parameter name="Export Flow Rate" type="bool" value="false"/>
     </ParameterList>
@@ -52,12 +50,13 @@
             <Parameter name="2" type="double" value="0.02"/>
         </ParameterList>
         <Parameter name="Restart" type="bool" value="false"/>
-        <Parameter name="Restart tolerance" type="double" value="1.e-8"/>
+        <Parameter name="Restart tolerance" type="double" value="1.e-12"/>
         <Parameter name="BDF" type="int" value="2"/>
         <Parameter name="Class" type="string" value="Multistep"/>
         <Parameter name="Timestepping type" type="string" value="non-adaptive"/>
-        <Parameter name="Final time" type="double" value="0.021"/>
-        <Parameter name="dt" type="double" value="0.001"/>
+        <!-- Advance one extra step so the checkpoint at 0.02 is written. -->
+        <Parameter name="Final time" type="double" value="0.022"/>
+        <Parameter name="dt" type="double" value="0.002"/>
         <Parameter name="beta" type="double" value="0.25"/>
         <Parameter name="gamma" type="double" value="0.5"/>
     </ParameterList>
