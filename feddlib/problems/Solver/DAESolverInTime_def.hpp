@@ -1066,9 +1066,14 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
 #ifdef FEDD_TIMER
     TimeMonitor_Type solveTM(*solveProblemTimer_);
 #endif
+    bool restart = parameterList_->sublist("Timestepping Parameter").get("Restart", false);
+    double timeStepRestart = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
+
     while(timeSteppingTool_->continueTimeStepping())
     {
         problemTime_->updateTime ( timeSteppingTool_->currentTime() );
+        fsi->problemTimeFluid_->updateTime(timeSteppingTool_->currentTime());
+        fsi->problemTimeStructure_->updateTime(timeSteppingTool_->currentTime());
 
         std::string linearization = this->parameterList_->sublist("General").get("Linearization","Extrapolation");
 
@@ -1136,7 +1141,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
             // Hier wird auch direkt ein Update der Loesung bei der Struktur gemacht.
             // Aehnlich zu "UpdateFluidInTime".
             
-            if(timeSteppingTool_->currentTime() == 0.0)
+            if(timeSteppingTool_->currentTime() == 0.0 ||
+               (restart && timeSteppingTool_->currentTime() - 1.e-10 <= timeStepRestart))
             {
                 // We extract the underlying FSI problem
                 MatrixPtr_Type massmatrix;

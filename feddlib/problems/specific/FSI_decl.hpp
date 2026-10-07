@@ -5,6 +5,7 @@
 #include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/problems/abstract/NonLinearProblem.hpp"
 #include "feddlib/problems/Solver/TimeSteppingTools.hpp"
+#include "feddlib/core/General/HDF5Export.hpp"
 
 #include <Thyra_PreconditionerBase.hpp>
 #include <Thyra_ModelEvaluatorBase_decl.hpp>
@@ -129,6 +130,8 @@ public:
     void calculateNonLinResidualVec(SmallMatrix<double>& coeff, std::string type="standard", double time=0., BlockMatrixPtr_Type systemMass = Teuchos::null) override; //type=standard or reverse
     
     virtual void getValuesOfInterest( vec_dbl_Type& values );
+
+    virtual void exportValuesOfInterest(double time);
     
     // init FSI vectors from partial problems
     void setFromPartialVectorsInit() const;
@@ -247,6 +250,7 @@ private:
     std::string materialModel_;
     vec_dbl_Type valuesForExport_;
     bool geometryExplicit_;
+    Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporterGeometry_;
     ExporterTxtPtr_Type exporterTxtDrag_;
     ExporterTxtPtr_Type exporterTxtLift_;
     mutable ExporterPtr_Type exporterGeo_;

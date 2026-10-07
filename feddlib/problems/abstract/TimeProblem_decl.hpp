@@ -4,6 +4,10 @@
 #include "feddlib/problems/problems_config.h"
 #include "feddlib/core/FEDDCore.hpp"
 #include "Problem.hpp"
+#include "feddlib/core/General/HDF5Export.hpp"
+#include "feddlib/core/General/HDF5Import.hpp"
+#include "feddlib/core/General/CheckpointFiles.hpp"
+#include <tuple>
 
 #include <Thyra_StateFuncModelEvaluatorBase.hpp>
 
@@ -166,6 +170,9 @@ public:
 
     void updateSolutionPreviousStep();
 
+    /// Restore additional problem-specific checkpoint state once.
+    void importRestartValues();
+
     void updateSolutionMultiPreviousStep(int nmbSteps);
 
     void updateSystemMassMultiPreviousStep(int nmbSteps);
@@ -205,6 +212,15 @@ public:
     ProblemPtr_Type problem_;
     CommConstPtr_Type comm_;
 
+    // Exporter for various parts of the solution or vectors that are needed for restarts
+    Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> HDF5exporterDsVelocity_; // Velocity for Newmark
+    Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> HDF5exporterDsAcceleration_; // Acceleration for Newmark
+    Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> HDF5exporterSolutionNewmark_; // Displacement history for Newmark
+
+    std::vector<Teuchos::RCP <HDF5Export<SC,LO,GO,NO>>> HDF5exporterRhs_; // Moving-mesh mass products for BDF
+    std::vector<Teuchos::RCP <HDF5Export<SC,LO,GO,NO>>> HDF5exporterSolution_; // Solution displacement
+
+
     mutable BlockMatrixPtr_Type systemCombined_;
     mutable BlockMatrixPtr_Type systemMass_;
     mutable SmallMatrix<double> timeParameters_;
@@ -231,6 +247,8 @@ public:
     // Fuer FSI
     // ###########################
     BlockMatrixPtrArray_Type systemMassPreviousTimeSteps_;
+
+    void checkForExportAndExport(BlockMultiVectorPtrArray_Type solutionVec, std::string fileName);
 
     double time_;
 protected:
@@ -283,6 +301,17 @@ private:
                             const ::Thyra::ModelEvaluatorBase::OutArgs<SC> &outArgs) const;
     
     mutable bool precInitOnly_; //Help variable to signal that we constructed the initial preconditioner for NOX with the Stokes system and we do not need to compute it if fill_W_prec is called for the first time. However, the preconditioner is only correct if a Stokes system is solved in the first nonlinear iteration. This only affects the block preconditioners of Teko
+
+    void initExporter(std::string fileName  );
+    void initCheckPoints();
+    double getPreviousTimeIncrement(double timeStep =-1.0);
+    Teuchos::RCP<HDF5Export<SC, LO, GO, NO>> getExporter(std::string fileName, int i);
+
+    std::vector<std::tuple<double,bool>> checkPointTupel_;
+    bool restartValuesImported_ = false; // importRestartValues() ran
+    bool restartNewmarkUpdate_ = false; // after a restart: the imported Newmark state is that of t_{r-1} and is updated (see updateSolutionNewmarkPreviousStep)
+    BlockMultiVectorPtrArray_Type restartMassSolutions_; // after a restart: the products M_i u_i of the checkpoint (see updateMultistepRhsFSI)
+    int timeStepsSinceRestart_ = 0; // time steps of updateMultistepRhsFSI after the one that read restartMassSolutions_
 
 };
 }

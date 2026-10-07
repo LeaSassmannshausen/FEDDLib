@@ -13,6 +13,7 @@
 #include "feddlib/problems/problems_config.h"
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/LinearAlgebra/Matrix.hpp"
+#include "feddlib/core/General/HDF5Import.hpp"
 
 /*!
  Declaration of Problem
@@ -214,6 +215,12 @@ public:
 
     virtual void computeValuesOfInterestAndExport() = 0;
     
+    /// Write additional problem-specific state at a checkpoint. Nothing by default.
+    virtual void exportValuesOfInterest(double time) {}
+
+    /// Restore additional problem-specific state at the restart time. Nothing by default.
+    virtual void importValuesOfInterest(double time) {}
+
     void addParemeterRhs(double para){ parasSourceFunc_.push_back( para ); }
     
     void changeAssFELinearization(std::string linearization); // Function in order to be able to change e.g. from FixedPoint to Newton linearization on element level

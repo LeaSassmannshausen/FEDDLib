@@ -143,6 +143,22 @@ exporterGeo_()
     
     meshDisplacementNew_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(4)->getMapVecFieldRepeated() ) );
     meshDisplacementOld_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(4)->getMapVecFieldRepeated() ) );
+    // If we restart we need to initialize the old/previous geometry solution in meshDisplacementOld to correctly
+    // compute the mesh velocity
+    if(this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false))
+        exporterGeometry_.reset(new HDF5Export<SC,LO,GO,NO>(this->getDomain(4)->getMapVecFieldUnique(),checkpointFile(this->parameterList_, "Solutiond_f")));
+
+    if(this->parameterList_->sublist("Timestepping Parameter").get("Restart", false))
+    {
+      Teuchos::RCP<HDF5Import<SC,LO,GO,NO>> importer =Teuchos::rcp(new HDF5Import<SC,LO,GO,NO>(this->getDomain(4)->getMapVecFieldUnique(),restartFile(this->parameterList_, "Solutiond_f")));
+      double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
+      std::string varName = std::to_string(timeStepRestart);
+
+      MultiVectorConstPtr_Type meshDisplacementOld  = importer->readVariablesHDF5(varName);
+      meshDisplacementOld_rep_->importFromVector(meshDisplacementOld, true);
+      meshDisplacementNew_rep_->importFromVector(meshDisplacementOld, true);
+    }
+
     u_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ) );
     w_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ) );
     u_minus_w_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ) );
@@ -162,10 +178,10 @@ exporterGeo_()
     }
     p_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(1)->getMapRepeated() ) );
     
-    // if ( this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false)){
-    //     exporterBoundaryCondition_ = Teuchos::rcp(new ExporterTxt () );
-    //     exporterBoundaryCondition_->setup( "boundaryConditionFluid", this->comm_ );
-    // }
+    if ( this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false)){
+        exporterBoundaryCondition_ = Teuchos::rcp(new ExporterTxt () );
+        exporterBoundaryCondition_->setup( "boundaryConditionFluid", this->comm_ );
+    }
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -877,7 +893,7 @@ void FSI<SC,LO,GO,NO>::setFromPartialVectorsInit() const
     //Fluid velocity
     this->solution_->addBlock( this->problemFluid_->getSolution()->getBlockNonConst(0), 0 );
     this->residualVec_->addBlock( this->problemFluid_->getResidualVector()->getBlockNonConst(0), 0 );
-    this->residualVec_->addBlock( this->problemFluid_->getResidualVector()->getBlockNonConst(0), 0 );
+    this->previousSolution_->addBlock( this->problemFluid_->getPreviousSolution()->getBlockNonConst(0), 0 );
     this->rhs_->addBlock( this->problemFluid_->getRhs()->getBlockNonConst(0), 0 );
     this->sourceTerm_->addBlock( this->problemFluid_->getSourceTerm()->getBlockNonConst(0), 0 );
     
@@ -1531,7 +1547,10 @@ void FSI<SC,LO,GO,NO>::setSolidMassmatrix( MatrixPtr_Type& massmatrix ) const
     double density = this->problemTimeStructure_->getParameterList()->sublist("Parameter").get("Density",1000.e-0);
     int size = this->problemTimeStructure_->getSystem()->size();
 
-    if(timeSteppingTool_->currentTime() == 0.0)
+    bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
+    double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
+
+    if(timeSteppingTool_->currentTime() == 0.0 || (restart &&  timeSteppingTool_->currentTime() -1.e-5 < timeStepRestart ))
     {
         this->problemTimeStructure_->systemMass_.reset(new BlockMatrix_Type(size));
         {
@@ -1554,6 +1573,8 @@ template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::updateTime() const
 {
     timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
+    this->problemTimeFluid_->updateTime(timeSteppingTool_->t_);
+    this->problemTimeStructure_->updateTime(timeSteppingTool_->t_);
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -1734,6 +1755,18 @@ void FSI<SC,LO,GO,NO>::initializeGE(){
         this->previousSolution_->resize( 4 );
         this->residualVec_->resize( 4 );
         this->initVectorSpaces();  //reinitialize NOX vector spaces
+    }
+}
+
+
+template<class SC,class LO,class GO,class NO>
+void FSI<SC,LO,GO,NO>::exportValuesOfInterest(double time)
+{
+
+    if(geometryExplicit_)
+    {
+        std::string varName = std::to_string(time);
+        exporterGeometry_->writeVariablesHDF5(varName,problemGeometry_->getSolution()->getBlockNonConst(0));
     }
 }
 
