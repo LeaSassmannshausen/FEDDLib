@@ -1,7 +1,7 @@
 #ifndef FEDD_TEST_TRANSIENT_REFERENCE_HPP
 #define FEDD_TEST_TRANSIENT_REFERENCE_HPP
 
-#include "feddlib/core/General/CheckpointFiles.hpp"
+#include "feddlib/core/Checkpointing/CheckpointFiles.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 #include "feddlib/core/General/HDF5Export.hpp"
 #include "feddlib/core/General/HDF5Import.hpp"

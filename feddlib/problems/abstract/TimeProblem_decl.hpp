@@ -6,7 +6,7 @@
 #include "Problem.hpp"
 #include "feddlib/core/General/HDF5Export.hpp"
 #include "feddlib/core/General/HDF5Import.hpp"
-#include "feddlib/core/General/CheckpointFiles.hpp"
+#include "feddlib/core/Checkpointing/CheckpointFiles.hpp"
 #include <tuple>
 #include <set>
 

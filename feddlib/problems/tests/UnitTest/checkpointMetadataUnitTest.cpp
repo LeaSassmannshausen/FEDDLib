@@ -1,4 +1,4 @@
-#include "feddlib/core/General/CheckpointMetadata.hpp"
+#include "feddlib/core/Checkpointing/CheckpointMetadata.hpp"
 #include "feddlib/core/General/HDF5Export.hpp"
 #include "feddlib/core/General/HDF5Import.hpp"
 #include <Teuchos_GlobalMPISession.hpp>
@@ -69,6 +69,51 @@ int main(int argc, char** argv)
     const auto validate = [&](const Teuchos::ParameterList& required) {
         checkpoint::validate(required, parameters, time, *comm);
     };
+    // Independently specified version-1 schemas must remain compatible after
+    // moving schema construction out of Problem, including component roles.
+    const auto checksSchema = [&](const std::string& label, const Teuchos::ParameterList& expected,
+                                  Teuchos::ParameterList settings,
+                                  const std::vector<checkpoint::FieldDescription>& fields) {
+        int matched = 1;
+        try {
+            const auto actual = checkpoint::makeSchema(settings, fields, expected.get<std::string>("Role"));
+            checkpoint::compare(expected, actual);
+            checkpoint::compare(checkpoint::atTime(expected, time), checkpoint::atTime(actual, time));
+            if (checkpoint::manifestName(expected, time) != checkpoint::manifestName(actual, time))
+                throw std::runtime_error("Changed component manifest name/field order");
+        }
+        catch (const std::exception& exception) {
+            matched = 0;
+            if (comm->getRank() == 0) std::cerr << exception.what() << '\n';
+        }
+        int allMatched = 0;
+        Teuchos::reduceAll(*comm, Teuchos::REDUCE_MIN, 1, &matched, &allMatched);
+        if (!allMatched) ++failures;
+        if (comm->getRank() == 0)
+            std::cout << (allMatched ? "PASS " : "FAIL ") << label << '\n';
+    };
+    Teuchos::ParameterList settings;
+    settings.sublist("Timestepping Parameter").set("Class", std::string("Multistep"))
+        .set("dt", 0.0025).set("BDF", 2);
+    const std::vector<checkpoint::FieldDescription> fields = {
+        {"u", "P1", 2, 2, "8", "0", "mesh-A"},
+        {"p", "P1", 2, 1, "4", "0", "mesh-A"}
+    };
+    checksSchema("version-1 BDF schema", schema, settings, fields);
+    {
+        auto bdf1 = schema;
+        bdf1.sublist("Integration").set("BDF", 1).set("Solution history", 1);
+        auto bdf1Settings = settings;
+        bdf1Settings.sublist("Timestepping Parameter").set("BDF", 1);
+        checksSchema("version-1 BDF1 schema", bdf1, bdf1Settings, fields);
+        bdf1.sublist("Integration").set("Extrapolation", true).set("Solution history", 2);
+        bdf1Settings.sublist("General").set("Linearization", std::string("Extrapolation"));
+        checksSchema("version-1 BDF1 extrapolation history", bdf1, bdf1Settings, fields);
+        auto fluid = schema;
+        fluid.set("Role", std::string("FSI fluid"));
+        fluid.sublist("Integration").set("Layout", std::string("legacy-start-of-step-v1"));
+        checksSchema("version-1 FSI fluid schema", fluid, settings, fields);
+    }
     fixture();
     validate(schema);
     if (comm->getRank() == 0) std::cout << "PASS compatible checkpoint\n";
@@ -171,6 +216,12 @@ int main(int argc, char** argv)
     newmarkIntegration.set("Class", std::string("Newmark"))
         .set("Layout", std::string("legacy-start-of-step-v1"))
         .set("beta", 0.25).set("gamma", 0.5);
+    auto newmarkSettings = settings;
+    newmarkSettings.sublist("Timestepping Parameter").set("Class", std::string("Newmark"));
+    checksSchema("version-1 Newmark schema", newmark, newmarkSettings, {fields[0]});
+    auto structure = newmark;
+    structure.set("Role", std::string("FSI structure"));
+    checksSchema("version-1 FSI structure overrides integration class", structure, settings, {fields[0]});
     fixtureFor(newmark);
     validate(newmark);
     for (const std::string setting : {std::string("beta"), std::string("gamma")}) {
@@ -190,6 +241,15 @@ int main(int argc, char** argv)
     fsi.sublist("Fields").remove("u");
     for (const std::string name : {std::string("u_f"), std::string("d_s"), std::string("lambda"), std::string("d_f")})
         fsi.sublist("Fields").sublist(name).setParameters(field);
+    auto fsiSettings = settings;
+    fsiSettings.sublist("Parameter").set("FSI", true);
+    std::vector<checkpoint::FieldDescription> fsiFields = {fields[1]};
+    for (const std::string name : {std::string("u_f"), std::string("d_s"), std::string("lambda"), std::string("d_f")}) {
+        auto description = fields[0];
+        description.name = name;
+        fsiFields.push_back(description);
+    }
+    checksSchema("version-1 coupled FSI schema", fsi, fsiSettings, fsiFields);
     fixtureFor(fsi);
     validate(fsi);
     checkpoint::onRoot(*comm, [&] {

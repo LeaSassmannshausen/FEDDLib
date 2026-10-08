@@ -1,5 +1,5 @@
 #include "feddlib/core/General/BCBuilder.hpp"
-#include "feddlib/core/General/CheckpointFiles.hpp"
+#include "feddlib/core/Checkpointing/CheckpointFiles.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 #include "feddlib/core/General/HDF5Import.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"

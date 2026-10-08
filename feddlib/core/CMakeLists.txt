@@ -37,6 +37,9 @@ append_set(HEADERS
 append_set(HEADERS FEDDCore.hpp)
 
 # Add headers/sources from all subfolders
+add_subdirectory(Checkpointing)
+append_set(HEADERS ${Checkpointing_HEADERS})
+
 add_subdirectory(FE)
 append_set(HEADERS ${FE_HEADERS})
 append_set(SOURCES ${FE_SOURCES})

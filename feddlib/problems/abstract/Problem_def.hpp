@@ -3,13 +3,14 @@
 
 #include "feddlib/core/LinearAlgebra/BlockMatrix.hpp"
 #include "feddlib/core/FE/Domain.hpp"
+#include "feddlib/core/Checkpointing/CheckpointMeshFingerprint.hpp"
 #include "feddlib/core/FE/FE.hpp"
 #include "feddlib/problems/Solver/Preconditioner.hpp"
 #include "feddlib/problems/Solver/LinearSolver.hpp"
 #include "feddlib/core/General/BCBuilder.hpp"
 #include "feddlib/core/LinearAlgebra/BlockMultiVector.hpp"
-#include "feddlib/core/General/CheckpointFiles.hpp"
-#include "feddlib/core/General/CheckpointMetadata.hpp"
+#include "feddlib/core/Checkpointing/CheckpointFiles.hpp"
+#include "feddlib/core/Checkpointing/CheckpointMetadata.hpp"
 
 /*!
  Definition of Problem
@@ -433,90 +434,17 @@ namespace FEDD
         if (!time.get("Restart", false) && !time.get("Checkpointing", false) &&
             !parameterList_->sublist("General").get("Safe all solution", false))
             return;
-        TEUCHOS_TEST_FOR_EXCEPTION(time.sublist("Timestepping Intervalls").get("Number of Segments", 0) != 0,
-            std::logic_error, "Checkpoint metadata version 1 supports fixed timesteps only.");
-        const double dt = time.get("dt", 0.01);
-        TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(dt) || dt <= 0., std::logic_error,
-                                   "Checkpoint metadata requires a finite positive dt.");
-        const bool fsi = parameterList_->sublist("Parameter").get("FSI", false);
-        const std::string method = role == "FSI structure" ? "Newmark" : time.get("Class", "Multistep");
-        TEUCHOS_TEST_FOR_EXCEPTION(method != "Multistep" && method != "Newmark", std::logic_error,
-                                   "Checkpoint metadata does not support integration class " << method);
-        auto& schema = checkpointSchema_;
-        schema.set("Format version", 1).set("FSI", fsi).set("Role", role);
-        auto& integration = schema.sublist("Integration");
-        integration.set("Class", method).set("dt", dt);
-        integration.set("Layout", fsi || method == "Newmark" || role == "FSI fluid"
-                         ? "legacy-start-of-step-v1" : "accepted-step-bdf-v1");
-        int history = 2;
-        if (method == "Multistep") {
-            const int order = time.get("BDF", 1);
-            TEUCHOS_TEST_FOR_EXCEPTION(order != 1 && order != 2, std::logic_error,
-                                       "Checkpoint metadata supports BDF1 and BDF2 only.");
-            const bool extrapolation = parameterList_->sublist("General").get("Linearization", "FixedPoint") == "Extrapolation";
-            history = extrapolation ? std::max(order, 2) : order;
-            integration.set("BDF", order).set("Extrapolation", extrapolation);
-        }
-        if (method == "Newmark" || fsi) {
-            integration.set("beta", time.get("beta", 0.25));
-            integration.set("gamma", time.get("gamma", 0.5));
-        }
-        integration.set("Solution history", history);
-        if (fsi) integration.set("Geometry Explicit", parameterList_->sublist("Parameter").get("Geometry Explicit", true));
-        auto& fields = schema.sublist("Fields");
+        std::vector<checkpoint::FieldDescription> fields;
+        fields.reserve(domainPtr_vec_.size());
         for (UN i = 0; i < domainPtr_vec_.size(); ++i) {
             const auto domain = domainPtr_vec_[i];
-            const auto nodes = domain->getMapUnique();
-            const auto map = dofsPerNode_vec_[i] > 1 ? domain->getMapVecFieldUnique() : nodes;
-            auto& field = fields.sublist(variableName_vec_[i]);
-            field.set("FE type", domain_FEType_vec_[i]).set("Dimension", static_cast<int>(domain->getDimension()));
-            field.set("Components", dofsPerNode_vec_[i]);
-            field.set("Global DOFs", std::to_string(map->getGlobalNumElements()));
-            field.set("Index base", std::to_string(map->getIndexBase()));
-            // Sum record hashes over uniquely owned entities. Ownership and rank count
-            // may change; global IDs, reference coordinates and connectivity may not.
-            unsigned long long local[2] = {0, 0}, global[2] = {0, 0};
-            const auto record = [&](const std::string& value) {
-                local[0] += checkpoint::hashRecord(value, 14695981039346656037ULL);
-                local[1] += checkpoint::hashRecord(value, 7809847782465536322ULL);
-            };
-            const auto points = domain->getPointsUnique();
-            const auto flags = domain->getBCFlagUnique();
-            for (UN j = 0; j < nodes->getNodeNumElements(); ++j) {
-                std::ostringstream value;
-                value << "node " << nodes->getGlobalElement(j) << std::hexfloat;
-                for (double coordinate : points->at(j)) value << ' ' << coordinate;
-                if (!flags.is_null()) value << " flag " << flags->at(j);
-                record(value.str());
-            }
-            for (UN j = 0; j < map->getNodeNumElements(); ++j)
-                record("dof " + std::to_string(map->getGlobalElement(j)));
-            const auto elements = domain->getElementsC();
-            // FSI's dummy interface domain has nodes/DOFs but no volume element map.
-            if (elements->numberElements() > 0) {
-                const auto elementMap = domain->getElementMap();
-                const auto repeated = domain->getMapRepeated();
-                std::function<std::string(FiniteElement)> elementRecord = [&](FiniteElement element) {
-                    std::ostringstream value;
-                    value << "flag " << element.getFlag();
-                    for (auto node : element.getVectorNodeList()) value << ' ' << repeated->getGlobalElement(node);
-                    std::vector<std::string> surfaces;
-                    auto children = element.getSubElements();
-                    if (!children.is_null())
-                        for (UN k = 0; k < children->numberElements(); ++k)
-                            surfaces.push_back(elementRecord(children->getElement(k)));
-                    std::sort(surfaces.begin(), surfaces.end());
-                    for (const auto& surface : surfaces) value << " [" << surface << ']';
-                    return value.str();
-                };
-                for (UN j = 0; j < elementMap->getNodeNumElements(); ++j)
-                    record("element " + std::to_string(elementMap->getGlobalElement(j)) + " " + elementRecord(elements->getElement(j)));
-            }
-            Teuchos::reduceAll(*comm_, Teuchos::REDUCE_SUM, 2, local, global);
-            std::ostringstream fingerprint;
-            fingerprint << std::hex << global[0] << ':' << global[1];
-            field.set("Reference mesh and DOF fingerprint", fingerprint.str());
+            const auto map = dofsPerNode_vec_[i] > 1 ? domain->getMapVecFieldUnique() : domain->getMapUnique();
+            fields.push_back({variableName_vec_[i], domain_FEType_vec_[i],
+                              static_cast<int>(domain->getDimension()), dofsPerNode_vec_[i],
+                              std::to_string(map->getGlobalNumElements()), std::to_string(map->getIndexBase()),
+                              checkpoint::meshAndDofFingerprint(*domain, *map, *comm_)});
         }
+        checkpointSchema_ = checkpoint::makeSchema(*parameterList_, fields, role);
         checkpointSchemaPrepared_ = true;
         if (time.get("Restart", false))
             validateRestartCheckpoint(time.get("Time step", 0.));

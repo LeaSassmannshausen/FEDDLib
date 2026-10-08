@@ -188,6 +188,8 @@ public:
     void restoreSolutionFromCheckpoint(double restartTime);
 
     /** @brief Cache the reference mesh/discretization and validate restart data.
+     * Collects field descriptions; core checkpoint helpers construct the schema
+     * and compute mesh identity independently of the Problem class.
      * Call collectively before the first restore, including FSI constructor reads.
      * A component role selects FSI fluid mass history or structure Newmark history.
      * Cached mesh identity is retained when ALE subsequently moves the coordinates.

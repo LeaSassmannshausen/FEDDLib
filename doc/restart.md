@@ -39,6 +39,12 @@ format/layout, physical time, step number, fixed `dt`, BDF order and extrapolati
 history, Newmark parameters where applicable, field names, FE types, components,
 global DOF counts/index bases, and the exact required HDF5 files and time keys.
 
+`core/Checkpointing/CheckpointMetadata.hpp` owns schema construction (`makeSchema`),
+metadata keys, integration/history compatibility rules, and manifest I/O.
+`core/Checkpointing/CheckpointMeshFingerprint.hpp` computes the reference mesh/DOF identity.
+`Problem::prepareCheckpointMetadata()` collects settings and field descriptions,
+caches the schema before ALE motion, and triggers restart validation.
+
 Before primary fields, geometry or history are restored, the reader compares
 this metadata and inspects every required dataset. Mesh/DOF identity is checked
 using two order-independent 64-bit record checksums over global node IDs,
