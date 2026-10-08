@@ -5,7 +5,6 @@
         <Parameter name="Model Geometry" type="string" value="Laplace" />
         <Parameter name="FSI" type="bool" value="true" />
         <Parameter name="Geometry Explicit" type="bool" value="true" />
-        <Parameter name="Use AceGen Interface" type="bool" value="true" />
         <Parameter name="relNonLinTol" type="double" value="1.e-10" />
         <Parameter name="MaxNonLinIts" type="int" value="15" />
         <Parameter name="Cancel MaxNonLinIts" type="bool" value="true" />
@@ -83,6 +82,7 @@
         <Parameter name="Number Checkpoints" type="int" value="3" />
         <Parameter name="Restart" type="bool" value="false" />
         <Parameter name="Restart tolerance" type="double" value="1.e-12" />
+        <Parameter name="Restart absolute tolerance" type="double" value="1.e-15" />
         <ParameterList name="Checkpoints">
             <Parameter name="1" type="double" value="0.01" />
             <Parameter name="2" type="double" value="0.015" />

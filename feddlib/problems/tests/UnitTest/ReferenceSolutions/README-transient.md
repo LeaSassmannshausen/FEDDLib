@@ -12,7 +12,7 @@ missing or changed references cannot be replaced automatically by the test.
 
 The FSI case uses the Turek fluid/solid `h004` meshes, explicit geometry and
 FaCSI, with the same boundary conditions, material and solver settings as
-`RestartTests/fsi_restart`. It stops at `0.02` and compares the primary fields.
+`RestartTests/fsi_2D_turek`. It stops at `0.02` and compares the primary fields.
 
 The elasticity case uses `square_h02.mesh`, P1 elements, Saint Venant-Kirchhoff material
 with Poisson ratio `0.48`,

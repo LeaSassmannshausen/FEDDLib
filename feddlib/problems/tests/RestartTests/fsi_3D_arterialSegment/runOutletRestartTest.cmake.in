@@ -2,7 +2,7 @@
 SET(work "@CMAKE_CURRENT_BINARY_DIR@/@outlet_test_name@")
 FILE(REMOVE_RECURSE "${work}")
 FILE(MAKE_DIRECTORY "${work}")
-FOREACH(input IN ITEMS @fsi_restart_parameter_files@ fsi_fluid_length_0_5_mm.mesh fsi_solid_length_0_5_mm.mesh)
+FOREACH(input IN ITEMS @fsi_3D_arterialSegment_parameter_files@ fsi_fluid_length_0_5_mm.mesh fsi_solid_length_0_5_mm.mesh)
     FILE(COPY "@CMAKE_CURRENT_BINARY_DIR@/${input}" DESTINATION "${work}")
 ENDFOREACH()
 SET(command "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@

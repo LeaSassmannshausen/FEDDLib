@@ -327,6 +327,25 @@ int main(int argc, char** argv)
     rejects("nonfinite outlet state", "nonfinite", [&] {
         checkpoint::validateOutletState(nonfiniteOutlet, "Absorbing Paper", time);
     });
+
+    // Density and kinematic viscosity both affect the resistance traction.
+    // Rebuilding the schema from changed input must reject the old checkpoint.
+    auto resistanceSettings = fsiSettings;
+    resistanceSettings.sublist("Parameter Fluid")
+        .set("Pressure Boundary Condition", std::string("Resistance"))
+        .set("Density", 0.5).set("Viscosity", 0.25);
+    const auto resistanceFsi = checkpoint::makeSchema(resistanceSettings, fsiFields);
+    fixtureFor(resistanceFsi);
+    checkpoint::onRoot(*comm, [&] {
+        checkpoint::writeOutletState(outlet, outletFile, "Resistance", time);
+    });
+    validate(resistanceFsi);
+    for (const std::string setting : {std::string("Density"), std::string("Viscosity")}) {
+        auto changedSettings = resistanceSettings;
+        changedSettings.sublist("Parameter Fluid").set(setting, 0.125);
+        const auto changedResistance = checkpoint::makeSchema(changedSettings, fsiFields);
+        rejects("changed resistance " + setting, setting, [&] { validate(changedResistance); });
+    }
     checkpoint::onRoot(*comm, [&] { std::filesystem::remove_all(directory); });
     return failures ? EXIT_FAILURE : EXIT_SUCCESS;
 }

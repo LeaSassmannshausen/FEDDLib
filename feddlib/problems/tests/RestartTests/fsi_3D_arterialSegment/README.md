@@ -12,19 +12,24 @@ amplitude are retained; ramp/transition times and the simulation duration are
 shortened for this regression test. The solver uses Newton with relative residual
 tolerance 1e-10 and flexible GMRES with tolerance 1e-12.
 
-The `problems_fsi_artery_restart_Resistance`, `_Absorbing`, and `_Absorbing_Paper`
+The `problems_fsi_3D_arterialSegment_Resistance`, `_Absorbing`, and `_Absorbing_Paper`
 tests use separate working directories and four MPI ranks. Their transition time
 is `0.012`, between timesteps of size `0.0025`. Each test restarts from both `0.01`
 and `0.015`, comparing velocity, pressure, and displacement at `0.02`, together
 with initial areas, transition area, flow-rate history, outlet pressure and flags.
-The field comparison uses relative l2 tolerance 1e-12; scalar history uses
+The field comparison uses the combined l2 bound
+`absolute error <= 1e-15 + 1e-12 * reference l2 norm`. The absolute tolerance
+is in the stored field's units and covers round-off for small displacements;
+both bounds are configurable in the timestepping parameters. Scalar history uses
 `absolute error <= 1e-14 + 1e-12 * abs(reference)`. Solver output is streamed to
 CTest and can be viewed with `-V`.
 
-The original 2D Turek restart test remains in the sibling `fsi_restart` folder.
+The original 2D Turek restart test remains in the sibling `fsi_2D_turek` folder.
 
 The resistance variant first checks the integrated traction for an affine
 velocity against its analytic value, covering pressure and viscous components.
+This check uses a non-unit density: the input viscosity is kinematic, and the
+viscous traction uses dynamic viscosity (density times kinematic viscosity).
 
 The variants also verify that changed averaging, missing outlet state and an
 unknown state version are rejected. The Resistance variant additionally tests
@@ -57,8 +62,9 @@ including when `Allow legacy restart` is enabled.
 Run these tests with:
 
 ```sh
-ctest --test-dir build -V -R 'problems_fsi_artery_restart'
+ctest --test-dir build -V -R 'problems_fsi_3D_arterialSegment'
 ```
 
 The metadata unit test additionally checks scalar round-trip precision, invalid
-areas, missing history, nonfinite values and missing transition state.
+areas, missing history, nonfinite values, missing transition state, and rejection
+of changed density or kinematic viscosity for the resistance model.

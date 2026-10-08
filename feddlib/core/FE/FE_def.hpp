@@ -3891,7 +3891,11 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
     Helper::getQuadratureValues(dim-1, deg, quadPoints, w, FEType);
     w.reset();
 
-    double viscosity=params->sublist("Parameter Fluid").get("Viscosity", params->sublist("Parameter").get("Viscosity",0.49)); 
+    // The fluid input is kinematic viscosity; traction uses dynamic viscosity,
+    // consistently with the density-scaled Navier-Stokes volume operator.
+    const double viscosity = params->sublist("Parameter Fluid").get("Viscosity",
+        params->sublist("Parameter").get("Viscosity", 0.49)) *
+        params->sublist("Parameter Fluid").get("Density", 1.);
     int flagInlet = params->sublist("General").get("Flag Inlet Fluid", 4);
     int flagOutlet = params->sublist("General").get("Flag Outlet Fluid", 5);
 
@@ -3996,7 +4000,7 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
                         norm_v_E = sqrt(pow(v_E[0],2)+pow(v_E[1],2)+pow(v_E[2],2));
                     }
                     
-                    // Integrate p*n - nu*(grad u)*n with the actual surface
+                    // Integrate p*n - mu*(grad u)*n with the actual surface
                     // quadrature and physical parent-element gradients.
                     TEUCHOS_TEST_FOR_EXCEPTION(FEType != "P1" && FEType != "P2", std::logic_error,
                         "Resistance boundaries require P1 or P2 elements.");

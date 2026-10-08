@@ -1,5 +1,5 @@
 TRIBITS_ADD_EXECUTABLE(
-    fsi_restart
+    fsi_2D_turek
     SOURCES main.cpp
 )
 
@@ -9,18 +9,18 @@ TRIBITS_ADD_EXECUTABLE(
 # from the checkpoint at t = 0.01 and must reproduce the uninterrupted solution
 # at t = 0.02.
 TRIBITS_ADD_ADVANCED_TEST(
-    fsi_restart
-    TEST_0 EXEC fsi_restart
+    fsi_2D_turek
+    TEST_0 EXEC fsi_2D_turek
         ARGS --problemfile=parametersProblemFSI.xml
         NUM_MPI_PROCS 4
-    TEST_1 EXEC fsi_restart
+    TEST_1 EXEC fsi_2D_turek
         ARGS --problemfile=parametersProblemFSI_restart.xml
         NUM_MPI_PROCS 4
     OVERALL_NUM_MPI_PROCS 4
     FAIL_FAST
 )
 
-SET(fsi_restart_parameter_files
+SET(fsi_2D_turek_parameter_files
     parametersProblemFSI.xml
     parametersProblemFSI_restart.xml
     parametersPrecFluidMono.xml
@@ -30,18 +30,18 @@ SET(fsi_restart_parameter_files
     parametersSolverGeometry.xml
 )
 
-TRIBITS_COPY_FILES_TO_BINARY_DIR(data_fsi_restartTest
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_fsi_2D_turekTest
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
-    SOURCE_FILES ${fsi_restart_parameter_files}
+    SOURCE_FILES ${fsi_2D_turek_parameter_files}
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
-    DEST_FILES ${fsi_restart_parameter_files}
-    EXEDEPS fsi_restart
+    DEST_FILES ${fsi_2D_turek_parameter_files}
+    EXEDEPS fsi_2D_turek
 )
 
-TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_fsi_restartTest
+TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_fsi_2D_turekTest
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
     SOURCE_FILES dfg_fsi_fluid_h004.mesh dfg_fsi_solid_h004.mesh
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
     DEST_FILES dfg_fsi_fluid_h004.mesh dfg_fsi_solid_h004.mesh
-    EXEDEPS fsi_restart
+    EXEDEPS fsi_2D_turek
 )

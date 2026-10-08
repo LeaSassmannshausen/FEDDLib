@@ -98,8 +98,8 @@ not validate restart of stateful outlet boundary conditions.
 With tests enabled and the required Trilinos solvers available:
 
 ```sh
-cmake --build build --target problems_unsteadyNavierStokes_restart problems_fsi_restart problems_unsteadyNonLinElasticity_restart
-ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_restart|fsi_restart|unsteadyNonLinElasticity_restart)'
+cmake --build build --target problems_unsteadyNavierStokes_restart problems_fsi_2D_turek problems_unsteadyNonLinElasticity_restart
+ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_restart|fsi_2D_turek|unsteadyNonLinElasticity_restart)'
 ```
 
 - `unsteadyNavierStokes_restart` runs the 2D `BFS2d_1600.mesh` and 3D
@@ -124,7 +124,7 @@ ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_re
   its own working directory and generates its own checkpoints. The runner
   prepares the inputs quietly and streams both simulations' normal output;
   use `ctest -V` to display the solver output and restart errors.
-- `fsi_restart` runs an uninterrupted simulation and a restarted simulation on
+- `fsi_2D_turek` runs an uninterrupted simulation and a restarted simulation on
   four MPI ranks, comparing fluid velocity, pressure, and solid displacement at
   the same final time with relative tolerance `1e-12`. Both phases load the case
   from `parametersProblemFSI.xml`; `parametersProblemFSI_restart.xml` contains

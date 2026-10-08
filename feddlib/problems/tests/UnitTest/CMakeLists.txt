@@ -10,7 +10,7 @@ SET(fsi_reference_inputs
     parametersProblemFSI.xml parametersPrecFluidMono.xml parametersPrecStructure.xml
     parametersPrecGeometry.xml parametersSolverFSI.xml parametersSolverGeometry.xml)
 tribits_copy_files_to_binary_dir(param_fsiUnitTest
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../RestartTests/fsi_restart
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../RestartTests/fsi_2D_turek
     SOURCE_FILES ${fsi_reference_inputs}
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
     DEST_FILES ${fsi_reference_inputs}

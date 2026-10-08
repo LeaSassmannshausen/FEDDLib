@@ -78,7 +78,7 @@ bool checkResistanceAssembly(DomainPtr_Type domain, RCP<const Teuchos::Comm<int>
         values[3 * i + 2] = 3. + 7. * x[0] + 8. * x[1] + 9. * x[2];
     }
     auto settings = rcp(new Teuchos::ParameterList);
-    settings->sublist("Parameter Fluid").set("Viscosity", 0.25);
+    settings->sublist("Parameter Fluid").set("Viscosity", 0.25).set("Density", 0.5);
     double flow = 0., area = 0.;
     const int backflow = fe.assemblyFlowRate(3, flow, "P1", 3, 5, velocity);
     fe.assemblyArea(3, area, 5);
@@ -92,7 +92,7 @@ bool checkResistanceAssembly(DomainPtr_Type domain, RCP<const Teuchos::Comm<int>
     const auto data = load.getData(0);
     for (int i = 0; i < data.size(); ++i) local[i % 3] += data[i];
     Teuchos::reduceAll(*comm, Teuchos::REDUCE_SUM, 3, local, total);
-    const double expected[] = {-area * 0.75, -area * 1.5, area * (pressure - 2.25)};
+    const double expected[] = {-area * 0.375, -area * 0.75, area * (pressure - 1.125)};
     double errorPositive = 0., errorNegative = 0.;
     for (int i = 0; i < 3; ++i) {
         errorPositive += std::pow(total[i] - expected[i], 2);
@@ -112,6 +112,7 @@ bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, RCP<const T
     const auto& timeParameters = parameters->sublist("Timestepping Parameter");
     const double finalTime = timeParameters.get<double>("Final time");
     const double tolerance = timeParameters.get<double>("Restart tolerance");
+    const double absoluteTolerance = timeParameters.get<double>("Restart absolute tolerance");
     const char* checkpointNames[] = {"Solutionu_f", "Solutionp", "Solutiond_s"};
     const char* fieldNames[] = {"fluid velocity", "fluid pressure", "solid displacement"};
     bool passed = true;
@@ -123,18 +124,25 @@ bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, RCP<const T
         MultiVector_Type error(solution->getMap());
         error.update(1., *solution, -1., *reference, 0.);
 
-        Teuchos::Array<SC> errorNorm(1), solutionNorm(1);
+        Teuchos::Array<SC> errorNorm(1), referenceNorm(1);
         error.norm2(errorNorm);
-        solution->norm2(solutionNorm);
-        const double relativeError = solutionNorm[0] > 0. ? errorNorm[0] / solutionNorm[0] : errorNorm[0];
+        reference->norm2(referenceNorm);
+        // A small reference field needs an absolute round-off allowance as
+        // well as a relative bound. Always scale by the reference solution.
+        const double allowed = absoluteTolerance + tolerance * referenceNorm[0];
+        const bool matches = std::isfinite(errorNorm[0]) && std::isfinite(referenceNorm[0]) &&
+                             errorNorm[0] <= allowed;
         if (comm->getRank() == 0) {
             std::cout << "Restart absolute error (" << fieldNames[block] << ", l2): "
-                      << errorNorm[0] << std::endl;
-            std::cout << "Restart relative error (" << fieldNames[block] << "): "
-                      << relativeError << " (tolerance " << tolerance << ")" << std::endl;
+                      << errorNorm[0] << " (allowed " << allowed << " = " << absoluteTolerance
+                      << " + " << tolerance << " * reference l2 norm): "
+                      << (matches ? "PASS" : "FAIL") << std::endl;
+            std::cout << "Restart relative error (" << fieldNames[block] << "): ";
+            if (referenceNorm[0] > 0.) std::cout << errorNorm[0] / referenceNorm[0];
+            else std::cout << "undefined (zero reference norm; using absolute bound)";
+            std::cout << " (relative tolerance " << tolerance << ")" << std::endl;
         }
-        if (!(relativeError <= tolerance))
-            passed = false;
+        passed = passed && matches;
     }
     const std::string model = parameters->sublist("Parameter Fluid").get("Pressure Boundary Condition", "None");
     if (model != "None") {

@@ -60,6 +60,7 @@ inline Teuchos::ParameterList outletConfiguration(Teuchos::ParameterList& parame
     if (model == "Resistance") {
         result.set("Resistance", fluid.get("Resistance", 1.));
         result.set("Viscosity", fluid.get("Viscosity", parameters.sublist("Parameter").get("Viscosity", 0.49)));
+        result.set("Density", fluid.get("Density", 1.));
         result.set("Reference fluid pressure", fluid.get("Reference fluid pressure", 119.9));
     }
     else {
