@@ -4,7 +4,7 @@
         <Parameter name="MeanVelocity" type="double" value="2.0"/>
         <Parameter name="FSI" type="bool" value="true"/>
         <Parameter name="Geometry Explicit" type="bool" value="true"/>
-        <Parameter name="relNonLinTol" type="double" value="1.0e-6"/>
+        <Parameter name="relNonLinTol" type="double" value="1.0e-10"/>
         <Parameter name="MaxNonLinIts" type="int" value="10"/>
         <Parameter name="Criterion" type="string" value="Residual"/>
     </ParameterList>
