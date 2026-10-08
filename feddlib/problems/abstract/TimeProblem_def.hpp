@@ -670,6 +670,7 @@ void TimeProblem<SC,LO,GO,NO>::writeMultistepCheckpoint(double completedTime, do
     }
     if (checkpointDue)
         problem_->exportValuesOfInterest(completedTime);
+    problem_->writeCheckpointMetadata(completedTime);
 }
 
 
@@ -1341,6 +1342,7 @@ std::string TimeProblem<SC,LO,GO,NO>::description() const{ //reimplement descrip
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::restoreMultistepHistory(int nmbSteps, double restartTime)
 {
+    problem_->validateRestartCheckpoint(restartTime);
     const double dt = getPreviousTimeIncrement(restartTime);
     const int size = problem_->getSolution()->size();
     solutionPreviousTimesteps_.resize(nmbSteps);
@@ -1366,6 +1368,7 @@ void TimeProblem<SC,LO,GO,NO>::restoreMultistepHistory(int nmbSteps, double rest
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::restoreMassProductHistory(int nmbSteps, double restartTime)
 {
+    problem_->validateRestartCheckpoint(restartTime);
     const double dt = getPreviousTimeIncrement(restartTime);
     const int size = massParameters_.size();
     restartMassSolutions_.resize(nmbSteps);
@@ -1387,6 +1390,7 @@ void TimeProblem<SC,LO,GO,NO>::restoreMassProductHistory(int nmbSteps, double re
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::restoreNewmarkDisplacementHistory(double restartTime, bool updateFromPrevious)
 {
+    problem_->validateRestartCheckpoint(restartTime);
     restartNewmarkUpdate_ = updateFromPrevious;
     const double dt = getPreviousTimeIncrement(restartTime);
     const int size = problem_->getSolution()->size();
@@ -1409,6 +1413,7 @@ void TimeProblem<SC,LO,GO,NO>::restoreNewmarkDisplacementHistory(double restartT
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::restoreNewmarkDerivativeHistory(double restartTime)
 {
+    problem_->validateRestartCheckpoint(restartTime);
     TEUCHOS_TEST_FOR_EXCEPTION(!(restartTime + 1.e-10 > 0.), std::logic_error,
                                "You are trying to restart from a time with no previous exported time.");
     const std::string varName = std::to_string(restartTime);
@@ -1452,6 +1457,7 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                 this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i));
                 // For time dependet problems, the different VarNames are the time.
             }
+            problem_->writeCheckpointMetadata(time_);
         }
         else if(checkPointing){
             // We Only export one specific time step. (For BDF 2 we also include the two previous time steps)
@@ -1489,6 +1495,7 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                     // Save additional problem-specific checkpoint state.
                     if(fileName == "Solution")
                         problem_->exportValuesOfInterest(time_);
+                    problem_->writeCheckpointMetadata(time_);
                 }
 
             }

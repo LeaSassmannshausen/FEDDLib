@@ -46,3 +46,38 @@ run_phase("Independent reference stopping at 0.03" @reference_mpi_procs@
     --overridefile=parametersProblem_reference.xml)
 run_phase("Restart from final checkpoint at 0.02 to 0.03" @restart_mpi_procs@
     --restartfile=parametersProblem_restart_final.xml)
+
+# Exercise the real pre-restoration path, including a same-size, different mesh.
+IF(@dimension@ EQUAL 2 AND @restart_mpi_procs@ EQUAL 4)
+    FUNCTION(expect_rejection label expected)
+        EXECUTE_PROCESS(COMMAND ${mpi_command}
+            @MPI_EXEC_NUMPROCS_FLAG@ @restart_mpi_procs@
+            @MPI_EXEC_POST_NUMPROCS_FLAGS@ ${test_command}
+            --restartfile=parametersProblem_restart.xml --validate-checkpoint ${ARGN}
+            WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
+            RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE errors TIMEOUT 60)
+        IF(result STREQUAL "0" OR NOT "${output}${errors}" MATCHES "${expected}")
+            MESSAGE(FATAL_ERROR "${label}: expected compatibility rejection, got ${result}\n${output}${errors}")
+        ENDIF()
+        MESSAGE(STATUS "PASS expected checkpoint rejection: ${label}")
+    ENDFUNCTION()
+    run_phase("Validate checkpoint without solving" @restart_mpi_procs@
+        --restartfile=parametersProblem_restart.xml --validate-checkpoint)
+    expect_rejection("same-size modified mesh" "fingerprint" --perturb-mesh)
+    FILE(GLOB manifests "${TEST_WORKING_DIRECTORY}/restartCheckpoints/Checkpoint_*_0.010000.xml")
+    LIST(LENGTH manifests manifest_count)
+    IF(NOT manifest_count EQUAL 1)
+        MESSAGE(FATAL_ERROR "Expected one Navier-Stokes checkpoint manifest, found ${manifest_count}")
+    ENDIF()
+    LIST(GET manifests 0 manifest)
+    FILE(READ "${manifest}" original_manifest)
+    STRING(REPLACE "value=\"P1\"" "value=\"P2\"" changed_manifest "${original_manifest}")
+    FILE(WRITE "${manifest}" "${changed_manifest}")
+    expect_rejection("changed FE type" "FE type")
+    FILE(WRITE "${manifest}" "${original_manifest}")
+    STRING(REPLACE "name=\"BDF\" type=\"int\" value=\"2\""
+        "name=\"BDF\" type=\"int\" value=\"1\"" changed_manifest "${original_manifest}")
+    FILE(WRITE "${manifest}" "${changed_manifest}")
+    expect_rejection("changed BDF order" "BDF")
+    FILE(WRITE "${manifest}" "${original_manifest}")
+ENDIF()

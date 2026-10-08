@@ -32,6 +32,42 @@ directory parameters default to the working directory. Checkpointing and restart
 are disabled by default. Use separate output and input directories if a resumed
 run also writes checkpoints, since creating an output file truncates it.
 
+New checkpoints include a version-1 XML manifest for each component and time,
+for example `Checkpoint_u_p_0.010000.xml`. Component names distinguish a coupled
+FSI problem from its fluid and structure subproblems. The manifest records the
+format/layout, physical time, step number, fixed `dt`, BDF order and extrapolation
+history, Newmark parameters where applicable, field names, FE types, components,
+global DOF counts/index bases, and the exact required HDF5 files and time keys.
+
+Before primary fields, geometry or history are restored, the reader compares
+this metadata and inspects every required dataset. Mesh/DOF identity is checked
+using two order-independent 64-bit record checksums over global node IDs,
+reference coordinates, node markers, element IDs/connectivity/markers,
+boundary subelements and global field DOF IDs. These are compatibility
+fingerprints, not cryptographic integrity checks. They ignore MPI ownership,
+so rank count may change while global numbering must remain consistent.
+The reference fingerprint is cached before ALE moves the mesh. Solver
+tolerances, output settings and final time may change.
+
+Missing manifests are rejected by default. To explicitly read an older
+checkpoint, set `Allow legacy restart` to `true` in `Timestepping Parameter`.
+Legacy mode still checks the required datasets and dimensions; it cannot verify
+mesh or integration compatibility. Version 1 supports fixed-step BDF1/BDF2,
+Newmark, and the existing FSI BDF/Newmark layouts. Segmented timestep schedules
+are rejected when checkpointing/restart is enabled. Numerical history updates
+and the Newmark/FSI checkpoint timing remain unchanged.
+
+The XML manifest is descriptive metadata, **not** a completion marker. The
+reader checks the actual HDF5 data even when a manifest exists. Publishing whole
+checkpoints atomically and replacing decimal dataset keys remain separate work.
+
+`problems_checkpointMetadata_MPI_2` exercises incompatible mesh/FE/DOF metadata,
+BDF order and timestep changes, unknown versions, missing history, inconsistent
+HDF5 length/vector-count/shape/type, a mismatched destination map, and explicit
+legacy mode. Rejections are checked on every MPI rank. The 2D 4-to-4
+Navier–Stokes restart test additionally rejects a same-size mesh with one changed
+coordinate and modified FE/BDF metadata through the actual restore entry point.
+
 Checkpoint times should coincide with time steps. Standalone BDF problems,
 including Navier-Stokes, write checkpoints after a successful solve and clock
 advancement. A run ending at a requested checkpoint time writes that checkpoint
@@ -126,7 +162,7 @@ the on-disk format in one increment.
 | 1a: separate checkpoint reads | Named restore methods for primary fields, BDF history, Newmark displacement/derivatives, FSI mass products, and ALE geometry. This increment retains the existing call order and file format. | Both Navier-Stokes dimensions/rank counts and FSI pass; perturbed BDF history fails. |
 | 1b: explicit restore phase | A coordinator invokes component restore methods in a documented order before time advancement. Remove lazy imports from numerical update routines after handling the first-update history shift explicitly. | Preserve first-step and final-step equivalence; exercise both standalone and FSI Newmark timing conventions. |
 | 2: accepted-step checkpoints | Capture a consistent state after an accepted timestep, including its complete integration history. | Restart from the final timestep without advancing one extra step; verify BDF, Newmark, and moving geometry. |
-| 3: metadata and compatibility | Add a versioned manifest with time, step number, integration settings, mesh/DOF identity, field names/sizes, and required history. Validate before changing simulation state. | Reject wrong mesh/discretization/method and missing or inconsistent history with clear diagnostics. |
+| 3: metadata and compatibility | Version-1 component manifests and shared pre-restoration validation, including global mesh/DOF fingerprints and HDF5 shape/type checks. | Positive restart and MPI rejection tests cover mesh/discretization/settings/history mismatches and explicit legacy mode. |
 | 4: publish complete checkpoints | Write each checkpoint to a new temporary directory, publish only after all MPI ranks/components succeed, and retain the preceding complete checkpoint. | Interrupted writes leave the preceding checkpoint usable; resuming and writing cannot truncate the input checkpoint. |
 | 5: timestep identifiers | Use integer step identifiers and history indices as keys; store physical times as full-precision metadata. Define how legacy checkpoints are recognized/read. | Very small dt and non-integer time values do not collide; supported legacy checkpoints remain readable. |
 

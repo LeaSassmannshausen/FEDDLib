@@ -1,6 +1,8 @@
 #ifndef HDF5TOOLBOX_DEF_hpp
 #define HDF5TOOLBOX_DEF_hpp
 
+#include "HDF5VectorInfo.hpp"
+
 /*
   
 
@@ -182,6 +184,9 @@ template <class SC, class LO, class GO, class NO>
 void HDF5Toolbox<SC, LO, GO, NO>::read(const std::string& GroupName, const MapConstPtr_Type Map,
                         MultiVectorPtr_Type X)
 {
+  TEUCHOS_TEST_FOR_EXCEPTION(X->getNumVectors() != 1, std::logic_error,
+                            "HDF5 vector import currently supports one vector only.");
+  checkpoint::validateVectorDataset(file_id_, GroupName, Map->getGlobalNumElements(), X->getNumVectors());
   // gets the length of the std::vector
   int GlobalLength;
   readIntVectorProperties(GroupName, GlobalLength);

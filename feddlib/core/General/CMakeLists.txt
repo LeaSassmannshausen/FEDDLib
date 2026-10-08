@@ -3,6 +3,8 @@ set(General_HEADERS
 	General/BCBuilder_decl.hpp
 	General/BCBuilder_def.hpp
 	General/CheckpointFiles.hpp
+	General/CheckpointMetadata.hpp
+	General/HDF5VectorInfo.hpp
 	General/DefaultTypeDefs.hpp
 	General/ExporterParaView.hpp
 	General/ExporterParaView_decl.hpp

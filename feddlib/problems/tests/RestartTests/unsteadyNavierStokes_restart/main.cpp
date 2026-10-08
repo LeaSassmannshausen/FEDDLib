@@ -111,10 +111,14 @@ int main(int argc, char* argv[])
 
     std::string problemFile = "parametersProblem2D.xml";
     std::string overrideFile;
+    bool validateOnly = false;
+    bool perturbMesh = false;
     Teuchos::CommandLineProcessor commandLine;
     commandLine.setOption("problemfile", &problemFile, "2D or 3D BFS case parameters.");
     commandLine.setOption("overridefile", &overrideFile, "Optional parameter overrides for this test phase.");
     commandLine.setOption("restartfile", &overrideFile, "Alias for --overridefile for restart runs.");
+    commandLine.setOption("validate-checkpoint", "solve", &validateOnly, "Validate/restore without advancing time.");
+    commandLine.setOption("perturb-mesh", "original-mesh", &perturbMesh, "Change a coordinate for compatibility rejection testing.");
     commandLine.throwExceptions(false);
     const auto parseResult = commandLine.parse(argc, argv);
     if (parseResult == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED)
@@ -153,6 +157,9 @@ int main(int argc, char* argv[])
     partitionerParameters->set("Build Surface List", true);
     MeshPartitioner_Type partitioner(domains, partitionerParameters, "P1", dim);
     partitioner.readAndPartition();
+    if (perturbMesh && pressureDomain->getMapUnique()->getNodeNumElements() > 0 &&
+        pressureDomain->getMapUnique()->getGlobalElement(0) == 0)
+        pressureDomain->getPointsUnique()->at(0).at(0) += 0.001;
     velocityDomain = pressureDomain; // We use only P1-P1 discretization for this test, so the velocity and pressure domains are the same.
 
     // Define boundary conditions for the velocity field. 
@@ -168,6 +175,10 @@ int main(int argc, char* argv[])
     NavierStokes_Type problem(velocityDomain, "P1", pressureDomain, "P1", parameters);
     problem.addBoundaries(boundaries);
     problem.initializeProblem();
+    if (validateOnly) {
+        if (comm->getRank() == 0) std::cout << "Checkpoint compatibility validation passed." << std::endl;
+        return EXIT_SUCCESS;
+    }
     problem.assemble();
     problem.setBoundariesRHS();
 

@@ -120,18 +120,23 @@ exporterGeo_()
     this->addVariable( domainInterface, FETypeInterface, "lambda", domainInterface->getDimension() ); // Interface
     this->addVariable( domainGeometry, FETypeGeometry, "d_f", domainGeometry->getDimension() ); // Geometrie
     this->dim_ = this->getDomain(0)->getDimension();
-    
+    // Validate the complete coupled checkpoint before any subproblem or ALE read.
+    this->prepareCheckpointMetadata();
+
     problemFluid_ = Teuchos::rcp( new FluidProblem_Type( domainVelocity, FETypeVelocity, domainPressure, FETypePressure, parameterListFluid ) );
+    problemFluid_->prepareCheckpointMetadata("FSI fluid");
     problemFluid_->initializeProblem();
     problemFluid_->infoParameter(false,"Fluid");
     
     if (materialModel_=="linear"){
         problemStructure_ = Teuchos::rcp( new StructureProblem_Type( domainStructure, FETypeStructure, parameterListStructure ) );
+        problemStructure_->prepareCheckpointMetadata("FSI structure");
         problemStructure_->initializeProblem();
         problemStructure_->infoParameter(false,"Solid");
     }
     else{
         problemStructureNonLin_ = Teuchos::rcp( new StructureNonLinProblem_Type( domainStructure, FETypeStructure, parameterListStructure) );
+        problemStructureNonLin_->prepareCheckpointMetadata("FSI structure");
         problemStructureNonLin_->initializeProblem();
         problemStructureNonLin_->infoParameter(false, "Solid");
     }
@@ -1756,6 +1761,7 @@ void FSI<SC,LO,GO,NO>::initializeGE(){
 template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::restoreGeometryFromCheckpoint(double restartTime)
 {
+    this->validateRestartCheckpoint(restartTime);
     HDF5Import<SC,LO,GO,NO> importer(this->getDomain(4)->getMapVecFieldUnique(),
                                   restartFile(this->parameterList_, "Solutiond_f"));
     MultiVectorConstPtr_Type displacement = importer.readVariablesHDF5(std::to_string(restartTime));

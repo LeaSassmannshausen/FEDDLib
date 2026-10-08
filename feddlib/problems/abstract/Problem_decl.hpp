@@ -187,6 +187,20 @@ public:
      */
     void restoreSolutionFromCheckpoint(double restartTime);
 
+    /** @brief Cache the reference mesh/discretization and validate restart data.
+     * Call collectively before the first restore, including FSI constructor reads.
+     * A component role selects FSI fluid mass history or structure Newmark history.
+     * Cached mesh identity is retained when ALE subsequently moves the coordinates.
+     */
+    void prepareCheckpointMetadata(const std::string& role = "");
+
+    /// Validate an explicitly selected checkpoint, once per time, before loading values.
+    void validateRestartCheckpoint(double restartTime);
+
+    /// Write the versioned manifest alongside an already requested checkpoint.
+    void writeCheckpointMetadata(double time);
+
+
     BlockMultiVectorPtr_Type getRhs();
 
     BlockMultiVectorPtr_Type getRhs() const;
@@ -266,6 +280,11 @@ public:
     vec_dbl_Type parasSourceFunc_; //
     
 protected:
+
+    Teuchos::ParameterList checkpointSchema_;
+    bool checkpointSchemaPrepared_ = false;
+    bool checkpointValidated_ = false;
+    double checkpointValidatedTime_ = 0.;
 
     mutable ParameterListPtr_Type	parameterList_;
     mutable DomainConstPtr_vec_Type domainPtr_vec_;
