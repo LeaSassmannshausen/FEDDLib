@@ -426,6 +426,23 @@ int main(int argc, char *argv[]) {
 			if(comm->getRank() ==0)
 				cout << " 2 rel. Norm of solutions navier stokes assemFE " << twoNormError/res << endl;
 
+            // NOX can leave system blocks in fill-active state after the last
+            // residual evaluation. Tpetra matrix addition requires fill-complete
+            // sources. For rectangular blocks, the column field defines the
+            // domain map and the row field defines the range map.
+            const auto finalizeDiagnosticBlocks = [&](UN row, UN col) {
+                const auto domainMap = col == 0 ? domainVelocity->getMapVecFieldUnique()
+                                                : domainPressure->getMapUnique();
+                const auto rangeMap = row == 0 ? domainVelocity->getMapVecFieldUnique()
+                                               : domainPressure->getMapUnique();
+                for (const auto& system : {navierStokes.getSystem(), navierStokesAssFE.getSystem()}) {
+                    const auto block = system->getBlock(row, col);
+                    if (!block->isFillComplete())
+                        block->fillComplete(domainMap, rangeMap);
+                }
+            };
+
+            finalizeDiagnosticBlocks(0, 0);
 			MatrixPtr_Type Sum2= Teuchos::rcp(new Matrix_Type( domainVelocity->getMapVecFieldUnique(), domainVelocity->getDimension() * domainVelocity->getApproxEntriesPerRow() )  );
 			navierStokes.getSystem()->getBlock(0,0)->addMatrix(1, Sum2, 1);
 			navierStokesAssFE.getSystem()->getBlock(0,0)->addMatrix(-1, Sum2, 1);
@@ -451,6 +468,7 @@ int main(int argc, char *argv[]) {
 				cout << " Inf Norm of Difference between Block A: " << res << endl;
 
             if(discVelocity=="P1"){
+            finalizeDiagnosticBlocks(1, 1);
             MatrixPtr_Type Sum3= Teuchos::rcp(new Matrix_Type( domainPressure->getMapUnique(), domainPressure->getDimension() * domainPressure->getApproxEntriesPerRow() )  );
 			navierStokes.getSystem()->getBlock(1,1)->addMatrix(1, Sum3, 1);
 			navierStokesAssFE.getSystem()->getBlock(1,1)->addMatrix(-1, Sum3, 1);
@@ -473,6 +491,7 @@ int main(int argc, char *argv[]) {
 			if(comm->getRank() == 0)
 				cout << " Inf Norm of Difference between Block C: " << res << endl;
             }
+            finalizeDiagnosticBlocks(1, 0);
 			MatrixPtr_Type Sum1= Teuchos::rcp(new Matrix_Type( domainPressure->getMapUnique(), domainVelocity->getDimension() * domainVelocity->getApproxEntriesPerRow() )  );
 			navierStokes.getSystem()->getBlock(1,0)->addMatrix(1, Sum1, 1);
 			navierStokesAssFE.getSystem()->getBlock(1,0)->addMatrix(-1, Sum1, 1);
@@ -493,6 +512,7 @@ int main(int argc, char *argv[]) {
 			if(comm->getRank() == 0)
 				cout << " Norm of Difference between Block B: " << res << endl;
 
+            finalizeDiagnosticBlocks(0, 1);
             MatrixPtr_Type Sum4= Teuchos::rcp(new Matrix_Type( domainVelocity->getMapVecFieldUnique(), domainVelocity->getDimension() * domainVelocity->getApproxEntriesPerRow() )  );
 			navierStokes.getSystem()->getBlock(0,1)->addMatrix(1, Sum4, 1);
 			navierStokesAssFE.getSystem()->getBlock(0,1)->addMatrix(-1, Sum4, 1);
