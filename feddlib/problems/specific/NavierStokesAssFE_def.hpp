@@ -129,6 +129,10 @@ void NavierStokesAssFE<SC,LO,GO,NO>::assemble( std::string type ) const{
         if (this->verbose_)
             std::cout << "done -- " << std::endl;
     }
+    else if (type=="UpdateTime") {
+        // Start a new nonlinear solve without changing the assembled system.
+        this->newtonStep_ = 0;
+    }
     else
         reAssemble( type );
 
@@ -255,10 +259,6 @@ void NavierStokesAssFE<SC,LO,GO,NO>::reAssemble(std::string type) const {
     if (this->verbose_)
         std::cout << "-- Reassembly Navier-Stokes ("<< type <<") ... " << std::flush;
     
-    double density = this->parameterList_->sublist("Parameter").get("Density",1.);
-    
-    MatrixPtr_Type ANW = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
-
     MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
     u_rep_->importFromVector(u, true);
 
@@ -268,26 +268,17 @@ void NavierStokesAssFE<SC,LO,GO,NO>::reAssemble(std::string type) const {
 
    if (type=="Rhs") {
 
-   		this->system_->addBlock(ANW,0,0);
-        /* The next code line was unnecessary work load in solveNewton as it was also called but rewritten by assemble("Newton"), so instead we comment this out and call 
-           in solveFixedPoint the assemble("FixedPoint") function, and here in "RHS" only F*current_solution is computed necessary for computing the residual vector */
-        //this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_, this->residualVec_,this->coeff_,this->parameterList_, true, "FixedPoint",  true);      
+        // Residual assembly does not fill a matrix. Keep the existing blocks
+        // valid for the timestep update and subsequent system combination.
  		this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_, this->residualVec_,this->coeff_,this->parameterList_, true, "Rhs",  true);
 
     }
-    else if (type=="FixedPoint" ) {
-
-   		this->system_->addBlock(ANW,0,0);
-		this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_, this->residualVec_,this->coeff_,this->parameterList_, true, "FixedPoint",  true);
-    }
-	else if(type=="Newton"){ 
-        
+    else if (type=="FixedPoint" || type=="Newton") {
+        MatrixPtr_Type ANW = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
         this->system_->addBlock(ANW,0,0);
-		this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_,this->residualVec_, this->coeff_,this->parameterList_, true,"Jacobian", true);
-
+        const std::string assembleMode = type=="Newton" ? "Jacobian" : "FixedPoint";
+        this->feFactory_->assemblyNavierStokes(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(1)->getFEType(), 2, this->dim_,1,u_rep_,p_rep_,this->system_, this->residualVec_,this->coeff_,this->parameterList_, true, assembleMode, true);
     }
-	
-    this->system_->addBlock(ANW,0,0);
 
     if (this->verbose_)
         std::cout << "done -- " << std::endl;
