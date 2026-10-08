@@ -5,6 +5,7 @@
 #include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/problems/abstract/NonLinearProblem.hpp"
 #include "feddlib/problems/Solver/TimeSteppingTools.hpp"
+#include "feddlib/core/General/ExporterTxt.hpp"
 #include "feddlib/core/General/HDF5Export.hpp"
 
 #include <Thyra_PreconditionerBase.hpp>

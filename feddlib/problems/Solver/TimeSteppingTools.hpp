@@ -5,7 +5,7 @@
 #include "feddlib/core/FEDDCore.hpp"
 
 #include "feddlib/core/LinearAlgebra/BlockMatrix.hpp"
-#include "feddlib/core/General/ExporterTxt.hpp"
+// #include "feddlib/core/General/ExporterTxt.hpp"
 
 /*!
  Declaration of TimeSteppingTools
@@ -42,48 +42,48 @@ public:
     typedef Teuchos::RCP<BlockMultiVector_Type> BlockMultiVectorPtr_Type;
     typedef Teuchos::Array<BlockMultiVectorPtr_Type> BlockMultiVectorPtrArray_Type;
 
-    typedef ExporterTxt ExporterTxt_Type;
-    typedef Teuchos::RCP<ExporterTxt_Type> ExporterTxtPtr_Type;
+//     typedef ExporterTxt ExporterTxt_Type;
+//     typedef Teuchos::RCP<ExporterTxt_Type> ExporterTxtPtr_Type;
 
     typedef typename Matrix_Type::CommConstPtr_Type CommConstPtr_Type;
 
-    enum timeSteppingType   {NON_ADAPTIVE, ADAPTIVE} ;
-    enum errorType          {EUCLIDIAN, L2} ;
+//     enum timeSteppingType   {NON_ADAPTIVE, ADAPTIVE} ;
+//     enum errorType          {EUCLIDIAN, L2} ;
     /* --------------------------------------------------------------------------------- */
     CommConstPtr_Type		comm_;
     ParameterListPtr_Type parameterList_;
-    int                 butcherTableNmb_;
+//     int                 butcherTableNmb_;
     int                 BDFNmb_;
-    timeSteppingType    tsType_;
+//     timeSteppingType    tsType_;
     double 	tEnd_;
     double 	dt_;
     double 	t_;
-    /* adaptive variables*/
+    // Previous timestep size is also required by BDF.
     double 	dt_prev_;
-    double  dt_adaptive_;
-    double 	rho_;
-    double 	tolAdaptive_;
-    double 	dtmin_;
-    double 	dtmax_;
-    int		convOrder_;
-    errorType     adaptiveError_;
-    int 	adaptiveCalculation_;
-    double  error_;
-    double  error_prev_;
-    /* Butcher table information*/
-    int 	stages_;
-    bool    stifflyAcc_;
-    bool    stifflyAccEmbedded_;
-    vec2D_dbl_ptr_Type  butcherTable_;
+//     double  dt_adaptive_;
+//     double 	rho_;
+//     double 	tolAdaptive_;
+//     double 	dtmin_;
+//     double 	dtmax_;
+//     int		convOrder_;
+//     errorType     adaptiveError_;
+//     int 	adaptiveCalculation_;
+//     double  error_;
+//     double  error_prev_;
+    /* RK and adaptive time stepping are disabled. */
+//     int 	stages_;
+//     bool    stifflyAcc_;
+//     bool    stifflyAccEmbedded_;
+//     vec2D_dbl_ptr_Type  butcherTable_;
     vec_dbl_ptr_Type    BDFInformation_;
-    vec_dbl_ptr_Type 	b_embedded_;
-    vec_dbl_ptr_Type 	gamma_vec_;
+//     vec_dbl_ptr_Type 	b_embedded_;
+//     vec_dbl_ptr_Type 	gamma_vec_;
     bool 	verbose_;
-    ExporterTxtPtr_Type exporterTxtTime_;
-    ExporterTxtPtr_Type exporterTxtDt_;
-    ExporterTxtPtr_Type exporterTxtError_;
+//     ExporterTxtPtr_Type exporterTxtTime_;
+//     ExporterTxtPtr_Type exporterTxtDt_;
+//     ExporterTxtPtr_Type exporterTxtError_;
 
-    int RKType_;
+//     int RKType_;
     // Newmark-Variablen
     double beta_;
     double gamma_;
@@ -99,13 +99,13 @@ public:
 
     void setParameter();
 
-    void setTableInformationRK();
+    // void setTableInformationRK();
 
     void setInformationBDF();
 
     double getInformationBDF(int i);
 
-    void correctPressure(MultiVectorPtr_Type &newP, MultiVectorConstPtr_Type lastP);
+//     void correctPressure(MultiVectorPtr_Type &newP, MultiVectorConstPtr_Type lastP);
     
     int getBDFNumber();
 
@@ -113,27 +113,27 @@ public:
 
     bool continueTimeStepping();
 
-    void calculateSolution(BlockMultiVectorPtr_Type &sol, BlockMultiVectorPtrArray_Type &rkSolVec, BlockMatrixPtr_Type massSystem, BlockMultiVectorPtr_Type solShort = Teuchos::null);
+//     void calculateSolution(BlockMultiVectorPtr_Type &sol, BlockMultiVectorPtrArray_Type &rkSolVec, BlockMatrixPtr_Type massSystem, BlockMultiVectorPtr_Type solShort = Teuchos::null);
 
-    void adaptiveTimestep(BlockMultiVectorPtr_Type &sol, BlockMultiVectorPtrArray_Type &rkSolVec, BlockMatrixPtr_Type massSystem, BlockMultiVectorPtr_Type solShort);
+//     void adaptiveTimestep(BlockMultiVectorPtr_Type &sol, BlockMultiVectorPtrArray_Type &rkSolVec, BlockMatrixPtr_Type massSystem, BlockMultiVectorPtr_Type solShort);
 
-    void calculateNewDt(BlockMultiVectorPtr_Type &solDiff, BlockMatrixPtr_Type massSystem);
+//     void calculateNewDt(BlockMultiVectorPtr_Type &solDiff, BlockMatrixPtr_Type massSystem);
 
     void advanceTime(bool printInfo=false);
 
     void printInfo();
 
-    int getNmbStages();
+    // int getNmbStages();
 
-    double getButcherTableCoefficient(int row , int col);
+    // double getButcherTableCoefficient(int row , int col);
 
-    double getButcherTableC(int row);
+    // double getButcherTableC(int row);
 
     double get_dt();
 
     double get_dt_prev();
 
-    void setupTxtExporter();
+//     void setupTxtExporter();
 
     double get_beta();
 

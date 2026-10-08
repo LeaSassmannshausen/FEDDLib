@@ -1759,7 +1759,6 @@ void FSI<SC,LO,GO,NO>::restoreGeometryFromCheckpoint(double restartTime)
     HDF5Import<SC,LO,GO,NO> importer(this->getDomain(4)->getMapVecFieldUnique(),
                                   restartFile(this->parameterList_, "Solutiond_f"));
     MultiVectorConstPtr_Type displacement = importer.readVariablesHDF5(std::to_string(restartTime));
-    // Seed both buffers so their next difference measures motion from the checkpoint.
     meshDisplacementOld_rep_->importFromVector(displacement, true);
     meshDisplacementNew_rep_->importFromVector(displacement, true);
 }
