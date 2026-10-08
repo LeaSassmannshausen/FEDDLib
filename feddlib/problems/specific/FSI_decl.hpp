@@ -7,6 +7,7 @@
 #include "feddlib/problems/Solver/TimeSteppingTools.hpp"
 #include "feddlib/core/General/ExporterTxt.hpp"
 #include "feddlib/core/General/HDF5Export.hpp"
+#include "feddlib/core/Checkpointing/FSIOutletState.hpp"
 
 #include <Thyra_PreconditionerBase.hpp>
 #include <Thyra_ModelEvaluatorBase_decl.hpp>
@@ -217,7 +218,10 @@ public:
     
     virtual void computeValuesOfInterestAndExport();
 
-    double getPressureOutlet(){return pressureOutlet_;};
+    double getPressureOutlet(){return outletState_.pressure;};
+
+    /// Read-only outlet history, including initialization and transition status.
+    const FSIOutletState& getOutletState() const { return outletState_; }
 
     /*####################*/
 
@@ -265,6 +269,22 @@ private:
      */
     void restoreGeometryFromCheckpoint(double restartTime);
 
+    /** @brief Restore pressure-boundary history once, before any resumed evaluation.
+     * Reads the versioned scalar snapshot on rank zero and broadcasts its values.
+     * Does not recompute areas/flow rates or advance the pressure model. Call
+     * collectively after compatibility validation and before time integration.
+     * @param[in] restartTime Physical time of the start-of-step checkpoint.
+     * @throws std::runtime_error If an enabled model has missing/invalid state.
+     */
+    void restoreOutletStateFromCheckpoint(double restartTime);
+
+    /** @brief Save the outlet history corresponding to the solution checkpoint.
+     * Call collectively before the next pressure evaluation advances the history.
+     * The output directory is the configured checkpoint directory.
+     * @param[in] time Physical time of the start-of-step checkpoint.
+     */
+    void writeOutletStateCheckpoint(double time) const;
+
     std::string materialModel_;
     vec_dbl_Type valuesForExport_;
     bool geometryExplicit_;
@@ -273,13 +293,7 @@ private:
     ExporterTxtPtr_Type exporterTxtLift_;
     mutable ExporterPtr_Type exporterGeo_;
     /*####################*/
-    ExporterTxtPtr_Type exporterBoundaryCondition_; // Values for absorbing boundary condition
-    mutable double areaInlet_init_=0.;
-    mutable double areaOutlet_init_ =0.;
-    mutable double areaOutlet_T_ =0.;
-    mutable double flowRateOutlet_n_ =0.; // Current flowrate
-    mutable double flowRateOutlet_n_1_ =0.; // flowrate from previous timestep
-    mutable double pressureOutlet_ =0.;
+    mutable FSIOutletState outletState_;
 
 public:
         // NOX and FSI only implement in combination with TimeProblem

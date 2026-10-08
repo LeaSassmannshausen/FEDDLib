@@ -1457,6 +1457,8 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                 this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i));
                 // For time dependet problems, the different VarNames are the time.
             }
+            if (fileName == "Solution")
+                problem_->exportValuesOfInterest(time_);
             problem_->writeCheckpointMetadata(time_);
         }
         else if(checkPointing){

@@ -1,1 +1,1 @@
-add_subdirectories(fsi_restart unsteadyNavierStokes_restart unsteadyNonLinElasticity_restart)
+add_subdirectories(fsi fsi_restart unsteadyNavierStokes_restart unsteadyNonLinElasticity_restart)

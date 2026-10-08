@@ -2,6 +2,7 @@
 #define FEDD_CHECKPOINT_METADATA_HPP
 
 #include "CheckpointFiles.hpp"
+#include "FSIOutletState.hpp"
 #include "feddlib/core/General/HDF5VectorInfo.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 #include <Teuchos_CommHelpers.hpp>
@@ -97,7 +98,12 @@ inline Teuchos::ParameterList makeSchema(Teuchos::ParameterList& parameters,
         integration.set("gamma", time.get("gamma", 0.5));
     }
     integration.set("Solution history", history);
-    if (fsi) integration.set("Geometry Explicit", parameters.sublist("Parameter").get("Geometry Explicit", true));
+    if (fsi) {
+        integration.set("Geometry Explicit", parameters.sublist("Parameter").get("Geometry Explicit", true));
+        const auto outlet = outletConfiguration(parameters);
+        // Retain the field-only schema for cases without a pressure model.
+        if (outlet.get<std::string>("Model") != "None") schema.sublist("FSI outlet") = outlet;
+    }
     auto& descriptions = schema.sublist("Fields");
     for (const auto& field : fields) {
         descriptions.sublist(field.name)
@@ -170,6 +176,8 @@ inline Teuchos::ParameterList atTime(const Teuchos::ParameterList& schema, doubl
         throw std::runtime_error("Checkpoint metadata version 1 requires a time on the fixed-dt grid");
     result.set("Physical time", time);
     result.set("Step number", static_cast<long long>(step));
+    if (schema.isSublist("FSI outlet"))
+        result.sublist("Required scalar state").set("FSI outlet", outletStateName(time));
     auto& required = result.sublist("Required datasets");
     const auto add = [&](const std::string& file, const std::string& field, double stateTime) {
         if (stateTime < -1.e-12) return;
@@ -238,6 +246,17 @@ inline void validate(const Teuchos::ParameterList& schema, const ParameterListPt
             std::ostringstream xml;
             xml << input.rdbuf();
             compare(*Teuchos::getParametersFromXmlString(xml.str()), expected);
+        }
+        if (schema.isSublist("FSI outlet")) {
+            const auto& outlet = schema.sublist("FSI outlet");
+            const auto state = readOutletState(restartFile(parameters, outletStateName(time)),
+                                               outlet.get<std::string>("Model"), time);
+            // At a start-of-step checkpoint, the last pressure evaluation was
+            // at time-dt. A transition due only in this step is still pending.
+            if (outlet.get<std::string>("Model") == "Absorbing Paper" && state.initialized &&
+                time - schema.sublist("Integration").get<double>("dt") >= outlet.get<double>("Unsteady Start") &&
+                !state.transitionCaptured)
+                throw std::runtime_error("FSI outlet checkpoint is missing its captured transition area");
         }
         const auto& datasets = expected.sublist("Required datasets");
         for (auto it = datasets.begin(); it != datasets.end(); ++it) {

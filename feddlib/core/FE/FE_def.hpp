@@ -3874,29 +3874,24 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
 
     ElementsPtr_Type elements = this->domainVec_.at(FEloc)->getElementsC();
 
-    ElementsPtr_Type elementsPressure = this->domainVec_.at(FEloc+1)->getElementsC();
 
     vec2D_dbl_ptr_Type pointsRep = this->domainVec_.at(FEloc)->getPointsRepeated();
     
     vec2D_dbl_ptr_Type phi;
-    vec2D_dbl_ptr_Type phi1;
 
-    vec3D_dbl_ptr_Type 	dPhi;
 
     vec_dbl_ptr_Type weights = Teuchos::rcp(new vec_dbl_Type(0));
-    vec_dbl_ptr_Type weights1 = Teuchos::rcp(new vec_dbl_Type(0));
 
-    UN deg = Helper::determineDegree( dim-1, FEType, Helper::Deriv0);// + 1.0;
-    Helper::getDPhi(dPhi, weights, dim, FEType, deg);
+    // phi_i * grad(u) has degree 2*k-1 on a flat boundary.
+    const UN deg = FEType == "P2" ? 3 : 1;
     Helper::getPhi(phi, weights, dim-1, FEType, deg);
-    Helper::getPhi(phi1, weights1, dim-1, FEType, 2);
 
     vec2D_dbl_ptr_Type quadPoints;
     vec_dbl_ptr_Type w = Teuchos::rcp(new vec_dbl_Type(0));
     Helper::getQuadratureValues(dim-1, deg, quadPoints, w, FEType);
     w.reset();
 
-    double viscosity=params->sublist("Parameter").get("Viscosity",0.49); 
+    double viscosity=params->sublist("Parameter Fluid").get("Viscosity", params->sublist("Parameter").get("Viscosity",0.49)); 
     int flagInlet = params->sublist("General").get("Flag Inlet Fluid", 4);
     int flagOutlet = params->sublist("General").get("Flag Outlet Fluid", 5);
 
@@ -3974,11 +3969,6 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
                // We only need to compute it on the outlet of the geometry
                 if(feSub.getFlag() == flagOutlet){
                     vec_int_Type nodeList = feSub.getVectorNodeListNonConst ();
-                    vec_int_Type nodeListP = elementsPressure->getElement(T).getSubElements()->getElement(surface).getVectorNodeListNonConst();
-                    int numNodes_T = nodeList.size();
-                    vec_dbl_Type solution_u = this->getSolution(nodeList, u_rep,dim);
-                    vec2D_dbl_Type nodes;
-                    nodes = this->getCoordinates(nodeList, pointsRep);
 
                     vec_dbl_Type p1(dim),p2(dim),v_E(dim,1.);
 
@@ -4006,97 +3996,45 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
                         norm_v_E = sqrt(pow(v_E[0],2)+pow(v_E[1],2)+pow(v_E[2],2));
                     }
                     
-                    // vec_dbl_Type x(dim,0.); //dummy
-                    // paramsFunc[ funcParameter.size() - 1 ] = feSub.getFlag();          
-
-                    // func( &x[0], &valueFunc[0], paramsFunc);
-                    // Calculating R * Q = R * v * A , A = norm_v_E * 0.5
-                    // Step 1: Quadrature Points on physical surface:
-                    vec_dbl_Type quadWeights(dim);
-                    quadWeights[0] = 1/6.;
-                    quadWeights[1] = 1/6.;
-                    quadWeights[2] = 1/6.;
-                    vec2D_dbl_Type quadPoints(quadWeights.size(), vec_dbl_Type(dim));
-
-                    vec_int_Type kn1= elements->getElement(T).getVectorNodeListNonConst();
-
-                    vec2D_dbl_Type quadPointsT1(quadWeights.size(),vec_dbl_Type(dim));
-                    quadPointsT1.push_back({0.5,0.5,0.0});
-                    quadPointsT1.push_back({0.0,0.5,0.0});
-                    quadPointsT1.push_back({0.5,0.0,0.0});
-
-                    SC detB1;
-                    SC absDetB1;
-                    SmallMatrix<SC> B1(dim);
-                    SmallMatrix<SC> Binv1(dim);  
-                    int index0,index;
-
-                    index0 = kn1[0];
-                    for (int s=0; s<dim; s++) {
-                        index = kn1[s+1];
-                        for (int t=0; t<dim; t++) {
-                            B1[t][s] = pointsRep->at(index).at(t) -pointsRep->at(index0).at(t);
+                    // Integrate p*n - nu*(grad u)*n with the actual surface
+                    // quadrature and physical parent-element gradients.
+                    TEUCHOS_TEST_FOR_EXCEPTION(FEType != "P1" && FEType != "P2", std::logic_error,
+                        "Resistance boundaries require P1 or P2 elements.");
+                    Helper::buildTransformationSurface(nodeList, pointsRep, B, b, FEType);
+                    elScaling = B.computeScaling();
+                    const auto parentNodes = fe.getVectorNodeListNonConst();
+                    const auto parentVelocity = this->getSolution(parentNodes, u_rep, dim);
+                    SmallMatrix<SC> volumeB(dim), volumeInverse(dim);
+                    for (int row = 0; row < dim; ++row)
+                        for (int col = 0; col < dim; ++col)
+                            volumeB[row][col] = pointsRep->at(parentNodes[col + 1]).at(row)
+                                             - pointsRep->at(parentNodes[0]).at(row);
+                    volumeB.computeInverse(volumeInverse);
+                    for (UN w = 0; w < weights->size(); ++w) {
+                        vec_dbl_Type referencePoint(dim, 0.), normalDerivative(dim, 0.);
+                        for (int row = 0; row < dim; ++row)
+                            for (int physical = 0; physical < dim; ++physical) {
+                                double point = b[physical] - pointsRep->at(parentNodes[0]).at(physical);
+                                for (int surfaceAxis = 0; surfaceAxis < dim - 1; ++surfaceAxis)
+                                    point += B[physical][surfaceAxis] * quadPoints->at(w).at(surfaceAxis);
+                                referencePoint[row] += volumeInverse[row][physical] * point;
+                            }
+                        for (UN node = 0; node < parentNodes.size(); ++node) {
+                            vec_dbl_ptr_Type gradient(new vec_dbl_Type(dim, 0.));
+                            Helper::gradPhi(dim, FEType == "P2" ? 2 : 1, node, referencePoint, gradient);
+                            double gradientNormal = 0.;
+                            for (int physical = 0; physical < dim; ++physical)
+                                for (int reference = 0; reference < dim; ++reference)
+                                    gradientNormal += gradient->at(reference) * volumeInverse[reference][physical]
+                                                    * v_E[physical] / norm_v_E;
+                            for (int component = 0; component < dim; ++component)
+                                normalDerivative[component] += parentVelocity[dim * node + component] * gradientNormal;
                         }
-                    }
-
-                    detB1 = B1.computeInverse(Binv1);
-                    detB1 = std::fabs(detB1);
-
-                    // Resulting Quad Points allways (0.5,0,0) (0.5,0.5,0) (0,0.5,0)
-                    Helper::buildTransformationSurface( nodeList, pointsRep, B, b, FEType);
-                    elScaling = B.computeScaling( );
-                   
-                    //cout <<std::endl;
-
-                    for (UN i=0; i < numNodes_T; i++) {
-       
-                        // 2.   
-                        Teuchos::Array<SC> value(0);                    
-                        value.resize(  dim, 0. );
-                        // loop over basis functions quadrature points
-                        for (UN w=0; w<phi->size(); w++) {       
-                            for (int d=0; d<dim; d++){
-                                value[d] += weights->at(w) *normalScale*v_E[d]/norm_v_E *flowRateUse*valueFunc[0]*(*phi)[w][i];//valueFunc[0]
-                            }
-                        }             
-
-                        //cout << " Value First component " << value[0] << " " << value[1] << " " << value[2] <<std::endl;
-                        for (int d=0; d<dim; d++)
-                            valuesF[ dim * nodeList[ i ] + d ] += value[d] * elScaling;
-                    }
-                   
-                    // We make the distinction between a gradient jump calculation or a simple jump calculation 
-                    vec_dbl_Type valueSecondComp(dim,0.);
-				   
-                    for (UN t=0; t < numNodes_T; t++) {
-                        Teuchos::Array<SC> value( dim, 0. ); //These are value (W_ix,W_iy,W_iz)
-                        for(int l=0; l< quadWeights.size(); l++){
-                            vec_dbl_Type deriPhi1( dim,0.0)  ;
-                            vec_dbl_ptr_Type valuePhi(new vec_dbl_Type(dim,0.0));
-
-                            auto it1 = find( kn1.begin(), kn1.end() ,nodeList[t] );
-                            int id_in_element = distance( kn1.begin() , it1 );
-
-                            Helper::gradPhi(dim,2,id_in_element,quadPointsT1[l],valuePhi);
-                            for (int j=0; j<3; j++) {
-                                deriPhi1[j] = valuePhi->at(j);
-                            }
-
-                            vec_dbl_Type deriPhiT1(dim,0.);
-                            for(int q=0; q<dim; q++){
-                                for(int s=0; s< dim ; s++)
-                                    deriPhiT1[q] += (deriPhi1[s]*Binv1[s][q]);
-                                
-                            }
-                            // Phi might have other quad points
-                            for (UN d=0; d<dim; d++) {
-                                value[d] += quadWeights[l] *solution_u[t*dim+d] * deriPhi1[d]* v_E[d]/norm_v_E * (*phi)[l][t];
-                            }
-                        }   
-                       // cout << " Value Second component " << value[0] << " " << value[1] << " " << value[2]  <<std::endl;
-                        for (int j=0; j<value.size(); j++)
-                            valuesF[ dim * nodeList[ t ] + j ] -= normalScale*value[j] *elScaling*viscosity;
-                                 
+                        for (UN node = 0; node < nodeList.size(); ++node)
+                            for (int component = 0; component < dim; ++component)
+                                valuesF[dim * nodeList[node] + component] += normalScale * elScaling * weights->at(w)
+                                    * phi->at(w).at(node) * (p_out * v_E[component] / norm_v_E
+                                                           - viscosity * normalDerivative[component]);
                     }
 
 

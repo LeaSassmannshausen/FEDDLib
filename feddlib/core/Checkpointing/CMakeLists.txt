@@ -2,6 +2,7 @@ set(Checkpointing_HEADERS
     Checkpointing/CheckpointFiles.hpp
     Checkpointing/CheckpointMetadata.hpp
     Checkpointing/CheckpointMeshFingerprint.hpp
+    Checkpointing/FSIOutletState.hpp
 CACHE INTERNAL "")
 
 set(LOCAL_HEADERS)

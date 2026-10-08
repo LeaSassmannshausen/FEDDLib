@@ -1,0 +1,47 @@
+# Stream the usual solver output; isolate files from other restart tests.
+SET(work "@CMAKE_CURRENT_BINARY_DIR@/@outlet_test_name@")
+FILE(REMOVE_RECURSE "${work}")
+FILE(MAKE_DIRECTORY "${work}")
+FOREACH(input IN ITEMS @fsi_restart_parameter_files@ fsi_fluid_length_0_5_mm.mesh fsi_solid_length_0_5_mm.mesh)
+    FILE(COPY "@CMAKE_CURRENT_BINARY_DIR@/${input}" DESTINATION "${work}")
+ENDFOREACH()
+SET(command "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@
+    @MPI_EXEC_NUMPROCS_FLAG@ 4 @MPI_EXEC_POST_NUMPROCS_FLAGS@
+    "${EXECUTABLE}" "--pressure-model=@outlet_model@")
+FUNCTION(run_phase label)
+    EXECUTE_PROCESS(COMMAND ${command} ${ARGN} WORKING_DIRECTORY "${work}" RESULT_VARIABLE result)
+    IF(NOT result STREQUAL "0")
+        MESSAGE(FATAL_ERROR "${label} failed: ${result}")
+    ENDIF()
+ENDFUNCTION()
+run_phase("Uninterrupted reference")
+run_phase("Restart before transition" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.01)
+run_phase("Restart after transition" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.015)
+
+# Assert rejection through the actual FSI constructor, before solution loading.
+FUNCTION(expect_rejection label diagnostic)
+    EXECUTE_PROCESS(COMMAND ${command} --problemfile=parametersProblemFSI_restart.xml
+        --validate-checkpoint ${ARGN} WORKING_DIRECTORY "${work}"
+        RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE errors TIMEOUT 60)
+    IF(result STREQUAL "0" OR NOT "${output}${errors}" MATCHES "${diagnostic}")
+        MESSAGE(FATAL_ERROR "${label}: expected rejection, got ${result}\n${output}${errors}")
+    ENDIF()
+    MESSAGE(STATUS "PASS expected outlet checkpoint rejection: ${label}")
+ENDFUNCTION()
+expect_rejection("changed averaging" "Average Flowrate" --incompatible-outlet)
+SET(state "${work}/restartCheckpoints/FSIOutletState_0.010000.xml")
+FILE(READ "${state}" original)
+FILE(REMOVE "${state}")
+expect_rejection("missing outlet state" "Missing FSI outlet checkpoint")
+FILE(WRITE "${state}" "${original}")
+STRING(REPLACE "name=\"Format version\" type=\"int\" value=\"1\""
+    "name=\"Format version\" type=\"int\" value=\"999\"" changed "${original}")
+FILE(WRITE "${state}" "${changed}")
+expect_rejection("unknown outlet state version" "Incompatible FSI outlet checkpoint")
+FILE(WRITE "${state}" "${original}")
+
+# Saving every solution must include scalar state even with Checkpointing=false.
+IF("@outlet_model@" STREQUAL "Resistance")
+    run_phase("Save every solution" --save-all)
+    run_phase("Restart from save-all output" --problemfile=parametersProblemFSI_restart.xml)
+ENDIF()

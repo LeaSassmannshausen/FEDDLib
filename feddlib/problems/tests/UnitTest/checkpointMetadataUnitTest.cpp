@@ -266,6 +266,67 @@ int main(int argc, char** argv)
     auto changedFsi = fsi;
     changedFsi.sublist("Integration").set("Geometry Explicit", false);
     rejects("changed FSI geometry integration", "Geometry Explicit", [&] { validate(changedFsi); });
+
+    auto outletSettings = fsiSettings;
+    outletSettings.sublist("Parameter Fluid")
+        .set("Pressure Boundary Condition", std::string("Absorbing Paper"))
+        .set("Average Flowrate", true).set("Unsteady Start", 0.006);
+    const auto outletFsi = checkpoint::makeSchema(outletSettings, fsiFields);
+    fixtureFor(outletFsi);
+    FSIOutletState outlet;
+    outlet.initialInletArea = 0.41234567890123456;
+    outlet.initialOutletArea = 0.39876543210987654;
+    outlet.transitionOutletArea = 0.40000000000000013;
+    outlet.currentFlowRate = 1.2345678901234567e-6;
+    outlet.previousFlowRate = 9.876543210987654e-7;
+    outlet.pressure = 123.45678901234567;
+    outlet.initialized = true;
+    outlet.transitionCaptured = true;
+    const std::string outletFile = directory + "/" + checkpoint::outletStateName(time);
+    const auto writeOutlet = [&] {
+        checkpoint::onRoot(*comm, [&] {
+            checkpoint::writeOutletState(outlet, outletFile, "Absorbing Paper", time);
+        });
+    };
+    writeOutlet();
+    validate(outletFsi);
+    checkpoint::onRoot(*comm, [&] {
+        const auto read = checkpoint::readOutletState(outletFile, "Absorbing Paper", time);
+        if (read.initialInletArea != outlet.initialInletArea || read.initialOutletArea != outlet.initialOutletArea ||
+            read.transitionOutletArea != outlet.transitionOutletArea || read.currentFlowRate != outlet.currentFlowRate ||
+            read.previousFlowRate != outlet.previousFlowRate || read.pressure != outlet.pressure ||
+            read.initialized != outlet.initialized || read.transitionCaptured != outlet.transitionCaptured)
+            throw std::runtime_error("FSI outlet scalar round-trip lost precision");
+    });
+    if (comm->getRank() == 0) std::cout << "PASS full-precision FSI outlet state round-trip\n";
+    const auto editOutlet = [&](const std::function<void(Teuchos::ParameterList&)>& edit) {
+        checkpoint::onRoot(*comm, [&] {
+            auto data = Teuchos::getParametersFromXmlFile(outletFile);
+            edit(*data);
+            std::ofstream output(outletFile);
+            Teuchos::writeParameterListToXmlOStream(*data, output);
+        });
+    };
+    editOutlet([](Teuchos::ParameterList& data) { data.set("Initial outlet area", 0.); });
+    rejects("invalid absorbing reference area", "positive initial areas", [&] { validate(outletFsi); });
+    writeOutlet();
+    editOutlet([](Teuchos::ParameterList& data) { data.set("Initialized", false); });
+    rejects("uninitialized resumed outlet history", "not initialized", [&] { validate(outletFsi); });
+    writeOutlet();
+    editOutlet([](Teuchos::ParameterList& data) { data.set("Transition captured", false); });
+    rejects("missing captured outlet transition", "captured transition area", [&] { validate(outletFsi); });
+    writeOutlet();
+    editOutlet([](Teuchos::ParameterList& data) { data.remove("Previous flow rate"); });
+    rejects("missing previous outlet flow rate", "Previous flow rate", [&] { validate(outletFsi); });
+    writeOutlet();
+    auto changedOutlet = outletFsi;
+    changedOutlet.sublist("FSI outlet").set("Unsteady Start", 0.005);
+    rejects("changed outlet transition time", "Unsteady Start", [&] { validate(changedOutlet); });
+    auto nonfiniteOutlet = outlet;
+    nonfiniteOutlet.pressure = std::numeric_limits<double>::infinity();
+    rejects("nonfinite outlet state", "nonfinite", [&] {
+        checkpoint::validateOutletState(nonfiniteOutlet, "Absorbing Paper", time);
+    });
     checkpoint::onRoot(*comm, [&] { std::filesystem::remove_all(directory); });
     return failures ? EXIT_FAILURE : EXIT_SUCCESS;
 }

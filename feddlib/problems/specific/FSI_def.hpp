@@ -1,6 +1,7 @@
 #ifndef FSI_def_hpp
 #define FSI_def_hpp
 
+#include "feddlib/core/Checkpointing/CheckpointMetadata.hpp"
 #include "feddlib/problems/abstract/TimeProblem.hpp"
 #include "feddlib/problems/specific/NavierStokes.hpp"
 #include "feddlib/problems/specific/LinElas.hpp"
@@ -120,6 +121,12 @@ exporterGeo_()
     this->addVariable( domainInterface, FETypeInterface, "lambda", domainInterface->getDimension() ); // Interface
     this->addVariable( domainGeometry, FETypeGeometry, "d_f", domainGeometry->getDimension() ); // Geometrie
     this->dim_ = this->getDomain(0)->getDimension();
+    checkpoint::outletConfiguration(*this->parameterList_);
+    // Saving the coupled state requires the fluid and Newmark history as well.
+    if (this->parameterList_->sublist("General").get("Safe all solution", false)) {
+        parameterListFluid->sublist("General").set("Safe all solution", true);
+        parameterListStructure->sublist("General").set("Safe all solution", true);
+    }
     // Validate the complete coupled checkpoint before any subproblem or ALE read.
     this->prepareCheckpointMetadata();
 
@@ -150,12 +157,14 @@ exporterGeo_()
     meshDisplacementOld_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(4)->getMapVecFieldRepeated() ) );
     // If we restart we need to initialize the old/previous geometry solution in meshDisplacementOld to correctly
     // compute the mesh velocity
-    if(this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false))
+    if(this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false) ||
+       this->parameterList_->sublist("General").get("Safe all solution", false))
         exporterGeometry_.reset(new HDF5Export<SC,LO,GO,NO>(this->getDomain(4)->getMapVecFieldUnique(),checkpointFile(this->parameterList_, "Solutiond_f")));
 
     if(this->parameterList_->sublist("Timestepping Parameter").get("Restart", false))
     {
         restoreGeometryFromCheckpoint(this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0));
+        restoreOutletStateFromCheckpoint(this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0));
     }
 
     u_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ) );
@@ -177,10 +186,6 @@ exporterGeo_()
     }
     p_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(1)->getMapRepeated() ) );
     
-    if ( this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false)){
-        exporterBoundaryCondition_ = Teuchos::rcp(new ExporterTxt () );
-        exporterBoundaryCondition_->setup( "boundaryConditionFluid", this->comm_ );
-    }
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -1180,208 +1185,74 @@ void FSI<SC,LO,GO,NO>::setFluidMassmatrix( MatrixPtr_Type& massmatrix ) const
 }
 
 
-// Function to compute the pressure boundary conditions for the fluid component
-// Note it already contains some code connected to restarts
+/** @brief Evaluate the pressure boundary using the retained outlet history.
+ * Initial areas are computed only for a fresh run. The previous flow rate and
+ * captured transition area are restored verbatim for a resumed run, then advanced
+ * exactly once here. Checkpoints are written before this start-of-step operation.
+ */
 template<class SC,class LO,class GO,class NO>
-void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const{
+void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const
+{
+    auto& fluid = this->parameterList_->sublist("Parameter Fluid");
+    const std::string model = fluid.get("Pressure Boundary Condition", "None");
+    if (model == "None") return;
 
-    // Type of pressure boundary condition
-    std::string pressureRB = this->parameterList_->sublist("Parameter Fluid").get("Pressure Boundary Condition","None");
+    const double time = timeSteppingTool_->currentTime();
+    const int flagInlet = this->parameterList_->sublist("General").get("Flag Inlet Fluid", 4);
+    const int flagOutlet = this->parameterList_->sublist("General").get("Flag Outlet Fluid", 5);
+    MultiVectorPtr_Type rhs = Teuchos::rcp(new MultiVector_Type(this->getDomain(0)->getMapVecFieldRepeated()));
+    // Import before every flow-rate evaluation, including the resistance model.
+    u_rep_->importFromVector(this->solution_->getBlock(0), true);
 
-    // bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
-    // double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0); 
-    
-    // Resistance boundary condition based on 'A parallel two-level method for simulating blood ﬂows in branching arteries
-    // with the resistive boundary condition -- Wu, Cai 2011'
-    // We assemble
-    // \int_{\Gamma_O} R flowrateOutlet \phi_f n ds + nu_f \int_{\Omega_O} \phi_f \cdot (\nabla u_f) \cdot n ds
-    if (pressureRB == "Resistance")
-    {
-        if(this->verbose_)
-            std::cout << " --- Computing resistance boundary condition .. " << std::endl;
-
-        // Value added to the RHS of the fluid component
-        MultiVectorPtr_Type FERhs = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
-
-        // Parameters for pressure ramp
-        vec_dbl_Type funcParameter(1,0.);
-        funcParameter[0] = timeSteppingTool_->t_;            
-       
-        // We need the outlet are thus we need to know the flags, as they are not always the same
-        int flagInlet =this->parameterList_->sublist("General").get("Flag Inlet Fluid", 4);
-        int flagOutlet = this->parameterList_->sublist("General").get("Flag Outlet Fluid", 5);
-
-        // We compute the initial flow rate in the first timestep
-        if (timeSteppingTool_->currentTime()==0.) { 
-            double flowRateInlet_n_1 = 0.;
-            this->feFactory_->assemblyFlowRate(this->dim_, flowRateInlet_n_1, this->getDomain(0)->getFEType() , this->dim_, flagOutlet , u_rep_);  
-            flowRateOutlet_n_1_ = flowRateInlet_n_1; 
-        }  
-        // else if(restart && timeStepRestart +1e-8 > timeSteppingTool_->currentTime() )
-        // {
-        //     if(this->verbose_)
-        //         cout << " WARNING: Absorbing boundary condition is computed but the initial values usally corresponding to T=0 now correspond to the restart time " << endl;
-            
-        //     double flowRateInlet_n_1 = 0.;
-        //     this->feFactory_->assemblyFlowRate(this->dim_, flowRateInlet_n_1, this->getDomain(0)->getFEType() , this->dim_, flagOutlet , u_rep_);  
-        //     flowRateOutlet_n_1_ = flowRateInlet_n_1; 
-
-        // }
-
-        // Then we compute the flowrate in the current time step
-        double flowRateInlet_n = 0.;
-        this->feFactory_->assemblyFlowRate(this->dim_, flowRateInlet_n, this->getDomain(0)->getFEType() , this->dim_, flagOutlet , u_rep_);  
-        flowRateOutlet_n_ = flowRateInlet_n; 
-
-        vec_dbl_Type flowRateOutlet_timesteps(2);
-        flowRateOutlet_timesteps[0] = flowRateOutlet_n_1_;
-        flowRateOutlet_timesteps[1] = flowRateOutlet_n_;        
-
-        MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
-        u_rep_->importFromVector(u, true); 
-         
-        // We compute the pressure value set on the outlet of the domain based on the resitive boundary
-        pressureOutlet_ = this->feFactory_->assemblyResistanceBoundary(this->dim_, this->getDomain(0)->getFEType(),FERhs, u_rep_,flowRateOutlet_timesteps, funcParameter, pressureRamp,this->parameterList_,0);
-                  
-        flowRateOutlet_n_1_ = flowRateOutlet_n_;
-
-        this->sourceTerm_->getBlockNonConst(0)->exportFromVector( FERhs, false, "Add" );
-
-        //double density = this->parameterList_->sublist("Parameter").get("Density",1.);
-        //this->problemTimeFluid_->getSourceTerm()->scale(density);
-        // Fuege die rechte Seite der DGL (f bzw. f_{n+1}) der rechten Seite hinzu (skaliert mit coeffSourceTerm)
-        // Die Skalierung mit der Dichte erfolgt schon in der Assemblierungsfunktion!
-        
-        // addSourceTermToRHS() aus DAESolverInTime
-        double coeffSourceTermStructure = 1.0;
-       // BlockMultiVectorPtr_Type tmpSourceterm = Teuchos::rcp(new BlockMultiVector_Type(1)) ;
-       // tmpSourceterm->addBlock(this->sourceTerm_->getBlockNonConst(1),0);
-
-            
-        this->problemTimeFluid_->getRhs()->getBlockNonConst(0)->update(coeffSourceTermStructure, *this->sourceTerm_->getBlockNonConst(0), 1.);
-        this->rhs_->addBlock( this->problemTimeFluid_->getRhs()->getBlockNonConst(0), 0 );
-
-        if(this->verbose_)
-            std::cout << "  .. done " << std::endl;
-
-    
+    this->feFactory_->assemblyFlowRate(this->dim_, outletState_.currentFlowRate,
+        this->getDomain(0)->getFEType(), this->dim_, flagOutlet, u_rep_);
+    if (!outletState_.initialized) {
+        TEUCHOS_TEST_FOR_EXCEPTION(time != 0., std::runtime_error,
+            "FSI outlet history must be restored before resuming a pressure boundary model.");
+        outletState_.previousFlowRate = outletState_.currentFlowRate;
+        if (model != "Resistance") {
+            this->feFactory_->assemblyArea(this->dim_, outletState_.initialInletArea, flagInlet);
+            this->feFactory_->assemblyArea(this->dim_, outletState_.initialOutletArea, flagOutlet);
+        }
+        outletState_.initialized = true;
     }
-    // Absorbing boundary condition implemented as introduced in 
-    // 'AN EFFECTIVE FLUID-STRUCTURE INTERACTION FORMULATION FOR VASCULAR DYNAMICS BY GENERALIZED
-    // ROBIN CONDITIONS, Nobile, Vergara, 2008'
-    if (pressureRB == "Absorbing" || pressureRB == "Absorbing Paper")
-    {
-        if(this->verbose_)
-            std::cout << " Computing absorbing boundary condition .. " << std::endl;
+    checkpoint::validateOutletState(outletState_, model, time);
 
-        MultiVectorPtr_Type FERhs = Teuchos::rcp(new MultiVector_Type( this->getDomain(0)->getMapVecFieldRepeated() ));
-
-        // Parameters for pressure ramp
-        vec_dbl_Type funcParameter(1,0.);
-        funcParameter[0] = timeSteppingTool_->t_;            
-        
-        MultiVectorConstPtr_Type u = this->solution_->getBlock(0);
-        u_rep_->importFromVector(u, true); 
-         
-        int flagInlet =this->parameterList_->sublist("General").get("Flag Inlet Fluid", 4);
-        int flagOutlet = this->parameterList_->sublist("General").get("Flag Outlet Fluid", 5);
-
-        if (timeSteppingTool_->currentTime()==0.) { 
-            double areaInlet_init = 0.;
-            double areaOutlet_init = 0.;
-
-            this->feFactory_->assemblyArea(this->dim_,areaInlet_init, flagInlet);
-            this->feFactory_->assemblyArea(this->dim_, areaOutlet_init, flagOutlet);
-
-            areaInlet_init_ = areaInlet_init;
-            areaOutlet_init_ = areaOutlet_init;
-
-            double flowRateInlet_n_1 = 0.;
-            this->feFactory_->assemblyFlowRate(this->dim_, flowRateInlet_n_1, this->getDomain(0)->getFEType() , this->dim_, flagOutlet , u_rep_);  
-            flowRateOutlet_n_1_ = flowRateInlet_n_1; 
-
-            if ( this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false)){
-                exporterBoundaryCondition_->exportData( "Area_Inlet ", areaInlet_init );
-                exporterBoundaryCondition_->exportData( "Area_Outlet ", areaInlet_init );
-            }
-        } 
-        // else if(restart && timeStepRestart +1e-8 > timeSteppingTool_->currentTime() )
-        // {
-        //     if(this->verbose_)
-        //         cout << " WARNING: Absorbing boundary condition is computed but the initial values usally corresponding to T=0 now correspond to the restart time " << endl;
-        //     double areaInlet_init = 0.;
-        //     double areaOutlet_init = 0.;
-
-        //     this->feFactory_->assemblyArea(this->dim_,areaInlet_init, flagInlet);
-        //     this->feFactory_->assemblyArea(this->dim_, areaOutlet_init, flagOutlet);
-
-        //     areaInlet_init_ = 0.0253605;//areaInlet_init;
-        //     areaOutlet_init_ = 0.025605; //areaOutlet_init;
-
-        //     double flowRateInlet_n_1 = 0.;
-        //     this->feFactory_->assemblyFlowRate(this->dim_, flowRateInlet_n_1, this->getDomain(0)->getFEType() , this->dim_, flagOutlet , u_rep_);  
-        //     flowRateOutlet_n_1_ = flowRateInlet_n_1;  
-        // }
-        double flowRateInlet_n = 0.;
-        this->feFactory_->assemblyFlowRate(this->dim_, flowRateInlet_n, this->getDomain(0)->getFEType() , this->dim_, flagOutlet , u_rep_);  
-        flowRateOutlet_n_ = flowRateInlet_n; 
-
-        vec_dbl_Type flowRateOutlet_timesteps(2);
-        flowRateOutlet_timesteps[0] = flowRateOutlet_n_1_;
-        flowRateOutlet_timesteps[1] = flowRateOutlet_n_;
-
-        // The traditional approach differs slightly from the approach used in Comparison of arterial wall models in fluid–structure interaction
-        // simulations D. Balzani, A. Heinlein, A. Klawonn, O. Rheinbach, J. Schröder, 2023, and its predecessor. Thus, absorbing paper refers to 
-        // the aforementioned paper.
-        if(pressureRB == "Absorbing Paper"){
-
-            double unsteadyStart = this->parameterList_->sublist("Parameter Fluid").get("Unsteady Start",0.1); 
-            if( unsteadyStart +1e-10 > timeSteppingTool_->currentTime() &&  unsteadyStart -1e-10 < timeSteppingTool_->currentTime() )
-            {
-                double areaOutlet_T = 0.;
-                this->feFactory_->assemblyArea(this->dim_, areaOutlet_T, flagOutlet);
-                areaOutlet_T_ = areaOutlet_T;
-                if(this->verbose_)
-                    std::cout << " ---- Absorbing boundary condition: Start of unsteady Phase with areaOutlet_T=" << areaOutlet_T_<< " ---- " << std::endl;
-            }
-
-            pressureOutlet_ = this->feFactory_->assemblyAbsorbingBoundaryPaper(this->dim_, this->getDomain(0)->getFEType(),FERhs, u_rep_,flowRateOutlet_timesteps, funcParameter, pressureRamp,areaOutlet_init_, areaOutlet_T_,this->parameterList_,0);
-
+    vec_dbl_Type flowRates = {outletState_.previousFlowRate, outletState_.currentFlowRate};
+    vec_dbl_Type rampParameters(1, time);
+    if (model == "Resistance") {
+        outletState_.pressure = this->feFactory_->assemblyResistanceBoundary(this->dim_,
+            this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates, rampParameters,
+            pressureRamp, this->parameterList_, 0);
+    }
+    else {
+        // Capture once on the first evaluation reaching the transition. This
+        // also handles a transition time that is not exactly on the dt grid.
+        const double transition = model == "Absorbing Paper"
+            ? fluid.get("Unsteady Start", 0.2) : fluid.get("Max Ramp Time", 0.1);
+        if (!outletState_.transitionCaptured && time + 1.e-12 >= transition) {
+            this->feFactory_->assemblyArea(this->dim_, outletState_.transitionOutletArea, flagOutlet);
+            outletState_.transitionCaptured = true;
+            checkpoint::validateOutletState(outletState_, model, time);
         }
-        else{
-            double rampTime = this->parameterList_->sublist("Parameter").get("Max Ramp Time",0.1); 
-            if( rampTime < timeSteppingTool_->currentTime() &&  rampTime + 0.05 > timeSteppingTool_->currentTime() )
-            {
-                double areaOutlet_T = 0.;
-                this->feFactory_->assemblyArea(this->dim_, areaOutlet_T, flagOutlet);
-                areaOutlet_T_ = areaOutlet_T;
-                if(this->verbose_)
-                    std::cout << " ---- Absorbing boundary condition: Start of unsteady Phase with areaOutlet_T=" << areaOutlet_T_<< " ---- " << std::endl;
-            }
-            pressureOutlet_ = this->feFactory_->assemblyAbsorbingBoundary(this->dim_, this->getDomain(0)->getFEType(),FERhs, u_rep_,flowRateOutlet_timesteps, funcParameter, pressureRamp,areaOutlet_init_,areaOutlet_T_,this->parameterList_,0);
-       
-        }
-
-        // Adding the assembled RHS on the Fluid component to the fluid RHS
-        this->sourceTerm_->getBlockNonConst(0)->exportFromVector( FERhs, false, "Add" );
-        
-        flowRateOutlet_n_1_ = flowRateOutlet_n_;
-        if ( this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false)){
-            exporterBoundaryCondition_->exportData( "FlowrateOutlet_Previous_Timestep", flowRateOutlet_n_1_ );
-        }
-        // addSourceTermToRHS() aus DAESolverInTime
-        double coeffSourceTermStructure = 1.0;
-       
-            
-        this->problemTimeFluid_->getRhs()->getBlockNonConst(0)->update(coeffSourceTermStructure, *this->sourceTerm_->getBlockNonConst(0), 1.);
-        this->rhs_->addBlock( this->problemTimeFluid_->getRhs()->getBlockNonConst(0), 0 );
-
-        if(this->verbose_)
-            std::cout << "  .. done " << std::endl;
-
-    
-    }    
-  
+        if (model == "Absorbing Paper")
+            outletState_.pressure = this->feFactory_->assemblyAbsorbingBoundaryPaper(this->dim_,
+                this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates, rampParameters,
+                pressureRamp, outletState_.initialOutletArea, outletState_.transitionOutletArea,
+                this->parameterList_, 0);
+        else
+            outletState_.pressure = this->feFactory_->assemblyAbsorbingBoundary(this->dim_,
+                this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates, rampParameters,
+                pressureRamp, outletState_.initialOutletArea, outletState_.transitionOutletArea,
+                this->parameterList_, 0);
+    }
+    outletState_.previousFlowRate = outletState_.currentFlowRate;
+    checkpoint::validateOutletState(outletState_, model, time);
+    // Rebuild this timestep's load; it is consumed by the fluid residual.
+    this->sourceTerm_->getBlockNonConst(0)->putScalar(0.);
+    this->sourceTerm_->getBlockNonConst(0)->exportFromVector(rhs, false, "Add");
+    this->problemTimeFluid_->getRhs()->getBlockNonConst(0)->update(1., *this->sourceTerm_->getBlockNonConst(0), 1.);
+    this->rhs_->addBlock(this->problemTimeFluid_->getRhs()->getBlockNonConst(0), 0);
 }
 
 // TODO: updateMultistepRhsFSI() einbauen!
@@ -1770,8 +1641,47 @@ void FSI<SC,LO,GO,NO>::restoreGeometryFromCheckpoint(double restartTime)
 }
 
 template<class SC,class LO,class GO,class NO>
+void FSI<SC,LO,GO,NO>::restoreOutletStateFromCheckpoint(double restartTime)
+{
+    const std::string model = this->parameterList_->sublist("Parameter Fluid").get("Pressure Boundary Condition", "None");
+    if (model == "None") return;
+    this->validateRestartCheckpoint(restartTime);
+    FSIOutletState restored;
+    checkpoint::onRoot(*this->comm_, [&] {
+        restored = checkpoint::readOutletState(restartFile(this->parameterList_, checkpoint::outletStateName(restartTime)),
+                                               model, restartTime);
+    });
+    double values[] = {restored.initialInletArea, restored.initialOutletArea, restored.transitionOutletArea,
+                       restored.currentFlowRate, restored.previousFlowRate, restored.pressure};
+    int flags[] = {restored.initialized ? 1 : 0, restored.transitionCaptured ? 1 : 0};
+    Teuchos::broadcast(*this->comm_, 0, 6, values);
+    Teuchos::broadcast(*this->comm_, 0, 2, flags);
+    restored.initialInletArea = values[0];
+    restored.initialOutletArea = values[1];
+    restored.transitionOutletArea = values[2];
+    restored.currentFlowRate = values[3];
+    restored.previousFlowRate = values[4];
+    restored.pressure = values[5];
+    restored.initialized = flags[0] != 0;
+    restored.transitionCaptured = flags[1] != 0;
+    outletState_ = restored;
+}
+
+template<class SC,class LO,class GO,class NO>
+void FSI<SC,LO,GO,NO>::writeOutletStateCheckpoint(double time) const
+{
+    const std::string model = this->parameterList_->sublist("Parameter Fluid").get("Pressure Boundary Condition", "None");
+    if (model == "None") return;
+    checkpoint::onRoot(*this->comm_, [&] {
+        checkpoint::writeOutletState(outletState_, checkpointFile(this->parameterList_, checkpoint::outletStateName(time)),
+                                    model, time);
+    });
+}
+
+template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::exportValuesOfInterest(double time)
 {
+    writeOutletStateCheckpoint(time);
 
     if(geometryExplicit_)
     {
