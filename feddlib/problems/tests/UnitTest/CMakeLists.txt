@@ -1,3 +1,64 @@
+# Transient regression tests share the case inputs of the restart tests.
+tribits_add_executable(fsiUnitTest SOURCES fsiUnitTest.cpp)
+tribits_add_test(fsiUnitTest NAME fsi_2D_P2P1 NUM_MPI_PROCS 4)
+
+SET(fsi_reference_inputs
+    parametersProblemFSI.xml parametersPrecFluidMono.xml parametersPrecStructure.xml
+    parametersPrecGeometry.xml parametersSolverFSI.xml parametersSolverGeometry.xml)
+tribits_copy_files_to_binary_dir(param_fsiUnitTest
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../restart/fsi_restart
+    SOURCE_FILES ${fsi_reference_inputs}
+    DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+    DEST_FILES ${fsi_reference_inputs}
+    EXEDEPS fsiUnitTest)
+tribits_copy_files_to_binary_dir(mesh_fsiUnitTest
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
+    SOURCE_FILES dfg_fsi_fluid_h004.mesh dfg_fsi_solid_h004.mesh
+    DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+    DEST_FILES dfg_fsi_fluid_h004.mesh dfg_fsi_solid_h004.mesh
+    EXEDEPS fsiUnitTest)
+
+tribits_add_executable(unsteadyNonLinElasticityUnitTest SOURCES unsteadyNonLinElasticityUnitTest.cpp)
+FOREACH(mpi_procs 4 6)
+    tribits_add_test(unsteadyNonLinElasticityUnitTest
+        NAME unsteadyNonLinElasticity_2D_P1_${mpi_procs}cores NUM_MPI_PROCS ${mpi_procs})
+ENDFOREACH()
+tribits_copy_files_to_binary_dir(param_unsteadyNonLinElasticityUnitTest
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../restart/unsteadyNonLinElasticity_restart
+    SOURCE_FILES parametersProblem.xml parametersPrec.xml parametersSolver.xml
+    DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+    DEST_FILES parametersProblemUnsteadyNonLinElasticity.xml
+        parametersPrecUnsteadyNonLinElasticity.xml parametersSolverUnsteadyNonLinElasticity.xml
+    EXEDEPS unsteadyNonLinElasticityUnitTest)
+tribits_copy_files_to_binary_dir(mesh_unsteadyNonLinElasticityUnitTest
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
+    SOURCE_FILES square_h02.mesh
+    DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+    DEST_FILES square_h02.mesh
+    EXEDEPS unsteadyNonLinElasticityUnitTest)
+
+SET(fsi_reference_files
+    solution_fsi_velocity_2d_P2_4cores.h5
+    solution_fsi_pressure_2d_P1_4cores.h5
+    solution_fsi_displacement_2d_P2_4cores.h5)
+tribits_copy_files_to_binary_dir(data_fsiUnitTest
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ReferenceSolutions
+    SOURCE_FILES ${fsi_reference_files}
+    DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions
+    DEST_FILES ${fsi_reference_files}
+    EXEDEPS fsiUnitTest)
+
+SET(unsteady_elasticity_reference_files
+    solution_unsteadyNonLinElasticity_displacement_2d_P1_4cores.h5
+    solution_unsteadyNonLinElasticity_velocity_2d_P1_4cores.h5
+    solution_unsteadyNonLinElasticity_acceleration_2d_P1_4cores.h5)
+tribits_copy_files_to_binary_dir(data_unsteadyNonLinElasticityUnitTest
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ReferenceSolutions
+    SOURCE_FILES ${unsteady_elasticity_reference_files}
+    DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions
+    DEST_FILES ${unsteady_elasticity_reference_files}
+    EXEDEPS unsteadyNonLinElasticityUnitTest)
+
 tribits_add_executable(
 	laplaceUnitTest
 	SOURCES laplaceUnitTest.cpp
@@ -188,7 +249,7 @@ tribits_add_test(
 )
 tribits_add_test(
   nonLinElasticityUnitTest
-	NAME nonLinElasticity_2D_P1
+	NAME nonLinElasticity_3D_P1
 	ARGS "--dim=3"
 	NUM_MPI_PROCS 8
 )

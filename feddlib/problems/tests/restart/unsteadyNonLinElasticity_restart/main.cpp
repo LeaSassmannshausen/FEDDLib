@@ -91,6 +91,12 @@ bool compareRestart(TimeProblem_Type& problem, ParameterListPtr_Type parameters,
 
 } // namespace
 
+// Test for unsteady nonlinear elasticity restart. 
+// The test runs a short simulation, writes checkpoints, and then restarts from the first checkpoint to compare against the original run. 
+// The test passes if the restarted solution matches the original within a specified tolerance.
+// Test case: 2D nonlinear elasticity with P1 discretization, using Newmark time stepping. 
+// Square domain with a surface load on the right boundary, zero Dirichlet on the left boundary, and free boundaries on the sides. 
+
 int main(int argc, char* argv[])
 {
     Tpetra::ScopeGuard tpetraScope(&argc, &argv);
@@ -122,12 +128,12 @@ int main(int argc, char* argv[])
     MeshPartitioner_Type partitioner(domains, Teuchos::sublist(parameters, "Mesh Partitioner"), "P1", 2);
     partitioner.readAndPartition();
     RCP<Domain_Type> domain = rcp(new Domain_Type(comm, 2));
-    domain->buildP2ofP1Domain(linearDomain);
+    domain = linearDomain; // We use only P1 discretization for this test, so the nonlinear domain is built from the linear one.
     domain->preProcessMesh(true, true);
 
     RCP<BCBuilder<SC,LO,GO,NO>> boundaries = rcp(new BCBuilder<SC,LO,GO,NO>());
     boundaries->addBC(zeroDirichlet, 4, 0, domain, "Dirichlet", 2);
-    NonLinElasticity<SC,LO,GO,NO> problem(domain, "P2", parameters);
+    NonLinElasticity<SC,LO,GO,NO> problem(domain, "P1", parameters);
     problem.addRhsFunction(surfaceLoad);
     problem.addParemeterRhs(parameters->sublist("Parameter").get<double>("Volume force"));
     problem.addParemeterRhs(0.); // Constant load, no ramp.

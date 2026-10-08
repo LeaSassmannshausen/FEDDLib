@@ -1,12 +1,12 @@
 <ParameterList name="unsteady nonlinear elasticity restart">
     <ParameterList name="Parameter">
         <Parameter name="Dimension" type="int" value="2"/>
-        <Parameter name="Discretization" type="string" value="P2"/>
+        <Parameter name="Discretization" type="string" value="P1"/>
         <Parameter name="Source Type" type="string" value="surface"/>
         <Parameter name="Volume force" type="double" value="-0.32"/>
         <Parameter name="Material model" type="string" value="Saint Venant-Kirchhoff"/>
         <Parameter name="Density" type="double" value="1."/>
-        <Parameter name="Poisson Ratio" type="double" value="0.49"/>
+        <Parameter name="Poisson Ratio" type="double" value="0.48"/>
         <Parameter name="Mu" type="double" value="0.1275"/>
         <Parameter name="relNonLinTol" type="double" value="1.e-12"/>
         <Parameter name="MaxNonLinIts" type="int" value="10"/>
@@ -15,7 +15,7 @@
     </ParameterList>
     <ParameterList name="Mesh Partitioner">
         <Parameter name="Contiguous" type="bool" value="true"/>
-        <Parameter name="Mesh 1 Name" type="string" value="square_solid.mesh"/>
+        <Parameter name="Mesh 1 Name" type="string" value="square_h02.mesh"/>
     </ParameterList>
     <ParameterList name="General">
         <Parameter name="Linearization" type="string" value="Newton"/>

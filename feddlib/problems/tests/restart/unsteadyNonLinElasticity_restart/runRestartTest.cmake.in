@@ -5,7 +5,7 @@ ENDIF()
 FILE(REMOVE_RECURSE "${TEST_WORKING_DIRECTORY}")
 FILE(MAKE_DIRECTORY "${TEST_WORKING_DIRECTORY}")
 FOREACH(input_file parametersProblem.xml parametersProblem_restart.xml
-        parametersPrec.xml parametersSolver.xml square_solid.mesh)
+        parametersPrec.xml parametersSolver.xml square_h02.mesh)
     FILE(COPY "@CMAKE_CURRENT_BINARY_DIR@/${input_file}" DESTINATION "${TEST_WORKING_DIRECTORY}")
 ENDFOREACH()
 

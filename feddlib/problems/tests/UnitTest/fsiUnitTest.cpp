@@ -1,7 +1,7 @@
 #include "feddlib/core/General/BCBuilder.hpp"
 #include "feddlib/core/General/CheckpointFiles.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
-#include "feddlib/core/General/HDF5Import.hpp"
+#include "TransientReference.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 #include "feddlib/core/Mesh/MeshPartitioner.hpp"
 #include "feddlib/problems/Solver/DAESolverInTime.hpp"
@@ -11,7 +11,7 @@
 #include "feddlib/problems/specific/LinElas.hpp"
 #include "feddlib/problems/specific/NavierStokes.hpp"
 #include <Teuchos_CommandLineProcessor.hpp>
-#include <Teuchos_GlobalMPISession.hpp>
+#include <Tpetra_Core.hpp>
 #include <Teuchos_XMLParameterListHelpers.hpp>
 #include <Xpetra_DefaultPlatform.hpp>
 #include <cmath>
@@ -51,65 +51,31 @@ void inflow(double* x, double* result, double time, const double* parameters)
     result[1] = 0.;
 }
 
-bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, RCP<const Teuchos::Comm<int>> comm)
-{
-    const auto& timeParameters = parameters->sublist("Timestepping Parameter");
-    const double finalTime = timeParameters.get<double>("Final time");
-    const double tolerance = timeParameters.get<double>("Restart tolerance");
-    const char* checkpointNames[] = {"Solutionu_f", "Solutionp", "Solutiond_s"};
-    const char* fieldNames[] = {"fluid velocity", "fluid pressure", "solid displacement"};
-    bool passed = true;
-
-    for (int block = 0; block < 3; ++block) {
-        auto solution = fsi.getSolution()->getBlock(block);
-        HDF5Import<SC,LO,GO,NO> importer(solution->getMap(), restartFile(parameters, checkpointNames[block]));
-        auto reference = importer.readVariablesHDF5(std::to_string(finalTime));
-        MultiVector_Type error(solution->getMap());
-        error.update(1., *solution, -1., *reference, 0.);
-
-        Teuchos::Array<SC> errorNorm(1), solutionNorm(1);
-        error.norm2(errorNorm);
-        solution->norm2(solutionNorm);
-        const double relativeError = errorNorm[0] / solutionNorm[0];
-        if (comm->getRank() == 0) {
-            std::cout << "Restart absolute error (" << fieldNames[block] << ", l2): "
-                      << errorNorm[0] << std::endl;
-            std::cout << "Restart relative error (" << fieldNames[block] << "): "
-                      << relativeError << " (tolerance " << tolerance << ")" << std::endl;
-        }
-        if (!(relativeError <= tolerance))
-            passed = false;
-    }
-    return passed;
-}
-
 } // namespace
-// Test for restart for 2D fsi problem. 
-// The test runs a short simulation, writes checkpoints, and then restarts from the first checkpoint to compare against the original run. The test passes if the restarted solution matches the original within a specified tolerance.
-// Flow around a cylinder with a flexible beam attached to the cylinder. 
-// The flow is driven by a parabolic inflow profile on the left boundary, zero Dirichlet on the top and bottom boundaries, and zero Neumann on the right boundary. 
-// The cylinder is fixed and the beam is fixed at the left end to the beam, rest is free.
+
+/** @brief Run the 2D Turek FSI case and compare its state at t = 0.02 with frozen references. */
 int main(int argc, char* argv[])
 {
-    Teuchos::oblackholestream blackhole;
-    Teuchos::GlobalMPISession mpiSession(&argc, &argv, &blackhole);
-    auto comm = Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
-
-    // Both phases share the same case; the second XML overrides only restart settings.
-    const std::string baseProblemFile = "parametersProblemFSI.xml";
-    std::string problemFile = baseProblemFile;
+    Tpetra::ScopeGuard tpetraScope(&argc, &argv);
+    auto comm = Tpetra::getDefaultComm();
+    std::string referenceDirectory = "ReferenceSolutions";
+    bool writeReference = false;
     Teuchos::CommandLineProcessor commandLine;
-    commandLine.setOption("problemfile", &problemFile, "Case parameters or restart overrides.");
+    commandLine.setOption("reference-directory", &referenceDirectory, "Directory of stored unit-test references.");
+    commandLine.setOption("write-reference", "compare-reference", &writeReference,
+                          "Explicitly generate reference files instead of comparing them.");
     commandLine.throwExceptions(false);
     const auto parseResult = commandLine.parse(argc, argv);
     if (parseResult == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED)
         return EXIT_SUCCESS;
     if (parseResult != Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL)
         return EXIT_FAILURE;
-
-    auto parameters = Teuchos::getParametersFromXmlFile(baseProblemFile);
-    if (problemFile != baseProblemFile)
-        parameters->setParameters(*Teuchos::getParametersFromXmlFile(problemFile));
+    auto parameters = Teuchos::getParametersFromXmlFile("parametersProblemFSI.xml");
+    // Match the restart case at its comparison time, without checkpoint I/O.
+    parameters->sublist("Timestepping Parameter").set("Checkpointing", false);
+    parameters->sublist("Timestepping Parameter").set("Restart", false);
+    parameters->sublist("Timestepping Parameter").set("Final time", 0.02);
+    parameters->sublist("General").set("Safe all solution", false);
     parameters->setParameters(*Teuchos::getParametersFromXmlFile("parametersSolverFSI.xml"));
 
     auto fluidParameters = Teuchos::getParametersFromXmlFile("parametersPrecFluidMono.xml");
@@ -200,8 +166,13 @@ int main(int argc, char* argv[])
     timeSolver.setupTimeStepping();
     timeSolver.advanceInTime();
 
-    // The uninterrupted phase creates the reference checkpoints. Only phase 2 compares.
-    if (parameters->sublist("Timestepping Parameter").get<bool>("Restart"))
-        return compareRestart(fsi, parameters, comm) ? EXIT_SUCCESS : EXIT_FAILURE;
-    return EXIT_SUCCESS;
+    bool passed = true;
+    const char* files[] = {"solution_fsi_velocity_2d_P2_4cores",
+                           "solution_fsi_pressure_2d_P1_4cores",
+                           "solution_fsi_displacement_2d_P2_4cores"};
+    const char* fields[] = {"fluid velocity", "fluid pressure", "solid displacement"};
+    for (int block = 0; block < 3; ++block)
+        passed = TransientReference::check(fsi.getSolution()->getBlock(block), files[block],
+                    fields[block], referenceDirectory, writeReference) && passed;
+    return passed ? EXIT_SUCCESS : EXIT_FAILURE;
 }

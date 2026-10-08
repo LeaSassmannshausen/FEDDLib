@@ -90,8 +90,9 @@ ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_re
   visualization and benchmark exports and reports the relative error for each
   of the three fields.
 
-- `unsteadyNonLinElasticity_restart` uses the 2D P2 `square_solid.mesh` case
-  from the `unsteadyNonLinElasticity` example, with Saint Venant-Kirchhoff
+- `unsteadyNonLinElasticity_restart` uses the 2D P2 `square_h02.mesh` unit square
+  (3,015 vertices, 5,828 triangles), with the setup from the
+  `unsteadyNonLinElasticity` example and Saint Venant-Kirchhoff
   material, a clamped left edge and a constant surface load on the right edge.
   Newmark uses `beta = 0.25`, `gamma = 0.5` and `dt = 0.0025`. The uninterrupted
   run writes checkpoints at `0.01` and `0.02`; the second phase resumes at
@@ -104,11 +105,11 @@ ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_re
   Newmark checkpoint timing is deliberately retained for this baseline test.
   Standalone nonlinear Newmark now also writes the primary displacement file
   required by initialization; elasticity assembly preserves a restored field.
-  Both rank pairs pass at `1e-12`; the largest relative error in the initial
-  validation was approximately `4.66e-14` (acceleration, `4 -> 6`). In separate
-  disposable checkpoints, scaling only velocity or only acceleration at `0.01`
-  by `1.1` makes continuation fail the numerical comparison. The FSI regression
-  also passes with these changes.
+  Both rank pairs pass at `1e-12`; the largest relative error with `square_h02.mesh`
+  was approximately `5.28e-14` (acceleration, `4 -> 6`). During initial validation
+  on the coarse `square_solid.mesh`, scaling only velocity or only acceleration
+  at `0.01` by `1.1` in separate disposable checkpoints made continuation fail
+  the numerical comparison. The FSI regression also passed at that stage.
 
 The restart tests use upstream meshes and do not require the new SCI meshes or
 the AceGen Interface2 material models.

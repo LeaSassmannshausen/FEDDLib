@@ -60,6 +60,7 @@ void inflow3D(double* x, double* result, double, const double* parameters)
     result[2] = 0.;
 }
 
+
 bool compareRestart(NavierStokes_Type& problem, ParameterListPtr_Type parameters,
                     RCP<const Teuchos::Comm<int>> comm)
 {
@@ -98,6 +99,10 @@ bool compareRestart(NavierStokes_Type& problem, ParameterListPtr_Type parameters
 
 } // namespace
 
+// Test for unsteady Navier Stokes restart. 
+// The test runs a short simulation, writes checkpoints, and then restarts from the first checkpoint to compare against the original run. 
+// The test passes if the restarted solution matches the original within a specified tolerance.
+// Test Case: 2D and 3D BFS flow with P1-P1 discretization, using BDF2 time stepping.
 int main(int argc, char* argv[])
 {
     Teuchos::oblackholestream blackhole;
@@ -137,6 +142,8 @@ int main(int argc, char* argv[])
                   << " to " << parameters->sublist("Timestepping Parameter").get<double>("Final time")
                   << std::endl;
 
+    // Definition of differen domains for velocity and pressure, with a single partitioner for both. 
+    // The velocity domain is used to define the boundary conditions.                  
     RCP<Domain_Type> pressureDomain = rcp(new Domain_Type(comm, dim));
     RCP<Domain_Type> velocityDomain = rcp(new Domain_Type(comm, dim));
     MeshPartitioner_Type::DomainPtrArray_Type domains(1);
@@ -148,7 +155,7 @@ int main(int argc, char* argv[])
     partitioner.readAndPartition();
     velocityDomain = pressureDomain; // We use only P1-P1 discretization for this test, so the velocity and pressure domains are the same.
 
-   
+    // Define boundary conditions for the velocity field. 
     RCP<BCBuilder<SC,LO,GO,NO>> boundaries = rcp(new BCBuilder<SC,LO,GO,NO>());
     std::vector<double> inflowParameters = {parameters->sublist("Parameter").get<double>("MaxVelocity"), 1.};
     auto zero = dim == 2 ? zeroDirichlet2D : zeroDirichlet3D;
@@ -171,7 +178,7 @@ int main(int argc, char* argv[])
     timeSolver.defineTimeStepping(timeBlocks);
     timeSolver.setProblem(problem);
     timeSolver.setupTimeStepping();
-    timeSolver.advanceInTime();
+    timeSolver.advanceInTime(); // Time stepping is handled by the solver, which calls the problem's assemble and solve methods as needed.
 
     if (restart)
         return compareRestart(problem, parameters, comm) ? EXIT_SUCCESS : EXIT_FAILURE;
