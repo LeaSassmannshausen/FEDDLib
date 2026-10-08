@@ -1,1 +1,1 @@
-add_subdirectories(steadyNavierStokesAssFE unsteadyNavierStokesAssFE steadyGeneralizedNewtonianAssFE steadyLinElasAssFE unsteadyLinElasAssFE steadyNonLinElasAssFE UnitTest restart)
+add_subdirectories(assembleFETests interfaceTests UnitTest RestartTests)

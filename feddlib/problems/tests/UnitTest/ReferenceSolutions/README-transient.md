@@ -12,12 +12,12 @@ missing or changed references cannot be replaced automatically by the test.
 
 The FSI case uses the Turek fluid/solid `h004` meshes, explicit geometry and
 FaCSI, with the same boundary conditions, material and solver settings as
-`restart/fsi_restart`. It stops at `0.02` and compares the primary fields.
+`RestartTests/fsi_restart`. It stops at `0.02` and compares the primary fields.
 
 The elasticity case uses `square_h02.mesh`, P1 elements, Saint Venant-Kirchhoff material
 with Poisson ratio `0.48`,
 a clamped left edge and a constant right-edge surface load, as in
-`restart/unsteadyNonLinElasticity_restart`. Newmark parameters are `beta = 0.25`,
+`RestartTests/unsteadyNonLinElasticity_restart`. Newmark parameters are `beta = 0.25`,
 `gamma = 0.5`, `dt = 0.0025`. It runs to `0.0225`: the existing Newmark loop
 finalizes derivatives at the start of the next step. The compared displacement
 history, velocity and acceleration buffers therefore all represent `0.02`.

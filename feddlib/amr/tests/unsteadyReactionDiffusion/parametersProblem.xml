@@ -37,7 +37,7 @@
         <Parameter name="Set Zeros"		                        type="bool"     value="true"/>
     </ParameterList>
     <ParameterList name="Timestepping Parameter">
-        <Parameter name="Class"                                 type="string"		value="Singlestep"/> <!-- Newmark -->
+        <Parameter name="Class"                                 type="string"		value="Multistep"/> <!-- Newmark -->
         <Parameter name="BDF"		                    		type="int"		   	value="1"/>
         <Parameter name="Timestepping type"                    	type="string"   	value="non-adaptive"/><!--non-adaptive,adaptive-->
         <Parameter name="Final time"	                    	type="double"   	value="1.0"/>

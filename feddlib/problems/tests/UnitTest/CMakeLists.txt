@@ -6,7 +6,7 @@ SET(fsi_reference_inputs
     parametersProblemFSI.xml parametersPrecFluidMono.xml parametersPrecStructure.xml
     parametersPrecGeometry.xml parametersSolverFSI.xml parametersSolverGeometry.xml)
 tribits_copy_files_to_binary_dir(param_fsiUnitTest
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../restart/fsi_restart
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../RestartTests/fsi_restart
     SOURCE_FILES ${fsi_reference_inputs}
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
     DEST_FILES ${fsi_reference_inputs}
@@ -24,7 +24,7 @@ FOREACH(mpi_procs 4 6)
         NAME unsteadyNonLinElasticity_2D_P1_${mpi_procs}cores NUM_MPI_PROCS ${mpi_procs})
 ENDFOREACH()
 tribits_copy_files_to_binary_dir(param_unsteadyNonLinElasticityUnitTest
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../restart/unsteadyNonLinElasticity_restart
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../RestartTests/unsteadyNonLinElasticity_restart
     SOURCE_FILES parametersProblem.xml parametersPrec.xml parametersSolver.xml
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
     DEST_FILES parametersProblemUnsteadyNonLinElasticity.xml
