@@ -21,8 +21,9 @@ using Vector = FEDD::MultiVector<default_sc, default_lo, default_go, default_no>
  * Normal runs read the existing "solution" dataset and never regenerate it.
  * Explicit reference-generation runs write to the selected directory instead.
  * Report absolute l2, relative l2 and absolute infinity errors. Require finite,
- * nonzero reference data, the unit tests' absolute infinity bound (1e-11), and
- * the restart tests' relative l2 bound (1e-12).
+ * nonzero reference data and a relative l2 error at most 1e-12. The infinity
+ * error must be at most 1e-11 + 1e-12 * ||reference||_infinity, so the absolute
+ * bound scales with the field magnitude while retaining a floor for small fields.
  *
  * @param solution Runtime state at the documented comparison time.
  * @param file Stem of the reference file, without the .h5 suffix.
@@ -56,20 +57,29 @@ inline bool check(Teuchos::RCP<const Vector> solution, const std::string& file,
     auto reference = importer.readVariablesHDF5("solution");
     Vector error(solution->getMap());
     error.update(1., *solution, -1., *reference, 0.);
-    Teuchos::Array<default_sc> errorL2(1), errorInf(1), referenceL2(1);
+    Teuchos::Array<default_sc> errorL2(1), errorInf(1), referenceL2(1), referenceInf(1);
     error.norm2(errorL2);
     error.normInf(errorInf);
     reference->norm2(referenceL2);
+    reference->normInf(referenceInf);
+    constexpr double absoluteTolerance = 1.e-11;
+    constexpr double relativeTolerance = 1.e-12;
+    const double allowedInfError = absoluteTolerance + relativeTolerance * referenceInf[0];
     const double relative = referenceL2[0] > 0. ? errorL2[0] / referenceL2[0] : errorL2[0];
     const bool passed = std::isfinite(referenceL2[0]) && referenceL2[0] > 0.
+        && std::isfinite(referenceInf[0]) && std::isfinite(allowedInfError)
         && std::isfinite(relative) && std::isfinite(errorInf[0])
-        && relative <= 1.e-12 && errorInf[0] <= 1.e-11;
+        && relative <= relativeTolerance && errorInf[0] <= allowedInfError;
     if (comm->getRank() == 0)
         std::cout << std::setprecision(16)
                   << "Reference absolute error (" << field << ", l2): " << errorL2[0] << '\n'
-                  << "Reference relative error (" << field << "): " << relative << " (tolerance 1e-12)\n"
+                  << "Reference relative error (" << field << "): " << relative
+                  << " (tolerance " << relativeTolerance << ")\n"
+                  << "Reference norm (" << field << ", infinity): " << referenceInf[0] << '\n'
                   << "Reference absolute error (" << field << ", infinity): " << errorInf[0]
-                  << " (tolerance 1e-11): " << (passed ? "PASS" : "FAIL") << std::endl;
+                  << " (allowed " << allowedInfError << " = " << absoluteTolerance
+                  << " + " << relativeTolerance << " * reference infinity norm): "
+                  << (passed ? "PASS" : "FAIL") << std::endl;
     return passed;
 }
 

@@ -49,21 +49,8 @@
     <ParameterList name="Timestepping Parameter">
         <Parameter name="Class"                                 type="string"		value="Multistep"/> <!--Multistep, Singlestep-->
         <Parameter name="BDF"		                    		type="int"		   	value="2"/>
-        <Parameter name="Butcher table"                    		type="int"		   	value="1"/>
-        <Parameter name="Full implicit pressure"                type="bool"		   	value="true"/>
-        <Parameter name="Correct pressure"                      type="bool"         value="false"/>
-        <Parameter name="Semi implicit pressure"                type="bool"         value="false"/>
         <Parameter name="Timestepping type"                    	type="string"   	value="non-adaptive"/><!--non-adaptive,adaptive-->
         <Parameter name="Final time"	                    	type="double"   	value="0.02"/>
         <Parameter name="dt"			                    	type="double"   	value="0.01"/>
-        <!-- adaptive variables -->
-        <Parameter name="Print Solution Short" type="bool" value="true"/>
-        <Parameter name="Adaptive error" type="int" value="0"/><!--0:euclidian, 1:L2-->
-        <Parameter name="Adaptive calculation" type="int" value="0"/><!--0:PI controller with last step ,1:PI simple-->
-        <Parameter name="Adaptive tolerance" type="double"   	value="1.e-5"/>
-        <Parameter name="dtmin" type="double"   	value=".0005"/>
-        <Parameter name="dtmax" type="double"   	value=".1"/>
-        <Parameter name="Safety factor" type="double"   	value=".9"/>
-        <Parameter name="Convergence order" type="int"   		value="3"/>
     </ParameterList>
 </ParameterList>

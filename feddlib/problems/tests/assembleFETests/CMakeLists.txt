@@ -5,4 +5,3 @@ add_subdirectories(
     unsteadyLinElasAssFE
 )
 
-# steadyNavierStokesAssFE_test remains unregistered, as before the move.
