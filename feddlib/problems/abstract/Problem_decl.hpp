@@ -188,10 +188,22 @@ public:
      */
     void restoreSolutionFromCheckpoint(double restartTime);
 
+    /** @brief Load Navier–Stokes velocity and pressure as a new initial condition.
+     * Validates mesh/discretization metadata and stages all fields before changing
+     * solution blocks. Reads "Initial solution directory" at sourceTime; does not
+     * restore history, alter the simulation clock, assemble, or solve a timestep.
+     * @param sourceTime Time key in the source checkpoint, independent of the new dt.
+     * @pre initializeVectors() has allocated solution blocks; call before assembly.
+     * @note Collective operation. Requires standalone multistep Navier–Stokes.
+     */
+    void initializeSolutionFromCheckpoint(double sourceTime);
+
     /** @brief Cache the reference mesh/discretization and validate restart data.
      * Collects field descriptions; core checkpoint helpers construct the schema
      * and compute mesh identity independently of the Problem class.
-     * Call collectively before the first restore, including FSI constructor reads.
+     * Call collectively before the first restore or initial solution load,
+     * including FSI constructor reads. Initial solution mode requires the field
+     * schema but validates primary fields separately from restart history.
      * A component role selects FSI fluid mass history or structure Newmark history.
      * Cached mesh identity is retained when ALE subsequently moves the coordinates.
      */
@@ -296,6 +308,9 @@ public:
     vec_dbl_Type parasSourceFunc_; //
     
 protected:
+
+    /// Stage and load primary fields after the caller has validated their compatibility.
+    void loadSolutionFields(const std::string& directory, double sourceTime);
 
     Teuchos::ParameterList checkpointSchema_;
     bool checkpointSchemaPrepared_ = false;

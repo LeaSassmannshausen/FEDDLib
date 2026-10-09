@@ -44,12 +44,7 @@ namespace FEDD
     template <class SC, class LO, class GO, class NO>
     void NonLinearProblem<SC, LO, GO, NO>::initializeProblem(int nmbVectors)
     {
-        this->system_.reset(new BlockMatrix_Type(1));
-
-        this->initializeVectors(nmbVectors);
-
-        if (this->parameterList_->sublist("Timestepping Parameter").get("Restart", false))
-            this->restoreSolutionFromCheckpoint(this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0));
+        Problem_Type::initializeProblem(nmbVectors);
 
         this->initializeVectorsNonLinear(nmbVectors);
 

@@ -1,7 +1,7 @@
 # 2D BFS2d_1600 Navier–Stokes recovery test
 
-`problems_unsteadyNavierStokes_restart_recovery` runs on four MPI ranks. It reuses the
-inputs and executable from `../unsteadyNavierStokes_restart` and generates its reference
+`problems_navierStokes_2D_3D_bfs_recovery` runs on four MPI ranks. It reuses the
+inputs and executable from `../navierStokes_2D_3D_bfs` and generates its reference
 solutions independently in an isolated working directory.
 
 This test exercises these operations:

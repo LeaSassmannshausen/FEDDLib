@@ -120,11 +120,12 @@ int main(int argc, char* argv[])
 
     auto fluidParameters = Teuchos::getParametersFromXmlFile("parametersPrecFluidMono.xml");
     fluidParameters->sublist("Parameter").setParameters(parameters->sublist("Parameter Fluid"));
-    fluidParameters->sublist("Timestepping Parameter").setParameters(parameters->sublist("Timestepping Parameter"));
 
     auto solidParameters = Teuchos::getParametersFromXmlFile("parametersPrecStructure.xml");
     solidParameters->sublist("Parameter").setParameters(parameters->sublist("Parameter Solid"));
-    solidParameters->sublist("Timestepping Parameter").setParameters(parameters->sublist("Timestepping Parameter"));
+    // Like the curved artery driver, component lists contain material and
+    // preconditioner settings only. FSI must propagate the coupled time and
+    // checkpoint settings before constructing and restoring its subproblems.
 
     auto geometryParameters = Teuchos::getParametersFromXmlFile("parametersPrecGeometry.xml");
     geometryParameters->setParameters(*Teuchos::getParametersFromXmlFile("parametersSolverGeometry.xml"));

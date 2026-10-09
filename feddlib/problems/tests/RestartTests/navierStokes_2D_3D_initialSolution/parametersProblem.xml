@@ -1,0 +1,38 @@
+<ParameterList name="Navier-Stokes initial solution">
+    <ParameterList name="Parameter">
+        <!-- The steady source uses viscosity 0.01. The new viscosity makes the
+             transient evolve while preserving the initial boundary conditions. -->
+        <Parameter name="Viscosity" type="double" value="0.1"/>
+        <Parameter name="Density" type="double" value="1.0"/>
+        <Parameter name="MaxVelocity" type="double" value="0.1"/>
+        <Parameter name="relNonLinTol" type="double" value="1.e-12"/>
+        <Parameter name="MaxNonLinIts" type="int" value="20"/>
+        <Parameter name="Cancel MaxNonLinIts" type="bool" value="true"/>
+        <Parameter name="Criterion" type="string" value="Residual"/>
+        <Parameter name="Symmetric gradient" type="bool" value="false"/>
+    </ParameterList>
+    <ParameterList name="Mesh Partitioner">
+        <Parameter name="Contiguous" type="bool" value="true"/>
+    </ParameterList>
+    <ParameterList name="General">
+        <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
+        <Parameter name="Linearization" type="string" value="Newton"/>
+        <Parameter name="Preconditioner Method" type="string" value="Monolithic"/>
+        <Parameter name="ParaViewExport" type="bool" value="false"/>
+        <Parameter name="Export Data" type="bool" value="false"/>
+        <Parameter name="Safe all solution" type="bool" value="true"/>
+    </ParameterList>
+    <ParameterList name="Timestepping Parameter">
+        <Parameter name="Class" type="string" value="Multistep"/>
+        <Parameter name="BDF" type="int" value="2"/>
+        <Parameter name="dt" type="double" value="0.004"/>
+        <Parameter name="Final time" type="double" value="0.008"/>
+        <Parameter name="Restart" type="bool" value="false"/>
+        <Parameter name="Initial solution" type="bool" value="true"/>
+        <Parameter name="Initial solution directory" type="string" value="initialSource"/>
+        <!-- Source time is deliberately off the new dt grid. -->
+        <Parameter name="Initial solution time" type="double" value="0.015"/>
+        <Parameter name="Initial solution tolerance" type="double" value="1.e-12"/>
+        <Parameter name="Checkpointing" type="bool" value="false"/>
+    </ParameterList>
+</ParameterList>

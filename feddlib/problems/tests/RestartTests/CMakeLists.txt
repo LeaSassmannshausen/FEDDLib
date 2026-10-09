@@ -1,2 +1,2 @@
-add_subdirectories(fsi_3D_arterialSegment fsi_2D_turek unsteadyNavierStokes_restart unsteadyNonLinElasticity_restart
-    fsi_2D_turek_recovery unsteadyNavierStokes_restart_recovery)
+add_subdirectories(fsi_3D_arterialSegment fsi_2D_turek navierStokes_2D_3D_bfs unsteadyNonLinElasticity_restart
+    fsi_2D_turek_recovery navierStokes_2D_3D_bfs_recovery navierStokes_2D_3D_initialSolution)

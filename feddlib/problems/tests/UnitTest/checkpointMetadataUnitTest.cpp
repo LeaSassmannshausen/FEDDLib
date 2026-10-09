@@ -17,7 +17,8 @@ int main(int argc, char** argv)
     auto parameters = Teuchos::rcp(new Teuchos::ParameterList);
     const std::string directory = "checkpointMetadataUnitTest-data";
     parameters->sublist("Timestepping Parameter")
-        .set("Checkpoint directory", directory).set("Restart directory", directory);
+        .set("Checkpoint directory", directory).set("Restart directory", directory)
+        .set("Initial solution directory", directory);
     checkpoint::onRoot(*comm, [&] {
         std::filesystem::remove_all(directory);
         std::filesystem::create_directory(directory);
@@ -69,6 +70,9 @@ int main(int argc, char** argv)
     const auto validate = [&](const Teuchos::ParameterList& required) {
         checkpoint::validate(required, parameters, time, *comm);
     };
+    const auto validateInitial = [&](const Teuchos::ParameterList& required) {
+        checkpoint::validateInitialSolution(required, parameters, time, *comm);
+    };
     // Independently specified version-1 schemas must remain compatible after
     // moving schema construction out of Problem, including component roles.
     const auto checksSchema = [&](const std::string& label, const Teuchos::ParameterList& expected,
@@ -117,10 +121,23 @@ int main(int argc, char** argv)
     fixture();
     validate(schema);
     if (comm->getRank() == 0) std::cout << "PASS compatible checkpoint\n";
+    {
+        auto changed = schema;
+        // Source time need not be on the new dt grid, nor match its BDF order.
+        changed.sublist("Integration").set("dt", 0.003).set("BDF", 1).set("Solution history", 1);
+        validateInitial(changed);
+        if (comm->getRank() == 0) std::cout << "PASS initial fields with new integration settings\n";
+        changed.set("Format version", 999);
+        rejects("initial solution unknown format", "Format version", [&] { validateInitial(changed); });
+        rejects("nonfinite initial source time", "finite and nonnegative", [&] {
+            checkpoint::validateInitialSolution(schema, parameters, std::numeric_limits<double>::infinity(), *comm);
+        });
+    }
     for (const std::string name : {std::string("Reference mesh and DOF fingerprint"), std::string("FE type"), std::string("Global DOFs")}) {
         auto changed = schema;
         changed.sublist("Fields").sublist("u").set(name, std::string("incompatible"));
         rejects("incompatible " + name, name, [&] { validate(changed); });
+        rejects("initial solution incompatible " + name, name, [&] { validateInitial(changed); });
     }
     {
         auto changed = schema;
@@ -142,6 +159,10 @@ int main(int argc, char** argv)
     };
     editVelocity([&](hid_t file) { H5Ldelete(file, std::to_string(time - 0.0025).c_str(), H5P_DEFAULT); });
     rejects("missing BDF history", "missing required history/field group", [&] { validate(schema); });
+    validateInitial(schema);
+    if (comm->getRank() == 0) std::cout << "PASS initial solution needs no BDF history\n";
+    editVelocity([&](hid_t file) { H5Ldelete(file, std::to_string(time).c_str(), H5P_DEFAULT); });
+    rejects("initial solution missing primary field", "missing required history/field group", [&] { validateInitial(schema); });
     fixture();
     for (const std::string property : {std::string("GlobalLength"), std::string("NumVectors")}) {
         editVelocity([&](hid_t file) {
@@ -150,6 +171,7 @@ int main(int argc, char** argv)
             H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &wrong);
         });
         rejects("inconsistent " + property, property, [&] { validate(schema); });
+        rejects("initial solution inconsistent " + property, property, [&] { validateInitial(schema); });
         fixture();
     }
     editVelocity([&](hid_t file) {
@@ -181,8 +203,10 @@ int main(int argc, char** argv)
         std::filesystem::remove(directory + "/" + checkpoint::manifestName(schema, time));
     });
     rejects("missing manifest", "Missing manifest", [&] { validate(schema); });
+    rejects("initial solution missing manifest", "Missing initial solution manifest", [&] { validateInitial(schema); });
     parameters->sublist("Timestepping Parameter").set("Allow legacy restart", true);
     validate(schema);
+    rejects("initial solution cannot bypass mesh checks through legacy mode", "Missing initial solution manifest", [&] { validateInitial(schema); });
     if (comm->getRank() == 0) std::cout << "PASS explicit legacy restart\n";
     // Legacy mode must not bypass dataset checks.
     editVelocity([&](hid_t file) { H5Ldelete(file, std::to_string(time - 0.0025).c_str(), H5P_DEFAULT); });
@@ -223,6 +247,7 @@ int main(int argc, char** argv)
     structure.set("Role", std::string("FSI structure"));
     checksSchema("version-1 FSI structure overrides integration class", structure, settings, {fields[0]});
     fixtureFor(newmark);
+    rejects("initial solution excludes Newmark", "standalone multistep Navier-Stokes", [&] { validateInitial(newmark); });
     validate(newmark);
     for (const std::string setting : {std::string("beta"), std::string("gamma")}) {
         auto changed = newmark;
@@ -251,6 +276,7 @@ int main(int argc, char** argv)
     }
     checksSchema("version-1 coupled FSI schema", fsi, fsiSettings, fsiFields);
     fixtureFor(fsi);
+    rejects("initial solution excludes FSI", "standalone multistep Navier-Stokes", [&] { validateInitial(fsi); });
     validate(fsi);
     checkpoint::onRoot(*comm, [&] {
         std::filesystem::remove(directory + "/Solutiond_f.h5");

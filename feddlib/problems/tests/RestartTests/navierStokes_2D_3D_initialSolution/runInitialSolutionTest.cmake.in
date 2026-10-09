@@ -1,0 +1,43 @@
+# Stream normal solver output; each dimension/rank pair has an isolated directory.
+SET(work "@CMAKE_CURRENT_BINARY_DIR@/@initial_test_name@")
+FILE(REMOVE_RECURSE "${work}")
+FILE(MAKE_DIRECTORY "${work}")
+FOREACH(input parametersProblem.xml parametersProblem@dimension@D.xml parametersPrec.xml parametersSolver.xml @initial_test_mesh@)
+    FILE(COPY "@CMAKE_CURRENT_BINARY_DIR@/${input}" DESTINATION "${work}")
+ENDFOREACH()
+
+FUNCTION(run_phase phase ranks)
+    EXECUTE_PROCESS(COMMAND "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@ @MPI_EXEC_NUMPROCS_FLAG@ ${ranks}
+        @MPI_EXEC_POST_NUMPROCS_FLAGS@ "${EXECUTABLE}" --problemfile=parametersProblem@dimension@D.xml --phase=${phase}
+        WORKING_DIRECTORY "${work}" RESULT_VARIABLE result)
+    IF(NOT result STREQUAL "0")
+        MESSAGE(FATAL_ERROR "Initial solution phase ${phase} failed: ${result}")
+    ENDIF()
+ENDFUNCTION()
+
+run_phase(source 4)
+run_phase(manual 4)
+run_phase(validate @initial_mpi_procs@)
+run_phase(load @initial_mpi_procs@)
+
+IF(@dimension@ EQUAL 2 AND @initial_mpi_procs@ EQUAL 4)
+    EXECUTE_PROCESS(COMMAND "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@ @MPI_EXEC_NUMPROCS_FLAG@ 4
+        @MPI_EXEC_POST_NUMPROCS_FLAGS@ "${EXECUTABLE}" --problemfile=parametersProblem2D.xml --phase=validate --perturb-mesh
+        WORKING_DIRECTORY "${work}" RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE errors TIMEOUT 60)
+    IF(result STREQUAL "0" OR NOT "${output}${errors}" MATCHES "fingerprint")
+        MESSAGE(FATAL_ERROR "Expected initial solution mesh compatibility rejection: ${result}\n${output}${errors}")
+    ENDIF()
+    MESSAGE(STATUS "PASS initial solution rejects a changed mesh before loading fields")
+    FILE(READ "${work}/parametersProblem.xml" original)
+    STRING(REPLACE "name=\"Restart\" type=\"bool\" value=\"false\""
+        "name=\"Restart\" type=\"bool\" value=\"true\"" conflicting "${original}")
+    FILE(WRITE "${work}/parametersProblem.xml" "${conflicting}")
+    EXECUTE_PROCESS(COMMAND "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@ @MPI_EXEC_NUMPROCS_FLAG@ 4
+        @MPI_EXEC_POST_NUMPROCS_FLAGS@ "${EXECUTABLE}" --problemfile=parametersProblem2D.xml --phase=validate
+        WORKING_DIRECTORY "${work}" RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE errors TIMEOUT 60)
+    FILE(WRITE "${work}/parametersProblem.xml" "${original}")
+    IF(result STREQUAL "0" OR NOT "${output}${errors}" MATCHES "mutually exclusive")
+        MESSAGE(FATAL_ERROR "Expected conflicting initialization mode rejection: ${result}\n${output}${errors}")
+    ENDIF()
+    MESSAGE(STATUS "PASS initial solution and restart cannot both be enabled")
+ENDIF()

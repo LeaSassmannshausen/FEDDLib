@@ -122,10 +122,14 @@ exporterGeo_()
     this->addVariable( domainGeometry, FETypeGeometry, "d_f", domainGeometry->getDimension() ); // Geometrie
     this->dim_ = this->getDomain(0)->getDimension();
     checkpoint::outletConfiguration(*this->parameterList_);
-    if (this->parameterList_->sublist("Timestepping Parameter").get("Failure recovery", false)) {
-        parameterListFluid->sublist("Timestepping Parameter").set("Failure recovery", true);
-        parameterListStructure->sublist("Timestepping Parameter").set("Failure recovery", true);
-    }
+    // All components use the coupled clock and checkpoint configuration. In
+    // particular, Newmark and moving-mesh mass history must use the same dt,
+    // checkpoint schedule, input/output directories and restart/recovery mode.
+    // Example drivers may construct component lists from preconditioner/material
+    // settings only, so propagation belongs here rather than in each driver.
+    const auto& timeParameters = this->parameterList_->sublist("Timestepping Parameter");
+    parameterListFluid->sublist("Timestepping Parameter") = timeParameters;
+    parameterListStructure->sublist("Timestepping Parameter") = timeParameters;
     // Saving the coupled state requires the fluid and Newmark history as well.
     if (this->parameterList_->sublist("General").get("Safe all solution", false)) {
         parameterListFluid->sublist("General").set("Safe all solution", true);

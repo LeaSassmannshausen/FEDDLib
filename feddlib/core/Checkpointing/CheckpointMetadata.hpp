@@ -225,6 +225,66 @@ inline Teuchos::ParameterList atTime(const Teuchos::ParameterList& schema, doubl
     return result;
 }
 
+/// Inspect a primary field or history dataset before starting distributed imports.
+inline void validateDataset(const std::string& filename, const std::string& key,
+                            const std::string& globalDofs)
+{
+    if (!std::ifstream(filename)) throw std::runtime_error("Missing checkpoint file " + filename);
+    H5Handle h5(H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT), H5Fclose);
+    if (h5 < 0) throw std::runtime_error("Cannot open checkpoint file " + filename);
+    try {
+        validateVectorDataset(h5, key, std::stoull(globalDofs));
+    }
+    catch (const std::exception& exception) {
+        throw std::runtime_error(filename + ": " + exception.what());
+    }
+}
+
+/** @brief Validate primary Navier–Stokes fields for a new simulation at time zero.
+ * Requires versioned mesh/discretization metadata and the selected velocity and
+ * pressure datasets. The source time identifies the stored state only: its dt,
+ * integration method and history do not constrain the new simulation.
+ * No legacy fallback is provided because mesh identity must be verified.
+ * @param schema Compatibility schema of the destination problem.
+ * @param parameters Contains "Initial solution directory".
+ * @param sourceTime Physical time identifying the source fields, not the new clock.
+ * @param comm Communicator on which validation errors are propagated collectively.
+ */
+inline void validateInitialSolution(const Teuchos::ParameterList& schema,
+                                    const ParameterListPtr_Type& parameters,
+                                    double sourceTime, const Teuchos::Comm<int>& comm)
+{
+    onRoot(comm, [&] {
+        if (!std::isfinite(sourceTime) || sourceTime < 0.)
+            throw std::runtime_error("Initial solution time must be finite and nonnegative");
+        const auto& fields = schema.sublist("Fields");
+        if (schema.get<bool>("FSI") || !schema.get<std::string>("Role").empty() ||
+            fields.numParams() != 2 || !fields.isSublist("u") || !fields.isSublist("p") ||
+            schema.sublist("Integration").get<std::string>("Class") != "Multistep")
+            throw std::runtime_error("Initial solution currently supports standalone multistep Navier-Stokes only");
+        const std::string filename = initialSolutionFile(parameters, manifestName(schema, sourceTime));
+        std::ifstream input(filename);
+        if (!input) throw std::runtime_error("Missing initial solution manifest " + filename);
+        std::ostringstream xml;
+        xml << input.rdbuf();
+        const auto saved = Teuchos::getParametersFromXmlString(xml.str());
+        Teuchos::ParameterList expectedIdentity, savedIdentity;
+        for (const std::string name : {std::string("Format version"), std::string("FSI"), std::string("Role")}) {
+            expectedIdentity.setEntry(name, schema.getEntry(name));
+            savedIdentity.setEntry(name, saved->getEntry(name));
+        }
+        expectedIdentity.set("Physical time", sourceTime);
+        savedIdentity.setEntry("Physical time", saved->getEntry("Physical time"));
+        compare(savedIdentity, expectedIdentity);
+        compare(saved->sublist("Fields"), fields, "Fields");
+        for (auto it = fields.begin(); it != fields.end(); ++it) {
+            const std::string field = fields.name(it);
+            validateDataset(initialSolutionFile(parameters, "Solution" + field + ".h5"),
+                            std::to_string(sourceTime), fields.sublist(field).get<std::string>("Global DOFs"));
+        }
+    });
+}
+
 /** @brief Validate a manifest and every required dataset before simulation values change.
  * Missing manifests are accepted only with explicit "Allow legacy restart".
  * Legacy mode still inspects all required HDF5 fields and history, but cannot prove mesh identity.
@@ -262,16 +322,7 @@ inline void validate(const Teuchos::ParameterList& schema, const ParameterListPt
         for (auto it = datasets.begin(); it != datasets.end(); ++it) {
             const auto& item = datasets.sublist(datasets.name(it));
             const std::string filename = restartFile(parameters, item.get<std::string>("File"));
-            if (!std::ifstream(filename)) throw std::runtime_error("Missing checkpoint file " + filename);
-            H5Handle h5(H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT), H5Fclose);
-            if (h5 < 0) throw std::runtime_error("Cannot open checkpoint file " + filename);
-            try {
-                validateVectorDataset(h5, item.get<std::string>("Key"),
-                    std::stoull(item.get<std::string>("Global DOFs")));
-            }
-            catch (const std::exception& exception) {
-                throw std::runtime_error(filename + ": " + exception.what());
-            }
+            validateDataset(filename, item.get<std::string>("Key"), item.get<std::string>("Global DOFs"));
         }
     });
 }

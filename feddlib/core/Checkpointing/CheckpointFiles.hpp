@@ -40,5 +40,11 @@ inline std::string restartFile(const ParameterListPtr_Type& parameters, const st
     return joinPath(parameters->sublist("Timestepping Parameter").get("Restart directory", std::string("")), file);
 }
 
+/// Path of a field checkpoint used as the initial condition of a new simulation.
+inline std::string initialSolutionFile(const ParameterListPtr_Type& parameters, const std::string& file)
+{
+    return joinPath(parameters->sublist("Timestepping Parameter").get<std::string>("Initial solution directory"), file);
+}
+
 }
 #endif

@@ -73,6 +73,9 @@ HDF5 length/vector-count/shape/type, a mismatched destination map, and explicit
 legacy mode. Rejections are checked on every MPI rank. The 2D 4-to-4
 Navier–Stokes restart test additionally rejects a same-size mesh with one changed
 coordinate and modified FE/BDF metadata through the actual restore entry point.
+The metadata unit test also checks initial solution compatibility, including new
+integration settings, absent history, required primary fields and rejection of
+legacy manifests, FSI and Newmark initialization.
 
 Checkpoint times should coincide with time steps. Standalone BDF problems,
 including Navier-Stokes, write checkpoints after a successful solve and clock
@@ -85,6 +88,11 @@ FSI and standalone Newmark retain their existing checkpoint timing. For both,
 let the uninterrupted run advance one step past a checkpoint you need. A
 multistep restart needs the saved previous steps as well as the solution at the
 restart time. The tests restart after several steps so this history is available.
+FSI copies the coupled `Timestepping Parameter` settings into its fluid and solid
+components before constructing them. Configure checkpointing/restart on the
+coupled problem; its dt, checkpoint schedule and directories also govern fluid
+mass history and Newmark displacement, velocity and acceleration. Driver code
+does not need to copy these settings into the component parameter lists.
 
 The checkpoint files include `Solution<variable>.h5`, Newmark displacement,
 velocity and acceleration, and, for FSI, moving-mesh mass products and geometry.
@@ -93,16 +101,58 @@ complete checkpoint directory, rather than just the displacement or velocity
 file. The FSI test covers explicit geometry with the Turek benchmark; it does
 not validate restart of stateful outlet boundary conditions.
 
+## Initial solution for a new Navier–Stokes simulation
+
+Standalone multistep Navier–Stokes can load saved velocity and pressure as the
+initial condition of a new simulation. Configure `Timestepping Parameter` with:
+
+```xml
+<Parameter name="Restart" type="bool" value="false"/>
+<Parameter name="Initial solution" type="bool" value="true"/>
+<Parameter name="Initial solution directory" type="string" value="initialSource"/>
+<Parameter name="Initial solution time" type="double" value="0.015"/>
+<Parameter name="Class" type="string" value="Multistep"/>
+<Parameter name="BDF" type="int" value="2"/>
+<Parameter name="dt" type="double" value="0.004"/>
+<Parameter name="Final time" type="double" value="0.008"/>
+```
+
+`Initial solution` defaults to false. When enabled, its directory and source time
+must be specified. The source time identifies `Solutionu.h5`, `Solutionp.h5` and
+their versioned manifest; it does not set the simulation clock. The new run starts
+at zero, with empty history and the normal BDF1 startup before BDF2. Loading does
+not perform a nonlinear solve or advance a timestep. Initialization belongs in
+`initializeProblem()`, before assembly and time solver setup.
+
+Format version, source physical time, fields, reference mesh/DOF fingerprints,
+FE types, dimensions, components, global DOF counts and index bases are validated
+before any solution block is replaced. Initial solution loading requires metadata;
+`Allow legacy restart` does not bypass these checks. Old integration settings and
+history are not imported, so the new dt, BDF order, solver and physical parameters
+may differ. The caller supplies a suitable converged solution; loading does not
+verify that it is an equilibrium for the new parameters.
+
+`Initial solution` and `Restart` are mutually exclusive. FSI and Newmark initial
+states are not supported yet because geometry, structural derivatives and outlet
+state need additional initialization rules. Use a separate checkpoint output
+directory when writing the new trajectory to preserve the source files.
+
+[navierStokes_2D_3D_initialSolution](../feddlib/problems/tests/RestartTests/navierStokes_2D_3D_initialSolution/README.md)
+generates converged steady BFS solutions in 2D and 3D on four ranks, then loads
+them on four or six ranks. It checks exact initial field loading, zero time and
+empty history, a zero-duration run, and the first two timesteps against direct
+vector initialization, with different integration settings and no source history.
+
 ## Validation
 
 With tests enabled and the required Trilinos solvers available:
 
 ```sh
-cmake --build build --target problems_unsteadyNavierStokes_restart problems_fsi_2D_turek problems_unsteadyNonLinElasticity_restart
-ctest --test-dir build --output-on-failure -R 'problems_(unsteadyNavierStokes_restart|fsi_2D_turek|unsteadyNonLinElasticity_restart)'
+cmake --build build --target problems_navierStokes_2D_3D_bfs problems_fsi_2D_turek problems_unsteadyNonLinElasticity_restart
+ctest --test-dir build --output-on-failure -R 'problems_(navierStokes_2D_3D_bfs|fsi_2D_turek|unsteadyNonLinElasticity_restart)'
 ```
 
-- `unsteadyNavierStokes_restart` runs the 2D `BFS2d_1600.mesh` and 3D
+- `navierStokes_2D_3D_bfs` runs the 2D `BFS2d_1600.mesh` and 3D
   `BFS3dCC.mesh` cases with MPI rank pairs `4 -> 4` and `4 -> 6`. Each test runs
   an uninterrupted reference on four ranks, writes checkpoints at `0.01` and
   `0.02`, stops exactly at `0.02`, then restarts on four or six ranks at `0.01`
@@ -286,4 +336,4 @@ stop and continue modes and compare recovery restarts against independently
 computed reference solutions; a two-rank unit test checks criteria and interrupted
 publication. Their setups are documented in
 [fsi_2D_turek_recovery](../feddlib/problems/tests/RestartTests/fsi_2D_turek_recovery/README.md)
-and [unsteadyNavierStokes_restart_recovery](../feddlib/problems/tests/RestartTests/unsteadyNavierStokes_restart_recovery/README.md).
+and [navierStokes_2D_3D_bfs_recovery](../feddlib/problems/tests/RestartTests/navierStokes_2D_3D_bfs_recovery/README.md).

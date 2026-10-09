@@ -1,5 +1,5 @@
 TRIBITS_ADD_EXECUTABLE(
-    unsteadyNavierStokes_restart
+    navierStokes_2D_3D_bfs
     SOURCES main.cpp
 )
 
@@ -25,7 +25,7 @@ FOREACH(dimension 2 3)
             OR restart_mpi_procs GREATER MPI_EXEC_MAX_NUMPROCS)
             CONTINUE()
         ENDIF()
-        SET(restart_test_name ${PACKAGE_NAME}_unsteadyNavierStokes_restart_${dimension}D_${reference_mpi_procs}_to_${restart_mpi_procs})
+        SET(restart_test_name ${PACKAGE_NAME}_navierStokes_2D_3D_bfs_${dimension}D_${reference_mpi_procs}_to_${restart_mpi_procs})
         SET(restart_test_script ${CMAKE_CURRENT_BINARY_DIR}/${restart_test_name}.cmake)
         IF(dimension EQUAL 2)
             SET(restart_test_mesh BFS2d_1600.mesh)
@@ -35,29 +35,29 @@ FOREACH(dimension 2 3)
         CONFIGURE_FILE(runRestartTest.cmake.in ${restart_test_script} @ONLY)
         ADD_TEST(NAME ${restart_test_name}
             COMMAND ${CMAKE_COMMAND}
-                "-DEXECUTABLE=$<TARGET_FILE:${PACKAGE_NAME}_unsteadyNavierStokes_restart>"
+                "-DEXECUTABLE=$<TARGET_FILE:${PACKAGE_NAME}_navierStokes_2D_3D_bfs>"
                 -P ${restart_test_script}
         )
         SET_TESTS_PROPERTIES(${restart_test_name} PROPERTIES
             PROCESSORS ${restart_mpi_procs}
             LABELS ${PACKAGE_NAME}
-            REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_unsteadyNavierStokes_restart>"
+            REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_navierStokes_2D_3D_bfs>"
         )
     ENDFOREACH()
 ENDFOREACH()
 
-TRIBITS_COPY_FILES_TO_BINARY_DIR(data_unsteadyNavierStokes_restart
+TRIBITS_COPY_FILES_TO_BINARY_DIR(data_navierStokes_2D_3D_bfs
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
     SOURCE_FILES ${navier_stokes_restart_parameter_files}
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
     DEST_FILES ${navier_stokes_restart_parameter_files}
-    EXEDEPS unsteadyNavierStokes_restart
+    EXEDEPS navierStokes_2D_3D_bfs
 )
 
-TRIBITS_COPY_FILES_TO_BINARY_DIR(mesh_unsteadyNavierStokes_restart
+TRIBITS_COPY_FILES_TO_BINARY_DIR(mesh_navierStokes_2D_3D_bfs
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes
     SOURCE_FILES ${navier_stokes_restart_mesh_files}
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
     DEST_FILES ${navier_stokes_restart_mesh_files}
-    EXEDEPS unsteadyNavierStokes_restart
+    EXEDEPS navierStokes_2D_3D_bfs
 )

@@ -144,6 +144,8 @@ namespace FEDD
         this->initializeVectors(nmbVectors);
         if (parameterList_->sublist("Timestepping Parameter").get("Restart", false))
             restoreSolutionFromCheckpoint(parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0));
+        else if (parameterList_->sublist("Timestepping Parameter").get("Initial solution", false))
+            initializeSolutionFromCheckpoint(parameterList_->sublist("Timestepping Parameter").get<double>("Initial solution time"));
     }
 
     template <class SC, class LO, class GO, class NO>
@@ -428,10 +430,13 @@ namespace FEDD
     template <class SC, class LO, class GO, class NO>
     void Problem<SC, LO, GO, NO>::prepareCheckpointMetadata(const std::string& role)
     {
+        auto& time = parameterList_->sublist("Timestepping Parameter");
+        TEUCHOS_TEST_FOR_EXCEPTION(time.get("Initial solution", false) && time.get("Restart", false),
+                                   std::logic_error, "Initial solution and Restart are mutually exclusive.");
         if (checkpointSchemaPrepared_)
             return;
-        auto& time = parameterList_->sublist("Timestepping Parameter");
         if (!time.get("Restart", false) && !time.get("Checkpointing", false) && !time.get("Failure recovery", false) &&
+            !time.get("Initial solution", false) &&
             !parameterList_->sublist("General").get("Safe all solution", false))
             return;
         std::vector<checkpoint::FieldDescription> fields;
@@ -475,18 +480,34 @@ namespace FEDD
     void Problem<SC, LO, GO, NO>::restoreSolutionFromCheckpoint(double restartTime)
     {
         validateRestartCheckpoint(restartTime);
+        loadSolutionFields(parameterList_->sublist("Timestepping Parameter").get("Restart directory", std::string("")), restartTime);
+    }
+
+    template <class SC, class LO, class GO, class NO>
+    void Problem<SC, LO, GO, NO>::initializeSolutionFromCheckpoint(double sourceTime)
+    {
+        prepareCheckpointMetadata();
+        TEUCHOS_TEST_FOR_EXCEPTION(!checkpointSchemaPrepared_, std::logic_error,
+                                   "Enable Initial solution before explicitly loading initial fields.");
+        checkpoint::validateInitialSolution(checkpointSchema_, parameterList_, sourceTime, *comm_);
+        loadSolutionFields(parameterList_->sublist("Timestepping Parameter").get<std::string>("Initial solution directory"), sourceTime);
+    }
+
+    template <class SC, class LO, class GO, class NO>
+    void Problem<SC, LO, GO, NO>::loadSolutionFields(const std::string& directory, double sourceTime)
+    {
         TEUCHOS_TEST_FOR_EXCEPTION(solution_.is_null(), std::logic_error,
                                    "Allocate problem vectors before restoring the solution.");
         // Stage every primary field before replacing any simulation block.
         std::vector<MultiVectorPtr_Type> restored(solution_->size());
-        const std::string varName = std::to_string(restartTime);
+        const std::string varName = std::to_string(sourceTime);
         for (UN i = 0; i < solution_->size(); ++i)
         {
             // FSI imports geometry into its ALE buffers through a separate path.
             if (variableName_vec_[i] == "d_f")
                 continue;
             MapConstPtr_Type map = solution_->getBlock(i)->getMap();
-            HDF5Import<SC,LO,GO,NO> importer(map, restartFile(parameterList_, "Solution" + variableName_vec_[i]));
+            HDF5Import<SC,LO,GO,NO> importer(map, joinPath(directory, "Solution" + variableName_vec_[i]));
             restored[i] = importer.readVariablesHDF5(varName);
         }
         for (UN i = 0; i < restored.size(); ++i)
