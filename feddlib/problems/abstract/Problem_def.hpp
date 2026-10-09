@@ -435,6 +435,7 @@ namespace FEDD
                                    std::logic_error, "Initial solution and Restart are mutually exclusive.");
         if (checkpointSchemaPrepared_)
             return;
+        checkpoint::validateRestartOutputDirectory(parameterList_, *comm_);
         if (!time.get("Restart", false) && !time.get("Checkpointing", false) && !time.get("Failure recovery", false) &&
             !time.get("Initial solution", false) &&
             !parameterList_->sublist("General").get("Safe all solution", false))

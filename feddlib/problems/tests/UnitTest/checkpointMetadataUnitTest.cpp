@@ -67,6 +67,39 @@ int main(int argc, char** argv)
         if (comm->getRank() == 0)
             std::cout << (allMatched ? "PASS " : "FAIL ") << label << '\n';
     };
+    {
+        auto resumed = Teuchos::rcp(new Teuchos::ParameterList(*parameters));
+        auto& timeSettings = resumed->sublist("Timestepping Parameter");
+        timeSettings.set("Restart", true).set("Checkpointing", true);
+        rejects("checkpoint output preserves restart input", "must be different", [&] {
+            checkpoint::validateRestartOutputDirectory(resumed, *comm);
+        });
+        timeSettings.set("Checkpoint directory", directory + "/../" + directory);
+        rejects("relative alias of restart directory", "must be different", [&] {
+            checkpoint::validateRestartOutputDirectory(resumed, *comm);
+        });
+        checkpoint::onRoot(*comm, [&] {
+            std::filesystem::create_directory_symlink(".", directory + "/alias");
+        });
+        timeSettings.set("Checkpoint directory", directory + "/alias");
+        rejects("symlink alias of restart directory", "must be different", [&] {
+            checkpoint::validateRestartOutputDirectory(resumed, *comm);
+        });
+        timeSettings.set("Checkpointing", false);
+        resumed->sublist("General").set("Safe all solution", true);
+        rejects("save-all output preserves restart input", "must be different", [&] {
+            checkpoint::validateRestartOutputDirectory(resumed, *comm);
+        });
+        timeSettings.set("Checkpoint directory", directory + "/resumed");
+        checkpoint::validateRestartOutputDirectory(resumed, *comm);
+        timeSettings.set("Checkpoint directory", directory);
+        resumed->sublist("General").set("Safe all solution", false);
+        checkpoint::validateRestartOutputDirectory(resumed, *comm);
+        timeSettings.set("Restart", false).set("Checkpointing", true);
+        checkpoint::validateRestartOutputDirectory(resumed, *comm);
+        if (comm->getRank() == 0)
+            std::cout << "PASS separate output, read-only restart and fresh checkpoint run\n";
+    }
     const auto validate = [&](const Teuchos::ParameterList& required) {
         checkpoint::validate(required, parameters, time, *comm);
     };

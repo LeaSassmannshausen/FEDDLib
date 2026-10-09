@@ -165,10 +165,6 @@ exporterGeo_()
     meshDisplacementOld_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(4)->getMapVecFieldRepeated() ) );
     // If we restart we need to initialize the old/previous geometry solution in meshDisplacementOld to correctly
     // compute the mesh velocity
-    if(this->parameterList_->sublist("Timestepping Parameter").get("Checkpointing", false) ||
-       this->parameterList_->sublist("General").get("Safe all solution", false))
-        exporterGeometry_.reset(new HDF5Export<SC,LO,GO,NO>(this->getDomain(4)->getMapVecFieldUnique(),checkpointFile(this->parameterList_, "Solutiond_f")));
-
     if(this->parameterList_->sublist("Timestepping Parameter").get("Restart", false))
     {
         restoreGeometryFromCheckpoint(this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0));
@@ -1722,6 +1718,12 @@ void FSI<SC,LO,GO,NO>::exportValuesOfInterest(double time)
 
     if(geometryExplicit_)
     {
+        // Open output only when writing, after restoration has completed. The
+        // implicit geometry is exported with the coupled solution instead.
+        if (exporterGeometry_.is_null())
+            exporterGeometry_.reset(new HDF5Export<SC,LO,GO,NO>(
+                this->getDomain(4)->getMapVecFieldUnique(),
+                checkpointFile(this->parameterList_, "Solutiond_f")));
         std::string varName = std::to_string(time);
         exporterGeometry_->writeVariablesHDF5(varName,problemGeometry_->getSolution()->getBlockNonConst(0));
     }

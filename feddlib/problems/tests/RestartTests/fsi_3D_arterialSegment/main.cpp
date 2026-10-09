@@ -186,12 +186,14 @@ int main(int argc, char* argv[])
     const std::string baseProblemFile = "parametersProblemFSI.xml";
     std::string problemFile = baseProblemFile;
     std::string pressureModel = "Absorbing Paper";
+    std::string checkpointOutput;
     double restartTime = -1.;
     bool saveAll = false, validateOnly = false, incompatibleOutlet = false;
     Teuchos::CommandLineProcessor commandLine;
     commandLine.setOption("problemfile", &problemFile, "Case parameters or restart overrides.");
     commandLine.setOption("pressure-model", &pressureModel, "Resistance, Absorbing, or Absorbing Paper.");
     commandLine.setOption("restart-time", &restartTime, "Override the restart time.");
+    commandLine.setOption("checkpoint-output", &checkpointOutput, "Enable checkpoint output to this directory.");
     commandLine.setOption("save-all", "selected-checkpoints", &saveAll, "Exercise saving every solution.");
     commandLine.setOption("validate-checkpoint", "solve", &validateOnly, "Validate checkpoint before simulation.");
     commandLine.setOption("incompatible-outlet", "compatible-outlet", &incompatibleOutlet, "Change averaging for a rejection test.");
@@ -207,6 +209,9 @@ int main(int argc, char* argv[])
     parameters->setParameters(*Teuchos::getParametersFromXmlFile("parametersSolverFSI.xml"));
     parameters->sublist("Parameter Fluid").set("Pressure Boundary Condition", pressureModel);
     if (restartTime >= 0.) parameters->sublist("Timestepping Parameter").set("Time step", restartTime);
+    if (!checkpointOutput.empty())
+        parameters->sublist("Timestepping Parameter").set("Checkpointing", true)
+            .set("Checkpoint directory", checkpointOutput);
     if (incompatibleOutlet) parameters->sublist("Parameter Fluid").set("Average Flowrate", false);
     if (saveAll) {
         parameters->sublist("General").set("Safe all solution", true);

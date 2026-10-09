@@ -9,6 +9,7 @@
 #include <Teuchos_TestForException.hpp>
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -37,6 +38,32 @@ inline void onRoot(const Teuchos::Comm<int>& comm, const std::function<void()>& 
         Teuchos::broadcast(comm, 0, size, &error[0]);
         throw std::runtime_error("Restart compatibility error: " + error);
     }
+}
+
+/** @brief Reject checkpoint output that would overwrite restart input.
+ * HDF5 exporters truncate files when opened. Resolve relative paths and directory
+ * symlinks before comparing, and report failure on every MPI rank before any
+ * exporter is constructed. Reading without checkpoint output remains permitted.
+ */
+inline void validateRestartOutputDirectory(const ParameterListPtr_Type& parameters,
+                                           const Teuchos::Comm<int>& comm)
+{
+    auto& time = parameters->sublist("Timestepping Parameter");
+    if (!time.get("Restart", false) ||
+        (!time.get("Checkpointing", false) &&
+         !parameters->sublist("General").get("Safe all solution", false)))
+        return;
+    onRoot(comm, [&] {
+        const auto directory = [&](const char* key) {
+            const auto path = time.get(key, std::string(""));
+            return std::filesystem::weakly_canonical(path.empty() ? "." : path);
+        };
+        if (directory("Checkpoint directory") == directory("Restart directory"))
+            throw std::runtime_error("Checkpoint directory and Restart directory must be different "
+                                     "when restarting with checkpoint output enabled; HDF5 exporters "
+                                     "would overwrite the input checkpoint. Choose a new Checkpoint "
+                                     "directory or disable Checkpointing and Safe all solution.");
+    });
 }
 
 /** @brief Problem-independent description of one registered checkpoint field.

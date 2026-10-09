@@ -31,6 +31,10 @@ scheme, and time step size, with a later `Final time`:
 directory parameters default to the working directory. Checkpointing and restart
 are disabled by default. Use separate output and input directories if a resumed
 run also writes checkpoints, since creating an output file truncates it.
+The code rejects identical directories, including relative-path and symlink
+aliases, before opening exporters. For example, keep `Restart directory` set to
+`restartCheckpoints` and use `Checkpoint directory = resumedCheckpoints` for
+new output. `Safe all solution = true` also requires a separate output directory.
 
 New checkpoints include a version-1 XML manifest for each component and time,
 for example `Checkpoint_u_p_0.010000.xml`. Component names distinguish a coupled
