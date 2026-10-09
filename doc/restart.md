@@ -284,5 +284,6 @@ The usual metadata and compatibility validation applies. Restore normal solver
 limits for continuation. Two four-rank 2D integration tests exercise warning,
 stop and continue modes and compare recovery restarts against independently
 computed reference solutions; a two-rank unit test checks criteria and interrupted
-publication. Their setup is documented in
-`feddlib/problems/tests/RestartTests/recovery/README.md`.
+publication. Their setups are documented in
+[fsi_2D_turek_recovery](../feddlib/problems/tests/RestartTests/fsi_2D_turek_recovery/README.md)
+and [unsteadyNavierStokes_restart_recovery](../feddlib/problems/tests/RestartTests/unsteadyNavierStokes_restart_recovery/README.md).
