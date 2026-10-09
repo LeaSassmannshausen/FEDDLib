@@ -36,6 +36,49 @@ aliases, before opening exporters. For example, keep `Restart directory` set to
 `restartCheckpoints` and use `Checkpoint directory = resumedCheckpoints` for
 new output. `Safe all solution = true` also requires a separate output directory.
 
+## Continuing or preserving simulation output
+
+Visualization and diagnostic output use independent options in `Exporter`:
+
+```xml
+<ParameterList name="Exporter">
+    <Parameter name="Resume output" type="bool" value="true"/>
+    <Parameter name="Keep old output" type="bool" value="false"/>
+</ParameterList>
+```
+
+Both booleans default to `false`, retaining fresh output at the original filenames.
+With `Resume output = true` and `Timestepping Parameter/Restart = true`, existing
+ParaView `.h5`, `.xmf` and optional `_times.xmf` files continue from `Time step`.
+Frames through that time are retained, the restart frame is not duplicated, and
+later frames are removed before the resumed trajectory replaces them. Per-frame
+mesh coordinates and the export cadence are retained. Missing output starts a
+new series; incomplete HDF5/XMF pairs or incompatible field/mesh layouts fail
+before the affected series is modified. Keep the original mesh-writing mode,
+export interval, filenames and variable names when resuming output.
+
+FSI pressure/flow/area logs and time/iteration/displacement/drag/lift logs follow
+the same policy. Value-only text files keep their original columns; `.txt.times`
+sidecars record physical time for each row. Keep these sidecars with their logs.
+Legacy logs with time in their first column can be resumed without sidecars;
+legacy value-only logs require a matching `time.txt` (or suffixed time file).
+Otherwise resuming is rejected rather than guessing which rows precede the
+restart. New timestamp sidecars are recorded even when both options are disabled,
+so a later run can enable resuming.
+
+With `Resume output = false` and `Keep old output = true`, existing files opened
+by the active exporters are moved to `old_output/run_1`, `run_2`, etc. before
+fresh output begins. Text files, sidecars and ParaView files from a run share one
+archive folder; prior archives are not overwritten. `Resume output = true`
+takes precedence over `Keep old output`. These options do not alter checkpoint
+files or the separate restart/checkpoint-directory requirement.
+
+`problems_outputHistory_MPI_2` exercises real scalar/vector HDF5 datasets,
+moving meshes, rewinding and appending, duplicate suppression, sparse exports,
+legacy text logs, default overwrite behavior and shared archives.
+
+## Compatibility metadata
+
 New checkpoints include a version-1 XML manifest for each component and time,
 for example `Checkpoint_u_p_0.010000.xml`. Component names distinguish a coupled
 FSI problem from its fluid and structure subproblems. The manifest records the

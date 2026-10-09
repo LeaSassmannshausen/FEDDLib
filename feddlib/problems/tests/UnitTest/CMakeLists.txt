@@ -3,6 +3,12 @@ tribits_add_executable(checkpointMetadataUnitTest SOURCES checkpointMetadataUnit
 tribits_add_test(checkpointMetadataUnitTest NAME checkpointMetadata NUM_MPI_PROCS 2 TIMEOUT 60)
 tribits_add_executable(recoveryCheckpointUnitTest SOURCES recoveryCheckpointUnitTest.cpp)
 tribits_add_test(recoveryCheckpointUnitTest NAME recoveryCheckpoint NUM_MPI_PROCS 2 TIMEOUT 60)
+tribits_add_executable(outputHistoryUnitTest SOURCES outputHistoryUnitTest.cpp)
+tribits_add_test(outputHistoryUnitTest NAME outputHistory NUM_MPI_PROCS 2 TIMEOUT 60)
+tribits_copy_files_to_binary_dir(mesh_outputHistoryUnitTest
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes SOURCE_FILES square.mesh
+    DEST_DIR ${CMAKE_CURRENT_BINARY_DIR} DEST_FILES outputHistory-square.mesh
+    EXEDEPS outputHistoryUnitTest)
 
 # Transient regression tests share the case inputs of the restart tests.
 tribits_add_executable(fsiUnitTest SOURCES fsiUnitTest.cpp)

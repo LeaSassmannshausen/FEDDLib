@@ -3,6 +3,7 @@ set(General_HEADERS
 	General/BCBuilder_decl.hpp
 	General/BCBuilder_def.hpp
 	General/HDF5VectorInfo.hpp
+	General/OutputHistory.hpp
 	General/DefaultTypeDefs.hpp
 	General/ExporterParaView.hpp
 	General/ExporterParaView_decl.hpp

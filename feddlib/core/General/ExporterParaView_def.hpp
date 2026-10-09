@@ -1,6 +1,10 @@
 #ifndef ExporterParaView_DEF_hpp
 #define ExporterParaView_DEF_hpp
 
+#include "OutputHistory.hpp"
+#include "HDF5VectorInfo.hpp"
+#include <iomanip>
+
 /*!
  Definition of ExporterParaView
 
@@ -56,6 +60,7 @@ void ExporterParaView<SC,LO,GO,NO>::setup(std::string filename,
     
     setup( filename, mesh, FEType, parameterList);
     saveTimestep_ = saveTimestep;
+    TEUCHOS_TEST_FOR_EXCEPTION(saveTimestep_ < 1, std::logic_error, "Export interval must be positive");
 }
   
 template<class SC,class LO,class GO,class NO>
@@ -197,13 +202,140 @@ void ExporterParaView<SC,LO,GO,NO>::setup(std::string filename,
 
     updatePoints();
     
-    this->initHDF5();
-    
-    this->initXmf();
-    
     writeDt_ = false;
     
-    saveTimestep_ = 1;
+    saveTimestep_ = parameterList_.is_null() ? 1 :
+        parameterList_->sublist("Exporter").get("Export every X timesteps", 1);
+    TEUCHOS_TEST_FOR_EXCEPTION(saveTimestep_ < 1, std::logic_error, "Export interval must be positive");
+}
+
+template<class SC,class LO,class GO,class NO>
+void ExporterParaView<SC,LO,GO,NO>::initializeOutput()
+{
+    if (outputInitialized_) return;
+    output::archive(parameterList_, *comm_, {outputFilename_, filename_ + ".xmf", filename_ + "_times.xmf"});
+    int existing = 0, nextIndex = 0, hasTimes = 0;
+    double lastTime = -std::numeric_limits<double>::infinity();
+    std::string retained, retainedTimes;
+    if (output::resume(parameterList_)) {
+        output::onRank(*comm_, 0, [&] {
+            const bool h5Exists = std::filesystem::exists(outputFilename_);
+            const bool xmfExists = std::filesystem::exists(filename_ + ".xmf");
+            if (h5Exists != xmfExists) throw std::runtime_error("Both HDF5 and XMF files are required to resume " + filename_);
+            if (!h5Exists) return; // Output may have been disabled in the original run.
+            const double time = output::restartTime(parameterList_);
+            const output::Collection collection(output::read(filename_ + ".xmf"));
+            const double dt = parameterList_->sublist("Timestepping Parameter").get("dt", 0.);
+            if (!(dt > 0.)) throw std::runtime_error("Resume output requires a positive dt");
+            std::smatch cadence;
+            const std::regex interval("Name=\"FEDD export interval\" Value=\"([0-9]+)\"");
+            double oldInterval = saveTimestep_;
+            if (std::regex_search(collection.header, cadence, interval))
+                oldInterval = std::stoi(cadence[1]);
+            else if (collection.frames.size() > 1) {
+                const auto& first = collection.frames.front();
+                const auto& last = collection.frames.back();
+                oldInterval = (last.time - first.time) / ((last.index - first.index) * dt);
+            }
+            if (std::abs(oldInterval - saveTimestep_) > 1.e-7)
+                throw std::runtime_error("Export interval differs from the existing output");
+            if (collection.frames.front().xml.find("<Grid Name=\"Mesh" + FEType_ + " ") == std::string::npos)
+                throw std::runtime_error("FE type differs from the existing output");
+            const double origin = collection.frames.front().time - collection.frames.front().index * saveTimestep_ * dt;
+            const double index = (time - origin) / dt;
+            if (index < 0. || std::abs(index - std::round(index)) > 1.e-7 || index > std::numeric_limits<int>::max())
+                throw std::runtime_error("Restart time does not match the existing output timestep grid");
+            nextIndex = static_cast<int>(std::round(index));
+            std::set<std::string> keep;
+            for (const auto& frame : collection.frames) {
+                if (frame.time > time + 1.e-12) continue;
+                lastTime = frame.time;
+                keep.insert(frame.groups.begin(), frame.groups.end());
+            }
+            // Check the old layout before deleting any superseded frame.
+            const auto& layout = collection.frames.front().xml;
+            std::set<std::string> savedVariables;
+            const std::regex attribute("<Attribute[^>]*Name=\"([^\"]+)\"");
+            for (std::sregex_iterator i(layout.begin(), layout.end(), attribute), end; i != end; ++i)
+                savedVariables.insert((*i)[1]);
+            if (savedVariables != std::set<std::string>(varNames_.begin(), varNames_.end()))
+                throw std::runtime_error("Existing ParaView fields do not match the resumed exporter");
+            const bool movingMesh = parameterList_->sublist("Exporter").get("Write new mesh", false);
+            if ((collection.frames.front().groups.count("PointsX") == 0) != movingMesh)
+                throw std::runtime_error("Write new mesh differs from the existing output");
+            retained = collection.through(time);
+            hasTimes = std::filesystem::exists(filename_ + "_times.xmf");
+            if (hasTimes) retainedTimes = output::Collection(output::read(filename_ + "_times.xmf")).through(time);
+            checkpoint::H5Handle file(H5Fopen(outputFilename_.c_str(), H5F_ACC_RDWR, H5P_DEFAULT), H5Fclose);
+            if (file < 0) throw std::runtime_error("Cannot open output " + outputFilename_);
+            const auto checkShape = [&](const std::string& group, hsize_t entries) {
+                checkpoint::H5Handle dataset(H5Dopen(file, (group + "/Values").c_str(), H5P_DEFAULT), H5Dclose);
+                if (dataset < 0) throw std::runtime_error("Missing output dataset " + group);
+                checkpoint::H5Handle space(H5Dget_space(dataset), H5Sclose);
+                if (space < 0 || H5Sget_simple_extent_npoints(space) != static_cast<hssize_t>(entries))
+                    throw std::runtime_error("Existing output layout differs for " + group);
+            };
+            checkShape("Connections", static_cast<hsize_t>(nmbElementsGlob_) * nmbPointsPerElement_);
+            for (const auto& frame : collection.frames) {
+                if (frame.time > time + 1.e-12) continue;
+                std::ostringstream index;
+                index << '.' << std::setfill('0') << std::setw(5) << frame.index;
+                for (const auto& group : frame.groups) {
+                    hsize_t entries = nmbPointsGlob_;
+                    if (group == "Connections") entries = static_cast<hsize_t>(nmbElementsGlob_) * nmbPointsPerElement_;
+                    for (std::size_t i = 0; i < varNames_.size(); ++i)
+                        if (group == varNames_[i] + index.str())
+                            entries = static_cast<hsize_t>(uniqueMaps_[i]->getGlobalNumElements()) *
+                                (varTypes_[i] == "Vector" ? 3 : 1);
+                    checkShape(group, entries);
+                }
+            }
+            // Remove orphaned frame groups too: a failed write may have flushed
+            // HDF5 datasets without publishing their frame in the XMF collection.
+            std::vector<std::string> groups;
+            const auto collect = [](hid_t, const char* name, void* data) -> herr_t {
+                static_cast<std::vector<std::string>*>(data)->push_back(name); return 0;
+            };
+            if (H5Giterate(file, "/", nullptr, collect, &groups) < 0)
+                throw std::runtime_error("Cannot enumerate output frames");
+            const std::regex frameGroup(".*\\.[0-9]+|Points[XYZ][0-9]+|Connections[0-9]+");
+            for (const auto& group : groups)
+                if (!keep.count(group) && std::regex_match(group, frameGroup) &&
+                    H5Ldelete(file, group.c_str(), H5P_DEFAULT) < 0)
+                    throw std::runtime_error("Cannot remove superseded output frame " + group);
+            output::replace(filename_ + ".xmf", retained + closingLines_);
+            if (hasTimes) output::replace(filename_ + "_times.xmf", retainedTimes + closingLines_);
+            existing = 1;
+        });
+    }
+    Teuchos::broadcast(*comm_, 0, 1, &existing);
+    if (existing) {
+        Teuchos::broadcast(*comm_, 0, 1, &nextIndex);
+        Teuchos::broadcast(*comm_, 0, 1, &lastTime);
+        Teuchos::broadcast(*comm_, 0, 1, &hasTimes);
+        timeIndex_ = nextIndex;
+        lastOutputTime_ = lastTime;
+        resumeOutput_ = true;
+        writeDt_ = hasTimes != 0;
+        hdf5exporter_.reset(new HDF5_Type(comm_));
+        hdf5exporter_->open(outputFilename_);
+        output::onRank(*comm_, 0, [&] {
+            xmf_out_.open(filename_ + ".xmf", std::ios::in | std::ios::out);
+            if (!xmf_out_) throw std::runtime_error("Cannot reopen XMF output");
+            xmf_out_ << std::setprecision(17);
+            closingLinesPosition_ = static_cast<std::streamoff>(retained.size());
+            if (hasTimes) {
+                xmf_times_out_.open(filename_ + "_times.xmf", std::ios::in | std::ios::out);
+                if (!xmf_times_out_) throw std::runtime_error("Cannot reopen XMF time output");
+                xmf_times_out_ << std::setprecision(17);
+                closingLinesPositionTimes_ = static_cast<std::streamoff>(retainedTimes.size());
+            }
+        });
+    } else {
+        initHDF5();
+        output::onRank(*comm_, 0, [&] { initXmf(); });
+    }
+    outputInitialized_ = true;
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -227,6 +359,9 @@ void ExporterParaView<SC,LO,GO,NO>::addVariable(MultiVecConstPtr_Type &u,
 template<class SC,class LO,class GO,class NO>
 void ExporterParaView<SC,LO,GO,NO>::save(double time){
 
+    initializeOutput();
+    if (resumeOutput_ && time <= lastOutputTime_ + 1.e-12) { ++timeIndex_; return; }
+
     if (timeIndex_ % saveTimestep_ == 0) {
         makePostfix();
 
@@ -238,6 +373,9 @@ void ExporterParaView<SC,LO,GO,NO>::save(double time){
         writeVariablesHDF5();
 
         writeXmf(time);
+        if (writeDt_) writeXmfTime(time, parameterList_.is_null() ? lastDt_ :
+            parameterList_->sublist("Timestepping Parameter").get("dt", lastDt_));
+        lastOutputTime_ = time;
     }
     else{
         if (this->verbose_)
@@ -251,6 +389,10 @@ void ExporterParaView<SC,LO,GO,NO>::save(double time){
 template<class SC,class LO,class GO,class NO>
 void ExporterParaView<SC,LO,GO,NO>::save(double time, double dt){
 
+    lastDt_ = dt;
+    initializeOutput();
+    if (resumeOutput_ && time <= lastOutputTime_ + 1.e-12) { ++timeIndex_; return; }
+
     if (timeIndex_ % saveTimestep_ == 0) {
 
         makePostfix();
@@ -262,10 +404,11 @@ void ExporterParaView<SC,LO,GO,NO>::save(double time, double dt){
 
         writeXmf(time);
 
-        if (timeIndex_==0) {
+        if (!writeDt_) {
             initXmfTimes();
         }
         writeXmfTime(time, dt);
+        lastOutputTime_ = time;
     }
     else{
         if (this->verbose_)
@@ -279,7 +422,7 @@ void ExporterParaView<SC,LO,GO,NO>::save(double time, double dt){
 template<class SC,class LO,class GO,class NO>
 void ExporterParaView<SC,LO,GO,NO>::closeExporter(){
 
-    hdf5exporter_->close();
+    if (!hdf5exporter_.is_null()) hdf5exporter_->close();
     xmf_out_.close();
     if (writeDt_) {
         xmf_times_out_.close();
@@ -406,6 +549,8 @@ void ExporterParaView<SC,LO,GO,NO>::initXmf(){
     if (comm_->getRank()==0) {
 
         xmf_out_.open((filename_ + ".xmf").c_str(),std::ios_base::out);
+        if (!xmf_out_) throw std::runtime_error("Cannot create XMF output");
+        xmf_out_ << std::setprecision(17);
         xmf_out_ 	<< "<?xml version=\"1.0\" ?>\n"
                     << "<!DOCTYPE Xdmf SYSTEM \""
                     << filename_
@@ -424,6 +569,7 @@ void ExporterParaView<SC,LO,GO,NO>::initXmf(){
                     << "    <Grid Name=\""
                     << filename_
                     << "Grid\" GridType=\"Collection\" CollectionType=\"Temporal\">\n"
+                    << "    <Information Name=\"FEDD export interval\" Value=\"" << saveTimestep_ << "\" />\n"
                     << "\n";
 
         closingLinesPosition_ = xmf_out_.tellp();

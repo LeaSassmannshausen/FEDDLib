@@ -4,6 +4,7 @@
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/core_config.h"
 #include <fstream>
+#include <limits>
 
 /*!
  Declaration of ExporterTxt
@@ -25,7 +26,16 @@ public:
     
     ExporterTxt();
 
-    void setup(std::string filename, CommConstPtr_Type comm, int targetRank=0);
+    /** @brief Configure fresh, resumed, or archived text output.
+     * @param parameters Optional simulation settings containing Exporter options.
+     * @param timeColumn Whether the first output column already contains time.
+     * Value-only logs keep their format and use a .txt.times timestamp sidecar.
+     */
+    void setup(std::string filename, CommConstPtr_Type comm, int targetRank=0,
+               ParameterListPtr_Type parameters=Teuchos::null, bool timeColumn=false);
+
+    /// Write a value-only row with its physical time recorded separately.
+    void exportDataAtTime(double time, double data);
     
     void exportData(double data);
 
@@ -47,6 +57,13 @@ public:
 
     
 private:
+    bool timeColumn_ = false;
+    bool trackTime_ = false;
+    bool resumeOutput_ = false;
+    double lastTime_ = -std::numeric_limits<double>::infinity();
+    std::ofstream time_out_;
+    bool acceptTime(double time);
+    void recordTime(double time);
     };
 }
 

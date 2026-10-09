@@ -2,6 +2,7 @@
 #define ExporterParaView_DECL_hpp
 
 #include <fstream>
+#include <limits>
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
@@ -153,6 +154,11 @@ public:
                        MultiVectorPtr_Type &u_export) const;
     
     void makePostfix();
+
+    /** @brief Open output after variables are registered, retaining frames through
+     * the restart time or archiving the old series according to Exporter settings.
+     */
+    void initializeOutput();
     
 protected:
     
@@ -188,6 +194,10 @@ protected:
     int 				saveTimestep_;
     bool verbose_;
     ParameterListPtr_Type parameterList_;
+    bool outputInitialized_ = false;
+    bool resumeOutput_ = false;
+    double lastOutputTime_ = -std::numeric_limits<double>::infinity();
+    double lastDt_ = 0.;
     vec2D_dbl_ptr pointsUnique_;
 
 	bool redo_ = false;

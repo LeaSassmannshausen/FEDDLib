@@ -184,9 +184,9 @@ exporterGeo_()
     }
     if ( parameterListFSI->sublist("General").get("Export drag and lift",false) ){
         exporterTxtDrag_ = Teuchos::rcp(new ExporterTxt () );
-        exporterTxtDrag_->setup( "drag_force", this->comm_ );
+        exporterTxtDrag_->setup("drag_force", this->comm_, 0, this->parameterList_);
         exporterTxtLift_ = Teuchos::rcp(new ExporterTxt () );
-        exporterTxtLift_->setup( "lift_force", this->comm_ );
+        exporterTxtLift_->setup("lift_force", this->comm_, 0, this->parameterList_);
     }
     p_rep_ = Teuchos::rcp( new MultiVector_Type( this->getDomain(1)->getMapRepeated() ) );
     
@@ -1611,8 +1611,8 @@ void FSI<SC,LO,GO,NO>::computeValuesOfInterestAndExport(){
         drag[0] *= -1.;
         lift[0] *= -1.;
         
-        exporterTxtDrag_->exportData( drag[0] );
-        exporterTxtLift_->exportData( lift[0] );
+        exporterTxtDrag_->exportDataAtTime(timeSteppingTool_->currentTime() + timeSteppingTool_->get_dt(), drag[0]);
+        exporterTxtLift_->exportDataAtTime(timeSteppingTool_->currentTime() + timeSteppingTool_->get_dt(), lift[0]);
     }
 }
 

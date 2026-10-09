@@ -221,13 +221,13 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
         std::string suffix = parameterList_->sublist("General").get("Export Suffix","");
         
         exporterTimeTxt = Teuchos::rcp(new ExporterTxt());
-        exporterTimeTxt->setup( "time" + suffix, this->comm_ );
+        exporterTimeTxt->setup( "time" + suffix, this->comm_, 0, parameterList_, true);
         
         exporterNewtonIterations = Teuchos::rcp(new ExporterTxt());
-        exporterNewtonIterations->setup( "newtonIterations" + suffix, this->comm_ );
+        exporterNewtonIterations->setup( "newtonIterations" + suffix, this->comm_, 0, parameterList_, false);
         
         exporterIterations = Teuchos::rcp(new ExporterTxt());
-        exporterIterations->setup( "linearIterations" + suffix, this->comm_ );
+        exporterIterations->setup( "linearIterations" + suffix, this->comm_, 0, parameterList_, false);
     }
     // Groesse des Problems, Zeitschrittweite und Newmark-Parameter
     int size = timeStepDef_.size();
@@ -274,9 +274,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
         
         timeSteppingTool_->advanceTime(true/*output info*/);
         if (printData) {
-            exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
-            exporterIterations->exportData( (*its)[0] );
-            exporterNewtonIterations->exportData( (*its)[1] );
+            exporterTimeTxt->exportDataAtTime(timeSteppingTool_->currentTime(), timeSteppingTool_->currentTime() );
+            exporterIterations->exportDataAtTime(timeSteppingTool_->currentTime(), (*its)[0] );
+            exporterNewtonIterations->exportDataAtTime(timeSteppingTool_->currentTime(), (*its)[1] );
         }
         if (print) {
             exportTimestep();
@@ -407,13 +407,13 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearNewmark()
         std::string suffix = parameterList_->sublist("General").get("Export Suffix","");
         
         exporterTimeTxt = Teuchos::rcp(new ExporterTxt());
-        exporterTimeTxt->setup( "time" + suffix, this->comm_ );
+        exporterTimeTxt->setup( "time" + suffix, this->comm_, 0, parameterList_, true);
         
         exporterNewtonIterations = Teuchos::rcp(new ExporterTxt());
-        exporterNewtonIterations->setup( "newtonIterations" + suffix, this->comm_ );
+        exporterNewtonIterations->setup( "newtonIterations" + suffix, this->comm_, 0, parameterList_, false);
         
         exporterIterations = Teuchos::rcp(new ExporterTxt());
-        exporterIterations->setup( "linearIterations" + suffix, this->comm_ );
+        exporterIterations->setup( "linearIterations" + suffix, this->comm_, 0, parameterList_, false);
     }
     // Groesse des Problems, Zeitschrittweite und Newmark-Parameter
     int size = timeStepDef_.size();
@@ -499,9 +499,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearNewmark()
         
         timeSteppingTool_->advanceTime(true/*output info*/);
         if (printData) {
-            exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
-            exporterIterations->exportData( (*its)[0] );
-            exporterNewtonIterations->exportData( (*its)[1] );
+            exporterTimeTxt->exportDataAtTime(timeSteppingTool_->currentTime(), timeSteppingTool_->currentTime() );
+            exporterIterations->exportDataAtTime(timeSteppingTool_->currentTime(), (*its)[0] );
+            exporterNewtonIterations->exportDataAtTime(timeSteppingTool_->currentTime(), (*its)[1] );
         }
         if (print) {
             exportTimestep();
@@ -548,22 +548,23 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
     ExporterTxtPtr_Type exporterAreaInlet;
     ExporterTxtPtr_Type exporterAreaOutlet;
     ExporterTxtPtr_Type exporterPressureOutlet;
-    if (printData) {
+    if (printData || printExtraData) {
         exporterTimeTxt = Teuchos::rcp(new ExporterTxt());
-        exporterDisplXTxt = Teuchos::rcp(new ExporterTxt());
-        exporterDisplYTxt = Teuchos::rcp(new ExporterTxt());
-        exporterTimeTxt->setup( "time", this->comm_ );
-
+        const std::string suffix = parameterList_->sublist("General").get("Export Suffix", "");
+        exporterTimeTxt->setup("time" + suffix, this->comm_, 0, parameterList_, true);
+    }
+    if (printData) {
         std::string suffix = parameterList_->sublist("General").get("Export Suffix","");
         
         exporterNewtonIterations = Teuchos::rcp(new ExporterTxt());
-        exporterNewtonIterations->setup( "newtonIterations" + suffix, this->comm_ );
+        exporterNewtonIterations->setup( "newtonIterations" + suffix, this->comm_, 0, parameterList_, false);
         
         exporterIterations = Teuchos::rcp(new ExporterTxt());
-        exporterIterations->setup( "linearIterations" + suffix, this->comm_ );
+        exporterIterations->setup( "linearIterations" + suffix, this->comm_, 0, parameterList_, false);
     }
     if (printExtraData) {
-
+        exporterDisplXTxt = Teuchos::rcp(new ExporterTxt());
+        exporterDisplYTxt = Teuchos::rcp(new ExporterTxt());
         vec_dbl_Type v(3,-9999.);
         this->problemTime_->getValuesOfInterest(v);
         vec_dbl_Type vGathered(this->comm_->getSize());
@@ -576,27 +577,27 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
         
         std::string suffix = parameterList_->sublist("General").get("Export Suffix","");
         
-        exporterDisplXTxt->setup( "displ_x" + suffix, this->comm_ , targetRank);
-        exporterDisplYTxt->setup( "displ_y" + suffix, this->comm_ , targetRank);
+        exporterDisplXTxt->setup( "displ_x" + suffix, this->comm_, targetRank, parameterList_, false);
+        exporterDisplYTxt->setup( "displ_y" + suffix, this->comm_, targetRank, parameterList_, false);
         
     }
     if (printFlowRate) {
         std::string suffix = parameterList_->sublist("General").get("Export Suffix","");
 
         exporterFlowRateInlet = Teuchos::rcp(new ExporterTxt());
-        exporterFlowRateInlet->setup( "flowRateInlet" + suffix, this->comm_ );
+        exporterFlowRateInlet->setup( "flowRateInlet" + suffix, this->comm_, 0, parameterList_, true);
 
         exporterFlowRateOutlet = Teuchos::rcp(new ExporterTxt());
-        exporterFlowRateOutlet->setup( "flowRateOutlet" + suffix, this->comm_ );
+        exporterFlowRateOutlet->setup( "flowRateOutlet" + suffix, this->comm_, 0, parameterList_, true);
 
         exporterPressureOutlet = Teuchos::rcp(new ExporterTxt());
-        exporterPressureOutlet->setup( "pressureOutlet" + suffix, this->comm_ );
+        exporterPressureOutlet->setup( "pressureOutlet" + suffix, this->comm_, 0, parameterList_, true);
 
         exporterAreaInlet = Teuchos::rcp(new ExporterTxt());
-        exporterAreaInlet->setup( "areaInlet" + suffix, this->comm_ );
+        exporterAreaInlet->setup( "areaInlet" + suffix, this->comm_, 0, parameterList_, true);
 
         exporterAreaOutlet = Teuchos::rcp(new ExporterTxt());
-        exporterAreaOutlet->setup( "areaOutlet" + suffix, this->comm_ );
+        exporterAreaOutlet->setup( "areaOutlet" + suffix, this->comm_, 0, parameterList_, true);
 
 
     }
@@ -733,12 +734,12 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
     this->problemTime_->setTimeParameters(massCoeffFSI, problemCoeffFSI);
     
     if (printExtraData) {
-        exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
+        exporterTimeTxt->exportDataAtTime(timeSteppingTool_->currentTime(), timeSteppingTool_->currentTime() );
         vec_dbl_Type v(3,0.);
         this->problemTime_->getValuesOfInterest( v );
 
-        exporterDisplXTxt->exportData( v[0] );
-        exporterDisplYTxt->exportData( v[1] );
+        exporterDisplXTxt->exportDataAtTime(timeSteppingTool_->currentTime(), v[0] );
+        exporterDisplYTxt->exportDataAtTime(timeSteppingTool_->currentTime(), v[1] );
     }
 
 //    {
@@ -941,17 +942,18 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
 
         timeSteppingTool_->advanceTime(true/*output info*/);
         this->problemTime_->assemble("UpdateTime"); // Zeit in FSI inkrementieren
+        if (printData || printExtraData)
+            exporterTimeTxt->exportDataAtTime(timeSteppingTool_->currentTime(), timeSteppingTool_->currentTime());
         if (printData) {
-            exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
-            exporterIterations->exportData( (*its)[0] );
-            exporterNewtonIterations->exportData( (*its)[1] );
+            exporterIterations->exportDataAtTime(timeSteppingTool_->currentTime(), (*its)[0] );
+            exporterNewtonIterations->exportDataAtTime(timeSteppingTool_->currentTime(), (*its)[1] );
         }
         if (printExtraData) {
             vec_dbl_Type v(3,-9999.);
             this->problemTime_->getValuesOfInterest(v);
             
-            exporterDisplXTxt->exportData( v[0] );
-            exporterDisplYTxt->exportData( v[1] );
+            exporterDisplXTxt->exportDataAtTime(timeSteppingTool_->currentTime(), v[0] );
+            exporterDisplYTxt->exportDataAtTime(timeSteppingTool_->currentTime(), v[1] );
         }
         if (print)
         {
@@ -989,8 +991,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
     }
 
     comm_->barrier();
-    if (printExtraData) {
-        exporterTimeTxt->closeExporter();
+    if (printData || printExtraData) exporterTimeTxt->closeExporter();
+    if (printData) {
         exporterIterations->closeExporter();
         exporterNewtonIterations->closeExporter();
     }
@@ -1105,15 +1107,15 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearMultistep(){
 
     if (printData) {
         exporterTimeTxt = Teuchos::rcp(new ExporterTxt());
-        exporterTimeTxt->setup( "time", this->comm_ );
+        exporterTimeTxt->setup( "time", this->comm_, 0, parameterList_, true);
 
         std::string suffix = parameterList_->sublist("General").get("Export Suffix","");
         
         exporterNewtonIterations = Teuchos::rcp(new ExporterTxt());
-        exporterNewtonIterations->setup( "newtonIterations" + suffix, this->comm_ );
+        exporterNewtonIterations->setup( "newtonIterations" + suffix, this->comm_, 0, parameterList_, false);
         
         exporterIterations = Teuchos::rcp(new ExporterTxt());
-        exporterIterations->setup( "linearIterations" + suffix, this->comm_ );
+        exporterIterations->setup( "linearIterations" + suffix, this->comm_, 0, parameterList_, false);
     }
 
     int size = timeStepDef_.size();
@@ -1256,10 +1258,10 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearMultistep(){
             recovery.acceptedState(accepted);
         }
         if (printData) {
-            exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
-            exporterIterations->exportData( (*its)[0] );
+            exporterTimeTxt->exportDataAtTime(timeSteppingTool_->currentTime(), timeSteppingTool_->currentTime() );
+            exporterIterations->exportDataAtTime(timeSteppingTool_->currentTime(), (*its)[0] );
             linearIterations.push_back((*its)[0]);
-            exporterNewtonIterations->exportData( (*its)[1] );
+            exporterNewtonIterations->exportDataAtTime(timeSteppingTool_->currentTime(), (*its)[1] );
             newtonIterations.push_back((*its)[1]);
 
         }
@@ -1485,7 +1487,7 @@ void DAESolverInTime<SC,LO,GO,NO>::setupExporter(){
             std::string suffix = parameterList_->sublist("Exporter").get(plSuffix, "" );
             std::string varName = problemTime_->getVariableName(i) + suffix;
             MeshPtr_Type meshNonConst = Teuchos::rcp_const_cast<Mesh_Type>(dom->getMesh());
-            exporterPtr->setup(varName, meshNonConst, dom->getFEType(), parameterList_);
+            exporterPtr->setup(varName, meshNonConst, dom->getFEType(), exportEveryXTimesteps, parameterList_);
             
 //            exporterPtr->setup(dom->getDimension(), dom->getNumElementsGlobal(), dom->getElements(), dom->getPointsUnique(), dom->getMapUnique(), dom->getMapRepeated(), dom->getFEType(), varName, exportEveryXTimesteps, comm_ , parameterList_);
 
