@@ -14,8 +14,8 @@ tolerance 1e-10 and flexible GMRES with tolerance 1e-12.
 
 The `problems_fsi_3D_arterialSegment_Resistance`, `_Absorbing`, and `_Absorbing_Paper`
 tests use separate working directories and four MPI ranks. Their transition time
-is `0.012`, between timesteps of size `0.0025`. Each test restarts from both `0.01`
-and `0.015`, comparing velocity, pressure, and displacement at `0.02`, together
+is `0.00625`, between timesteps of size `0.0025`. Each test restarts from both `0.005`
+and `0.01`, comparing velocity, pressure, and displacement at `0.015`, together
 with initial areas, transition area, flow-rate history, outlet pressure and flags.
 The field comparison uses the combined l2 bound
 `absolute error <= 1e-15 + 1e-12 * reference l2 norm`. The absolute tolerance

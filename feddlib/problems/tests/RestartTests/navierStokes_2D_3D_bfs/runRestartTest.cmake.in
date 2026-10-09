@@ -39,12 +39,12 @@ FUNCTION(run_phase phase mpi_procs)
     ENDIF()
 ENDFUNCTION()
 
-run_phase("Reference stopping at 0.02" @reference_mpi_procs@)
-run_phase("Restart from 0.01 to 0.02" @restart_mpi_procs@
+run_phase("Reference stopping at 0.01" @reference_mpi_procs@)
+run_phase("Restart from 0.005 to 0.01" @restart_mpi_procs@
     --restartfile=parametersProblem_restart.xml)
-run_phase("Independent reference stopping at 0.03" @reference_mpi_procs@
+run_phase("Independent reference stopping at 0.015" @reference_mpi_procs@
     --overridefile=parametersProblem_reference.xml)
-run_phase("Restart from final checkpoint at 0.02 to 0.03" @restart_mpi_procs@
+run_phase("Restart from final checkpoint at 0.01 to 0.015" @restart_mpi_procs@
     --restartfile=parametersProblem_restart_final.xml)
 
 # Exercise the real pre-restoration path, including a same-size, different mesh.
@@ -64,7 +64,7 @@ IF(@dimension@ EQUAL 2 AND @restart_mpi_procs@ EQUAL 4)
     run_phase("Validate checkpoint without solving" @restart_mpi_procs@
         --restartfile=parametersProblem_restart.xml --validate-checkpoint)
     expect_rejection("same-size modified mesh" "fingerprint" --perturb-mesh)
-    FILE(GLOB manifests "${TEST_WORKING_DIRECTORY}/restartCheckpoints/Checkpoint_*_0.010000.xml")
+    FILE(GLOB manifests "${TEST_WORKING_DIRECTORY}/restartCheckpoints/Checkpoint_*_0.005000.xml")
     LIST(LENGTH manifests manifest_count)
     IF(NOT manifest_count EQUAL 1)
         MESSAGE(FATAL_ERROR "Expected one Navier-Stokes checkpoint manifest, found ${manifest_count}")

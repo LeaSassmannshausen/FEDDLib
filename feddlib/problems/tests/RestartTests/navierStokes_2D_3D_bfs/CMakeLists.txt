@@ -15,9 +15,9 @@ SET(navier_stokes_restart_parameter_files
 )
 SET(navier_stokes_restart_mesh_files BFS2d_1600.mesh BFS3dCC.mesh)
 
-# Each mesh/rank pair has its own clean directory. A four-rank run stops at 0.02;
-# restart on four/six ranks from 0.01 to 0.02, then from the final checkpoint at
-# 0.02 to 0.03 against an independent four-rank reference that stops at 0.03.
+# Each mesh/rank pair has its own clean directory. A four-rank run stops at 0.01;
+# restart on four/six ranks from 0.005 to 0.01, then from the final checkpoint at
+# 0.01 to 0.015 against an independent four-rank reference that stops at 0.015.
 SET(reference_mpi_procs 4)
 FOREACH(dimension 2 3)
     FOREACH(restart_mpi_procs 4 6)

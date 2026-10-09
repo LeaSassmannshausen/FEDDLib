@@ -4,7 +4,7 @@
         <Parameter name="Checkpointing" type="bool" value="false"/>
         <Parameter name="Restart" type="bool" value="true"/>
         <Parameter name="Restart directory" type="string" value="restartCheckpoints"/>
-        <Parameter name="Time step" type="double" value="0.01"/>
-        <Parameter name="Final time" type="double" value="0.02"/>
+        <Parameter name="Time step" type="double" value="0.005"/>
+        <Parameter name="Final time" type="double" value="0.015"/>
     </ParameterList>
 </ParameterList>

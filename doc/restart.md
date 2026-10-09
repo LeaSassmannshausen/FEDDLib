@@ -145,6 +145,12 @@ vector initialization, with different integration settings and no source history
 
 ## Validation
 
+The restart tests use short timelines with `dt = 0.0025`. The first checkpoint
+is taken after two completed steps, preserving BDF2 history and nonzero Newmark
+state. Meshes, solver tolerances and comparison bounds are retained. The artery
+test places its outlet transition between the second and third steps so both
+pre-transition and post-transition restoration remain covered.
+
 With tests enabled and the required Trilinos solvers available:
 
 ```sh
@@ -154,9 +160,9 @@ ctest --test-dir build --output-on-failure -R 'problems_(navierStokes_2D_3D_bfs|
 
 - `navierStokes_2D_3D_bfs` runs the 2D `BFS2d_1600.mesh` and 3D
   `BFS3dCC.mesh` cases with MPI rank pairs `4 -> 4` and `4 -> 6`. Each test runs
-  an uninterrupted reference on four ranks, writes checkpoints at `0.01` and
-  `0.02`, stops exactly at `0.02`, then restarts on four or six ranks at `0.01`
-  and compares velocity and pressure at `0.02` with relative tolerance `1e-12`.
+  an uninterrupted reference on four ranks, writes checkpoints at `0.005` and
+  `0.01`, stops exactly at `0.01`, then restarts on four or six ranks at `0.005`
+  and compares velocity and pressure at `0.01` with relative tolerance `1e-12`.
   Absolute and relative l2 errors are printed for both fields. The shared
   linear and nonlinear solver tolerances are `1e-12` to resolve differences
   below the comparison bound when the MPI partition changes. The problem
@@ -164,9 +170,9 @@ ctest --test-dir build --output-on-failure -R 'problems_(navierStokes_2D_3D_bfs|
   `parametersSolver.xml`, the mesh/dimension overrides in
   `parametersProblem2D.xml` and `parametersProblem3D.xml`, and the second-phase
   overrides in `parametersProblem_restart.xml`. Each test also runs an
-  independent reference stopping at `0.03` (`parametersProblem_reference.xml`),
-  then restarts the first run's final checkpoint at `0.02` and continues to
-  `0.03` (`parametersProblem_restart_final.xml`). This comparison reads from
+  independent reference stopping at `0.015` (`parametersProblem_reference.xml`),
+  then restarts the first run's final checkpoint at `0.01` and continues to
+  `0.015` (`parametersProblem_restart_final.xml`). This comparison reads from
   `referenceCheckpoints/`, while restoration reads from `restartCheckpoints/`,
   so the extended reference cannot supply a missing producer checkpoint.
   Both comparisons use the same error bound. Test names include the rank
@@ -178,7 +184,7 @@ ctest --test-dir build --output-on-failure -R 'problems_(navierStokes_2D_3D_bfs|
   four MPI ranks, comparing fluid velocity, pressure, and solid displacement at
   the same final time with relative tolerance `1e-12`. Both phases load the case
   from `parametersProblemFSI.xml`; `parametersProblemFSI_restart.xml` contains
-  only the overrides to resume at `0.01` and stop at `0.02`. The test disables
+  only the overrides to resume at `0.005` and stop at `0.01`. The test disables
   visualization and benchmark exports and reports the relative error for each
   of the three fields.
 
@@ -187,11 +193,11 @@ ctest --test-dir build --output-on-failure -R 'problems_(navierStokes_2D_3D_bfs|
   `unsteadyNonLinElasticity` example and Saint Venant-Kirchhoff
   material, a clamped left edge and a constant surface load on the right edge.
   Newmark uses `beta = 0.25`, `gamma = 0.5` and `dt = 0.0025`. The uninterrupted
-  run writes checkpoints at `0.01` and `0.02`; the second phase resumes at
-  `0.01`. Rank pairs are `4 -> 4` and `4 -> 6`, in separate working directories.
-  Both phases stop at `0.0225` because the current Newmark loop finalizes and
-  writes the `0.02` state at the beginning of the following step. The test
-  compares runtime displacement history, velocity and acceleration at `0.02`
+  run writes checkpoints at `0.005` and `0.01`; the second phase resumes at
+  `0.005`. Rank pairs are `4 -> 4` and `4 -> 6`, in separate working directories.
+  Both phases stop at `0.0125` because the current Newmark loop finalizes and
+  writes the `0.01` state at the beginning of the following step. The test
+  compares runtime displacement history, velocity and acceleration at `0.01`
   with the reference checkpoint, prints absolute/relative l2 errors and requires
   relative errors at most `1e-12`. Each reference field must be nonzero.
   Newmark checkpoint timing is deliberately retained for this baseline test.

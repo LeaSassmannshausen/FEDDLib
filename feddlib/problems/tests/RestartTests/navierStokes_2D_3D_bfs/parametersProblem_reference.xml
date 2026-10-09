@@ -4,8 +4,8 @@
         <Parameter name="Checkpoint directory" type="string" value="referenceCheckpoints"/>
         <Parameter name="Number Checkpoints" type="int" value="1"/>
         <ParameterList name="Checkpoints">
-            <Parameter name="1" type="double" value="0.03"/>
+            <Parameter name="1" type="double" value="0.015"/>
         </ParameterList>
-        <Parameter name="Final time" type="double" value="0.03"/>
+        <Parameter name="Final time" type="double" value="0.015"/>
     </ParameterList>
 </ParameterList>

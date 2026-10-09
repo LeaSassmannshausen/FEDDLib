@@ -4,10 +4,10 @@ TRIBITS_ADD_EXECUTABLE(
 )
 
 # Restart test, two runs of the same case: the uninterrupted run
-# (parametersProblemFSI.xml) writes checkpoints at t = 0.01 and 0.02 to
+# (parametersProblemFSI.xml) writes checkpoints at t = 0.005 and 0.01 to
 # restartCheckpoints/; the restart (parametersProblemFSI_restart.xml) continues
-# from the checkpoint at t = 0.01 and must reproduce the uninterrupted solution
-# at t = 0.02.
+# from the checkpoint at t = 0.005 and must reproduce the uninterrupted solution
+# at t = 0.01.
 TRIBITS_ADD_ADVANCED_TEST(
     fsi_2D_turek
     TEST_0 EXEC fsi_2D_turek

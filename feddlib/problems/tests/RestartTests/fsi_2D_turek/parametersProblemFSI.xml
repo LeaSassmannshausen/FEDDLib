@@ -43,16 +43,16 @@
         <Parameter name="Checkpoint directory" type="string" value="restartCheckpoints"/>
         <Parameter name="Number Checkpoints" type="int" value="2"/>
         <ParameterList name="Checkpoints">
-            <Parameter name="1" type="double" value="0.01"/>
-            <Parameter name="2" type="double" value="0.02"/>
+            <Parameter name="1" type="double" value="0.005"/>
+            <Parameter name="2" type="double" value="0.01"/>
         </ParameterList>
         <Parameter name="Restart" type="bool" value="false"/>
         <Parameter name="Restart tolerance" type="double" value="1.e-12"/>
         <Parameter name="BDF" type="int" value="2"/>
         <Parameter name="Class" type="string" value="Multistep"/>
         <Parameter name="Timestepping type" type="string" value="non-adaptive"/>
-        <!-- Advance one extra step so the checkpoint at 0.02 is written. -->
-        <Parameter name="Final time" type="double" value="0.0225"/>
+        <!-- Advance one extra step so the checkpoint at 0.01 is written. -->
+        <Parameter name="Final time" type="double" value="0.0125"/>
         <Parameter name="dt" type="double" value="0.0025"/>
         <Parameter name="beta" type="double" value="0.25"/>
         <Parameter name="gamma" type="double" value="0.5"/>

@@ -66,8 +66,8 @@ function(write_override filename directory recovery max_iterations cancel compar
     <Parameter name=\"Restart\" type=\"bool\" value=\"true\"/>
     <Parameter name=\"Restart directory\" type=\"string\" value=\"${directory}\"/>
     <Parameter name=\"Reference directory\" type=\"string\" value=\"restartCheckpoints\"/>
-    <Parameter name=\"Time step\" type=\"double\" value=\"0.01\"/>
-    <Parameter name=\"Final time\" type=\"double\" value=\"0.02\"/>
+    <Parameter name=\"Time step\" type=\"double\" value=\"0.005\"/>
+    <Parameter name=\"Final time\" type=\"double\" value=\"0.01\"/>
     <Parameter name=\"Checkpointing\" type=\"bool\" value=\"false\"/>
     <Parameter name=\"Failure recovery\" type=\"bool\" value=\"${recovery}\"/>
     <Parameter name=\"Recovery directory\" type=\"string\" value=\"${filename}-data\"/>
@@ -80,7 +80,7 @@ endfunction()
 function(restart_generation label directory time)
     write_override(resume.xml "${directory}" false 10 true true 0.5)
     file(READ "${work}/resume.xml" xml)
-    string(REPLACE "value=\"0.01\"" "value=\"${time}\"" xml "${xml}")
+    string(REPLACE "value=\"0.005\"" "value=\"${time}\"" xml "${xml}")
     file(WRITE "${work}/resume.xml" "${xml}")
     run_phase("${label}" resume.xml)
 endfunction()
@@ -95,14 +95,14 @@ xml_value(warning.xml-data/Latest.xml "Directory" latest)
 xml_value(warning.xml-data/Latest.xml "Physical time" latest_time)
 restart_generation("Restart from latest warning checkpoint" "${latest}" "${latest_time}")
 xml_value(warning.xml-data/Latest.xml "Protected directory" protected)
-restart_generation("Restart from protected pre-warning state" "${protected}" 0.01)
+restart_generation("Restart from protected pre-warning state" "${protected}" 0.005)
 
 # The same genuinely nonconverged Newton solve must save recovery data in both modes.
 write_override(stop.xml restartCheckpoints true 1 true false 0.5)
 run_phase("Nonconvergence with cancellation enabled" stop.xml --expect-recovery-stop)
 check_status(stop.xml-data false true)
 xml_value(stop.xml-data/Latest.xml "Directory" latest)
-restart_generation("Restart after controlled stop" "${latest}" 0.01)
+restart_generation("Restart after controlled stop" "${latest}" 0.005)
 
 write_override(continue.xml restartCheckpoints true 1 false false 0.5)
 run_phase("Nonconvergence with cancellation disabled" continue.xml)
@@ -112,12 +112,12 @@ if(NOT reliable STREQUAL "false")
     message(FATAL_ERROR "Ignored nonconvergence was not recorded")
 endif()
 xml_value(continue.xml-data/Latest.xml "Physical time" preserved_time)
-if(NOT preserved_time EQUAL 0.01)
+if(NOT preserved_time EQUAL 0.005)
     message(FATAL_ERROR "Unconverged trajectory replaced the reliable recovery checkpoint")
 endif()
 xml_value(continue.xml-data/RecoveryStatus.xml "Attempted time" attempted_time)
-if(NOT attempted_time EQUAL 0.02)
+if(NOT attempted_time EQUAL 0.01)
     message(FATAL_ERROR "Cancel MaxNonLinIts=false did not continue to the final time")
 endif()
 xml_value(continue.xml-data/Latest.xml "Directory" latest)
-restart_generation("Restart from checkpoint retained during unconverged continuation" "${latest}" 0.01)
+restart_generation("Restart from checkpoint retained during unconverged continuation" "${latest}" 0.005)

@@ -7,18 +7,18 @@ solutions independently in an isolated working directory.
 This test exercises these operations:
 
 1. Run the uninterrupted case and write its ordinary reference checkpoints.
-2. Restart at 0.01 with recovery enabled. A zero linear iteration fraction
+2. Restart at 0.005 with recovery enabled. A zero linear iteration fraction
    deliberately triggers protective checkpointing for converged real solves.
    Three permitted Newton updates also exercise convergence on the final update.
-   Continue to 0.02 and compare the final solution to the reference.
+   Continue to 0.01 and compare the final solution to the reference.
 3. Restart from both the latest recovery generation and the protected generation
-   preceding the warning, and compare against the same reference at 0.02.
-4. Restart at 0.01 with only one Newton iteration permitted and cancellation
+   preceding the warning, and compare against the same reference at 0.01.
+4. Restart at 0.005 with only one Newton iteration permitted and cancellation
    enabled. Require a controlled stop and a complete recovery checkpoint.
 5. Restart from that checkpoint with the normal solver settings and compare
    against the reference.
 6. Repeat the one-iteration case with cancellation disabled. Require continuation
-   to 0.02 while the recovery state stays at 0.01. Restart from this preserved
+   to 0.01 while the recovery state stays at 0.005. Restart from this preserved
    state and compare against the reference.
 
 The zero fraction is a test setting; production defaults to `maxIter/2`. The
