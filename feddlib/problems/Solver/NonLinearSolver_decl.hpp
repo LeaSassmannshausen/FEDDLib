@@ -4,6 +4,7 @@
 #include "feddlib/problems/abstract/NonLinearProblem.hpp"
 #include "feddlib/problems/abstract/TimeProblem.hpp"
 #include "feddlib/core/General/ExporterTxt.hpp"
+#include "NonlinearSolveReport.hpp"
 
 #include <boost/function.hpp>
 
@@ -77,6 +78,9 @@ public:
     /// return the number of nonlinear iterations needed
 	int getNonLinIts() {return nonLinearIts_;}
 
+    /// Complete report of the most recent time-dependent solve, including nonconvergence.
+    const NonlinearSolveReport& getLastSolveReport() const { return lastSolveReport_; }
+
     /*!
         \brief Add a switching strategy function for the FixedPointNewton method
         @param[in] switchingStrategy function which decides whether to switch the linearization or not and outputs a boolean value whether linearization was switched or not
@@ -88,6 +92,9 @@ public:
 
 
 private:
+    /// Shared transient iteration loop; cancellation is deferred when recovery is enabled.
+    void solveIterative(TimeProblem_Type& problem, double time, vec_dbl_ptr_Type valuesForExport, bool newton);
+    NonlinearSolveReport lastSolveReport_;
 #ifdef FEDD_HAVE_NOX
     /*!
         \brief Solving nonlinear problem with NOX

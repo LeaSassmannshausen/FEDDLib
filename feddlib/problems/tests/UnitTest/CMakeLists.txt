@@ -1,6 +1,8 @@
 # Checkpoint compatibility failures must reach every MPI rank without hanging.
 tribits_add_executable(checkpointMetadataUnitTest SOURCES checkpointMetadataUnitTest.cpp)
 tribits_add_test(checkpointMetadataUnitTest NAME checkpointMetadata NUM_MPI_PROCS 2 TIMEOUT 60)
+tribits_add_executable(recoveryCheckpointUnitTest SOURCES recoveryCheckpointUnitTest.cpp)
+tribits_add_test(recoveryCheckpointUnitTest NAME recoveryCheckpoint NUM_MPI_PROCS 2 TIMEOUT 60)
 
 # Transient regression tests share the case inputs of the restart tests.
 tribits_add_executable(fsiUnitTest SOURCES fsiUnitTest.cpp)

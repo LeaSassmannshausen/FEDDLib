@@ -136,6 +136,7 @@ int LinearSolver<SC,LO,GO,NO>::solveMonolithic(Problem_Type* problem, BlockMulti
 
     {
         Thyra::SolveStatus<SC> status = Thyra::solve<SC>(*solver, Thyra::NOTRANS, *thyraB, thyraX.ptr());
+        lastSolveConverged_ = status.solveStatus == Thyra::SOLVE_STATUS_CONVERGED;
         if (verbose)
             std::cout << status << std::endl;
         if ( !pListThyraSolver->get("Linear Solver Type","Belos").compare("Belos") )
@@ -205,6 +206,7 @@ int LinearSolver<SC,LO,GO,NO>::solveMonolithic(TimeProblem_Type* timeProblem, Bl
     }
     {
         Thyra::SolveStatus<SC> status = Thyra::solve<SC>(*solver, Thyra::NOTRANS, *thyraB, thyraX.ptr());
+        lastSolveConverged_ = status.solveStatus == Thyra::SOLVE_STATUS_CONVERGED;
         if (verbose)
             std::cout << status << std::endl;
         problem->getSolution()->fromThyraMultiVector(thyraX);
@@ -290,6 +292,7 @@ int LinearSolver<SC,LO,GO,NO>::solveBlock(Problem_Type* problem, BlockMultiVecto
     {
         
         Thyra::SolveStatus<SC> status = Thyra::solve<SC>(*solver, Thyra::NOTRANS, *thyraRHS, thyraX.ptr());
+        lastSolveConverged_ = status.solveStatus == Thyra::SOLVE_STATUS_CONVERGED;
         if (verbose)
             std::cout << status << std::endl;
         
@@ -373,6 +376,7 @@ int LinearSolver<SC,LO,GO,NO>::solveBlock(TimeProblem_Type* timeProblem, BlockMu
     {
         
         Thyra::SolveStatus<SC> status = Thyra::solve<SC>(*solver, Thyra::NOTRANS, *thyraRHS, thyraX.ptr());
+        lastSolveConverged_ = status.solveStatus == Thyra::SOLVE_STATUS_CONVERGED;
         if (verbose)
             std::cout << status << std::endl;
         

@@ -445,8 +445,16 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearNewmark()
     // ######################
     // Time loop
     // ######################
+    checkpoint::RecoveryCheckpointManager<SC,LO,GO,NO> recovery(parameterList_, *comm_);
+    using RecoverySnapshot = checkpoint::RecoveryCheckpointSnapshot<SC,LO,GO,NO>;
+    typename Problem_Type::RecoverySnapshotPtr recoverySnapshot;
     while(timeSteppingTool_->continueTimeStepping())
     {
+        if (recovery.enabled()) {
+            recoverySnapshot = Teuchos::rcp(new RecoverySnapshot(timeSteppingTool_->currentTime()));
+            problem_->setRecoverySnapshot(recoverySnapshot);
+        }
+
         // Stelle (massCoeff*M + problemCoeff*A) auf
         problemTime_->combineSystems();
         
@@ -481,7 +489,13 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearNewmark()
 //        problemTime_->setBoundaries(time);
         
         NonLinearSolver<SC, LO, GO, NO> nlSolver(parameterList_->sublist("General").get("Linearization","Newton"));
+        if (recovery.enabled()) {
+            recovery.beforeSolve(recoverySnapshot);
+            problem_->setRecoverySnapshot(Teuchos::null);
+        }
         nlSolver.solve( *problemTime_, time, its );
+        if (recovery.afterSolve(nlSolver.getLastSolveReport(), time))
+            throw std::runtime_error("Recovery stopped after a failed nonlinear solve (Cancel MaxNonLinIts=true).");
         
         timeSteppingTool_->advanceTime(true/*output info*/);
         if (printData) {
@@ -744,8 +758,16 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
     bool restart = parameterList_->sublist("Timestepping Parameter").get("Restart", false);
     double timeStepRestart = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
 
+    checkpoint::RecoveryCheckpointManager<SC,LO,GO,NO> recovery(parameterList_, *comm_);
+    using RecoverySnapshot = checkpoint::RecoveryCheckpointSnapshot<SC,LO,GO,NO>;
+    typename Problem_Type::RecoverySnapshotPtr recoverySnapshot;
     while(timeSteppingTool_->continueTimeStepping())
     {
+        if (recovery.enabled()) {
+            recoverySnapshot = Teuchos::rcp(new RecoverySnapshot(timeSteppingTool_->currentTime()));
+            problem_->setRecoverySnapshot(recoverySnapshot);
+        }
+
         problemTime_->updateTime ( timeSteppingTool_->currentTime() );
         fsi->problemTimeFluid_->updateTime(timeSteppingTool_->currentTime());
         fsi->problemTimeStructure_->updateTime(timeSteppingTool_->currentTime());
@@ -895,7 +917,13 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
         problemTime_->updateTime ( time );        
         NonLinearSolver<SC, LO, GO, NO> nlSolver(parameterList_->sublist("General").get("Linearization","FixedPoint"));
 
+        if (recovery.enabled()) {
+            recovery.beforeSolve(recoverySnapshot);
+            problem_->setRecoverySnapshot(Teuchos::null);
+        }
         nlSolver.solve(*this->problemTime_, time, its);
+        if (recovery.afterSolve(nlSolver.getLastSolveReport(), time))
+            throw std::runtime_error("Recovery stopped after a failed nonlinear solve (Cancel MaxNonLinIts=true).");
         
         if (timeSteppingTool_->currentTime() <= dt+1.e-10) {
             for (int i = 0; i < sizeFluid; i++)
@@ -1135,7 +1163,15 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearMultistep(){
     if (parameterList_->sublist("General").get("Safe all solution", false))
         problemTime_->writeMultistepCheckpoint(timeSteppingTool_->currentTime(), dt);
 
+    checkpoint::RecoveryCheckpointManager<SC,LO,GO,NO> recovery(parameterList_, *comm_);
+    using RecoverySnapshot = checkpoint::RecoveryCheckpointSnapshot<SC,LO,GO,NO>;
+    typename Problem_Type::RecoverySnapshotPtr recoverySnapshot;
     while (timeSteppingTool_->continueTimeStepping()) {
+        if (recovery.enabled()) {
+            recoverySnapshot = Teuchos::rcp(new RecoverySnapshot(timeSteppingTool_->currentTime()));
+            problem_->setRecoverySnapshot(recoverySnapshot);
+        }
+
 
         // For the first time step we use BDF1
         if (timeSteppingTool_->currentTime()==0.) {
@@ -1174,6 +1210,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearMultistep(){
         else{
             problemTime_->updateSolutionMultiPreviousStep(nmbBDF, false);
         }
+        if (recovery.enabled())
+            problemTime_->captureMultistepRecoveryState(timeSteppingTool_->currentTime(), dt, false);
         double time = timeSteppingTool_->currentTime() + dt;
         problemTime_->updateTime ( time );
         
@@ -1195,7 +1233,13 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearMultistep(){
 //            }
         }
 
+        if (recovery.enabled()) {
+            recovery.beforeSolve(recoverySnapshot);
+            problem_->setRecoverySnapshot(Teuchos::null);
+        }
         nlSolver.solve(*problemTime_,time,its);
+        if (recovery.afterSolve(nlSolver.getLastSolveReport(), time))
+            throw std::runtime_error("Recovery stopped after a failed nonlinear solve (Cancel MaxNonLinIts=true).");
         problemTime_->assemble("UpdateTime");
         // After the first time step we can use the desired BDF Parameters
         if (timeSteppingTool_->currentTime()==0.) {
@@ -1204,6 +1248,13 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearMultistep(){
 
         timeSteppingTool_->advanceTime(true/*output info*/);
         problemTime_->writeMultistepCheckpoint(timeSteppingTool_->currentTime(), dt);
+        if (recovery.enabled()) {
+            auto accepted = Teuchos::rcp(new RecoverySnapshot(timeSteppingTool_->currentTime()));
+            problem_->setRecoverySnapshot(accepted);
+            problemTime_->captureMultistepRecoveryState(timeSteppingTool_->currentTime(), dt, true);
+            problem_->setRecoverySnapshot(Teuchos::null);
+            recovery.acceptedState(accepted);
+        }
         if (printData) {
             exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
             exporterIterations->exportData( (*its)[0] );

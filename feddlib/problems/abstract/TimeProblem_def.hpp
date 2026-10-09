@@ -571,6 +571,7 @@ int TimeProblem<SC,LO,GO,NO>::solve( BlockMultiVectorPtr_Type rhs ){
         std::string type = parameterList_->sublist("General").get("Preconditioner Method","Monolithic");
         LinearSolver<SC,LO,GO,NO> linSolver;
         its = linSolver.solve( this, rhs, type ); // if rhs is null. Then the rhs_ of this is used in the linear solver
+        lastLinearSolveConverged_ = linSolver.lastSolveConverged();
     }
     if (verbose_)
         std::cout << " done. -- " << std::endl;
@@ -673,6 +674,28 @@ void TimeProblem<SC,LO,GO,NO>::writeMultistepCheckpoint(double completedTime, do
     problem_->writeCheckpointMetadata(completedTime);
 }
 
+
+template<class SC,class LO,class GO,class NO>
+void TimeProblem<SC,LO,GO,NO>::captureMultistepRecoveryState(double time, double dt, bool completedStep)
+{
+    auto snapshot = problem_->getRecoverySnapshot();
+    if (snapshot.is_null()) return;
+    int history = parameterList_->sublist("Timestepping Parameter").get("BDF", 1);
+    if (parameterList_->sublist("General").get("Linearization", "Newton") == "Extrapolation")
+        history = std::max(history, 2);
+    for (UN i = 0; i < problem_->getSolution()->size(); ++i) {
+        const auto file = "Solution" + problem_->getVariableName(i);
+        snapshot->addVector(file, time, problem_->getSolution()->getBlock(i));
+        for (int j = 1; j < history && time - j * dt >= -1.e-12; ++j) {
+            const int index = completedStep ? j - 1 : j;
+            TEUCHOS_TEST_FOR_EXCEPTION(index >= solutionPreviousTimesteps_.size(), std::logic_error,
+                                       "Missing BDF history for recovery capture");
+            snapshot->addVector(file, time - j * dt, solutionPreviousTimesteps_[index]->getBlock(i));
+        }
+    }
+    problem_->captureRecoveryMetadata();
+    problem_->captureAdditionalRecoveryState(time);
+}
 
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::updateSystemMassMultiPreviousStep(int nmbSteps){
@@ -1438,6 +1461,20 @@ void TimeProblem<SC,LO,GO,NO>::importRestartValues(){
 
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray_Type solutionVec, std::string fileName){
+
+    auto recovery = problem_->getRecoverySnapshot();
+    if (!recovery.is_null()) {
+        const double dt = getPreviousTimeIncrement();
+        for (UN i = 0; i < this->getSolution()->size(); ++i) {
+            const bool derivative = fileName == "ds_Velocity" || fileName == "ds_Acceleration";
+            const std::string file = derivative ? fileName : fileName + problem_->getVariableName(i);
+            for (UN j = 0; j < solutionVec.size(); ++j)
+                if (time_ - j * dt >= -1.e-12)
+                    recovery->addVector(file, time_ - j * dt, solutionVec[j]->getBlock(i));
+        }
+        problem_->captureRecoveryMetadata();
+        if (fileName == "Solution") problem_->captureAdditionalRecoveryState(time_);
+    }
 
     //-----------
     // Parameter

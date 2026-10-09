@@ -1,0 +1,123 @@
+set(work "@CMAKE_CURRENT_BINARY_DIR@/@recovery_test_name@")
+file(REMOVE_RECURSE "${work}")
+file(MAKE_DIRECTORY "${work}")
+foreach(input @recovery_input_files@)
+    file(COPY "@recovery_case_directory@/${input}" DESTINATION "${work}")
+endforeach()
+foreach(mesh @recovery_mesh_files@)
+    file(COPY "@CMAKE_SOURCE_DIR@/meshes/${mesh}" DESTINATION "${work}")
+endforeach()
+
+function(run_phase label override)
+    if("@recovery_model@" STREQUAL "NavierStokes")
+        set(arguments --problemfile=parametersProblem2D.xml)
+        if(NOT override STREQUAL "")
+            list(APPEND arguments "--overridefile=${override}")
+        endif()
+    else()
+        set(arguments)
+        if(NOT override STREQUAL "")
+            list(APPEND arguments "--problemfile=${override}")
+        endif()
+    endif()
+    message(STATUS "${label}")
+    execute_process(COMMAND "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@ @MPI_EXEC_NUMPROCS_FLAG@ 4
+        @MPI_EXEC_POST_NUMPROCS_FLAGS@ "${EXECUTABLE}" ${arguments} ${ARGN}
+        WORKING_DIRECTORY "${work}" RESULT_VARIABLE result)
+    if(NOT result STREQUAL "0")
+        message(FATAL_ERROR "${label} failed: ${result}")
+    endif()
+endfunction()
+
+function(xml_value filename name output)
+    file(READ "${work}/${filename}" xml)
+    string(REGEX MATCH "name=\"${name}\"[^>]*value=\"([^\"]*)\"" match "${xml}")
+    if(NOT match)
+        message(FATAL_ERROR "Missing ${name} in ${filename}")
+    endif()
+    set(${output} "${CMAKE_MATCH_1}" PARENT_SCOPE)
+endfunction()
+
+function(check_status directory converged stopped)
+    xml_value("${directory}/RecoveryStatus.xml" "Converged" actual_converged)
+    xml_value("${directory}/RecoveryStatus.xml" "Stopped" actual_stopped)
+    if((NOT converged STREQUAL "any" AND NOT actual_converged STREQUAL converged)
+        OR NOT actual_stopped STREQUAL stopped)
+        message(FATAL_ERROR "Wrong recovery classification in ${directory}")
+    endif()
+    xml_value("${directory}/Latest.xml" "Directory" latest)
+    if(NOT EXISTS "${work}/${latest}/Complete.xml")
+        message(FATAL_ERROR "Latest recovery generation is not complete")
+    endif()
+    file(GLOB generations LIST_DIRECTORIES true "${work}/${directory}/generation_*")
+    list(LENGTH generations count)
+    if(NOT count EQUAL 2)
+        message(FATAL_ERROR "Expected protected and latest generations; found ${count}")
+    endif()
+endfunction()
+
+function(write_override filename directory recovery max_iterations cancel compare fraction)
+    file(WRITE "${work}/${filename}" "<ParameterList>
+  <ParameterList name=\"Parameter\">
+    <Parameter name=\"MaxNonLinIts\" type=\"int\" value=\"${max_iterations}\"/>
+    <Parameter name=\"Cancel MaxNonLinIts\" type=\"bool\" value=\"${cancel}\"/>
+  </ParameterList>
+  <ParameterList name=\"Timestepping Parameter\">
+    <Parameter name=\"Restart\" type=\"bool\" value=\"true\"/>
+    <Parameter name=\"Restart directory\" type=\"string\" value=\"${directory}\"/>
+    <Parameter name=\"Reference directory\" type=\"string\" value=\"restartCheckpoints\"/>
+    <Parameter name=\"Time step\" type=\"double\" value=\"0.01\"/>
+    <Parameter name=\"Final time\" type=\"double\" value=\"0.02\"/>
+    <Parameter name=\"Checkpointing\" type=\"bool\" value=\"false\"/>
+    <Parameter name=\"Failure recovery\" type=\"bool\" value=\"${recovery}\"/>
+    <Parameter name=\"Recovery directory\" type=\"string\" value=\"${filename}-data\"/>
+    <Parameter name=\"Recovery linear iteration fraction\" type=\"double\" value=\"${fraction}\"/>
+    <Parameter name=\"Compare restart\" type=\"bool\" value=\"${compare}\"/>
+  </ParameterList>
+</ParameterList>")
+endfunction()
+
+function(restart_generation label directory time)
+    write_override(resume.xml "${directory}" false 10 true true 0.5)
+    file(READ "${work}/resume.xml" xml)
+    string(REPLACE "value=\"0.01\"" "value=\"${time}\"" xml "${xml}")
+    file(WRITE "${work}/resume.xml" "${xml}")
+    run_phase("${label}" resume.xml)
+endfunction()
+
+run_phase("Independent uninterrupted reference" "")
+
+# A zero fraction deliberately exercises the warning path with successful real solves.
+write_override(warning.xml restartCheckpoints true 3 true true 0.0)
+run_phase("Converged steps trigger recovery and continue" warning.xml)
+check_status(warning.xml-data true false)
+xml_value(warning.xml-data/Latest.xml "Directory" latest)
+xml_value(warning.xml-data/Latest.xml "Physical time" latest_time)
+restart_generation("Restart from latest warning checkpoint" "${latest}" "${latest_time}")
+xml_value(warning.xml-data/Latest.xml "Protected directory" protected)
+restart_generation("Restart from protected pre-warning state" "${protected}" 0.01)
+
+# The same genuinely nonconverged Newton solve must save recovery data in both modes.
+write_override(stop.xml restartCheckpoints true 1 true false 0.5)
+run_phase("Nonconvergence with cancellation enabled" stop.xml --expect-recovery-stop)
+check_status(stop.xml-data false true)
+xml_value(stop.xml-data/Latest.xml "Directory" latest)
+restart_generation("Restart after controlled stop" "${latest}" 0.01)
+
+write_override(continue.xml restartCheckpoints true 1 false false 0.5)
+run_phase("Nonconvergence with cancellation disabled" continue.xml)
+check_status(continue.xml-data any false)
+xml_value(continue.xml-data/RecoveryStatus.xml "Trajectory reliable" reliable)
+if(NOT reliable STREQUAL "false")
+    message(FATAL_ERROR "Ignored nonconvergence was not recorded")
+endif()
+xml_value(continue.xml-data/Latest.xml "Physical time" preserved_time)
+if(NOT preserved_time EQUAL 0.01)
+    message(FATAL_ERROR "Unconverged trajectory replaced the reliable recovery checkpoint")
+endif()
+xml_value(continue.xml-data/RecoveryStatus.xml "Attempted time" attempted_time)
+if(NOT attempted_time EQUAL 0.02)
+    message(FATAL_ERROR "Cancel MaxNonLinIts=false did not continue to the final time")
+endif()
+xml_value(continue.xml-data/Latest.xml "Directory" latest)
+restart_generation("Restart from checkpoint retained during unconverged continuation" "${latest}" 0.01)

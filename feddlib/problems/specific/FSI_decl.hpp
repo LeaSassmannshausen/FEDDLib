@@ -285,6 +285,11 @@ private:
      */
     void writeOutletStateCheckpoint(double time) const;
 
+    /// Share one recovery capture across coupled fields, fluid BDF and solid Newmark histories.
+    void setRecoverySnapshot(typename Problem_Type::RecoverySnapshotPtr snapshot) override;
+    /// Copy geometry and pressure-boundary history at the existing start-of-step boundary.
+    void captureAdditionalRecoveryState(double time) override;
+
     std::string materialModel_;
     vec_dbl_Type valuesForExport_;
     bool geometryExplicit_;

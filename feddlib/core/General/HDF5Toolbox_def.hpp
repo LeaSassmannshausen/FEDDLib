@@ -72,6 +72,8 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
 
   // Create the dataset with default properties and close filespace_id.
   dset_id = H5Dcreate(group_id, "Values", H5T_NATIVE_DOUBLE, filespace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  int localWriteError = filespace_id < 0 || group_id < 0 || dset_id < 0;
+  H5Sclose(filespace_id);
 
   // Create property list for collective dataset write.
   plist_id_ = H5Pcreate(H5P_DATASET_XFER);
@@ -113,6 +115,7 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
         : H5Sselect_none(filespace_id);
 
     if (selStatus < 0) {
+      localWriteError = 1;
       std::cerr << "[Rank " << comm_->getRank()
                 << "] ERROR selecting hyperslab: "
                 << "offset=(" << offset[0] << "," << offset[1] << "), "
@@ -126,6 +129,7 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
       H5Sselect_none(memspace_id);
 
     if (memspace_id < 0) {
+      localWriteError = 1;
       std::cerr << "[Rank " << comm_->getRank()
                 << "] ERROR creating memory dataspace of size "
                 << dimsm[0] << std::endl;
@@ -144,6 +148,7 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
         plist_id_, linearX->getData(n).get());
 
     if (writeStatus < 0) {
+      localWriteError = 1;
       std::cerr << "[Rank " << comm_->getRank()
                 << "] ERROR during H5Dwrite for vector " << n << std::endl;
     }
@@ -177,6 +182,13 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
   write(GroupName, "GlobalLength", GlobalLength);
   write(GroupName, "NumVectors", NumVectors);
   write(GroupName, "__type__", "Tpetra_MultiVector");
+  // Do not let checkpoint publication treat a logged vector-write error as
+  // success. All healthy ranks finish the write sequence before failing together.
+  if (H5Fflush(file_id_, H5F_SCOPE_GLOBAL) < 0) localWriteError = 1;
+  int globalWriteError = 0;
+  Teuchos::reduceAll(*comm_, Teuchos::REDUCE_MAX, 1, &localWriteError, &globalWriteError);
+  TEUCHOS_TEST_FOR_EXCEPTION(globalWriteError != 0, std::runtime_error,
+                             "HDF5 vector write failed for group " << GroupName);
 }
 // ---------------------------------------------------------
 // ==========================================================================

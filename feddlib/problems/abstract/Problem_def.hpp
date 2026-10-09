@@ -431,7 +431,7 @@ namespace FEDD
         if (checkpointSchemaPrepared_)
             return;
         auto& time = parameterList_->sublist("Timestepping Parameter");
-        if (!time.get("Restart", false) && !time.get("Checkpointing", false) &&
+        if (!time.get("Restart", false) && !time.get("Checkpointing", false) && !time.get("Failure recovery", false) &&
             !parameterList_->sublist("General").get("Safe all solution", false))
             return;
         std::vector<checkpoint::FieldDescription> fields;

@@ -8,6 +8,7 @@ set(Solver_HEADERS
     Solver/NonLinearSolver.hpp
     Solver/NonLinearSolver_decl.hpp
     Solver/NonLinearSolver_def.hpp
+    Solver/NonlinearSolveReport.hpp
     Solver/Preconditioner.hpp
     Solver/Preconditioner_decl.hpp
     Solver/Preconditioner_def.hpp

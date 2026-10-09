@@ -62,7 +62,10 @@ bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, RCP<const T
 
     for (int block = 0; block < 3; ++block) {
         auto solution = fsi.getSolution()->getBlock(block);
-        HDF5Import<SC,LO,GO,NO> importer(solution->getMap(), restartFile(parameters, checkpointNames[block]));
+        const auto referenceFile = timeParameters.isParameter("Reference directory")
+            ? joinPath(timeParameters.get<std::string>("Reference directory"), checkpointNames[block])
+            : restartFile(parameters, checkpointNames[block]);
+        HDF5Import<SC,LO,GO,NO> importer(solution->getMap(), referenceFile);
         auto reference = importer.readVariablesHDF5(std::to_string(finalTime));
         MultiVector_Type error(solution->getMap());
         error.update(1., *solution, -1., *reference, 0.);
@@ -98,8 +101,11 @@ int main(int argc, char* argv[])
     // Both phases share the same case; the second XML overrides only restart settings.
     const std::string baseProblemFile = "parametersProblemFSI.xml";
     std::string problemFile = baseProblemFile;
+    bool expectRecoveryStop = false;
     Teuchos::CommandLineProcessor commandLine;
     commandLine.setOption("problemfile", &problemFile, "Case parameters or restart overrides.");
+    commandLine.setOption("expect-recovery-stop", "expect-completion", &expectRecoveryStop,
+                          "Require a controlled recovery stop after preserving the checkpoint.");
     commandLine.throwExceptions(false);
     const auto parseResult = commandLine.parse(argc, argv);
     if (parseResult == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED)
@@ -198,10 +204,20 @@ int main(int argc, char* argv[])
     timeSolver.defineTimeStepping(*timeBlocks);
     timeSolver.setProblem(fsi);
     timeSolver.setupTimeStepping();
-    timeSolver.advanceInTime();
+    try { timeSolver.advanceInTime(); }
+    catch (const std::runtime_error& error) {
+        if (expectRecoveryStop && std::string(error.what()).find("Recovery stopped") != std::string::npos) {
+            if (comm->getRank() == 0) std::cout << "Expected recovery stop: " << error.what() << std::endl;
+            return EXIT_SUCCESS;
+        }
+        if (comm->getRank() == 0) std::cerr << error.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+    if (expectRecoveryStop) return EXIT_FAILURE;
 
     // The uninterrupted phase creates the reference checkpoints. Only phase 2 compares.
-    if (parameters->sublist("Timestepping Parameter").get<bool>("Restart"))
+    if (parameters->sublist("Timestepping Parameter").get<bool>("Restart") &&
+        parameters->sublist("Timestepping Parameter").get("Compare restart", true))
         return compareRestart(fsi, parameters, comm) ? EXIT_SUCCESS : EXIT_FAILURE;
     return EXIT_SUCCESS;
 }

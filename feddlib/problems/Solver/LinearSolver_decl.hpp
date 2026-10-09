@@ -49,6 +49,9 @@ public:
     LinearSolver();
     
     ~LinearSolver();
+
+    /// Thyra convergence status of the last solve, independent of iteration count.
+    bool lastSolveConverged() const { return lastSolveConverged_; }
     
     /*!
         \brief Call to solve a linear/linearized problem with right-hand side rhs. Depending on 'type' solveMonolithic, solveTeko, solveBlock is called
@@ -102,6 +105,7 @@ public:
     int solveBlock(TimeProblem_Type* problem, BlockMultiVectorPtr_Type rhs, std::string precType );
     
 private:
+    bool lastSolveConverged_ = true;
 
 };
 }

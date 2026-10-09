@@ -202,6 +202,14 @@ public:
      */
     void writeMultistepCheckpoint(double completedTime, double dt);
 
+    /** @brief Capture BDF fields/history at the start or completion of a step.
+     * completedStep selects whether the history buffer still starts at u_(n-1).
+     * Does not depend on the scheduled checkpoint times and performs no disk I/O.
+     */
+    void captureMultistepRecoveryState(double time, double dt, bool completedStep);
+    /// Status of the last linear solve belonging to this time problem.
+    bool lastLinearSolveConverged() const { return lastLinearSolveConverged_; }
+
     void updateSystemMassMultiPreviousStep(int nmbSteps);
 
     // Verschiebung (u), Geschwindigkeit (u' = v) und Beschleunigung (u'' = w)
@@ -427,6 +435,7 @@ private:
 
     std::vector<std::tuple<double,bool>> checkPointTupel_;
     std::set<std::string> multistepCheckpointTimesWritten_; // shared history is written once per output file
+    bool lastLinearSolveConverged_ = true;
     bool restartValuesImported_ = false; // importRestartValues() ran
     bool restartNewmarkUpdate_ = false; // after a restart: the imported Newmark state is that of t_{r-1} and is updated (see updateSolutionNewmarkPreviousStep)
     BlockMultiVectorPtrArray_Type restartMassSolutions_; // after a restart: the products M_i u_i of the checkpoint (see updateMultistepRhsFSI)

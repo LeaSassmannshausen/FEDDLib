@@ -122,6 +122,10 @@ exporterGeo_()
     this->addVariable( domainGeometry, FETypeGeometry, "d_f", domainGeometry->getDimension() ); // Geometrie
     this->dim_ = this->getDomain(0)->getDimension();
     checkpoint::outletConfiguration(*this->parameterList_);
+    if (this->parameterList_->sublist("Timestepping Parameter").get("Failure recovery", false)) {
+        parameterListFluid->sublist("Timestepping Parameter").set("Failure recovery", true);
+        parameterListStructure->sublist("Timestepping Parameter").set("Failure recovery", true);
+    }
     // Saving the coupled state requires the fluid and Newmark history as well.
     if (this->parameterList_->sublist("General").get("Safe all solution", false)) {
         parameterListFluid->sublist("General").set("Safe all solution", true);
@@ -1676,6 +1680,35 @@ void FSI<SC,LO,GO,NO>::writeOutletStateCheckpoint(double time) const
         checkpoint::writeOutletState(outletState_, checkpointFile(this->parameterList_, checkpoint::outletStateName(time)),
                                     model, time);
     });
+}
+
+template<class SC,class LO,class GO,class NO>
+void FSI<SC,LO,GO,NO>::setRecoverySnapshot(typename Problem_Type::RecoverySnapshotPtr snapshot)
+{
+    Problem_Type::setRecoverySnapshot(snapshot);
+    problemFluid_->setRecoverySnapshot(snapshot);
+    if (!problemStructure_.is_null()) problemStructure_->setRecoverySnapshot(snapshot);
+    if (!problemStructureNonLin_.is_null()) problemStructureNonLin_->setRecoverySnapshot(snapshot);
+}
+
+template<class SC,class LO,class GO,class NO>
+void FSI<SC,LO,GO,NO>::captureAdditionalRecoveryState(double time)
+{
+    auto snapshot = this->getRecoverySnapshot();
+    if (snapshot.is_null()) return;
+    // On the first resumed step initializeGE() has allocated a zero geometry
+    // solution; restoreGeometryFromCheckpoint() restored the ALE buffers instead.
+    // The retained ALE displacement is the checkpoint baseline in both cases.
+    MultiVectorPtr_Type geometry = Teuchos::rcp(new MultiVector_Type(this->getDomain(4)->getMapVecFieldUnique()));
+    geometry->exportFromVector(meshDisplacementNew_rep_, false, "Insert");
+    snapshot->addVector("Solutiond_f", time, geometry);
+    const auto model = this->parameterList_->sublist("Parameter Fluid").get("Pressure Boundary Condition", "None");
+    if (model != "None") {
+        const auto state = outletState_;
+        snapshot->addScalarWriter(checkpoint::outletStateName(time), [state, model, time](const std::string& path) {
+            checkpoint::writeOutletState(state, path, model, time);
+        });
+    }
 }
 
 template<class SC,class LO,class GO,class NO>

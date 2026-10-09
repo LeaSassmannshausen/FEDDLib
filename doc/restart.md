@@ -214,3 +214,75 @@ isolated first-step/adjacent-checkpoint and save-all checks also pass. Scaling
 only velocity history at `0.0175` by `1.1`, while leaving the restart state at
 `0.02` and the independent reference unchanged, makes continuation fail with
 relative velocity error approximately `0.0194`.
+
+## Failure recovery
+
+Nonlinear BDF, nonlinear Newmark and FSI runs can enable recovery independently
+of ordinary checkpoint scheduling:
+
+```xml
+<ParameterList name="Timestepping Parameter">
+  <Parameter name="Failure recovery" type="bool" value="true"/>
+  <Parameter name="Recovery directory" type="string" value="recoveryCheckpoints"/>
+  <Parameter name="Recovery linear iteration fraction" type="double" value="0.5"/>
+  <Parameter name="Recovery interval steps" type="int" value="1"/>
+</ParameterList>
+```
+
+The default fraction triggers when the mean linear iteration count of the
+Newton solves in one timestep is strictly greater than half the active Belos
+solver's `Maximum Iterations`. Direct solvers have no iteration-count trigger.
+Zero Newton linear solves give a zero mean. Geometry solves are excluded.
+Reaching `MaxNonLinIts` triggers only when the final permitted update has not
+converged. Unsuccessful linear solves and nonfinite solution values also trigger
+recovery.
+
+`Cancel MaxNonLinIts`, in `Parameter`, controls stopping: when true, the driver
+saves recovery information before raising a controlled failure; when false,
+it warns and continues. A converged step with a high linear iteration count
+continues with either setting. Ignoring nonconvergence permanently marks that
+run's subsequent trajectory unreliable for recovery: later values cannot
+replace the last reliable recovery state. Ordinary output retains its existing
+behaviour. Recovery does not automatically retry or change the timestep.
+
+The driver captures independent vector copies and full required history before
+the solve. FSI captures coupled fields, fluid solution and mass-product history,
+solid Newmark displacement/velocity/acceleration, ALE geometry and enabled outlet
+history. Capture hooks retain the existing FSI/Newmark operation order and
+start-of-step checkpoint layout. Consequently their latest completed capture
+can precede the final solution by one timestep. Standalone BDF additionally
+captures its final accepted state immediately.
+
+Recovery generations are written to `generation_N.tmp`, with separate HDF5
+handles, validated and closed before publication as `generation_N`.
+`Complete.xml` marks a finished generation. `Latest.xml` selects the latest
+complete generation and names the protected generation preceding the first
+difficult timestep. It is replaced by a rename only after the new generation
+is complete; older rolling generations are then removed. The protected
+generation remains for the rest of the run. `RecoveryStatus.xml` records the
+trigger, solver counts, convergence status, attempted time, cancellation decision
+and preceding reliable time. Recovery files do not replace ordinary checkpoints.
+Use a fresh recovery directory for each run; existing generations are never
+truncated.
+
+The recovery interval defaults to one step. Setting it to zero disables periodic
+disk writes, retaining captures in memory until a trigger or an active warning
+requires publication. A larger interval reduces routine disk output. A hard
+process/node failure can only use generations already on disk; recovery does
+not perform MPI/HDF5 operations in signal handlers.
+
+To restart, read the directory and physical time from `Latest.xml` (or choose the
+protected directory), then use the ordinary settings:
+
+```xml
+<Parameter name="Restart" type="bool" value="true"/>
+<Parameter name="Restart directory" type="string" value="recoveryCheckpoints/generation_7"/>
+<Parameter name="Time step" type="double" value="0.0175"/>
+```
+
+The usual metadata and compatibility validation applies. Restore normal solver
+limits for continuation. Two four-rank 2D integration tests exercise warning,
+stop and continue modes and compare recovery restarts against independently
+computed reference solutions; a two-rank unit test checks criteria and interrupted
+publication. Their setup is documented in
+`feddlib/problems/tests/RestartTests/recovery/README.md`.

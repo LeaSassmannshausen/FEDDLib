@@ -113,12 +113,15 @@ int main(int argc, char* argv[])
     std::string overrideFile;
     bool validateOnly = false;
     bool perturbMesh = false;
+    bool expectRecoveryStop = false;
     Teuchos::CommandLineProcessor commandLine;
     commandLine.setOption("problemfile", &problemFile, "2D or 3D BFS case parameters.");
     commandLine.setOption("overridefile", &overrideFile, "Optional parameter overrides for this test phase.");
     commandLine.setOption("restartfile", &overrideFile, "Alias for --overridefile for restart runs.");
     commandLine.setOption("validate-checkpoint", "solve", &validateOnly, "Validate/restore without advancing time.");
     commandLine.setOption("perturb-mesh", "original-mesh", &perturbMesh, "Change a coordinate for compatibility rejection testing.");
+    commandLine.setOption("expect-recovery-stop", "expect-completion", &expectRecoveryStop,
+                          "Require a controlled recovery stop after preserving the checkpoint.");
     commandLine.throwExceptions(false);
     const auto parseResult = commandLine.parse(argc, argv);
     if (parseResult == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED)
@@ -189,9 +192,18 @@ int main(int argc, char* argv[])
     timeSolver.defineTimeStepping(timeBlocks);
     timeSolver.setProblem(problem);
     timeSolver.setupTimeStepping();
-    timeSolver.advanceInTime(); // Time stepping is handled by the solver, which calls the problem's assemble and solve methods as needed.
+    try { timeSolver.advanceInTime(); }
+    catch (const std::runtime_error& error) {
+        if (expectRecoveryStop && std::string(error.what()).find("Recovery stopped") != std::string::npos) {
+            if (comm->getRank() == 0) std::cout << "Expected recovery stop: " << error.what() << std::endl;
+            return EXIT_SUCCESS;
+        }
+        if (comm->getRank() == 0) std::cerr << error.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+    if (expectRecoveryStop) return EXIT_FAILURE;
 
-    if (restart)
+    if (restart && parameters->sublist("Timestepping Parameter").get("Compare restart", true))
         return compareRestart(problem, parameters, comm) ? EXIT_SUCCESS : EXIT_FAILURE;
     return EXIT_SUCCESS;
 }

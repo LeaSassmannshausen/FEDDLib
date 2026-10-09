@@ -14,6 +14,7 @@
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/LinearAlgebra/Matrix.hpp"
 #include "feddlib/core/General/HDF5Import.hpp"
+#include "feddlib/core/Checkpointing/RecoveryCheckpoint.hpp"
 
 /*!
  Declaration of Problem
@@ -259,6 +260,19 @@ public:
     /// Restore additional problem-specific state at the restart time. Nothing by default.
     virtual void importValuesOfInterest(double time) {}
 
+    using RecoverySnapshot = checkpoint::RecoveryCheckpointSnapshot<SC,LO,GO,NO>;
+    using RecoverySnapshotPtr = Teuchos::RCP<RecoverySnapshot>;
+    /// Attach the current independent recovery capture; FSI also attaches its components.
+    virtual void setRecoverySnapshot(RecoverySnapshotPtr snapshot) { recoverySnapshot_ = snapshot; }
+    RecoverySnapshotPtr getRecoverySnapshot() const { return recoverySnapshot_; }
+    /// Capture model-specific state without exporting or modifying it.
+    virtual void captureAdditionalRecoveryState(double time) {}
+    /// Add this problem's compatibility manifest to the attached recovery capture.
+    void captureRecoveryMetadata() {
+        prepareCheckpointMetadata();
+        if (!recoverySnapshot_.is_null()) recoverySnapshot_->addManifest(checkpointSchema_);
+    }
+
     void addParemeterRhs(double para){ parasSourceFunc_.push_back( para ); }
     
     void changeAssFELinearization(std::string linearization); // Function in order to be able to change e.g. from FixedPoint to Newton linearization on element level
@@ -289,6 +303,7 @@ protected:
     double checkpointValidatedTime_ = 0.;
 
     mutable ParameterListPtr_Type	parameterList_;
+    RecoverySnapshotPtr recoverySnapshot_;
     mutable DomainConstPtr_vec_Type domainPtr_vec_;
     string_vec_Type                 domain_FEType_vec_;
     string_vec_Type                 variableName_vec_;

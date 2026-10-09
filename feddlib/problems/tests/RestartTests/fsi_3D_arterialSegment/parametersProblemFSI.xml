@@ -24,7 +24,6 @@
         <Parameter name="Symmetric gradient" type="bool" value="true" />
         <Parameter name="Max Ramp Time" type="double" value="0.012" />
         <Parameter name="Flowrate" type="double" value="3" />
-        <Parameter name="Pressure Boundary Condition" type="string" value="Absorbing Paper" />
         <Parameter name="Unsteady Start" type="double" value="0.012" />
         <Parameter name="Average Flowrate" type="bool" value="true" />
         <Parameter name="BC Ramp" type="double" value="0.0" />
@@ -33,7 +32,7 @@
         <Parameter name="Reference fluid pressure" type="double" value="11.99e1" />
         <Parameter name="Wall thickness" type="double" value="0.12" />
         <Parameter name="E" type="double" value="120.0e1" />
-        <Parameter name="Resistance" type="double" value="3.6660e-4" />
+        <Parameter name="Resistance" type="double" value="3.9966e1" />
     </ParameterList>
     <ParameterList name="Parameter Geometry">
         <Parameter name="Poisson Ratio" type="double" value="0.49e-0" />
@@ -54,12 +53,8 @@
         <Parameter name="Mesh 2 number ranks" type="int" value="-1" />
     </ParameterList>
     <ParameterList name="General">
-        <Parameter name="Mpi Ranks Coarse" type="int" value="0" />
         <Parameter name="ParaViewExport" type="bool" value="false" />
-        <Parameter name="ParaViewCoarse" type="bool" value="false" />
-        <Parameter name="ParaView export subdomains" type="bool" value="false" />
         <Parameter name="Export Data" type="bool" value="false" />
-        <Parameter name="Export Extra Data" type="bool" value="false" />
         <Parameter name="Export Flow Rate" type="bool" value="false" />
         <Parameter name="Preconditioner Method" type="string" value="FaCSI" />
         <Parameter name="Use Fluid Preconditioner" type="bool" value="true" />

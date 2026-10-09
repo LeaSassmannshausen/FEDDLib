@@ -4,7 +4,7 @@
         <Parameter name="Preconditioner Type" type="string" value="FROSch"/>
         <ParameterList name="Preconditioner Types">
             <ParameterList name="FROSch">
-                <Parameter name="FROSch Preconditioner Type" type="string" value="TwoLevelBlockPreconditioner"/>
+                <Parameter name="FROSch Preconditioner Type" type="string" value="OneLevelPreconditioner"/>
                 <Parameter name="Recycling" type="bool" value="true"/>
                 <Parameter name="Dimension" type="int" value="3"/>
                 <Parameter name="DofsPerNode1" type="int" value="3"/>
@@ -25,50 +25,6 @@
                         <Parameter name="SolverType" type="string" value="Amesos2"/>
                         <Parameter name="Solver" type="string" value="klu2"/>
                     </ParameterList>
-                </ParameterList>
-
-                <ParameterList name="RGDSWCoarseOperator">
-                    <Parameter name="Store Phi" type="bool" value="false"/>
-                
-                    <Parameter name="Write phi and problem" type="bool" value="false"/>
-                    <Parameter name="Write coarse matrix" type="bool" value="false"/>
-                    
-                    <Parameter name="Use Triple MatrixMultiply" type="bool" value="false"/>
-                    <Parameter name="Test Unconnected Interface" type="bool" value="false"/>
-                    
-                    <Parameter name="Reuse: Coarse Basis" type="bool" value="true"/>
-                    <Parameter name="Reuse: Coarse Matrix" type="bool" value="true"/>
-                    
-                    <Parameter name="Reuse: Extension Symbolic Factorization" type="bool" value="true"/>
-                    <Parameter name="Reuse: Coarse Matrix Symbolic Factorization" type="bool" value="true"/>
-
-                    <ParameterList name="Blocks">
-                        <ParameterList name="1">
-                            <Parameter name="Exclude" type="string" value="2"/>
-                            <Parameter name="Use For Coarse Space" type="bool" value="true"/>
-                            <Parameter name="Option" type="string" value="1"/>
-                            <Parameter name="Rotations" type="bool" value="false"/>
-                        </ParameterList>
-                    </ParameterList>
-                    
-                    <ParameterList name="ExtensionSolver">
-                        <Parameter name="SolverType" type="string" value="Amesos2"/>
-                        <Parameter name="Solver" type="string" value="klu2"/>
-
-                    </ParameterList>
-                    
-                    <ParameterList name="Distribution">
-                        <Parameter name="Type" type="string" value="linear"/>
-                        <Parameter name="GatheringSteps"  type="int" value="1"/>
-                        <Parameter name="NumProcs" type="int" value="1"/>
-                        <Parameter name="Factor" type="double" value="1."/>
-                    </ParameterList>
-                    
-                    <ParameterList name="CoarseSolver">
-                        <Parameter name="SolverType" type="string" value="Amesos2"/>
-                        <Parameter name="Solver" type="string" value="klu2"/>
-                    </ParameterList>
-                    
                 </ParameterList>
                 
             </ParameterList>

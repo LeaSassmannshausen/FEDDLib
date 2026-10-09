@@ -1,6 +1,8 @@
 #ifndef NONLINEARSOLVER_DEF_hpp
 #define NONLINEARSOLVER_DEF_hpp
 
+#include <cmath>
+
 /*!
  Definition of NonLinearSolver
 
@@ -53,7 +55,7 @@ template<class SC,class LO,class GO,class NO>
 void NonLinearSolver<SC,LO,GO,NO>::solve(TimeProblem_Type &problem, double time, vec_dbl_ptr_Type valuesForExport){
 
     if (!type_.compare("FixedPoint")) {
-        solveFixedPoint(problem,time);
+        solveIterative(problem, time, valuesForExport, false);
     }
     else if(!type_.compare("Newton")){
         solveNewton(problem,time, valuesForExport);
@@ -259,15 +261,25 @@ void NonLinearSolver<SC,LO,GO,NO>::solveNOX(TimeProblem_Type &problem, vec_dbl_p
     double nonLinearIts = solver->getSolverStatistics()->linearSolve.allNonlinearSolves_NumLinearSolves;
     double linearIts = solver->getSolverStatistics()->linearSolve.allNonlinearSolves_NumLinearIterations;
     
-    linearIts/=nonLinearIts;
+    lastSolveReport_ = NonlinearSolveReport();
+    lastSolveReport_.linearSolveCount = static_cast<int>(nonLinearIts);
+    lastSolveReport_.nonlinearIterations = solver->getNumIterations();
+    lastSolveReport_.totalLinearIterations = static_cast<int>(linearIts);
+    lastSolveReport_.maximumLinearIterations = configuredLinearIterationLimit(*problemPtr->getParameterList());
+    lastSolveReport_.finalCriterion = solver->getSolutionGroup().getNormF();
+    lastSolveReport_.finite = std::isfinite(lastSolveReport_.finalCriterion);
+    lastSolveReport_.converged = solveStatus == NOX::StatusTest::Converged;
+    nonLinearIts_ = lastSolveReport_.nonlinearIterations;
+    linearIts = lastSolveReport_.averageLinearIterations();
     if (verbose){
         std::cout << "############################################################" << std::endl;
         std::cout << "### Total nonlinear iterations : " << nonLinearIts << "  with an average of " << linearIts << " linear iterations ###" << std::endl;
         std::cout << "############################################################" << std::endl;
     }
     
-    if ( problemPtr->getParameterList()->sublist("Parameter").get("Cancel MaxNonLinIts",false) ) {
-        TEUCHOS_TEST_FOR_EXCEPTION((int)nonLinearIts == problemPtr->getParameterList()->sublist("Parameter").get("MaxNonLinIts",10) ,std::runtime_error,"Maximum nonlinear Iterations reached. Problem might have converged in the last step. Still we cancel here.");
+    if (!problemPtr->getParameterList()->sublist("Timestepping Parameter").get("Failure recovery", false) &&
+        problemPtr->getParameterList()->sublist("Parameter").get("Cancel MaxNonLinIts",false)) {
+        TEUCHOS_TEST_FOR_EXCEPTION(!lastSolveReport_.converged, std::runtime_error, "NOX solve did not converge.");
     }
     
     if (!valuesForExport.is_null()) {
@@ -518,156 +530,92 @@ void NonLinearSolver<SC,LO,GO,NO>::solveFixedPointNewton( NonLinearProblem_Type 
 
 template<class SC,class LO,class GO,class NO>
 void NonLinearSolver<SC,LO,GO,NO>::solveFixedPoint(TimeProblem_Type &problem, double time){
-
-    bool verbose = problem.getVerbose();
-    problem.setBoundariesRHS(time);
-    TEUCHOS_TEST_FOR_EXCEPTION(problem.getRhs()->getNumVectors()!=1,std::logic_error,"We need to change the code for numVectors>1.")
-
-    // -------
-    // fix point iteration
-    // -------
-    double	gmresIts = 0.;
-    double residual0 = 1.;
-    double residual = 1.;
-    double tol = problem.getParameterList()->sublist("Parameter").get("relNonLinTol",1.0e-6);
-    int nlIts=0;
-    int maxNonLinIts = problem.getParameterList()->sublist("Parameter").get("MaxNonLinIts",10);
-    double criterionValue = 1.;
-    std::string criterion = problem.getParameterList()->sublist("Parameter").get("Criterion","Residual");
-
-    while ( nlIts < maxNonLinIts ) {
-        
-        problem.calculateNonLinResidualVec("reverse", time);
-
-        if (criterion=="Residual")
-            residual = problem.calculateResidualNorm();
-
-        if (nlIts==0)
-            residual0 = residual;
-                    
-        // Linearization of system matrix is done in calculateNonLinResidualVec
-        // Now we need to combine it with the mass matrix
-        problem.combineSystems();
-        
-        problem.setBoundariesSystem();
-        
-        if (criterion=="Residual"){
-            criterionValue = residual/residual0;
-            if (verbose)
-                std::cout << "### Fixed Point iteration : " << nlIts << "  relative nonlinear residual : " << criterionValue << std::endl;
-            if ( criterionValue < tol )
-                break;
-        }
-
-        gmresIts += problem.solveAndUpdate( criterion, criterionValue );
-        
-        nlIts++;
-        if(criterion=="Update"){
-            if (verbose)
-                std::cout << "### Fixed Point iteration : " << nlIts << "  residual of update : " << criterionValue << std::endl;
-            if ( criterionValue < tol )
-                break;
-        }
-        // ####### end FPI #######
-    }
-    
-    gmresIts/=nlIts;
-    if (verbose)
-        std::cout << "### Total FPI : " << nlIts << "  with average gmres its : " << gmresIts << std::endl;
-    if ( problem.getParameterList()->sublist("Parameter").get("Cancel MaxNonLinIts",false) ) {
-        TEUCHOS_TEST_FOR_EXCEPTION( nlIts == maxNonLinIts ,std::runtime_error,"Maximum nonlinear Iterations reached. Problem might have converged in the last step. Still we cancel here.");
-    }
+    solveIterative(problem, time, Teuchos::null, false);
 }
-
-
 
 template<class SC,class LO,class GO,class NO>
-void NonLinearSolver<SC,LO,GO,NO>::solveNewton(TimeProblem_Type &problem, double time, vec_dbl_ptr_Type valuesForExport ){
-
-    bool verbose = problem.getVerbose();
-    problem.setBoundariesRHS(time);
-
-
-    TEUCHOS_TEST_FOR_EXCEPTION(problem.getRhs()->getNumVectors()!=1,std::logic_error,"We need to change the code for numVectors>1.")
-    
-    // -------
-    // Newton iteration
-    // -------
-    double	gmresIts = 0.;
-    double residual0 = 1.;
-    double residual = 1.;
-    double tol = problem.getParameterList()->sublist("Parameter").get("relNonLinTol",1.0e-6);
-    int nlIts=0;
-    int maxNonLinIts = problem.getParameterList()->sublist("Parameter").get("MaxNonLinIts",10);
-    double criterionValue = 1.;
-    std::string criterion = problem.getParameterList()->sublist("Parameter").get("Criterion","Residual");
-    std::string timestepping = problem.getParameterList()->sublist("Timestepping Parameter").get("Class","Singlestep");
-
-    while ( nlIts < maxNonLinIts ) {
-        if (timestepping == "External")
-            problem.calculateNonLinResidualVec("external", time);
-        else
-            problem.calculateNonLinResidualVec("reverse", time);
-        if (criterion=="Residual")
-            residual = problem.calculateResidualNorm();
-        
-        if (nlIts==0)
-            residual0 = residual;
-        
-        if (criterion=="Residual"){
-            criterionValue = residual/residual0;
-//            exporterTxt->exportData( criterionValue );
-            if (verbose)
-                std::cout << "### Newton iteration : " << nlIts << "  relative nonlinear residual : " << criterionValue << std::endl;
-            if ( criterionValue < tol )
-                break;
-        }
-
-        // Systems are combined in timeProblem.assemble("Newton") and then combined
-        problem.assemble("Newton"); 
-
-        problem.setBoundariesSystem();
-
-
-        if (timestepping == "External"){//AceGen
-            gmresIts += problem.solveAndUpdate( "ResidualAceGen", criterionValue );
-        //    exporterTxt->exportData( criterionValue );
-
-            //problem.assembleExternal( "OnlyUpdate" );// update AceGEN internal variables
-        }
-        else
-            gmresIts += problem.solveAndUpdate( criterion, criterionValue );
-        
-        nlIts++;
-
-        //problem.getSolution()->getBlock(0)->print();
-        if(criterion=="Update"){
-            if (verbose)
-                std::cout << "### Newton iteration : " << nlIts << "  residual of update : " << criterionValue << std::endl;
-            if ( criterionValue < tol )
-                break;
-        }
-
-        // ####### end FPI #######
-    }
-
-    gmresIts/=nlIts;
-    if (verbose)
-        std::cout << "### Total Newton iteration : " << nlIts << "  with average gmres its : " << gmresIts << std::endl;
-    if ( problem.getParameterList()->sublist("Parameter").get("Cancel MaxNonLinIts",false) ) {
-        TEUCHOS_TEST_FOR_EXCEPTION(nlIts == maxNonLinIts ,std::runtime_error,"Maximum nonlinear Iterations reached. Problem might have converged in the last step. Still we cancel here.");
-    }
-    if (!valuesForExport.is_null()) {
-        if (valuesForExport->size() == 2){
-            (*valuesForExport)[0] = gmresIts;
-            (*valuesForExport)[1] = nlIts;
-        }
-       
-
-    }
-    
+void NonLinearSolver<SC,LO,GO,NO>::solveNewton(TimeProblem_Type &problem, double time, vec_dbl_ptr_Type valuesForExport){
+    solveIterative(problem, time, valuesForExport, true);
 }
 
+template<class SC,class LO,class GO,class NO>
+void NonLinearSolver<SC,LO,GO,NO>::solveIterative(TimeProblem_Type &problem, double time,
+                                               vec_dbl_ptr_Type valuesForExport, bool newton){
+    problem.setBoundariesRHS(time);
+    TEUCHOS_TEST_FOR_EXCEPTION(problem.getRhs()->getNumVectors()!=1, std::logic_error,
+                               "We need to change the code for numVectors>1.");
+    auto parameters = problem.getParameterList();
+    const double tolerance = parameters->sublist("Parameter").get("relNonLinTol", 1.e-6);
+    const int maximum = parameters->sublist("Parameter").get("MaxNonLinIts", 10);
+    const auto criterion = parameters->sublist("Parameter").get("Criterion", "Residual");
+    const bool external = parameters->sublist("Timestepping Parameter").get("Class", "Multistep") == "External";
+    const bool recovery = parameters->sublist("Timestepping Parameter").get("Failure recovery", false);
+    const auto label = newton ? "Newton" : "Fixed Point";
+    lastSolveReport_ = NonlinearSolveReport();
+    lastSolveReport_.maximumLinearIterations = configuredLinearIterationLimit(*parameters);
+    double initialResidual = 0.;
+    double criterionValue = 1.;
+    while (lastSolveReport_.nonlinearIterations < maximum) {
+        problem.calculateNonLinResidualVec(external ? "external" : "reverse", time);
+        if (criterion == "Residual") {
+            const double residual = problem.calculateResidualNorm();
+            if (lastSolveReport_.nonlinearIterations == 0) initialResidual = residual;
+            criterionValue = initialResidual == 0. ? residual : residual / initialResidual;
+            if (problem.getVerbose())
+                std::cout << "### " << label << " iteration : " << lastSolveReport_.nonlinearIterations
+                          << "  relative nonlinear residual : " << criterionValue << std::endl;
+            if (!std::isfinite(criterionValue) || criterionValue < tolerance) break;
+        }
+        if (newton) problem.assemble("Newton");
+        else problem.combineSystems();
+        problem.setBoundariesSystem();
+        lastSolveReport_.totalLinearIterations += problem.solveAndUpdate(
+            external ? "ResidualAceGen" : criterion, criterionValue);
+        ++lastSolveReport_.linearSolveCount;
+        ++lastSolveReport_.nonlinearIterations;
+        lastSolveReport_.linearSolvesConverged &= problem.lastLinearSolveConverged();
+        if (criterion == "Update") {
+            if (problem.getVerbose())
+                std::cout << "### " << label << " iteration : " << lastSolveReport_.nonlinearIterations
+                          << "  residual of update : " << criterionValue << std::endl;
+            if (!std::isfinite(criterionValue) || criterionValue < tolerance) break;
+        }
+        if (recovery && !lastSolveReport_.linearSolvesConverged) break;
+    }
+    // Check the final permitted update before classifying the iteration limit as failure.
+    if (criterion == "Residual" && lastSolveReport_.nonlinearIterations > 0 &&
+        lastSolveReport_.nonlinearIterations == maximum) {
+        problem.calculateNonLinResidualVec(external ? "external" : "reverse", time);
+        const double residual = problem.calculateResidualNorm();
+        criterionValue = initialResidual == 0. ? residual : residual / initialResidual;
+    }
+    lastSolveReport_.finalCriterion = criterionValue;
+    int localFinite = std::isfinite(criterionValue) ? 1 : 0;
+    for (UN block = 0; block < problem.getSolution()->size(); ++block) {
+        const auto data = problem.getSolution()->getBlock(block)->getData(0);
+        for (UN row = 0; row < data.size(); ++row)
+            if (!std::isfinite(data[row])) localFinite = 0;
+    }
+    int globalFinite = 0, globalLinear = 0;
+    const int localLinear = lastSolveReport_.linearSolvesConverged ? 1 : 0;
+    Teuchos::reduceAll(*problem.getComm(), Teuchos::REDUCE_MIN, 1, &localFinite, &globalFinite);
+    Teuchos::reduceAll(*problem.getComm(), Teuchos::REDUCE_MIN, 1, &localLinear, &globalLinear);
+    lastSolveReport_.finite = globalFinite != 0;
+    lastSolveReport_.linearSolvesConverged = globalLinear != 0;
+    lastSolveReport_.converged = lastSolveReport_.finite && criterionValue < tolerance;
+    nonLinearIts_ = lastSolveReport_.nonlinearIterations;
+    if (problem.getVerbose())
+        std::cout << "### Total " << label << " iteration : " << nonLinearIts_
+                  << "  with average gmres its : " << lastSolveReport_.averageLinearIterations() << std::endl;
+    if (!valuesForExport.is_null() && valuesForExport->size() == 2) {
+        (*valuesForExport)[0] = lastSolveReport_.averageLinearIterations();
+        (*valuesForExport)[1] = nonLinearIts_;
+    }
+    // The recovery driver preserves the preceding valid state before cancelling.
+    if (!recovery && parameters->sublist("Parameter").get("Cancel MaxNonLinIts", false))
+        TEUCHOS_TEST_FOR_EXCEPTION(!lastSolveReport_.converged, std::runtime_error,
+                                   "Nonlinear solve did not converge within MaxNonLinIts.");
+}
 
 template<class SC,class LO,class GO,class NO>
 void NonLinearSolver<SC,LO,GO,NO>::solveExtrapolation(TimeProblem<SC,LO,GO,NO> &problem, double time){
@@ -678,7 +626,12 @@ void NonLinearSolver<SC,LO,GO,NO>::solveExtrapolation(TimeProblem<SC,LO,GO,NO> &
 
     problem.setBoundaries(time); // Setting boundaries to system rhs. The rest of the rhs (e.g. M*u_t) must/should be implemented in DAESolver
 
-    int	gmresIts = problem.solve( );
+    int gmresIts = problem.solve();
+    lastSolveReport_ = NonlinearSolveReport();
+    lastSolveReport_.converged = lastSolveReport_.linearSolvesConverged = problem.lastLinearSolveConverged();
+    lastSolveReport_.linearSolveCount = 1;
+    lastSolveReport_.totalLinearIterations = gmresIts;
+    lastSolveReport_.maximumLinearIterations = configuredLinearIterationLimit(*problem.getParameterList());
 
     if (verbose) {
         std::cout << "### GMRES Its : " << gmresIts << std::endl;
