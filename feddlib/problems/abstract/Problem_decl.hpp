@@ -282,7 +282,8 @@ public:
     /// Add this problem's compatibility manifest to the attached recovery capture.
     void captureRecoveryMetadata() {
         prepareCheckpointMetadata();
-        if (!recoverySnapshot_.is_null()) recoverySnapshot_->addManifest(checkpointSchema_);
+        if (!recoverySnapshot_.is_null()) recoverySnapshot_->addManifest(checkpointSchema_,
+            checkpoint::clockState(parameterList_, recoverySnapshot_->time()));
     }
 
     void addParemeterRhs(double para){ parasSourceFunc_.push_back( para ); }

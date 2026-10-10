@@ -119,7 +119,10 @@ bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, RCP<const T
 
     for (int block = 0; block < 3; ++block) {
         auto solution = fsi.getSolution()->getBlock(block);
-        HDF5Import<SC,LO,GO,NO> importer(solution->getMap(), restartFile(parameters, checkpointNames[block]));
+        const auto referenceFile = timeParameters.isParameter("Reference directory")
+            ? joinPath(timeParameters.get<std::string>("Reference directory"), checkpointNames[block])
+            : restartFile(parameters, checkpointNames[block]);
+        HDF5Import<SC,LO,GO,NO> importer(solution->getMap(), referenceFile);
         auto reference = importer.readVariablesHDF5(std::to_string(finalTime));
         MultiVector_Type error(solution->getMap());
         error.update(1., *solution, -1., *reference, 0.);
@@ -148,7 +151,9 @@ bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, RCP<const T
     if (model != "None") {
         checkpoint::onRoot(*comm, [&] {
             const auto reference = checkpoint::readOutletState(
-                restartFile(parameters, checkpoint::outletStateName(finalTime)), model, finalTime);
+                timeParameters.isParameter("Reference directory")
+                    ? joinPath(timeParameters.get<std::string>("Reference directory"), checkpoint::outletStateName(finalTime))
+                    : restartFile(parameters, checkpoint::outletStateName(finalTime)), model, finalTime);
             const auto& state = fsi.getOutletState();
             if (state.initialized != reference.initialized || state.transitionCaptured != reference.transitionCaptured)
                 passed = false;

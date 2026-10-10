@@ -151,6 +151,50 @@ void TimeSteppingTools::setParameter(){
     if(restart_)
         t_ = timeStep;
 
+    historyTimes_ = {t_, t_ - dt_prev_, t_ - 2. * dt_prev_};
+    prepareStep();
+
+}
+
+void TimeSteppingTools::prepareStep()
+{
+    if (restart_ && !restartClockRestored_ && parameterList_->isSublist("_Restart time state")) {
+        const auto& saved = parameterList_->sublist("_Restart time state");
+        dt_prev_ = saved.get<double>("dt_prev");
+        step_ = saved.get<long long>("Step number");
+        historyTimes_.clear();
+        for (int i = 0; i < 3; ++i)
+            historyTimes_.push_back(saved.sublist("History times").get<double>(std::to_string(i)));
+        restartClockRestored_ = true;
+    }
+    dt_ = parameterList_->get("dt", 0.01);
+    auto& intervals = parameterList_->sublist("Timestepping Intervalls");
+    const int count = intervals.get("Number of Segments", 0);
+    double nextBoundary = tEnd_;
+    double lastStart = -1.;
+    for (int i = 1; i <= count; ++i) {
+        const auto& interval = intervals.sublist(std::to_string(i));
+        const double start = interval.get<double>("Start Time");
+        const double increment = interval.get<double>("dt");
+        if (!std::isfinite(start) || start < 0. || start <= lastStart ||
+            !std::isfinite(increment) || increment <= 0.)
+            throw std::logic_error("Timestepping intervals require increasing nonnegative start times and positive dt");
+        lastStart = start;
+        if (start <= t_ + timeTolerance(tEnd_)) dt_ = increment;
+        else nextBoundary = std::min(nextBoundary, start);
+    }
+    if (!std::isfinite(dt_) || dt_ <= 0. || !std::isfinite(dt_prev_) || dt_prev_ <= 0.)
+        throw std::logic_error("Timesteps must be finite and positive");
+    if (nextBoundary - t_ > timeTolerance(tEnd_)) dt_ = std::min(dt_, nextBoundary - t_);
+    if (BDFNmb_ > 0) setInformationBDF();
+    publishClock();
+}
+
+void TimeSteppingTools::publishClock()
+{
+    auto& state = parameterList_->sublist("_Checkpoint time state");
+    state.set("Physical time", t_).set("dt", dt_).set("dt_prev", dt_prev_).set("Step number", step_);
+    for (int i = 0; i < 3; ++i) state.sublist("History times").set(std::to_string(i), historyTimes_.at(i));
 }
 
 double TimeSteppingTools::currentTime(){
@@ -181,17 +225,19 @@ void TimeSteppingTools::advanceTime(bool printInfo){
     //     exporterTxtError_->exportData(t_);
     // }
 
-    // The last step ends exactly at the final time: it is shortened if it would pass it, and a
-    // time within round-off of it is snapped to it. Checkpoints are named by the time, so a
-    // run has to land on it exactly to be restarted from it.
+    // prepareStep() chooses the increment before assembly, including a shortened
+    // final step. Never shorten it here after the system has already been solved.
     const double tol = timeTolerance(tEnd_);
-    if (t_ < tEnd_ && dt_ > tEnd_ - t_ && tEnd_ - t_ > tol)
-        dt_ = tEnd_ - t_;
-
+    dt_prev_ = dt_;
     t_ += dt_;
 
     if (std::abs(t_ - tEnd_) <= tol)
         t_ = tEnd_;
+
+    ++step_;
+    historyTimes_.insert(historyTimes_.begin(), t_);
+    historyTimes_.resize(3);
+    prepareStep();
 
     if (printInfo)
         this->printInfo();

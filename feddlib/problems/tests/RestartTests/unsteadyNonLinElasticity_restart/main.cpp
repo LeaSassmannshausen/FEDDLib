@@ -65,7 +65,10 @@ bool compareRestart(TimeProblem_Type& problem, ParameterListPtr_Type parameters,
     bool passed = true;
     int field = 0;
     for (const auto& solution : states) {
-        HDF5Import<SC,LO,GO,NO> importer(solution->getMap(), restartFile(parameters, checkpointNames[field]));
+        const auto referenceFile = timeParameters.isParameter("Reference directory")
+            ? joinPath(timeParameters.get<std::string>("Reference directory"), checkpointNames[field])
+            : restartFile(parameters, checkpointNames[field]);
+        HDF5Import<SC,LO,GO,NO> importer(solution->getMap(), referenceFile);
         auto reference = importer.readVariablesHDF5(std::to_string(time));
         MultiVector_Type error(solution->getMap());
         error.update(1., *solution, -1., *reference, 0.);

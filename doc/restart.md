@@ -18,7 +18,7 @@ Configure an uninterrupted run with these entries in `Timestepping Parameter`:
 ```
 
 Resume using the same mesh, discretization, variable names, time integration
-scheme, and time step size, with a later `Final time`:
+scheme, with a later `Final time`. The next timestep size may change:
 
 ```xml
 <Parameter name="Checkpointing" type="bool" value="false"/>
@@ -79,10 +79,11 @@ legacy text logs, default overwrite behavior and shared archives.
 
 ## Compatibility metadata
 
-New checkpoints include a version-1 XML manifest for each component and time,
+New checkpoints include a version-2 XML manifest for each component and time,
 for example `Checkpoint_u_p_0.010000.xml`. Component names distinguish a coupled
 FSI problem from its fluid and structure subproblems. The manifest records the
-format/layout, physical time, step number, fixed `dt`, BDF order and extrapolation
+format/layout, physical time, step number, next `dt`, completed `dt_prev`, explicit
+history times, BDF order and extrapolation
 history, Newmark parameters where applicable, field names, FE types, components,
 global DOF counts/index bases, and the exact required HDF5 files and time keys.
 
@@ -105,9 +106,11 @@ tolerances, output settings and final time may change.
 Missing manifests are rejected by default. To explicitly read an older
 checkpoint, set `Allow legacy restart` to `true` in `Timestepping Parameter`.
 Legacy mode still checks the required datasets and dimensions; it cannot verify
-mesh or integration compatibility. Version 1 supports fixed-step BDF1/BDF2,
-Newmark, and the existing FSI BDF/Newmark layouts. Segmented timestep schedules
-are rejected when checkpointing/restart is enabled. Numerical history updates
+mesh or integration compatibility. Version 2 supports BDF1/BDF2,
+Newmark, and the existing FSI BDF/Newmark layouts with changed timestep sizes and
+prescribed intervals. Version-1 manifests remain readable: their stored uniform
+`dt` supplies the historical increment. A missing legacy manifest cannot provide
+a historical timestep, so its history must still be described by the input. Numerical history updates
 and the Newmark/FSI checkpoint timing remain unchanged.
 
 The XML manifest is descriptive metadata, **not** a completion marker. The
@@ -145,8 +148,56 @@ The checkpoint files include `Solution<variable>.h5`, Newmark displacement,
 velocity and acceleration, and, for FSI, moving-mesh mass products and geometry.
 Dataset names are physical times formatted by `std::to_string`. Transfer the
 complete checkpoint directory, rather than just the displacement or velocity
-file. The FSI test covers explicit geometry with the Turek benchmark; it does
-not validate restart of stateful outlet boundary conditions.
+file. The Turek FSI test covers explicit geometry; the arterial-segment tests also
+validate restart of stateful outlet boundary conditions.
+
+## Changing timestep size after restart
+
+At a checkpoint representing `t_n`, `Time state/dt_prev` is the actual increment
+that produced the state, while `Time state/dt` is the next planned increment.
+`History times` identifies the stored states explicitly. These values describe the
+saved trajectory; they are not required to equal the continuation input `dt`.
+The readers restore history using those times, and the first resumed BDF2 solve
+uses `new dt / saved dt_prev` in the existing variable-step coefficient formula.
+Newmark finalizes old derivatives using the completed increment, then forms the
+next solve with the requested increment. FSI retains historical moving-mesh mass
+products and updates its interface scaling and mesh-velocity increments.
+
+Prescribed intervals use the existing key spelling:
+
+```xml
+<Parameter name="dt" type="double" value="0.005"/>
+<ParameterList name="Timestepping Intervalls">
+  <Parameter name="Number of Segments" type="int" value="1"/>
+  <ParameterList name="1">
+    <Parameter name="Start Time" type="double" value="0.4"/>
+    <Parameter name="dt" type="double" value="0.0025"/>
+  </ParameterList>
+</ParameterList>
+```
+
+Intervals are numbered from 1 with increasing nonnegative start times and positive
+increments. Their `dt` applies to the step starting at their boundary. The solver
+shortens a step before assembly to land on a boundary or the final time.
+A restart need not retain the original interval list: saved history is sufficient.
+The timestep counter is restored and incremented independently of `time/dt`;
+restart/checkpoint times need not lie on a global grid of the new timestep.
+Keep integration order, field/mesh identity, Newmark coefficients and required
+outlet state compatible. Solver tolerances and iteration limits may change.
+
+ParaView output resumption currently assumes the original uniform timestep grid.
+When changing `dt` or using intervals, set `Exporter/Resume output = false` and,
+to preserve existing output, `Exporter/Keep old output = true`. This starts a new
+output series while archiving the previous one.
+
+The `variableTimeStepRestart` tests compare 2D Navier–Stokes, Turek FSI,
+nonlinear-elasticity Newmark and 3D arterial-segment restarts with independently
+computed references using the same piecewise timestep schedule. They also restart from a newly
+written checkpoint at a time off the new global timestep grid. The arterial case
+checks the absorbing outlet's scalar history as well as the solution fields. The
+separate
+`timeStepping` unit test checks coefficients against a quadratic and tests
+interval boundaries, shortened final increments and timestep counters.
 
 ## Initial solution for a new Navier–Stokes simulation
 

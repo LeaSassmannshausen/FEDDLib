@@ -663,7 +663,7 @@ void TimeProblem<SC,LO,GO,NO>::writeMultistepCheckpoint(double completedTime, do
     // Saving all solutions already wrote these entries on earlier steps.
     if (!saveAll) {
         for (int j = 1; j < nmbSteps; ++j) {
-            const double historyTime = completedTime - j * dt;
+            const double historyTime = checkpoint::historyTime(parameterList_, completedTime, j, dt);
             // At the first BDF2 checkpoint, u_0 is required to continue with BDF2.
             if (historyTime >= 0.)
                 writeState(historyTime, solutionPreviousTimesteps_[j - 1]);
@@ -686,11 +686,11 @@ void TimeProblem<SC,LO,GO,NO>::captureMultistepRecoveryState(double time, double
     for (UN i = 0; i < problem_->getSolution()->size(); ++i) {
         const auto file = "Solution" + problem_->getVariableName(i);
         snapshot->addVector(file, time, problem_->getSolution()->getBlock(i));
-        for (int j = 1; j < history && time - j * dt >= -1.e-12; ++j) {
+        for (int j = 1; j < history && checkpoint::historyTime(parameterList_, time, j, dt) >= -1.e-12; ++j) {
             const int index = completedStep ? j - 1 : j;
             TEUCHOS_TEST_FOR_EXCEPTION(index >= solutionPreviousTimesteps_.size(), std::logic_error,
                                        "Missing BDF history for recovery capture");
-            snapshot->addVector(file, time - j * dt, solutionPreviousTimesteps_[index]->getBlock(i));
+            snapshot->addVector(file, checkpoint::historyTime(parameterList_, time, j, dt), solutionPreviousTimesteps_[index]->getBlock(i));
         }
     }
     problem_->captureRecoveryMetadata();
@@ -1372,7 +1372,7 @@ void TimeProblem<SC,LO,GO,NO>::restoreMultistepHistory(int nmbSteps, double rest
     for (int j = 0; j < nmbSteps; ++j)
     {
         // Match the multistep convention: entry zero is the newest solution.
-        const double historyTime = restartTime - j * dt;
+        const double historyTime = checkpoint::historyTime(parameterList_, restartTime, j, dt);
         TEUCHOS_TEST_FOR_EXCEPTION(!(historyTime >= 0.), std::logic_error,
                                    "The requested multistep history extends before time zero.");
         solutionPreviousTimesteps_[j] = Teuchos::rcp(new BlockMultiVector_Type(problem_->getSolution()->getMap()));
@@ -1399,7 +1399,7 @@ void TimeProblem<SC,LO,GO,NO>::restoreMassProductHistory(int nmbSteps, double re
     for (int j = 0; j < nmbSteps; ++j)
     {
         restartMassSolutions_[j] = Teuchos::rcp(new BlockMultiVector_Type(problem_->getRhs()));
-        const std::string varName = std::to_string(restartTime - j * dt);
+        const std::string varName = std::to_string(checkpoint::historyTime(parameterList_, restartTime, j, dt));
         for (int i = 0; i < size; ++i)
         {
             MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
@@ -1422,7 +1422,7 @@ void TimeProblem<SC,LO,GO,NO>::restoreNewmarkDisplacementHistory(double restartT
     // Load only entry one in that case; the caller supplies the current entry zero.
     for (int j = updateFromPrevious ? 1 : 0; j < 2; ++j)
     {
-        const std::string varName = std::to_string(updateFromPrevious || j == 0 ? restartTime : restartTime - dt);
+        const std::string varName = std::to_string(updateFromPrevious || j == 0 ? restartTime : checkpoint::historyTime(parameterList_, restartTime, 1, dt));
         solutionPreviousTimesteps_[j] = Teuchos::rcp(new BlockMultiVector_Type(problem_->getSolution()->getMap()));
         for (int i = 0; i < size; ++i)
         {
@@ -1469,8 +1469,8 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
             const bool derivative = fileName == "ds_Velocity" || fileName == "ds_Acceleration";
             const std::string file = derivative ? fileName : fileName + problem_->getVariableName(i);
             for (UN j = 0; j < solutionVec.size(); ++j)
-                if (time_ - j * dt >= -1.e-12)
-                    recovery->addVector(file, time_ - j * dt, solutionVec[j]->getBlock(i));
+                if (checkpoint::historyTime(parameterList_, time_, j, dt) >= -1.e-12)
+                    recovery->addVector(file, checkpoint::historyTime(parameterList_, time_, j, dt), solutionVec[j]->getBlock(i));
         }
         problem_->captureRecoveryMetadata();
         if (fileName == "Solution") problem_->captureAdditionalRecoveryState(time_);
@@ -1521,12 +1521,12 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                         std::string varName =  std::to_string(time_);
                         this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i));  // We use 0, because it was not updated yet with the newest solution
 
-                        if(solutionVec.size() >1 && time_-dt > 0){
-                            varName = std::to_string(time_-dt); // n-1
+                        if(solutionVec.size() >1 && checkpoint::historyTime(parameterList_, time_, 1, dt) >= 0.){
+                            varName = std::to_string(checkpoint::historyTime(parameterList_, time_, 1, dt)); // n-1
                             this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[1]->getBlock(i));
                         }
-                        if(solutionVec.size() >2 && time_-2*dt > 0){
-                            varName = std::to_string(time_-2*dt); // n-2
+                        if(solutionVec.size() >2 && checkpoint::historyTime(parameterList_, time_, 2, dt) >= 0.){
+                            varName = std::to_string(checkpoint::historyTime(parameterList_, time_, 2, dt)); // n-2
                             this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[2]->getBlock(i));
                         }
                         // For time dependet problems, the different VarNames are the time.
@@ -1566,7 +1566,7 @@ double TimeProblem<SC,LO,GO,NO>::getPreviousTimeIncrement(double timeStep){
         }
     }
 
-    return dt;
+    return checkpoint::previousIncrement(parameterList_, time, dt);
 
 }
 

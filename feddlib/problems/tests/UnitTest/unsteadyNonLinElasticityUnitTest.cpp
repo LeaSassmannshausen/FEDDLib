@@ -67,6 +67,10 @@ int main(int argc, char* argv[])
     parameters->setParameters(*Teuchos::getParametersFromXmlFile("parametersSolverUnsteadyNonLinElasticity.xml"));
     parameters->sublist("Timestepping Parameter").set("Checkpointing", false);
     parameters->sublist("Timestepping Parameter").set("Restart", false);
+    // References represent t=0.02. Keep that duration independent of the shorter
+    // restart fixture, with one extra increment to finalize the Newmark buffers.
+    parameters->sublist("Timestepping Parameter").set("Final time", 0.02 +
+        parameters->sublist("Timestepping Parameter").get<double>("dt"));
     parameters->sublist("General").set("Safe all solution", false);
 
     RCP<Domain_Type> linearDomain = rcp(new Domain_Type(comm, 2));

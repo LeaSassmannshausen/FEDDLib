@@ -114,8 +114,10 @@ int main(int argc, char** argv)
         int matched = 1;
         try {
             const auto actual = checkpoint::makeSchema(settings, fields, expected.get<std::string>("Role"));
-            checkpoint::compare(expected, actual);
-            checkpoint::compare(checkpoint::atTime(expected, time), checkpoint::atTime(actual, time));
+            auto current = expected;
+            current.set("Format version", 2);
+            checkpoint::compare(current, actual);
+            checkpoint::compare(checkpoint::atTime(current, time), checkpoint::atTime(actual, time));
             if (checkpoint::manifestName(expected, time) != checkpoint::manifestName(actual, time))
                 throw std::runtime_error("Changed component manifest name/field order");
         }
@@ -178,7 +180,9 @@ int main(int argc, char** argv)
         rejects("changed BDF order", "BDF", [&] { validate(changed); });
         changed = schema;
         changed.sublist("Integration").set("dt", 0.005);
-        rejects("changed timestep", "dt", [&] { validate(changed); });
+        validate(changed);
+        if (parameters->sublist("Timestepping Parameter").sublist("_Restart time state").get<double>("dt_prev") != 0.0025) ++failures;
+        if (comm->getRank() == 0) std::cout << "PASS changed timestep restores version-1 source increment\n";
         changed = schema;
         changed.set("Format version", 999);
         rejects("unknown version", "Format version", [&] { validate(changed); });
@@ -247,7 +251,7 @@ int main(int argc, char** argv)
     // Newmark and coupled FSI add distinct auxiliary data to the same validator.
     parameters->sublist("Timestepping Parameter").set("Allow legacy restart", false);
     const auto fixtureFor = [&](const Teuchos::ParameterList& selected) {
-        const auto description = checkpoint::atTime(selected, time);
+        const auto description = checkpoint::atTime(selected, time, checkpoint::clockState(parameters, time));
         const auto& required = description.sublist("Required datasets");
         std::map<std::string, std::vector<Teuchos::ParameterList>> files;
         for (auto it = required.begin(); it != required.end(); ++it) {
@@ -405,6 +409,37 @@ int main(int argc, char** argv)
         const auto changedResistance = checkpoint::makeSchema(changedSettings, fsiFields);
         rejects("changed resistance " + setting, setting, [&] { validate(changedResistance); });
     }
+    // Real version-2 fixtures retain actual history independently of the next dt.
+    auto variableSchema = checkpoint::makeSchema(settings, fields);
+    auto& runtime = parameters->sublist("Timestepping Parameter").sublist("_Checkpoint time state");
+    runtime.set("Physical time", time).set("dt", 0.003).set("dt_prev", 0.0025).set("Step number", 4LL);
+    runtime.sublist("History times").set("0", time).set("1", 0.0075).set("2", 0.006);
+    fixtureFor(variableSchema);
+    auto changedNextDt = variableSchema;
+    changedNextDt.sublist("Integration").set("dt", 0.0017);
+    validate(changedNextDt);
+    validateInitial(changedNextDt);
+    if (comm->getRank() == 0) std::cout << "PASS version-2 history with changed next dt and off-grid time\n";
+    const auto metadataFile = directory + "/" + checkpoint::manifestName(variableSchema, time);
+    const auto editClock = [&](const std::function<void(Teuchos::ParameterList&)>& edit) {
+        checkpoint::onRoot(*comm, [&] {
+            auto description = Teuchos::getParametersFromXmlFile(metadataFile);
+            edit(description->sublist("Time state"));
+            std::ofstream output(metadataFile);
+            Teuchos::writeParameterListToXmlOStream(*description, output);
+        });
+    };
+    editClock([](Teuchos::ParameterList& state) { state.set("dt_prev", 0.); });
+    rejects("invalid saved incoming increment", "dt_prev", [&] { validate(changedNextDt); });
+    fixtureFor(variableSchema);
+    editClock([](Teuchos::ParameterList& state) { state.sublist("History times").set("1", 0.009); });
+    rejects("inconsistent saved history time", "history times", [&] { validate(changedNextDt); });
+    fixtureFor(variableSchema);
+    editClock([](Teuchos::ParameterList& state) { state.set("Step number", -1LL); });
+    rejects("negative saved step number", "Step number", [&] { validate(changedNextDt); });
+    fixtureFor(variableSchema);
+    editVelocity([&](hid_t file) { H5Ldelete(file, "0.007500", H5P_DEFAULT); });
+    rejects("missing version-2 actual history", "missing required history/field group", [&] { validate(changedNextDt); });
     checkpoint::onRoot(*comm, [&] { std::filesystem::remove_all(directory); });
     return failures ? EXIT_FAILURE : EXIT_SUCCESS;
 }

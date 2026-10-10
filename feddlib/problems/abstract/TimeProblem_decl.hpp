@@ -197,7 +197,7 @@ public:
      * @pre All ranks have completed the solve and the simulation clock has advanced.
      *      History entry zero still holds the solution preceding the current one.
      * @note Call collectively once per completed step, before the next history
-     *       shift. This operation covers fixed-step standalone BDF integration;
+     *       shift. This operation covers standalone BDF integration;
      *       FSI and Newmark retain their existing checkpoint timing.
      */
     void writeMultistepCheckpoint(double completedTime, double dt);
@@ -328,9 +328,9 @@ private:
      * @brief Restore the solution history required by multistep integration.
      *
      * Fills solutionPreviousTimesteps_ from newest to oldest: entry j is read
-     * at restartTime - j * dt from `Solution<variable>.h5` in the configured
-     * restart directory. Here dt comes from getPreviousTimeIncrement(), not
-     * checkpoint metadata. The ALE geometry field d_f is skipped.
+     * at the saved history timestamps from `Solution<variable>.h5` in the configured
+     * restart directory. For uniform legacy data, getPreviousTimeIncrement()
+     * supplies the historical increment. The ALE geometry field d_f is skipped.
      * This only loads history; shifting it and inserting the current solution
      * remain the responsibility of updateSolutionMultiPreviousStep().
      *
@@ -349,8 +349,8 @@ private:
      * @brief Restore historical mass-matrix/solution products for FSI.
      *
      * Loads restartMassSolutions_[j] from `Rhs<variable>.h5` at
-     * restartTime - j * dt, where dt is obtained from
-     * getPreviousTimeIncrement(). These are saved M_j * u_j products before
+     * the checkpoint's saved history timestamps. For uniform legacy data these
+     * are restartTime - j * getPreviousTimeIncrement(). These are M_j * u_j products before
      * applying time integration coefficients, rather than a complete RHS.
      * On a moving mesh, the current mass matrix cannot replace a historical
      * mass matrix. The saved products supply this history during the first

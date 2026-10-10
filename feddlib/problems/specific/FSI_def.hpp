@@ -328,6 +328,7 @@ void FSI<SC,LO,GO,NO>::assemble( std::string type ) const
         C3_T->resumeFill();
 
         C2->scale( -(1.0/dt) ); // this will be used in a first order approximation of the solid velocity
+        interfaceDt_ = dt;
         C3_T->scale( -1.0 );
         
         // ACHTUNG: Die Interface-Variable \lambda wird eindeutig von der Fluid-Seite gehalten.
@@ -420,7 +421,7 @@ template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::reAssemble(std::string type) const
 {
 
-    double dt = this->parameterList_->sublist("Timestepping Parameter").get("dt",0.02);
+    double dt = geometryExplicit_ ? timeSteppingTool_->get_dt_prev() : timeSteppingTool_->get_dt();
 
     // Fluid-Dichte
     double density = this->problemFluid_->getParameterList()->sublist("Parameter").get("Density",1.);
@@ -781,7 +782,7 @@ void FSI<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type, double time)
     
     *w_rep_ = *meshDisplacementNew_rep_;
     w_rep_->update(-1.0, *meshDisplacementOld_rep_, 1.0);
-    double dt = this->parameterList_->sublist("Timestepping Parameter").get("dt",0.02);
+    double dt = geometryExplicit_ ? timeSteppingTool_->get_dt_prev() : timeSteppingTool_->get_dt();
     w_rep_->scale(1.0/dt);
     
     u_minus_w_rep_->update(-1.0, *w_rep_, 1.0);
@@ -1384,7 +1385,7 @@ void FSI<SC,LO,GO,NO>::computeSolidRHSInTime() const {
     coeffTemp.at(0) = 1.0;
     
     // Update u und berechne u' und u'' mit Hilfe der Newmark-Vorschrift
-    this->problemTimeStructure_->updateSolutionNewmarkPreviousStep(dt, beta, gamma);
+    this->problemTimeStructure_->updateSolutionNewmarkPreviousStep(timeSteppingTool_->get_dt_prev(), beta, gamma);
     
     // Stelle die rechte Seite des zeitdiskretisierten Systems auf (ohne f_{n+1}).
     // Bei Newmark lautet dies:
@@ -1446,9 +1447,23 @@ void FSI<SC,LO,GO,NO>::setSolidMassmatrix( MatrixPtr_Type& massmatrix ) const
 template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::updateTime() const
 {
-    timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
+    timeSteppingTool_->advanceTime();
     this->problemTimeFluid_->updateTime(timeSteppingTool_->t_);
     this->problemTimeStructure_->updateTime(timeSteppingTool_->t_);
+}
+
+template<class SC,class LO,class GO,class NO>
+void FSI<SC,LO,GO,NO>::prepareTimeStep() const
+{
+    timeSteppingTool_->prepareStep();
+    const auto& clock = this->parameterList_->sublist("Timestepping Parameter").sublist("_Checkpoint time state");
+    this->problemTimeFluid_->getParameterList()->sublist("Timestepping Parameter").sublist("_Checkpoint time state") = clock;
+    this->problemTimeStructure_->getParameterList()->sublist("Timestepping Parameter").sublist("_Checkpoint time state") = clock;
+    const double dt = timeSteppingTool_->get_dt();
+    if (!C2_.is_null() && interfaceDt_ != dt) {
+        C2_->scale(interfaceDt_ / dt);
+        interfaceDt_ = dt;
+    }
 }
 
 template<class SC,class LO,class GO,class NO>

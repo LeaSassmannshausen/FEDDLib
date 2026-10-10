@@ -3,6 +3,7 @@
 
 #include "feddlib/problems/problems_config.h"
 #include "feddlib/core/FEDDCore.hpp"
+#include <vector>
 
 #include "feddlib/core/LinearAlgebra/BlockMatrix.hpp"
 // #include "feddlib/core/General/ExporterTxt.hpp"
@@ -60,6 +61,9 @@ public:
     double 	t_;
     // Previous timestep size is also required by BDF.
     double 	dt_prev_;
+    long long step_ = 0;
+    std::vector<double> historyTimes_;
+    bool restartClockRestored_ = false;
 //     double  dt_adaptive_;
 //     double 	rho_;
 //     double 	tolAdaptive_;
@@ -98,6 +102,15 @@ public:
     TimeSteppingTools(ParameterListPtr_Type parameterList , CommConstPtr_Type comm);
 
     void setParameter();
+
+    /** @brief Select the upcoming increment before constructing a system.
+     * Apply prescribed intervals, land on interval/final boundaries, restore the
+     * incoming checkpoint increment once and refresh variable-step BDF coefficients.
+     */
+    void prepareStep();
+
+    /// Publish the current clock and actual history times to checkpoint writers.
+    void publishClock();
 
     // void setTableInformationRK();
 

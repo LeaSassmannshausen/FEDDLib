@@ -262,6 +262,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceWithLoadStepping()
     // ######################
     while(timeSteppingTool_->continueTimeStepping())
     {
+        timeSteppingTool_->prepareStep();
+        dt = timeSteppingTool_->get_dt();
         // Stelle (massCoeff*M + problemCoeff*A) auf
         //problemTime_->combineSystems();
         
@@ -339,11 +341,17 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeLinearNewmark()
     // ######################
     while(timeSteppingTool_->continueTimeStepping())
     {
+        timeSteppingTool_->prepareStep();
+        dt = timeSteppingTool_->get_dt();
+        problemTime_->updateTime(timeSteppingTool_->currentTime());
+        massCoeff[0][0] = 1. / (dt * dt * beta);
+        problemTime_->setTimeParameters(massCoeff, problemCoeff);
+
         // Stelle (massCoeff*M + problemCoeff*A) auf
         problemTime_->combineSystems();
 
         // Update u und berechne u' und u'' mit Hilfe der Newmark-Vorschrift
-        problemTime_->updateSolutionNewmarkPreviousStep(dt, beta, gamma);
+        problemTime_->updateSolutionNewmarkPreviousStep(timeSteppingTool_->get_dt_prev(), beta, gamma);
 
         double time = timeSteppingTool_->currentTime() + dt;
         problemTime_->updateTime ( timeSteppingTool_->currentTime() );
@@ -450,6 +458,12 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearNewmark()
     typename Problem_Type::RecoverySnapshotPtr recoverySnapshot;
     while(timeSteppingTool_->continueTimeStepping())
     {
+        timeSteppingTool_->prepareStep();
+        dt = timeSteppingTool_->get_dt();
+        problemTime_->updateTime(timeSteppingTool_->currentTime());
+        massCoeff[0][0] = 1. / (dt * dt * beta);
+        problemTime_->setTimeParameters(massCoeff, problemCoeff);
+
         if (recovery.enabled()) {
             recoverySnapshot = Teuchos::rcp(new RecoverySnapshot(timeSteppingTool_->currentTime()));
             problem_->setRecoverySnapshot(recoverySnapshot);
@@ -459,7 +473,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearNewmark()
         problemTime_->combineSystems();
         
         // Update u und berechne u' und u'' mit Hilfe der Newmark-Vorschrift
-        problemTime_->updateSolutionNewmarkPreviousStep(dt, beta, gamma);
+        problemTime_->updateSolutionNewmarkPreviousStep(timeSteppingTool_->get_dt_prev(), beta, gamma);
         // Standalone Newmark restart also needs the primary displacement file.
         // Write it alongside the derivative/history checkpoint at the same time.
         problemTime_->checkForExportAndExport(problemTime_->getSolutionAllPreviousTimestep(), "Solution");
@@ -766,6 +780,21 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
     typename Problem_Type::RecoverySnapshotPtr recoverySnapshot;
     while(timeSteppingTool_->continueTimeStepping())
     {
+        timeSteppingTool_->prepareStep();
+        fsi->prepareTimeStep();
+        dt = timeSteppingTool_->get_dt();
+        for (int i = 0; i < sizeFluid; ++i)
+            for (int j = 0; j < sizeFluid; ++j) {
+                massCoeffFluid[i][j] = timeStepDef_[i][j] > 0 && i == j
+                    ? timeSteppingTool_->getInformationBDF(0) / dt : 0.;
+                massCoeffFSI[i][j] = massCoeffFluid[i][j];
+            }
+        massCoeffStructure[0][0] = 1. / (dt * dt * beta);
+        massCoeffFSI[2][2] = massCoeffStructure[0][0];
+        problemTime_->setTimeParameters(massCoeffFSI, problemCoeffFSI);
+        fsi->problemTimeFluid_->setTimeParameters(massCoeffFluid, problemCoeffFluid);
+        fsi->problemTimeStructure_->setTimeParameters(massCoeffStructure, problemCoeffStructure);
+
         if (recovery.enabled()) {
             recoverySnapshot = Teuchos::rcp(new RecoverySnapshot(timeSteppingTool_->currentTime()));
             problem_->setRecoverySnapshot(recoverySnapshot);
@@ -1062,6 +1091,17 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeLinearMultistep(){
         problemTime_->writeMultistepCheckpoint(timeSteppingTool_->currentTime(), dt);
 
     while (timeSteppingTool_->continueTimeStepping()) {
+        timeSteppingTool_->prepareStep();
+        dt = timeSteppingTool_->get_dt();
+        problemTime_->updateTime(timeSteppingTool_->currentTime());
+        for (int i = 0; i < nmbBDF; ++i)
+            coeffPrevSteps[i] = timeSteppingTool_->getInformationBDF(i+2) / dt;
+        for (int i = 0; i < size; ++i)
+            for (int j = 0; j < size; ++j)
+                massCoeff[i][j] = timeStepDef_[i][j] > 0 && i == j
+                    ? timeSteppingTool_->getInformationBDF(0) / dt : 0.;
+        problemTime_->setTimeParameters(massCoeff, problemCoeff);
+
 
         problemTime_->updateSolutionMultiPreviousStep(nmbBDF, false);
 
@@ -1171,6 +1211,17 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearMultistep(){
     using RecoverySnapshot = checkpoint::RecoveryCheckpointSnapshot<SC,LO,GO,NO>;
     typename Problem_Type::RecoverySnapshotPtr recoverySnapshot;
     while (timeSteppingTool_->continueTimeStepping()) {
+        timeSteppingTool_->prepareStep();
+        dt = timeSteppingTool_->get_dt();
+        problemTime_->updateTime(timeSteppingTool_->currentTime());
+        for (int i = 0; i < nmbBDF; ++i)
+            coeffPrevSteps[i] = timeSteppingTool_->getInformationBDF(i+2) / dt;
+        for (int i = 0; i < size; ++i)
+            for (int j = 0; j < size; ++j)
+                massCoeff[i][j] = timeStepDef_[i][j] > 0 && i == j
+                    ? timeSteppingTool_->getInformationBDF(0) / dt : 0.;
+        problemTime_->setTimeParameters(massCoeff, problemCoeff);
+
         if (recovery.enabled()) {
             recoverySnapshot = Teuchos::rcp(new RecoverySnapshot(timeSteppingTool_->currentTime()));
             problem_->setRecoverySnapshot(recoverySnapshot);
@@ -1311,6 +1362,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeLinearExternal(){
     //time loop
     //#########
     while (timeSteppingTool_->continueTimeStepping()) {
+        timeSteppingTool_->prepareStep();
+        dt = timeSteppingTool_->get_dt();
         
         double time = timeSteppingTool_->currentTime() + dt;
         problemTime_->updateTime ( time );
@@ -1366,6 +1419,8 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearExternal(){
     //time loop
     //#########
     while (timeSteppingTool_->continueTimeStepping()) {
+        timeSteppingTool_->prepareStep();
+        dt = timeSteppingTool_->get_dt();
         
         double time = timeSteppingTool_->currentTime() + dt;
         problemTime_->updateTime ( time );

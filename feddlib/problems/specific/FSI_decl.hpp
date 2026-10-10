@@ -169,6 +169,10 @@ public:
     // Hier wird timeSteppingTool_->t_ inkrementiert
     void updateTime() const;
 
+    /// Refresh the variable-step clock, component checkpoint state and interface scaling.
+    void prepareTimeStep() const;
+    mutable double interfaceDt_ = 0.;
+
     // Verschiebt die notwendigen Gitter
     void moveMesh() const;
 

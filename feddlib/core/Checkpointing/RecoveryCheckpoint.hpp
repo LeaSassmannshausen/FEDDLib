@@ -72,9 +72,10 @@ public:
     void addVector(const std::string& file, double time, ConstVectorPtr vector) {
         vectors_[file][std::to_string(std::max(0., time))] = Teuchos::rcp(new Vector(vector));
     }
-    void addManifest(const Teuchos::ParameterList& schema) {
-        xml_[manifestName(schema, time_)] = atTime(schema, time_);
+    void addManifest(const Teuchos::ParameterList& schema, const Teuchos::ParameterList* clock = nullptr) {
+        xml_[manifestName(schema, time_)] = atTime(schema, time_, clock);
     }
+    long long stepNumber() const { return xml_.begin()->second.get<long long>("Step number"); }
     void addScalarWriter(const std::string& filename, std::function<void(const std::string&)> writer) {
         scalars_[filename] = std::move(writer);
     }
@@ -169,8 +170,7 @@ public:
         lastValid_ = snapshot;
         const int interval = parameters_->sublist("Timestepping Parameter").get("Recovery interval steps", 1);
         if (interval < 0) throw std::logic_error("Recovery interval steps must be nonnegative");
-        const double dt = parameters_->sublist("Timestepping Parameter").get<double>("dt");
-        const auto step = std::llround(snapshot->time() / dt);
+        const auto step = snapshot->stepNumber();
         if (policy_.active() || (interval > 0 && step % interval == 0)) publishLatest(snapshot);
     }
 

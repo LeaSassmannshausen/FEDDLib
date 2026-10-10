@@ -2,6 +2,7 @@
 #define FEDD_CHECKPOINT_METADATA_HPP
 
 #include "CheckpointFiles.hpp"
+#include "CheckpointTimeState.hpp"
 #include "FSIOutletState.hpp"
 #include "feddlib/core/General/HDF5VectorInfo.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
@@ -96,8 +97,6 @@ inline Teuchos::ParameterList makeSchema(Teuchos::ParameterList& parameters,
                                         const std::string& role = "")
 {
     auto& time = parameters.sublist("Timestepping Parameter");
-    TEUCHOS_TEST_FOR_EXCEPTION(time.sublist("Timestepping Intervalls").get("Number of Segments", 0) != 0,
-        std::logic_error, "Checkpoint metadata version 1 supports fixed timesteps only.");
     const double dt = time.get("dt", 0.01);
     TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(dt) || dt <= 0., std::logic_error,
                                "Checkpoint metadata requires a finite positive dt.");
@@ -106,7 +105,7 @@ inline Teuchos::ParameterList makeSchema(Teuchos::ParameterList& parameters,
     TEUCHOS_TEST_FOR_EXCEPTION(method != "Multistep" && method != "Newmark", std::logic_error,
                                "Checkpoint metadata does not support integration class " << method);
     Teuchos::ParameterList schema;
-    schema.set("Format version", 1).set("FSI", fsi).set("Role", role);
+    schema.set("Format version", 2).set("FSI", fsi).set("Role", role);
     auto& integration = schema.sublist("Integration");
     integration.set("Class", method).set("dt", dt);
     integration.set("Layout", fsi || method == "Newmark" || role == "FSI fluid"
@@ -187,22 +186,43 @@ inline void compare(const Teuchos::ParameterList& saved, const Teuchos::Paramete
 }
 
 /** @brief Describe the exact files and time keys consumed by the current restore routines.
- * Version 1 retains decimal HDF5 keys and the existing Newmark/FSI clock conventions.
- * BDF startup needs only the history available since time zero.
+ * Version 2 records actual increments and history times; version 1 describes
+ * uniform legacy history. HDF5 keys and Newmark/FSI update order are retained.
+ * @param clock Runtime state at this checkpoint, or null for a uniform fixture.
  */
-inline Teuchos::ParameterList atTime(const Teuchos::ParameterList& schema, double time)
+inline Teuchos::ParameterList atTime(const Teuchos::ParameterList& schema, double time,
+                                   const Teuchos::ParameterList* clock = nullptr)
 {
     Teuchos::ParameterList result(schema);
     const auto& integration = schema.sublist("Integration");
-    const double dt = integration.get<double>("dt");
+    const double dt = clock ? clock->get<double>("dt") : integration.get<double>("dt");
+    const double previousDt = clock ? clock->get<double>("dt_prev") : dt;
     if (!std::isfinite(dt) || dt <= 0. || !std::isfinite(time) || time < 0. ||
-        !std::isfinite(time / dt) || time / dt >= static_cast<double>(std::numeric_limits<long long>::max()))
-        throw std::runtime_error("Checkpoint requires a finite nonnegative time and positive fixed dt");
-    const auto step = std::llround(time / dt);
-    if (std::abs(time / dt - step) > 100. * std::numeric_limits<double>::epsilon() * std::max(1., time / dt))
+        (!clock && (!std::isfinite(time / dt) || time / dt >= static_cast<double>(std::numeric_limits<long long>::max()))))
+        throw std::runtime_error("Checkpoint requires a finite nonnegative time and positive dt");
+    const auto step = clock ? clock->get<long long>("Step number") : std::llround(time / dt);
+    if (step < 0) throw std::runtime_error("Checkpoint Step number must be nonnegative");
+    if (schema.get<int>("Format version") == 1 &&
+        std::abs(time / dt - step) > 100. * std::numeric_limits<double>::epsilon() * std::max(1., time / dt))
         throw std::runtime_error("Checkpoint metadata version 1 requires a time on the fixed-dt grid");
+    if (!std::isfinite(previousDt) || previousDt <= 0.)
+        throw std::runtime_error("Checkpoint dt_prev must be finite and positive");
     result.set("Physical time", time);
     result.set("Step number", static_cast<long long>(step));
+    result.sublist("Integration").set("dt", dt);
+    Teuchos::ParameterList state;
+    state.set("Physical time", time).set("dt", dt).set("dt_prev", previousDt)
+        .set("Step number", result.get<long long>("Step number"));
+    for (int i = 0; i < 3; ++i) {
+        const double stamp = clock ? clock->sublist("History times").get<double>(std::to_string(i)) : time - i * previousDt;
+        if (!std::isfinite(stamp) || (i == 0 && std::abs(stamp - time) > 1.e-12) ||
+            (i > 0 && stamp >= state.sublist("History times").get<double>(std::to_string(i-1))) ||
+            (i == 1 && std::abs(time - stamp - previousDt) > 1.e-12))
+            throw std::runtime_error("Checkpoint has inconsistent history times/dt_prev");
+        state.sublist("History times").set(std::to_string(i), stamp);
+    }
+    if (schema.get<int>("Format version") == 2) result.sublist("Time state") = state;
+    const auto historyStamp = [&](int index) { return state.sublist("History times").get<double>(std::to_string(index)); };
     if (schema.isSublist("FSI outlet"))
         result.sublist("Required scalar state").set("FSI outlet", outletStateName(time));
     auto& required = result.sublist("Required datasets");
@@ -228,14 +248,14 @@ inline Teuchos::ParameterList atTime(const Teuchos::ParameterList& schema, doubl
         // A structure subproblem imports primary d_s from the coupled Solution file.
         add("Solution" + field, field, time);
         if (!newmark) {
-            for (int j = 1; j < history; ++j) add("Solution" + field, field, time - j * dt);
+            for (int j = 1; j < history; ++j) add("Solution" + field, field, historyStamp(j));
         }
         if (role == "FSI fluid")
             for (int j = 0; j < integration.get<int>("BDF"); ++j)
-                add("Rhs" + field, field, time - j * dt);
+                add("Rhs" + field, field, historyStamp(j));
         if (newmark || (fsi && field == "d_s")) {
             add("SolutionNewmark" + field, field, time);
-            add("SolutionNewmark" + field, field, time - dt);
+            add("SolutionNewmark" + field, field, historyStamp(1));
             add("ds_Velocity", field, time);
             add("ds_Acceleration", field, time);
         }
@@ -244,9 +264,9 @@ inline Teuchos::ParameterList atTime(const Teuchos::ParameterList& schema, doubl
         // Fluid subproblem names differ from the monolithic velocity name.
         for (const std::string field : {std::string("u_f"), std::string("p")}) {
             const std::string fluidName = field == "u_f" ? "u" : "p";
-            for (int j = 0; j < history; ++j) add("Solution" + fluidName, field, time - j * dt);
+            for (int j = 0; j < history; ++j) add("Solution" + fluidName, field, historyStamp(j));
             for (int j = 0; j < integration.get<int>("BDF"); ++j)
-                add("Rhs" + fluidName, field, time - j * dt);
+                add("Rhs" + fluidName, field, historyStamp(j));
         }
     }
     return result;
@@ -300,6 +320,9 @@ inline void validateInitialSolution(const Teuchos::ParameterList& schema,
             expectedIdentity.setEntry(name, schema.getEntry(name));
             savedIdentity.setEntry(name, saved->getEntry(name));
         }
+        if (schema.get<int>("Format version") == 2 &&
+            (saved->get<int>("Format version") == 1 || saved->get<int>("Format version") == 2))
+            expectedIdentity.set("Format version", saved->get<int>("Format version"));
         expectedIdentity.set("Physical time", sourceTime);
         savedIdentity.setEntry("Physical time", saved->getEntry("Physical time"));
         compare(savedIdentity, expectedIdentity);
@@ -319,29 +342,47 @@ inline void validateInitialSolution(const Teuchos::ParameterList& schema,
 inline void validate(const Teuchos::ParameterList& schema, const ParameterListPtr_Type& parameters,
                      double time, const Teuchos::Comm<int>& comm)
 {
-    const auto expected = atTime(schema, time);
+    Teuchos::ParameterList restoredClock;
     onRoot(comm, [&] {
         const std::string file = restartFile(parameters, manifestName(schema, time));
         std::ifstream input(file);
+        Teuchos::ParameterList expected;
         if (!input) {
             if (!parameters->sublist("Timestepping Parameter").get("Allow legacy restart", false))
                 throw std::runtime_error("Missing manifest " + file +
                     ". For an old checkpoint explicitly set 'Allow legacy restart' to true.");
             std::cerr << "Legacy restart: no manifest; mesh/integration compatibility cannot be verified.\n";
+            expected = atTime(schema, time);
         }
         else {
             std::ostringstream xml;
             xml << input.rdbuf();
-            compare(*Teuchos::getParametersFromXmlString(xml.str()), expected);
+            const auto saved = Teuchos::getParametersFromXmlString(xml.str());
+            const int version = saved->get<int>("Format version");
+            if ((version != 1 && version != 2) ||
+                (schema.get<int>("Format version") != 1 && schema.get<int>("Format version") != 2))
+                throw std::runtime_error("Format version: unsupported checkpoint metadata");
+            auto compatible = schema;
+            compatible.set("Format version", version);
+            compatible.sublist("Integration").set("dt", saved->sublist("Integration").get<double>("dt"));
+            expected = atTime(compatible, time, version == 2 ? &saved->sublist("Time state") : nullptr);
+            compare(*saved, expected);
+            if (version == 2) restoredClock = expected.sublist("Time state");
+        }
+        if (restoredClock.numParams() == 0) {
+            const double oldDt = expected.sublist("Integration").get<double>("dt");
+            restoredClock.set("Physical time", time).set("dt", oldDt).set("dt_prev", oldDt)
+                .set("Step number", expected.get<long long>("Step number"));
+            for (int i = 0; i < 3; ++i) restoredClock.sublist("History times").set(std::to_string(i), time - i * oldDt);
         }
         if (schema.isSublist("FSI outlet")) {
             const auto& outlet = schema.sublist("FSI outlet");
             const auto state = readOutletState(restartFile(parameters, outletStateName(time)),
                                                outlet.get<std::string>("Model"), time);
             // At a start-of-step checkpoint, the last pressure evaluation was
-            // at time-dt. A transition due only in this step is still pending.
+            // at the previous saved time. A transition due only now is pending.
             if (outlet.get<std::string>("Model") == "Absorbing Paper" && state.initialized &&
-                time - schema.sublist("Integration").get<double>("dt") >= outlet.get<double>("Unsteady Start") &&
+                time - restoredClock.get<double>("dt_prev") >= outlet.get<double>("Unsteady Start") &&
                 !state.transitionCaptured)
                 throw std::runtime_error("FSI outlet checkpoint is missing its captured transition area");
         }
@@ -352,13 +393,22 @@ inline void validate(const Teuchos::ParameterList& schema, const ParameterListPt
             validateDataset(filename, item.get<std::string>("Key"), item.get<std::string>("Global DOFs"));
         }
     });
+    std::ostringstream serialized;
+    if (comm.getRank() == 0) Teuchos::writeParameterListToXmlOStream(restoredClock, serialized);
+    std::string xml = serialized.str();
+    int length = static_cast<int>(xml.size());
+    Teuchos::broadcast(comm, 0, 1, &length);
+    xml.resize(length);
+    Teuchos::broadcast(comm, 0, length, &xml[0]);
+    parameters->sublist("Timestepping Parameter").sublist("_Restart time state") =
+        *Teuchos::getParametersFromXmlString(xml);
 }
 
 /// Write descriptive metadata; this is not an atomic checkpoint completion marker.
 inline void write(const Teuchos::ParameterList& schema, const ParameterListPtr_Type& parameters,
                   double time, const Teuchos::Comm<int>& comm)
 {
-    const auto description = atTime(schema, time);
+    const auto description = atTime(schema, time, clockState(parameters, time));
     onRoot(comm, [&] {
         const std::string filename = checkpointFile(parameters, manifestName(schema, time));
         std::ofstream output(filename);

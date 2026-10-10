@@ -16,11 +16,14 @@
        directory, for example resumedCheckpoints. This also applies to saving every
        solution. Copy the complete source directory, including manifests, fluid
        history, Newmark displacement/velocity/acceleration, ALE fields and outlet
-       state. Keep mesh, FE orders, dt, BDF, beta/gamma and outlet-model settings
-       compatible with the source. Metadata validation runs before restoration.
+       state. Keep mesh, FE orders, BDF, beta/gamma and outlet-model settings
+       compatible with the source. The next dt may change: saved dt_prev/history times
+       describe the old steps. Metadata validation runs before restoration.
     4. Continue visualization/text output with Exporter/Resume output=true, or
        archive it with Resume output=false and Keep old output=true. Keep output
        filenames, suffixes, mesh-writing mode and export interval when resuming.
+       When changing dt or using intervals, use Resume output=false and Keep old
+       output=true: ParaView resumption currently assumes a uniform timestep grid.
     5. For failure recovery, enable Failure recovery and use a fresh Recovery
        directory. The existing NOX solver and the built-in Newton/FixedPoint paths
        provide solve reports. To restart from
@@ -197,14 +200,25 @@
         
         <Parameter name="BDF" type="int" value="2"/>
         <Parameter name="Class" type="string" value="Multistep"/>
-        <!-- Checkpoint/restart requires fixed dt; adaptive and segmented timestep
-             schedules are not supported by the current compatibility contract. -->
+        <!-- Prescribed timestep intervals and a changed restart dt are supported.
+             Adaptive/RK stepping remains disabled. See the interval example below. -->
         <Parameter name="Timestepping type" type="string" value="non-adaptive"/>
     
         <Parameter name="Final time" type="double" value="1.2"/>
         <Parameter name="dt" type="double" value="0.005"/>
         <Parameter name="beta" type="double" value="0.25"/> <!-- newmark method parameter-->
         <Parameter name="gamma" type="double" value="0.5"/> <!-- newmark method parameter-->
+
+        <!-- Optional prescribed intervals, using the existing key spelling.
+             Number of Segments=0 keeps the base dt above. To switch at 0.4 s, use
+             Number of Segments=1 and add a sublist named 1 containing Start Time
+             (double, 0.4) and dt (double, 0.0025). Starts must increase. Each dt
+             applies from its start time; a step is shortened before assembly to
+             land on interval boundaries and Final time. The original interval
+             schedule is not required when restarting with a different dt. -->
+        <ParameterList name="Timestepping Intervalls">
+            <Parameter name="Number of Segments" type="int" value="0"/>
+        </ParameterList>
 
         <!-- ORDINARY CHECKPOINT PRODUCTION: independent of failure recovery.
              Configure these settings on this coupled FSI list; FSI propagates them
@@ -217,7 +231,7 @@
         <!-- Must match the number of entries below, numbered consecutively from 1.
              The schedule is inactive while Checkpointing=false. -->
         <Parameter name="Number Checkpoints" type="int" value="2"/>
-        <!-- Physical times in seconds on the fixed dt grid, with sufficient BDF2
+        <!-- Physical checkpoint times in seconds, with sufficient BDF2
              history available. Keep FSI checkpoints at least two steps apart because
              each checkpoint also exports its previous-step history. -->
         <ParameterList name="Checkpoints">

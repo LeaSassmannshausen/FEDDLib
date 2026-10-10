@@ -1,0 +1,90 @@
+# Each reference changes dt at 0.005. The restart input deliberately omits the
+# original schedule, and 0.005 is not on the new global dt=0.0015 grid.
+set(work "@CMAKE_CURRENT_BINARY_DIR@/@variable_test_name@")
+file(REMOVE_RECURSE "${work}")
+file(MAKE_DIRECTORY "${work}")
+file(GLOB inputs "@CMAKE_CURRENT_SOURCE_DIR@/../@input_case@/parameters*.xml")
+file(COPY ${inputs} DESTINATION "${work}")
+foreach(mesh IN ITEMS @meshes@)
+    file(COPY "@CMAKE_SOURCE_DIR@/meshes/${mesh}" DESTINATION "${work}")
+endforeach()
+
+set(source_end 0.0075)
+set(reference_end 0.011)
+set(resume_end 0.0095)
+if("@model@" STREQUAL "navierStokes")
+    set(source_end 0.005)
+    set(reference_end 0.0095)
+elseif("@model@" STREQUAL "newmark")
+    set(resume_end 0.011)
+endif()
+
+function(write_phase filename settings)
+    file(WRITE "${work}/${filename}" "<ParameterList name=\"variable timestep\">
+  <ParameterList name=\"Timestepping Parameter\">
+    <Parameter name=\"Comparison time\" type=\"double\" value=\"0.0095\"/>
+    ${settings}
+  </ParameterList>
+</ParameterList>
+")
+endfunction()
+write_phase(source.xml "
+    <Parameter name=\"Checkpoint directory\" type=\"string\" value=\"sourceCheckpoints\"/>
+    <Parameter name=\"Final time\" type=\"double\" value=\"${source_end}\"/>
+    <Parameter name=\"Number Checkpoints\" type=\"int\" value=\"1\"/>
+    <ParameterList name=\"Checkpoints\"><Parameter name=\"1\" type=\"double\" value=\"0.005\"/></ParameterList>")
+write_phase(reference.xml "
+    <Parameter name=\"Checkpoint directory\" type=\"string\" value=\"referenceCheckpoints\"/>
+    <Parameter name=\"Final time\" type=\"double\" value=\"${reference_end}\"/>
+    <Parameter name=\"Number Checkpoints\" type=\"int\" value=\"1\"/>
+    <ParameterList name=\"Checkpoints\"><Parameter name=\"1\" type=\"double\" value=\"0.0095\"/></ParameterList>
+    <ParameterList name=\"Timestepping Intervalls\">
+      <Parameter name=\"Number of Segments\" type=\"int\" value=\"1\"/>
+      <ParameterList name=\"1\">
+        <Parameter name=\"Start Time\" type=\"double\" value=\"0.005\"/>
+        <Parameter name=\"dt\" type=\"double\" value=\"0.0015\"/>
+      </ParameterList>
+    </ParameterList>")
+write_phase(resume.xml "
+    <Parameter name=\"Restart\" type=\"bool\" value=\"true\"/>
+    <Parameter name=\"Restart directory\" type=\"string\" value=\"sourceCheckpoints\"/>
+    <Parameter name=\"Reference directory\" type=\"string\" value=\"referenceCheckpoints\"/>
+    <Parameter name=\"Time step\" type=\"double\" value=\"0.005\"/>
+    <Parameter name=\"dt\" type=\"double\" value=\"0.0015\"/>
+    <Parameter name=\"Final time\" type=\"double\" value=\"${resume_end}\"/>
+    <Parameter name=\"Checkpointing\" type=\"bool\" value=\"true\"/>
+    <Parameter name=\"Checkpoint directory\" type=\"string\" value=\"resumedCheckpoints\"/>
+    <Parameter name=\"Number Checkpoints\" type=\"int\" value=\"1\"/>
+    <ParameterList name=\"Checkpoints\"><Parameter name=\"1\" type=\"double\" value=\"0.008\"/></ParameterList>")
+
+function(run_phase filename)
+    if("@model@" STREQUAL "navierStokes")
+        set(arguments --problemfile=parametersProblem2D.xml --overridefile=${filename})
+    elseif("@model@" STREQUAL "fsi")
+        set(arguments --problemfile=${filename})
+    elseif("@model@" STREQUAL "artery")
+        set(arguments --problemfile=${filename} "--pressure-model=Absorbing Paper")
+    else()
+        set(arguments --restartfile=${filename})
+    endif()
+    execute_process(COMMAND "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@
+        @MPI_EXEC_NUMPROCS_FLAG@ 4 @MPI_EXEC_POST_NUMPROCS_FLAGS@
+        "${EXECUTABLE}" ${arguments} WORKING_DIRECTORY "${work}" RESULT_VARIABLE result)
+    if(NOT result STREQUAL "0")
+        message(FATAL_ERROR "@model@ variable timestep phase ${filename} failed: ${result}")
+    endif()
+endfunction()
+run_phase(source.xml)
+run_phase(reference.xml)
+run_phase(resume.xml)
+
+# Resume again from the newly written nonuniform-grid checkpoint: the original
+# fixed-dt grid and source directory must no longer be needed.
+file(READ "${work}/resume.xml" resume)
+string(REPLACE "value=\"sourceCheckpoints\"" "value=\"resumedCheckpoints\"" resume "${resume}")
+string(REPLACE "name=\"Time step\" type=\"double\" value=\"0.005\""
+    "name=\"Time step\" type=\"double\" value=\"0.008\"" resume "${resume}")
+string(REPLACE "name=\"Checkpointing\" type=\"bool\" value=\"true\""
+    "name=\"Checkpointing\" type=\"bool\" value=\"false\"" resume "${resume}")
+file(WRITE "${work}/resume-again.xml" "${resume}")
+run_phase(resume-again.xml)
