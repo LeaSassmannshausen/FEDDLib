@@ -157,6 +157,8 @@ public:
 
     /** @brief Open output after variables are registered, retaining frames through
      * the restart time or archiving the old series according to Exporter settings.
+     * Saved simulation counters preserve sparse export cadence with changed dt
+     * and prescribed intervals. Physical timestamps determine which frames remain.
      */
     void initializeOutput();
     

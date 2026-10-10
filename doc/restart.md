@@ -57,6 +57,15 @@ new series; incomplete HDF5/XMF pairs or incompatible field/mesh layouts fail
 before the affected series is modified. Keep the original mesh-writing mode,
 export interval, filenames and variable names when resuming output.
 
+Changing `dt` or using prescribed timestep intervals is supported with
+`Resume output = true`. New XMF frames record their simulation timestep counter
+alongside the physical timestamp. The saved checkpoint counter restores the
+original export cadence, including restarts between sparse frames and output
+series that began at a nonzero simulation time. Optional `_times.xmf` output
+records the actual completed increment. No index is computed using the new `dt`.
+Older timestamp-only files remain readable at an exact frame or on their verified
+uniform output grid; ambiguous nonuniform sparse history needs a saved counter.
+
 FSI pressure/flow/area logs and time/iteration/displacement/drag/lift logs follow
 the same policy. Value-only text files keep their original columns; `.txt.times`
 sidecars record physical time for each row. Keep these sidecars with their logs.
@@ -75,7 +84,8 @@ files or the separate restart/checkpoint-directory requirement.
 
 `problems_outputHistory_MPI_2` exercises real scalar/vector HDF5 datasets,
 moving meshes, rewinding and appending, duplicate suppression, sparse exports,
-legacy text logs, default overwrite behavior and shared archives.
+changed/interval timestep sizes, repeated restarts, legacy text/ParaView output,
+default overwrite behavior and shared archives.
 
 ## Compatibility metadata
 
@@ -185,10 +195,9 @@ restart/checkpoint times need not lie on a global grid of the new timestep.
 Keep integration order, field/mesh identity, Newmark coefficients and required
 outlet state compatible. Solver tolerances and iteration limits may change.
 
-ParaView output resumption currently assumes the original uniform timestep grid.
-When changing `dt` or using intervals, set `Exporter/Resume output = false` and,
-to preserve existing output, `Exporter/Keep old output = true`. This starts a new
-output series while archiving the previous one.
+`Exporter/Resume output = true` continues the same ParaView series when changing
+`dt` or using intervals. Alternatively, `Resume output = false` with
+`Keep old output = true` archives the previous series and starts fresh output.
 
 The `variableTimeStepRestart` tests compare 2D Navier–Stokes, Turek FSI,
 nonlinear-elasticity Newmark and 3D arterial-segment restarts with independently

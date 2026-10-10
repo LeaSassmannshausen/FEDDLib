@@ -3,6 +3,7 @@
 
 #include "OutputHistory.hpp"
 #include "HDF5VectorInfo.hpp"
+#include "feddlib/core/Checkpointing/CheckpointTimeState.hpp"
 #include <iomanip>
 
 /*!
@@ -225,27 +226,12 @@ void ExporterParaView<SC,LO,GO,NO>::initializeOutput()
             if (!h5Exists) return; // Output may have been disabled in the original run.
             const double time = output::restartTime(parameterList_);
             const output::Collection collection(output::read(filename_ + ".xmf"));
-            const double dt = parameterList_->sublist("Timestepping Parameter").get("dt", 0.);
-            if (!(dt > 0.)) throw std::runtime_error("Resume output requires a positive dt");
-            std::smatch cadence;
-            const std::regex interval("Name=\"FEDD export interval\" Value=\"([0-9]+)\"");
-            double oldInterval = saveTimestep_;
-            if (std::regex_search(collection.header, cadence, interval))
-                oldInterval = std::stoi(cadence[1]);
-            else if (collection.frames.size() > 1) {
-                const auto& first = collection.frames.front();
-                const auto& last = collection.frames.back();
-                oldInterval = (last.time - first.time) / ((last.index - first.index) * dt);
-            }
-            if (std::abs(oldInterval - saveTimestep_) > 1.e-7)
+            if (output::exportInterval(collection, saveTimestep_) != saveTimestep_)
                 throw std::runtime_error("Export interval differs from the existing output");
             if (collection.frames.front().xml.find("<Grid Name=\"Mesh" + FEType_ + " ") == std::string::npos)
                 throw std::runtime_error("FE type differs from the existing output");
-            const double origin = collection.frames.front().time - collection.frames.front().index * saveTimestep_ * dt;
-            const double index = (time - origin) / dt;
-            if (index < 0. || std::abs(index - std::round(index)) > 1.e-7 || index > std::numeric_limits<int>::max())
-                throw std::runtime_error("Restart time does not match the existing output timestep grid");
-            nextIndex = static_cast<int>(std::round(index));
+            const auto* clock = checkpoint::clockState(parameterList_, time);
+            nextIndex = output::resumeIndex(collection, saveTimestep_, time, clock);
             std::set<std::string> keep;
             for (const auto& frame : collection.frames) {
                 if (frame.time > time + 1.e-12) continue;
@@ -373,8 +359,11 @@ void ExporterParaView<SC,LO,GO,NO>::save(double time){
         writeVariablesHDF5();
 
         writeXmf(time);
-        if (writeDt_) writeXmfTime(time, parameterList_.is_null() ? lastDt_ :
-            parameterList_->sublist("Timestepping Parameter").get("dt", lastDt_));
+        if (writeDt_) {
+            const auto* clock = parameterList_.is_null() ? nullptr : checkpoint::clockState(parameterList_, time);
+            writeXmfTime(time, clock ? clock->get<double>("dt_prev") : parameterList_.is_null() ? lastDt_ :
+                parameterList_->sublist("Timestepping Parameter").get("dt", lastDt_));
+        }
         lastOutputTime_ = time;
     }
     else{
@@ -645,9 +634,14 @@ void ExporterParaView<SC,LO,GO,NO>::writeXmfElements( std::string nameConn, doub
         xmf_out_.seekp (closingLinesPosition_);
 
         xmf_out_ <<
-        "<!-- Time " << time << " Iteration " << postfix_.substr (1, 5) << " -->\n" <<
+        "<!-- Time " << time << " Iteration " << postfix_.substr (1) << " -->\n" <<
         "    <Grid Name=\"Mesh" << FEType_ << " " << time << "\">\n" <<
         "      <Time TimeType=\"Single\" Value=\"" << time << "\" />\n";
+
+        if (!parameterList_.is_null())
+            if (const auto* clock = checkpoint::clockState(parameterList_, time))
+                xmf_out_ << "      <Information Name=\"FEDD timestep\" Value=\""
+                         << clock->get<long long>("Step number") << "\" />\n";
 
         //        writeTopology (M_xdmf);
         std::string FEstring;
@@ -867,9 +861,13 @@ void ExporterParaView<SC,LO,GO,NO>::writeXmfTime(double time, double dt){
         xmf_times_out_.seekp (closingLinesPositionTimes_);
 
         xmf_times_out_ <<
-        "<!-- Time " << time << " Iteration " << postfix_.substr (1, 5) << " -->\n" <<
+        "<!-- Time " << time << " Iteration " << postfix_.substr (1) << " -->\n" <<
         "    <Grid Name=\"Mesh Times " << time << "\">\n" <<
         "      <Time TimeType=\"Single\" Value=\"" << time << "\" />\n";
+        if (!parameterList_.is_null())
+            if (const auto* clock = checkpoint::clockState(parameterList_, time))
+                xmf_times_out_ << "      <Information Name=\"FEDD timestep\" Value=\""
+                               << clock->get<long long>("Step number") << "\" />\n";
         xmf_times_out_	  <<
         "      <Topology\n"
         << "         Type=\"Polyvertex\"\n"

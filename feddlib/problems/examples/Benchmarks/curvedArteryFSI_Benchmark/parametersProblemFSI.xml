@@ -22,14 +22,37 @@
     4. Continue visualization/text output with Exporter/Resume output=true, or
        archive it with Resume output=false and Keep old output=true. Keep output
        filenames, suffixes, mesh-writing mode and export interval when resuming.
-       When changing dt or using intervals, use Resume output=false and Keep old
-       output=true: ParaView resumption currently assumes a uniform timestep grid.
+       Resume output supports changed dt and prescribed intervals: checkpoint
+       counters preserve export cadence, and XMF frames retain physical timestamps.
+       Run from the original output working directory, or copy the original output
+       files there first. Restart directory selects checkpoint input only; it does
+       not select the location of visualization files or text logs.
     5. For failure recovery, enable Failure recovery and use a fresh Recovery
        directory. The existing NOX solver and the built-in Newton/FixedPoint paths
        provide solve reports. To restart from
        recovery, read the directory and physical time from Latest.xml, or select
        its protected generation, and use the ordinary Restart settings above.
        Restore normal solver limits and use a fresh directory for new recovery data.
+
+    Example: continue output from an existing checkpoint at 0.4 s.
+    Change the matching entries in the sublists below (do not add duplicate keys):
+
+      Timestepping Parameter:
+        <Parameter name="Restart" type="bool" value="true"/>
+        <Parameter name="Restart directory" type="string" value="restartCheckpoints"/>
+        <Parameter name="Time step" type="double" value="0.4"/>
+        <Parameter name="Final time" type="double" value="1.2"/>
+        <Parameter name="Checkpointing" type="bool" value="false"/>
+      Exporter:
+        <Parameter name="Resume output" type="bool" value="true"/>
+        <Parameter name="Keep old output" type="bool" value="false"/>
+
+    General/ParaViewExport, Export Data and Export Flow Rate are already enabled
+    below. Leave them enabled to continue visualization and pressure/flow logs.
+    Keep General/Safe all solution=false for this read-only checkpoint example.
+    Open the same .xmf files in ParaView after continuation. Existing frames up to
+    0.4 s remain; any later frames are replaced by the resumed trajectory. The
+    restart time is not exported twice. A different continuation dt is supported.
 
     Initial solution loading at time zero currently supports standalone multistep
     Navier-Stokes only, not FSI/Newmark. Restart tolerance, Restart absolute tolerance
@@ -140,7 +163,10 @@
              discard later entries and append the resumed trajectory without a
              duplicate restart frame. Missing output starts a new series. Keep
              HDF5/XMF pairs, optional _times.xmf files and text .times sidecars
-             together. Incompatible output layouts/cadence are rejected. -->
+             together. Changed dt and prescribed intervals are supported using
+             checkpoint counters and physical timestamps. Incompatible output
+             layouts/cadence are rejected. Set this to true for continued export;
+             run in the original output directory and retain the original suffix. -->
         <Parameter name="Resume output" type="bool" value="false"/>
         <!-- When Resume output=false, move existing files opened by the active
              exporters to old_output/run_1, run_2, etc. before writing fresh output.
@@ -165,11 +191,15 @@
     </ParameterList>
     <ParameterList name="General">
         <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
+        <!-- Enable visualization output for both the source and resumed run.
+             Exporter/Resume output controls whether existing files are continued. -->
         <Parameter name="ParaViewExport" type="bool" value="true"/>
         <Parameter name="ParaViewCoarse" type="bool" value="false"/>
         <Parameter name="ParaView export subdomains" type="bool" value="true"/>
         
         <Parameter name="Export Suffix" type="string" value=""/>
+        <!-- Leave these enabled to continue pressureOutlet.txt and flow-rate logs.
+             Keep their timestamp sidecars with the original output files. -->
         <Parameter name="Export Data" type="bool" value="true"/>
         <Parameter name="Export Flow Rate" type="bool" value="true"/>
 

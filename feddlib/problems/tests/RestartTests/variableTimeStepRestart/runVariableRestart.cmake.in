@@ -20,11 +20,32 @@ elseif("@model@" STREQUAL "newmark")
 endif()
 
 function(write_phase filename settings)
+    set(output_settings "")
+    if("@model@" STREQUAL "navierStokes" OR "@model@" STREQUAL "fsi")
+        set(export_output true)
+        set(resume_output false)
+        set(moving_mesh false)
+        if(filename STREQUAL "reference.xml")
+            set(export_output false) # Preserve the source series for the restart.
+        elseif(filename STREQUAL "resume.xml")
+            set(resume_output true)
+        endif()
+        if("@model@" STREQUAL "fsi")
+            set(moving_mesh true)
+        endif()
+        set(output_settings "
+  <ParameterList name=\"General\"><Parameter name=\"ParaViewExport\" type=\"bool\" value=\"${export_output}\"/></ParameterList>
+  <ParameterList name=\"Exporter\">
+    <Parameter name=\"Resume output\" type=\"bool\" value=\"${resume_output}\"/>
+    <Parameter name=\"Write new mesh\" type=\"bool\" value=\"${moving_mesh}\"/>
+  </ParameterList>")
+    endif()
     file(WRITE "${work}/${filename}" "<ParameterList name=\"variable timestep\">
   <ParameterList name=\"Timestepping Parameter\">
     <Parameter name=\"Comparison time\" type=\"double\" value=\"0.0095\"/>
     ${settings}
   </ParameterList>
+  ${output_settings}
 </ParameterList>
 ")
 endfunction()
@@ -88,3 +109,39 @@ string(REPLACE "name=\"Checkpointing\" type=\"bool\" value=\"true\""
     "name=\"Checkpointing\" type=\"bool\" value=\"false\"" resume "${resume}")
 file(WRITE "${work}/resume-again.xml" "${resume}")
 run_phase(resume-again.xml)
+
+# Real solver/exporter integration: one frame per accepted step, including the
+# initial state, after two restarts with a changed dt. No duplicate checkpoint
+# frames or superseded future frames may remain in any field's collection.
+if("@model@" STREQUAL "navierStokes" OR "@model@" STREQUAL "fsi")
+    set(fields u p)
+    set(expected_frames 6)
+    if("@model@" STREQUAL "fsi")
+        set(fields u_f p d_s)
+    endif()
+    foreach(field IN LISTS fields)
+        file(READ "${work}/${field}.xmf" xml)
+        string(REGEX MATCHALL "<Information Name=\"FEDD timestep\" Value=\"[0-9]+\"" counters "${xml}")
+        list(LENGTH counters count)
+        if(NOT count EQUAL expected_frames)
+            message(FATAL_ERROR "${field}: expected ${expected_frames} resumed frames, found ${count}")
+        endif()
+        set(expected 0)
+        foreach(counter IN LISTS counters)
+            string(REGEX MATCH "Value=\"([0-9]+)\"" value "${counter}")
+            if(NOT CMAKE_MATCH_1 EQUAL expected)
+                message(FATAL_ERROR "${field}: expected timestep ${expected}, found ${CMAKE_MATCH_1}")
+            endif()
+            math(EXPR expected "${expected} + 1")
+        endforeach()
+        string(REGEX MATCHALL "<Time TimeType=\"Single\" Value=\"[^\"]+\"" timestamps "${xml}")
+        set(previous -1)
+        foreach(timestamp IN LISTS timestamps)
+            string(REGEX MATCH "Value=\"([^\"]+)\"" value "${timestamp}")
+            if(CMAKE_MATCH_1 LESS_EQUAL previous)
+                message(FATAL_ERROR "${field}: duplicate or non-increasing physical timestamp")
+            endif()
+            set(previous ${CMAKE_MATCH_1})
+        endforeach()
+    endforeach()
+endif()

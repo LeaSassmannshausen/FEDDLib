@@ -20,3 +20,8 @@ interval-boundary landing, a shortened final step, saved incoming dt and the
 step counter. Metadata tests retain incompatible-field/history checks and
 exercise loading version-1 uniform checkpoints with a changed next timestep,
 version-2 nonuniform history and invalid or incomplete saved clocks.
+
+The Navier–Stokes and Turek cases also resume the same ParaView files across
+both restarts. The Turek case writes each frame's moving mesh. The independent
+reference has visualization disabled to preserve the source series. XMF checks
+verify increasing timestamps and a single frame per simulation timestep.

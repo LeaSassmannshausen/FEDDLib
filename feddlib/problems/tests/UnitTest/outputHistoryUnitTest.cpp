@@ -37,19 +37,30 @@ int main(int argc, char** argv)
     auto pressure = Teuchos::rcp(new MultiVector<>(domain->getMapUnique()));
     auto velocity = Teuchos::rcp(new MultiVector<>(domain->getMapVecFieldUnique()));
     const auto paraview = [&](const std::string& name, ParameterListPtr_Type parameters,
-                              const std::vector<double>& times, double offset, bool withDt = true) {
+                              const std::vector<double>& times, double offset, bool withDt = true,
+                              const std::vector<long long>& steps = {}) {
         ExporterParaView<> exporter;
         exporter.setup(name, domain->getMesh(), "P1", parameters);
         Teuchos::RCP<const MultiVector<>> p = pressure, u = velocity;
         exporter.addVariable(p, "pressure", "Scalar", 1, domain->getMapUnique());
         exporter.addVariable(u, "velocity", "Vector", 2, domain->getMapUnique());
-        for (double time : times) {
+        for (std::size_t index = 0; index < times.size(); ++index) {
+            const double time = times[index];
+            double dt = 0.1;
+            if (!steps.empty()) {
+                auto& settings = parameters->sublist("Timestepping Parameter");
+                dt = index > 0 ? time - times[index - 1] :
+                    settings.isSublist("_Restart time state") ? settings.sublist("_Restart time state").get<double>("dt_prev") :
+                    settings.get<double>("dt");
+                settings.sublist("_Checkpoint time state").set("Physical time", time)
+                    .set("Step number", steps.at(index)).set("dt_prev", dt).set("dt", settings.get<double>("dt"));
+            }
             pressure->putScalar(time + offset);
             velocity->putScalar(time + offset);
             for (std::size_t i = 0; i < points->size(); ++i)
                 (*points)[i][0] = originalPoints[i][0] + time * (offset == 0. ? 1. : 2.);
             exporter.updatePoints();
-            if (withDt) exporter.save(time, 0.1);
+            if (withDt) exporter.save(time, dt);
             else exporter.save(time);
         }
         exporter.closeExporter();
@@ -192,6 +203,132 @@ int main(int argc, char** argv)
     }
     Teuchos::reduceAll(*comm, Teuchos::REDUCE_MIN, 1, &rejected, &allRejected);
     require(allRejected, "Changed export cadence did not fail collectively");
+
+    // Nonuniform timestamps, changed continuation dt and repeated rewinds use
+    // simulation counters rather than dividing restart time by the new dt.
+    auto variable = settings();
+    paraview("variable", variable, {0., 0.1, 0.2, 0.25, 0.32, 0.36}, 0., true, {0, 1, 2, 3, 4, 5});
+    const auto restartClock = [&](ParameterListPtr_Type p, double time, long long step, double previousDt, double nextDt) {
+        auto& timeSettings = p->sublist("Timestepping Parameter");
+        timeSettings.set("Restart", true).set("Time step", time).set("dt", nextDt);
+        timeSettings.sublist("_Restart time state").set("Physical time", time)
+            .set("Step number", step).set("dt_prev", previousDt).set("dt", nextDt);
+        p->sublist("Exporter").set("Resume output", true);
+    };
+    auto variableResume = settings();
+    restartClock(variableResume, 0.25, 3, 0.05, 0.025);
+    paraview("variable", variableResume, {0.25, 0.275, 0.30, 0.315}, 100., true, {3, 4, 5, 6});
+    restartClock(variableResume, 0.30, 5, 0.025, 0.007);
+    paraview("variable", variableResume, {0.30, 0.307, 0.317}, 200., false, {5, 6, 7});
+    output::onRank(*comm, 0, [&] {
+        checkSeries("variable", 8);
+        const output::Collection series(output::read("variable.xmf"));
+        const output::Collection dtSeries(output::read("variable_times.xmf"));
+        const std::vector<double> expected = {0., 0.1, 0.2, 0.25, 0.275, 0.30, 0.307, 0.317};
+        require(dtSeries.frames.size() == expected.size(), "Nonuniform dt frame count differs");
+        for (std::size_t i = 0; i < expected.size(); ++i) {
+            require(std::abs(series.frames[i].time - expected[i]) < 1.e-14 &&
+                    series.frames[i].step == static_cast<long long>(i), "Nonuniform timestamp/counter differs");
+            require(std::abs(dtSeries.frames[i].time - expected[i]) < 1.e-14, "Dt frame timestamp differs");
+        }
+        for (std::size_t i = 6; i < expected.size(); ++i) {
+            const auto& xml = dtSeries.frames[i].xml;
+            const auto start = xml.find('>', xml.find("<DataStructure", xml.find("Name=\"t_dt\"")));
+            std::istringstream values(xml.substr(start + 1));
+            double t, dt;
+            require(bool(values >> t >> dt) && std::abs(t - expected[i]) < 1.e-14 &&
+                    std::abs(dt - (expected[i] - expected[i - 1])) < 1.e-14,
+                    "Dt collection must use the actual completed increment, including interval changes");
+        }
+        checkpoint::H5Handle file(H5Fopen("variable.h5", H5F_ACC_RDONLY, H5P_DEFAULT), H5Fclose);
+        require(std::abs(firstValue(file, "pressure.00003") - 0.25) < 1.e-14, "Checkpoint frame changed");
+        require(std::abs(firstValue(file, "pressure.00006") - 200.307) < 1.e-12, "Nonuniform future frame not replaced");
+        require(std::abs(firstValue(file, "PointsX6") - firstValue(file, "PointsX3") - 0.364) < 1.e-13,
+                "Nonuniform moving mesh differs");
+        std::cout << "PASS nonuniform timesteps, repeated resumption and completed dt output\n";
+    });
+    auto variableSparse = settings();
+    variableSparse->sublist("Exporter").set("Write new mesh", false).set("Export every X timesteps", 2);
+    paraview("variableSparse", variableSparse, {0., 0.1, 0.2, 0.25, 0.32, 0.36, 0.4}, 0., true, {0, 1, 2, 3, 4, 5, 6});
+    auto sparseResume = settings();
+    sparseResume->sublist("Exporter").set("Write new mesh", false).set("Export every X timesteps", 2);
+    restartClock(sparseResume, 0.25, 3, 0.05, 0.025);
+    paraview("variableSparse", sparseResume, {0.25, 0.275, 0.30, 0.315, 0.34}, 100., true, {3, 4, 5, 6, 7});
+    restartClock(sparseResume, 0.30, 5, 0.025, 0.007);
+    paraview("variableSparse", sparseResume, {0.30, 0.307, 0.314}, 200., true, {5, 6, 7});
+    output::onRank(*comm, 0, [&] {
+        checkSeries("variableSparse", 4);
+        const output::Collection series(output::read("variableSparse.xmf"));
+        const std::vector<double> expected = {0., 0.2, 0.275, 0.307};
+        for (std::size_t i = 0; i < expected.size(); ++i)
+            require(std::abs(series.frames[i].time - expected[i]) < 1.e-14 &&
+                    series.frames[i].step == static_cast<long long>(2 * i), "Sparse variable-step cadence differs");
+        std::cout << "PASS nonuniform restart between sparse frames\n";
+    });
+    // A fresh series may begin on a later simulation step, so its local output
+    // index is offset from the checkpoint's global timestep counter.
+    auto late = settings();
+    paraview("late", late, {0.5, 0.57, 0.61}, 0., true, {10, 11, 12});
+    auto lateResume = settings();
+    restartClock(lateResume, 0.57, 11, 0.07, 0.02);
+    paraview("late", lateResume, {0.57, 0.59}, 100., true, {11, 12});
+    output::onRank(*comm, 0, [&] {
+        checkSeries("late", 3);
+        const output::Collection series(output::read("late.xmf"));
+        require(series.frames.back().step == 12 && std::abs(series.frames.back().time - 0.59) < 1.e-14,
+                "Nonzero output origin differs");
+    });
+    // Wrong checkpoint counters must fail before rewinding either file.
+    auto wrongClock = settings();
+    restartClock(wrongClock, 0.25, 2, 0.05, 0.025);
+    output::onRank(*comm, 0, [&] { before = output::read("variable.xmf"); });
+    rejected = 0;
+    try { paraview("variable", wrongClock, {0.25}, 0.); }
+    catch (const std::exception& e) { rejected = std::string(e.what()).find("counter does not match") != std::string::npos; }
+    Teuchos::reduceAll(*comm, Teuchos::REDUCE_MIN, 1, &rejected, &allRejected);
+    require(allRejected, "Wrong timestep counter did not fail collectively");
+    output::onRank(*comm, 0, [&] {
+        require(output::read("variable.xmf") == before, "Rejected timestep counter rewound output");
+        checkSeries("variable", 8);
+    });
+    auto missingClock = settings();
+    missingClock->sublist("Exporter").set("Write new mesh", false).set("Export every X timesteps", 2).set("Resume output", true);
+    missingClock->sublist("Timestepping Parameter").set("Restart", true).set("Time step", 0.30);
+    rejected = 0;
+    try { paraview("variableSparse", missingClock, {0.30}, 0.); }
+    catch (const std::exception& e) { rejected = std::string(e.what()).find("counter is required") != std::string::npos; }
+    Teuchos::reduceAll(*comm, Teuchos::REDUCE_MIN, 1, &rejected, &allRejected);
+    require(allRejected, "Missing sparse restart counter did not fail collectively");
+
+    // Timestamp-only legacy output recovers its old uniform grid independently
+    // of the smaller dt in the continuation input.
+    auto legacySparse = settings();
+    legacySparse->sublist("Exporter").set("Write new mesh", false).set("Export every X timesteps", 2);
+    paraview("legacySparse", legacySparse, {0., 0.1, 0.2, 0.3, 0.4}, 0.);
+    output::onRank(*comm, 0, [&] {
+        auto xml = output::read("legacySparse.xmf");
+        xml = std::regex_replace(xml, std::regex("[ ]*<Information Name=\"FEDD export interval\"[^>]+/>\\n"), "");
+        output::replace("legacySparse.xmf", xml);
+    });
+    legacySparse->sublist("Timestepping Parameter").set("Restart", true).set("Time step", 0.3).set("dt", 0.05);
+    legacySparse->sublist("Exporter").set("Resume output", true);
+    paraview("legacySparse", legacySparse, {0.3, 0.35, 0.4}, 100.);
+    output::onRank(*comm, 0, [&] {
+        checkSeries("legacySparse", 3);
+        require(std::abs(output::Collection(output::read("legacySparse.xmf")).frames.back().time - 0.35) < 1.e-14,
+                "Legacy resume used the new dt for the old grid");
+        std::cout << "PASS legacy ParaView output with a changed next timestep\n";
+    });
+    paraview("singleLegacy", settings(), {0.1}, 0.);
+    auto singleResume = settings();
+    singleResume->sublist("Timestepping Parameter").set("Restart", true).set("Time step", 0.2).set("dt", 0.05);
+    singleResume->sublist("Exporter").set("Resume output", true);
+    rejected = 0;
+    try { paraview("singleLegacy", singleResume, {0.2}, 0.); }
+    catch (const std::exception& e) { rejected = std::string(e.what()).find("grid from a single frame") != std::string::npos; }
+    Teuchos::reduceAll(*comm, Teuchos::REDUCE_MIN, 1, &rejected, &allRejected);
+    require(allRejected, "Ambiguous single-frame legacy output used the new dt");
+    output::onRank(*comm, 0, [&] { checkSeries("singleLegacy", 1); });
 
     // Legacy pressure logs already contain time; value-only logs use time.txt.
     output::onRank(*comm, 0, [&] {

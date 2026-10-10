@@ -124,6 +124,7 @@ inline void archive(const ParameterListPtr_Type& parameters, const Teuchos::Comm
 struct Frame {
     double time;
     int index;
+    long long step = -1; // Optional simulation counter; older XMF files omit it.
     std::string xml;
     std::set<std::string> groups;
 };
@@ -142,6 +143,7 @@ struct Collection {
         header = xml.substr(0, first);
         const std::regex timePattern("<Time[^>]*Value=\"([^\"]+)\"");
         const std::regex indexPattern("Iteration ([0-9]+)");
+        const std::regex stepPattern("<Information Name=\"FEDD timestep\" Value=\"([^\"]+)\"");
         const std::regex groupPattern(":/([^<\\s]+)/Values");
         std::size_t position = first;
         double previous = -std::numeric_limits<double>::infinity();
@@ -157,6 +159,12 @@ struct Collection {
             frame.time = std::stod(match[1]);
             if (!std::regex_search(frame.xml, match, indexPattern)) throw std::runtime_error("Missing XMF frame index");
             frame.index = std::stoi(match[1]);
+            if (std::regex_search(frame.xml, match, stepPattern)) {
+                std::size_t parsed = 0;
+                const std::string value = match[1];
+                frame.step = std::stoll(value, &parsed);
+                if (parsed != value.size() || frame.step < 0) throw std::runtime_error("Invalid XMF timestep counter");
+            }
             if (!std::isfinite(frame.time) || frame.time <= previous || frame.index <= previousIndex)
                 throw std::runtime_error("XMF frames must have increasing times and indices");
             for (std::sregex_iterator i(frame.xml.begin(), frame.xml.end(), groupPattern), last; i != last; ++i)
@@ -174,6 +182,111 @@ struct Collection {
         return result;
     }
 };
+
+/** @brief Read the export cadence independently of physical timestep sizes.
+ * Legacy moving-mesh group names also contain the unscaled output counter.
+ * Static legacy output without this information requires the original setting.
+ */
+inline int exportInterval(const Collection& collection, int fallback)
+{
+    std::smatch match;
+    const std::regex interval("Name=\"FEDD export interval\" Value=\"([0-9]+)\"");
+    long long value = fallback;
+    if (std::regex_search(collection.header, match, interval)) value = std::stoll(match[1]);
+    else {
+        const Frame* first = nullptr;
+        for (const auto& frame : collection.frames) {
+            if (frame.step < 0) continue;
+            if (!first) first = &frame;
+            else {
+                const auto steps = frame.step - first->step;
+                const auto indices = frame.index - first->index;
+                if (steps <= 0 || steps % indices != 0)
+                    throw std::runtime_error("Invalid XMF timestep/export cadence");
+                value = steps / indices;
+                break;
+            }
+        }
+        if (!first) {
+            const std::regex points("PointsX([0-9]+)");
+            for (const auto& frame : collection.frames)
+                for (const auto& group : frame.groups)
+                    if (frame.index > 0 && std::regex_match(group, match, points)) {
+                        const auto raw = std::stoll(match[1]);
+                        if (raw % frame.index != 0) throw std::runtime_error("Invalid legacy mesh/output cadence");
+                        value = raw / frame.index;
+                    }
+        }
+    }
+    if (value < 1 || value > std::numeric_limits<int>::max())
+        throw std::runtime_error("Invalid XMF export interval");
+    return static_cast<int>(value);
+}
+
+/** @brief Recover the output counter at a restart without dividing by the new dt.
+ * New frames record the simulation counter. Its difference from the output
+ * counter accounts for a series originally started at a nonzero simulation time.
+ * A checkpoint counter locates restarts between sparse frames. Without one, an
+ * exact frame or verified uniform legacy timestamps supply the index; ambiguous
+ * nonuniform history is rejected before any output files are modified.
+ */
+inline int resumeIndex(const Collection& collection, int cadence, double time,
+                       const Teuchos::ParameterList* clock)
+{
+    const auto rawIndex = [&](const Frame& frame) { return static_cast<long long>(frame.index) * cadence; };
+    long long index = -1;
+    bool hasSteps = false, hasOrigin = false;
+    long long origin = 0;
+    for (const auto& frame : collection.frames) {
+        if (frame.step < 0) continue;
+        hasSteps = true;
+        const auto offset = frame.step - rawIndex(frame);
+        if (hasOrigin && offset != origin) throw std::runtime_error("Inconsistent XMF timestep counters");
+        origin = offset;
+        hasOrigin = true;
+    }
+    if (clock) {
+        const auto step = clock->get<long long>("Step number");
+        if (step < 0) throw std::runtime_error("Invalid output restart timestep counter");
+        if (hasOrigin) {
+            index = step - origin;
+            if (index < 0) throw std::runtime_error("Checkpoint timestep counter precedes existing output");
+        }
+        else if (std::abs(collection.frames.front().time) <= 1.e-12 && collection.frames.front().index == 0)
+            index = step; // Legacy series whose output began at simulation time zero.
+    }
+    if (index < 0) {
+        for (const auto& frame : collection.frames)
+            if (std::abs(frame.time - time) <= 1.e-12) index = rawIndex(frame);
+        if (index < 0) {
+            if (hasSteps) throw std::runtime_error("A checkpoint timestep counter is required to resume between output frames");
+            if (collection.frames.size() < 2)
+                throw std::runtime_error("Cannot determine legacy output timestep grid from a single frame");
+            const auto& first = collection.frames.front();
+            const auto& last = collection.frames.back();
+            const double oldDt = (last.time - first.time) / (rawIndex(last) - rawIndex(first));
+            if (!std::isfinite(oldDt) || oldDt <= 0.) throw std::runtime_error("Cannot determine legacy output timestep grid");
+            for (const auto& frame : collection.frames)
+                if (std::abs(frame.time - first.time - (rawIndex(frame) - rawIndex(first)) * oldDt) > 1.e-12)
+                    throw std::runtime_error("Nonuniform legacy output requires a checkpoint timestep counter or an exact restart frame");
+            const double candidate = rawIndex(first) + (time - first.time) / oldDt;
+            if (!std::isfinite(candidate) || candidate < 0. || candidate > std::numeric_limits<int>::max() ||
+                std::abs(candidate - std::round(candidate)) > 1.e-7)
+                throw std::runtime_error("Restart time does not match the legacy output timestep grid");
+            index = static_cast<long long>(std::round(candidate));
+        }
+    }
+    if (index < 0 || index >= std::numeric_limits<int>::max())
+        throw std::runtime_error("Output restart timestep counter is out of range");
+    for (const auto& frame : collection.frames) {
+        const auto raw = rawIndex(frame);
+        if ((std::abs(frame.time - time) <= 1.e-12 && raw != index) ||
+            (frame.time < time - 1.e-12 && raw >= index) ||
+            (frame.time > time + 1.e-12 && raw <= index))
+            throw std::runtime_error("Checkpoint timestep counter does not match existing output timestamps");
+    }
+    return static_cast<int>(index);
+}
 
 } // namespace output
 } // namespace FEDD
