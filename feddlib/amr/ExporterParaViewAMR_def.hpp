@@ -20,6 +20,9 @@ ExporterParaView<SC,LO,GO,NO>()
 
 template<class SC,class LO,class GO,class NO>
 void ExporterParaViewAMR<SC,LO,GO,NO>::reSetup(MeshPtr_Type mesh){
+    // The base exporter defers opening files until the first output operation.
+    // AMR writes connectivity here, potentially before the first save().
+    this->initializeOutput();
     
 	this->mesh_ = mesh;
     this->nmbElementsGlob_ = this->mesh_->getNumElementsGlobal();

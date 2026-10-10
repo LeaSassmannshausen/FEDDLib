@@ -570,7 +570,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
         vec_dbl_Type vGathered(this->comm_->getSize());
         Teuchos::gatherAll<int,double>( *this->comm_, 1, &v[0], vGathered.size(), &vGathered[0] );
         int targetRank=0;
-        while (vGathered[targetRank] < 0){
+        // Only the sentinel denotes a rank without the benchmark point. A
+        // restored physical displacement may legitimately be negative.
+        while (vGathered[targetRank] == -9999.){
             targetRank++;
             TEUCHOS_TEST_FOR_EXCEPTION( targetRank == vGathered.size(), std::runtime_error, "No targetRank for export of displacements was found!" );
         }
