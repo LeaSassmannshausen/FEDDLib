@@ -1,0 +1,23 @@
+SET(work "@CMAKE_CURRENT_BINARY_DIR@/@performance_test_name@")
+FILE(REMOVE_RECURSE "${work}")
+FILE(MAKE_DIRECTORY "${work}")
+EXECUTE_PROCESS(COMMAND "@MPI_EXEC@"
+    @MPI_EXEC_PRE_NUMPROCS_FLAGS@ @MPI_EXEC_NUMPROCS_FLAG@ 9
+    @MPI_EXEC_POST_NUMPROCS_FLAGS@ "${EXECUTABLE}"
+    --dimension=@dimension@ --H-h=3 --steps=4 --restart-steps=2
+    "--problemfile=@CMAKE_CURRENT_BINARY_DIR@/parametersProblem.xml"
+    "--precfile=@CMAKE_CURRENT_BINARY_DIR@/parametersPrec.xml"
+    "--solverfile=@CMAKE_CURRENT_BINARY_DIR@/parametersSolver.xml"
+    --output-directory=results
+    WORKING_DIRECTORY "${work}" RESULT_VARIABLE result)
+IF(NOT result STREQUAL "0")
+    MESSAGE(FATAL_ERROR "Structured BFS performance run failed: ${result}")
+ENDIF()
+
+# Require measured operations, not a particular runtime or solution-error bound.
+FILE(READ "${work}/results/timings.csv" timings)
+FOREACH(operation checkpoint_write compatibility_validate primary_fields_read bdf_history_read initial_solution_load paraview_resume)
+    IF(NOT timings MATCHES ",${operation},")
+        MESSAGE(FATAL_ERROR "Missing performance measurement: ${operation}")
+    ENDIF()
+ENDFOREACH()

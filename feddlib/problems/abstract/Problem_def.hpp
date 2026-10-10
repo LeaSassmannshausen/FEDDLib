@@ -11,6 +11,7 @@
 #include "feddlib/core/LinearAlgebra/BlockMultiVector.hpp"
 #include "feddlib/core/Checkpointing/CheckpointFiles.hpp"
 #include "feddlib/core/Checkpointing/CheckpointMetadata.hpp"
+#include "feddlib/core/Checkpointing/CheckpointTiming.hpp"
 
 /*!
  Definition of Problem
@@ -440,6 +441,7 @@ namespace FEDD
             !time.get("Initial solution", false) &&
             !parameterList_->sublist("General").get("Safe all solution", false))
             return;
+        checkpoint::ScopedTimer timer(parameterList_, "metadata_prepare");
         std::vector<checkpoint::FieldDescription> fields;
         fields.reserve(domainPtr_vec_.size());
         for (UN i = 0; i < domainPtr_vec_.size(); ++i) {
@@ -463,6 +465,7 @@ namespace FEDD
         TEUCHOS_TEST_FOR_EXCEPTION(!checkpointSchemaPrepared_, std::logic_error,
                                    "Enable Restart before explicitly restoring a checkpoint.");
         if (!checkpointValidated_ || checkpointValidatedTime_ != restartTime) {
+            checkpoint::ScopedTimer timer(parameterList_, "compatibility_validate");
             checkpoint::validate(checkpointSchema_, parameterList_, restartTime, *comm_);
             checkpointValidated_ = true;
             checkpointValidatedTime_ = restartTime;
@@ -474,7 +477,10 @@ namespace FEDD
     {
         prepareCheckpointMetadata();
         if (checkpointSchemaPrepared_)
+        {
+            checkpoint::ScopedTimer timer(parameterList_, "metadata_write");
             checkpoint::write(checkpointSchema_, parameterList_, time, *comm_);
+        }
     }
 
     template <class SC, class LO, class GO, class NO>
@@ -487,6 +493,7 @@ namespace FEDD
     template <class SC, class LO, class GO, class NO>
     void Problem<SC, LO, GO, NO>::initializeSolutionFromCheckpoint(double sourceTime)
     {
+        checkpoint::ScopedTimer timer(parameterList_, "initial_solution_load");
         prepareCheckpointMetadata();
         TEUCHOS_TEST_FOR_EXCEPTION(!checkpointSchemaPrepared_, std::logic_error,
                                    "Enable Initial solution before explicitly loading initial fields.");
@@ -497,6 +504,7 @@ namespace FEDD
     template <class SC, class LO, class GO, class NO>
     void Problem<SC, LO, GO, NO>::loadSolutionFields(const std::string& directory, double sourceTime)
     {
+        checkpoint::ScopedTimer timer(parameterList_, "primary_fields_read");
         TEUCHOS_TEST_FOR_EXCEPTION(solution_.is_null(), std::logic_error,
                                    "Allocate problem vectors before restoring the solution.");
         // Stage every primary field before replacing any simulation block.

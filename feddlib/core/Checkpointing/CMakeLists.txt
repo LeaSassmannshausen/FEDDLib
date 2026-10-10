@@ -1,6 +1,7 @@
 set(Checkpointing_HEADERS
     Checkpointing/CheckpointFiles.hpp
     Checkpointing/CheckpointTimeState.hpp
+    Checkpointing/CheckpointTiming.hpp
     Checkpointing/CheckpointMetadata.hpp
     Checkpointing/CheckpointMeshFingerprint.hpp
     Checkpointing/FSIOutletState.hpp

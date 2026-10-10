@@ -1,0 +1,48 @@
+<!-- Structured 2D/3D BFS performance benchmark, P1-P1 and BDF2.
+     The driver selects dimension, H/h, rank-dependent subdivision count, run
+     length and checkpoint paths. No reference solutions or error bounds are used.
+     the help option lists command-line controls. All durations below use seconds. -->
+<ParameterList name="Navier-Stokes checkpoint performance">
+    <ParameterList name="Parameter">
+        <!-- Kinematic viscosity; density multiplies it in the viscous operator. -->
+        <Parameter name="Viscosity" type="double" value="0.01"/>
+        <Parameter name="Density" type="double" value="1.0"/>
+        <!-- Peak of the steady parabolic inlet; low velocity keeps smoke runs short. -->
+        <Parameter name="MaxVelocity" type="double" value="0.1"/>
+        <Parameter name="Symmetric gradient" type="bool" value="false"/>
+        <Parameter name="Criterion" type="string" value="Residual"/>
+        <Parameter name="relNonLinTol" type="double" value="1.e-8"/>
+        <Parameter name="MaxNonLinIts" type="int" value="15"/>
+        <!-- A nonconverged run must not produce successful performance results. -->
+        <Parameter name="Cancel MaxNonLinIts" type="bool" value="true"/>
+    </ParameterList>
+    <ParameterList name="General">
+        <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
+        <Parameter name="Linearization" type="string" value="Newton"/>
+        <Parameter name="Preconditioner Method" type="string" value="Monolithic"/>
+        <!-- Optional production-path timers; no special timer build flags needed. -->
+        <Parameter name="Checkpoint timings" type="bool" value="true"/>
+        <!-- The driver enables visualization and diagnostic logs only in the
+             producer/output-continuation phases, unless the no-resume-output option is set. -->
+        <Parameter name="ParaViewExport" type="bool" value="false"/>
+        <Parameter name="Export Data" type="bool" value="false"/>
+        <Parameter name="Safe all solution" type="bool" value="false"/>
+    </ParameterList>
+    <ParameterList name="Exporter">
+        <!-- Identical cadence and mesh mode in the source and continuation. -->
+        <Parameter name="Export every X timesteps" type="int" value="1"/>
+        <Parameter name="Write new mesh" type="bool" value="false"/>
+        <Parameter name="Resume output" type="bool" value="false"/>
+        <Parameter name="Keep old output" type="bool" value="false"/>
+    </ParameterList>
+    <ParameterList name="Timestepping Parameter">
+        <!-- The final accepted producer step is checkpointed, including BDF history. -->
+        <Parameter name="Class" type="string" value="Multistep"/>
+        <Parameter name="BDF" type="int" value="2"/>
+        <Parameter name="Timestepping type" type="string" value="non-adaptive"/>
+        <Parameter name="dt" type="double" value="0.005"/>
+        <Parameter name="Restart" type="bool" value="false"/>
+        <Parameter name="Initial solution" type="bool" value="false"/>
+        <Parameter name="Failure recovery" type="bool" value="false"/>
+    </ParameterList>
+</ParameterList>

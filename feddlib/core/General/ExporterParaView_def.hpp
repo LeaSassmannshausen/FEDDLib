@@ -4,6 +4,7 @@
 #include "OutputHistory.hpp"
 #include "HDF5VectorInfo.hpp"
 #include "feddlib/core/Checkpointing/CheckpointTimeState.hpp"
+#include "feddlib/core/Checkpointing/CheckpointTiming.hpp"
 #include <iomanip>
 
 /*!
@@ -214,6 +215,7 @@ template<class SC,class LO,class GO,class NO>
 void ExporterParaView<SC,LO,GO,NO>::initializeOutput()
 {
     if (outputInitialized_) return;
+    checkpoint::ScopedTimer timer(parameterList_, "paraview_resume", output::resume(parameterList_));
     output::archive(parameterList_, *comm_, {outputFilename_, filename_ + ".xmf", filename_ + "_times.xmf"});
     int existing = 0, nextIndex = 0, hasTimes = 0;
     double lastTime = -std::numeric_limits<double>::infinity();

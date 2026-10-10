@@ -87,6 +87,16 @@ moving meshes, rewinding and appending, duplicate suppression, sparse exports,
 changed/interval timestep sizes, repeated restarts, legacy text/ParaView output,
 default overwrite behavior and shared archives.
 
+## Checkpoint timing benchmark
+
+The structured Navier-Stokes timing benchmark in
+[`RestartTests/navierStokes_bfs_performance`](../feddlib/problems/tests/RestartTests/navierStokes_bfs_performance/README.md)
+reports checkpoint writes, compatibility validation, field/history reads,
+initial-solution loading and ParaView output resumption without solution comparisons.
+It supports 2D/3D weak-scaling layouts and configurable H/h; local CTest cases use
+nine MPI ranks. Its optional production counters use `General/Checkpoint timings=true`
+(default `false` elsewhere), and require no additional timer build flags.
+
 ## Compatibility metadata
 
 New checkpoints include a version-2 XML manifest for each component and time,

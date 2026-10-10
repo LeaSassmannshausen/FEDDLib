@@ -4,6 +4,7 @@
 #include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/core/FE/FE.hpp"
 #include "feddlib/core/General/BCBuilder.hpp"
+#include "feddlib/core/Checkpointing/CheckpointTiming.hpp"
 
 #include "NonLinearProblem.hpp"
 #include "feddlib/problems/Solver/Preconditioner.hpp"
@@ -644,6 +645,7 @@ void TimeProblem<SC,LO,GO,NO>::writeMultistepCheckpoint(double completedTime, do
     if (!saveAll && !checkpointDue)
         return;
 
+    checkpoint::ScopedTimer timer(parameterList_, "checkpoint_write");
     int nmbSteps = timeParameters.get("BDF", 1);
     if (nmbSteps < 2 && parameterList_->sublist("General").get("Linearization", "FixedPoint") == "Extrapolation")
         nmbSteps = 2;
@@ -654,6 +656,7 @@ void TimeProblem<SC,LO,GO,NO>::writeMultistepCheckpoint(double completedTime, do
         const std::string key = std::to_string(stateTime);
         if (multistepCheckpointTimesWritten_.count(key))
             return;
+        checkpoint::ScopedTimer timer(parameterList_, "fields_write");
         for (UN i = 0; i < state->size(); ++i)
             getExporter("Solution", i)->writeVariablesHDF5(key, state->getBlock(i));
         multistepCheckpointTimesWritten_.insert(key);
@@ -1366,6 +1369,7 @@ template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::restoreMultistepHistory(int nmbSteps, double restartTime)
 {
     problem_->validateRestartCheckpoint(restartTime);
+    checkpoint::ScopedTimer timer(parameterList_, "bdf_history_read");
     const double dt = getPreviousTimeIncrement(restartTime);
     const int size = problem_->getSolution()->size();
     solutionPreviousTimesteps_.resize(nmbSteps);
