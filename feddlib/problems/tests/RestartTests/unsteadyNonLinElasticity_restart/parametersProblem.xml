@@ -1,45 +1,101 @@
+<!--
+    Base configuration for the 2D nonlinear-elasticity Newmark restart test.
+    Uses the existing square_h02.mesh with P1 displacement, a Saint
+    Venant-Kirchhoff material, a clamped boundary and constant surface loading.
+    The producer runs on four ranks; restoration is checked on four or six.
+    The comparison checks displacement, velocity and acceleration history
+    at 0.01 s against the uninterrupted trajectory.
+-->
 <ParameterList name="unsteady nonlinear elasticity restart">
+    <!-- Problem properties and nonlinear convergence controls. -->
     <ParameterList name="Parameter">
+        <!-- Spatial dimension; the selected mesh must have the same dimension. -->
         <Parameter name="Dimension" type="int" value="2"/>
+        <!-- Finite-element order; this driver constructs P1 domains. -->
         <Parameter name="Discretization" type="string" value="P1"/>
+        <!-- Assemble the prescribed load as a boundary (surface) contribution. -->
         <Parameter name="Source Type" type="string" value="surface"/>
+        <!-- Despite the key name, this driver passes this amplitude to its surface-load
+             callback. -->
         <Parameter name="Volume force" type="double" value="-0.32"/>
+        <!-- Constitutive law used to assemble the solid stress and tangent. -->
         <Parameter name="Material model" type="string" value="Saint Venant-Kirchhoff"/>
+        <!-- Mass density, in the unit system of the mesh and material parameters. -->
         <Parameter name="Density" type="double" value="1."/>
+        <!-- Dimensionless Poisson ratio controlling volumetric deformation. -->
         <Parameter name="Poisson Ratio" type="double" value="0.48"/>
+        <!-- Shear modulus in the material stress units. -->
         <Parameter name="Mu" type="double" value="0.1275"/>
+        <!-- Relative nonlinear convergence tolerance; kept tight for the reference comparisons. -->
         <Parameter name="relNonLinTol" type="double" value="1.e-12"/>
+        <!-- Maximum permitted nonlinear updates in each solve. -->
         <Parameter name="MaxNonLinIts" type="int" value="10"/>
+        <!-- Stop if nonlinear convergence is not reached within MaxNonLinIts; enabled recovery
+             still stores diagnostics. -->
         <Parameter name="Cancel MaxNonLinIts" type="bool" value="true"/>
+        <!-- Use the nonlinear residual to measure convergence. -->
         <Parameter name="Criterion" type="string" value="Residual"/>
     </ParameterList>
+    <!-- Mesh inputs and distribution across the MPI ranks of this run. -->
     <ParameterList name="Mesh Partitioner">
+        <!-- Request contiguous mesh partitions from the partitioner. -->
         <Parameter name="Contiguous" type="bool" value="true"/>
+        <!-- Mesh file for the square solid domain. -->
         <Parameter name="Mesh 1 Name" type="string" value="square_h02.mesh"/>
     </ParameterList>
+    <!-- Solver coupling and optional visualization/diagnostic output. -->
     <ParameterList name="General">
+        <!-- Newton linearization for the nonlinear system. -->
         <Parameter name="Linearization" type="string" value="Newton"/>
+        <!-- Monolithic preconditioning for the single-physics system. -->
         <Parameter name="Preconditioner Method" type="string" value="Monolithic"/>
+        <!-- Enable visualization output; disabled here to reduce test I/O. -->
         <Parameter name="ParaViewExport" type="bool" value="false"/>
+        <!-- Enable timestep/iteration diagnostic text output; disabled here. -->
         <Parameter name="Export Data" type="bool" value="false"/>
     </ParameterList>
+    <!-- Time integration, checkpoint production/restoration and test comparisons. -->
     <ParameterList name="Timestepping Parameter">
+        <!-- Newmark integration of displacement, velocity and acceleration. -->
         <Parameter name="Class" type="string" value="Newmark"/>
+        <!-- Use a fixed timestep size. -->
         <Parameter name="Timestepping type" type="string" value="non-adaptive"/>
+        <!-- Timestep duration in seconds; distinct from the physical restoration time named
+             Time step. -->
         <Parameter name="dt" type="double" value="0.0025"/>
+        <!-- Newmark displacement coefficient; 0.25 pairs with gamma=0.5 for average
+             acceleration. -->
         <Parameter name="beta" type="double" value="0.25"/>
+        <!-- Newmark velocity coefficient; 0.5 pairs with beta=0.25 for average acceleration. -->
         <Parameter name="gamma" type="double" value="0.5"/>
+        <!-- True restores physical time and required integration history; false starts a fresh
+             trajectory. -->
         <Parameter name="Restart" type="bool" value="false"/>
+        <!-- Enable writes at the requested checkpoint times; restoration itself does not
+             require this flag. -->
         <Parameter name="Checkpointing" type="bool" value="true"/>
+        <!-- Destination for newly written checkpoint fields, metadata and any required
+             auxiliary state. -->
         <Parameter name="Checkpoint directory" type="string" value="restartCheckpoints"/>
+        <!-- Number of requested times in the Checkpoints sublist. -->
         <Parameter name="Number Checkpoints" type="int" value="2"/>
+        <!-- Requested physical checkpoint times in seconds; use times on the dt grid. -->
         <ParameterList name="Checkpoints">
+            <!-- Checkpoint 1: save the state at this physical time, together with the required
+                 history. -->
             <Parameter name="1" type="double" value="0.005"/>
+            <!-- Checkpoint 2: save the state at this physical time, together with the required
+                 history. -->
             <Parameter name="2" type="double" value="0.01"/>
         </ParameterList>
         <!-- Newmark currently writes the 0.01 state when the next step starts. -->
+        <!-- Physical stopping time of this phase in seconds. -->
         <Parameter name="Final time" type="double" value="0.0125"/>
+        <!-- Time of the displacement/velocity/acceleration history compared by the Newmark
+             test. -->
         <Parameter name="Comparison time" type="double" value="0.01"/>
+        <!-- Relative l2 error bound for the test comparison, not a linear/nonlinear solver
+             tolerance. -->
         <Parameter name="Restart tolerance" type="double" value="1.e-12"/>
     </ParameterList>
 </ParameterList>

@@ -1,88 +1,199 @@
+<!--
+    Base configuration for the supplied 0.5 mm arterial segment, without scaling.
+    The driver uses P1/P1 fluid, a P1 Neo-Hooke wall and explicit ALE geometry.
+    Mesh lengths are in centimetres; time is in seconds and viscosity in cm^2/s.
+    Other material inputs retain the supplied benchmark unit convention.
+    CTest selects Resistance, Absorbing or Absorbing Paper via the pressure-model option.
+    Restarts before and after the outlet transition validate fields and scalar
+    outlet history, including stored areas, previous flow rates and state flags.
+-->
 <ParameterList name="FSI">
+    <!-- Problem properties and nonlinear convergence controls. -->
     <ParameterList name="Parameter">
+        <!-- Spatial dimension; the selected mesh must have the same dimension. -->
         <Parameter name="Dimension" type="int" value="3" />
+        <!-- Finite-element order; this driver constructs P1 domains. -->
         <Parameter name="Discretization" type="string" value="P1" />
+        <!-- Select the Laplace-based ALE mesh-motion model. -->
         <Parameter name="Model Geometry" type="string" value="Laplace" />
+        <!-- Enable the coupled fluid-structure formulation. -->
         <Parameter name="FSI" type="bool" value="true" />
+        <!-- Update ALE geometry explicitly rather than solving it as an implicit coupled block. -->
         <Parameter name="Geometry Explicit" type="bool" value="true" />
+        <!-- Relative nonlinear convergence tolerance; kept tight for the reference comparisons. -->
         <Parameter name="relNonLinTol" type="double" value="1.e-10" />
+        <!-- Maximum permitted nonlinear updates in each solve. -->
         <Parameter name="MaxNonLinIts" type="int" value="15" />
+        <!-- Stop if nonlinear convergence is not reached within MaxNonLinIts; enabled recovery
+             still stores diagnostics. -->
         <Parameter name="Cancel MaxNonLinIts" type="bool" value="true" />
+        <!-- Use the nonlinear residual to measure convergence. -->
         <Parameter name="Criterion" type="string" value="Residual" />
     </ParameterList>
+    <!-- Solid constitutive properties, copied into the structure problem. -->
     <ParameterList name="Parameter Solid">
+        <!-- Constitutive law used to assemble the solid stress and tangent. -->
         <Parameter name="Material model" type="string" value="Neo-Hooke" />
+        <!-- Mass density, in the unit system of the mesh and material parameters. -->
         <Parameter name="Density" type="double" value="1.0e-03" />
+        <!-- Shear modulus in the material stress units. -->
         <Parameter name="Mu" type="double" value="671.0" />
+        <!-- Young modulus in the material stress units. -->
         <Parameter name="E" type="double" value="2.0e3" />
+        <!-- Dimensionless Poisson ratio controlling volumetric deformation. -->
         <Parameter name="Poisson Ratio" type="double" value="0.49" />
     </ParameterList>
+    <!-- Fluid properties and, for the artery, outlet boundary-model settings. -->
     <ParameterList name="Parameter Fluid">
+        <!-- Fluid preconditioner selection retained in the fluid settings; the driver also
+             selects the Monolithic method. -->
         <Parameter name="Preconditioner Type" type="string" value="Monolithic" />
+        <!-- Kinematic viscosity (length squared per second); dynamic viscosity is density times
+             this value. -->
         <Parameter name="Viscosity" type="double" value="2.91e-2" />
+        <!-- Mass density, in the unit system of the mesh and material parameters. -->
         <Parameter name="Density" type="double" value="1.03e-03" />
+        <!-- True uses the symmetric velocity gradient in the viscous operator; false uses the
+             gradient form. -->
         <Parameter name="Symmetric gradient" type="bool" value="true" />
+        <!-- End of the inlet flow ramp in seconds, between the two tested restart times. -->
         <Parameter name="Max Ramp Time" type="double" value="0.00625" />
+        <!-- Prescribed inlet volumetric flow rate in cm^3/s; used to normalize the parabolic
+             profile. -->
         <Parameter name="Flowrate" type="double" value="3" />
+        <!-- Outlet-model transition time in seconds; its captured area/state must survive
+             restoration. -->
         <Parameter name="Unsteady Start" type="double" value="0.00625" />
+        <!-- Use the mean of the two retained outlet flow rates in the pressure model. -->
         <Parameter name="Average Flowrate" type="bool" value="true" />
+        <!-- Reference-pressure ramp duration in seconds; zero applies it without a ramp. -->
         <Parameter name="BC Ramp" type="double" value="0.0" />
+        <!-- Sign/scale applied to normals in the outlet pressure traction assembly. -->
         <Parameter name="Normal Scale" type="double" value="-1.0" />
+        <!-- Effective wall Poisson ratio used by the absorbing outlet law; not a fluid
+             compressibility parameter. -->
         <Parameter name="Poisson Ratio" type="double" value="0.49" />
+        <!-- Reference pressure for the absorbing outlet models, in the benchmark stress units. -->
         <Parameter name="Reference fluid pressure" type="double" value="11.99e1" />
+        <!-- Effective wall thickness in cm used by the absorbing outlet law. -->
         <Parameter name="Wall thickness" type="double" value="0.12" />
+        <!-- Effective wall Young modulus in the benchmark stress units, used by the absorbing
+             outlet law. -->
         <Parameter name="E" type="double" value="120.0e1" />
+        <!-- Outlet resistance multiplying volumetric flow rate to obtain pressure. -->
         <Parameter name="Resistance" type="double" value="3.9966e1" />
     </ParameterList>
+    <!-- ALE mesh-motion settings, copied into the geometry problem. -->
     <ParameterList name="Parameter Geometry">
+        <!-- Dimensionless Poisson ratio controlling volumetric deformation. Used by the
+             alternative Elasticity geometry model, not the selected Laplace model. -->
         <Parameter name="Poisson Ratio" type="double" value="0.49e-0" />
+        <!-- Shear modulus in the material stress units. Used by the alternative Elasticity
+             geometry model, not the selected Laplace model. -->
         <Parameter name="Mu" type="double" value="126.700e1" />
+        <!-- Select the Laplace-based ALE mesh-motion model. -->
         <Parameter name="Model Geometry" type="string" value="Laplace" />
+        <!-- Operator assembled by the geometry subproblem; Laplace selects the scaled
+             Laplacian. -->
         <Parameter name="Model" type="string" value="Laplace" />
+        <!-- Distance parameter in the heuristic scaling of the ALE Laplace operator. -->
         <Parameter name="Distance Laplace" type="double" value="0.1" />
+        <!-- Coefficient parameter in the heuristic scaling of the ALE Laplace operator. -->
         <Parameter name="Coefficient Laplace" type="double" value="1000." />
     </ParameterList>
+    <!-- Mesh inputs and distribution across the MPI ranks of this run. -->
     <ParameterList name="Mesh Partitioner">
+        <!-- Request contiguous mesh partitions from the partitioner. -->
         <Parameter name="Contiguous" type="bool" value="true" />
+        <!-- Mesh file for the fluid domain. -->
         <Parameter name="Mesh 1 Name" type="string" value="fsi_fluid_length_0_5_mm.mesh" />
+        <!-- Mesh file for the solid domain. -->
         <Parameter name="Mesh 2 Name" type="string" value="fsi_solid_length_0_5_mm.mesh" />
+        <!-- False disables automatic allocation of disjoint MPI rank ranges between meshes. -->
         <Parameter name="Automatic partition" type="bool" value="false" />
+        <!-- Percentage allocation for mesh 1; -1 disables allocation by percentage. -->
         <Parameter name="Mesh 1 fraction ranks" type="int" value="-1" />
+        <!-- Explicit rank count for mesh 1; with both allocation modes disabled, every mesh
+             uses all ranks. -->
         <Parameter name="Mesh 1 number ranks" type="int" value="-1" />
+        <!-- Percentage allocation for mesh 2; -1 disables allocation by percentage. -->
         <Parameter name="Mesh 2 fraction ranks" type="int" value="-1" />
+        <!-- Explicit rank count for mesh 2; -1 leaves the explicit allocation disabled. -->
         <Parameter name="Mesh 2 number ranks" type="int" value="-1" />
     </ParameterList>
+    <!-- Solver coupling and optional visualization/diagnostic output. -->
     <ParameterList name="General">
+        <!-- Enable visualization output; disabled here to reduce test I/O. -->
         <Parameter name="ParaViewExport" type="bool" value="false" />
+        <!-- Enable timestep/iteration diagnostic text output; disabled here. -->
         <Parameter name="Export Data" type="bool" value="false" />
+        <!-- Enable flow-rate diagnostic files; outlet state is still checkpointed when these
+             files are disabled. -->
         <Parameter name="Export Flow Rate" type="bool" value="false" />
+        <!-- FaCSI preconditioning for the coupled fluid-structure system. -->
         <Parameter name="Preconditioner Method" type="string" value="FaCSI" />
+        <!-- Apply the fluid subproblem preconditioner within FaCSI. -->
         <Parameter name="Use Fluid Preconditioner" type="bool" value="true" />
+        <!-- Apply the solid subproblem preconditioner within FaCSI. -->
         <Parameter name="Use Solid Preconditioner" type="bool" value="true" />
+        <!-- Newton linearization for the nonlinear system. -->
         <Parameter name="Linearization" type="string" value="Newton" />
+        <!-- Mesh boundary label for the fluid inlet. -->
         <Parameter name="Flag Inlet Fluid" type="int" value="4" />
+        <!-- Mesh boundary label for the fluid outlet. -->
         <Parameter name="Flag Outlet Fluid" type="int" value="5" />
+        <!-- Mesh boundary label used for fluid-structure coupling. -->
         <Parameter name="Flag Interface" type="int" value="6" />
     </ParameterList>
+    <!-- Time integration, checkpoint production/restoration and test comparisons. -->
     <ParameterList name="Timestepping Parameter">
+        <!-- Backward differentiation order; order two requires previous solution history. -->
         <Parameter name="BDF" type="int" value="2" />
+        <!-- Time-integration family; FSI uses Multistep for the fluid and Newmark for the
+             solid. -->
         <Parameter name="Class" type="string" value="Multistep" />
+        <!-- Use a fixed timestep size. -->
         <Parameter name="Timestepping type" type="string" value="non-adaptive" />
+        <!-- Physical stopping time of this phase in seconds. One extra step writes the 0.015 s
+             comparison checkpoint under the FSI convention. -->
         <Parameter name="Final time" type="double" value="0.0175" />
+        <!-- Timestep duration in seconds; distinct from the physical restoration time named
+             Time step. -->
         <Parameter name="dt" type="double" value="0.0025" />
+        <!-- Newmark displacement coefficient; 0.25 pairs with gamma=0.5 for average
+             acceleration. -->
         <Parameter name="beta" type="double" value="0.25" />
+        <!-- Newmark velocity coefficient; 0.5 pairs with beta=0.25 for average acceleration. -->
         <Parameter name="gamma" type="double" value="0.5" />
+        <!-- Enable writes at the requested checkpoint times; restoration itself does not
+             require this flag. -->
         <Parameter name="Checkpointing" type="bool" value="true" />
+        <!-- Destination for newly written checkpoint fields, metadata and any required
+             auxiliary state. -->
         <Parameter name="Checkpoint directory" type="string" value="restartCheckpoints" />
+        <!-- Number of requested times in the Checkpoints sublist. -->
         <Parameter name="Number Checkpoints" type="int" value="3" />
+        <!-- True restores physical time and required integration history; false starts a fresh
+             trajectory. -->
         <Parameter name="Restart" type="bool" value="false" />
+        <!-- Relative l2 term in absolute error <= absolute tolerance + relative tolerance *
+             reference l2 norm. -->
         <Parameter name="Restart tolerance" type="double" value="1.e-12" />
+        <!-- Absolute l2 error allowance in field units; combined with the relative reference-
+             norm term. -->
         <Parameter name="Restart absolute tolerance" type="double" value="1.e-15" />
         <!-- Keep checkpoints two steps apart: FSI exports each checkpoint's
              previous-step history into the same HDF5 files. -->
+        <!-- Requested physical checkpoint times in seconds; use times on the dt grid. -->
         <ParameterList name="Checkpoints">
+            <!-- Checkpoint 1: save the state at this physical time, together with the required
+                 history. -->
             <Parameter name="1" type="double" value="0.005" />
+            <!-- Checkpoint 2: save the state at this physical time, together with the required
+                 history. -->
             <Parameter name="2" type="double" value="0.01" />
+            <!-- Checkpoint 3: save the state at this physical time, together with the required
+                 history. -->
             <Parameter name="3" type="double" value="0.015" />
         </ParameterList>
     </ParameterList>

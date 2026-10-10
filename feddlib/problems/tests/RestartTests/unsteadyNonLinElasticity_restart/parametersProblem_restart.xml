@@ -1,8 +1,23 @@
+<!--
+    Restart-phase override, merged into parametersProblem.xml.
+    Restore displacement and Newmark velocity/acceleration at 0.005 s.
+    The inherited final time 0.0125 s makes the history at the comparison
+    time 0.01 s available under the current Newmark update convention.
+-->
 <ParameterList name="unsteady nonlinear elasticity restart">
+    <!-- Time integration, checkpoint production/restoration and test comparisons. -->
     <ParameterList name="Timestepping Parameter">
+        <!-- Enable writes at the requested checkpoint times; restoration itself does not
+             require this flag. -->
         <Parameter name="Checkpointing" type="bool" value="false"/>
+        <!-- True restores physical time and required integration history; false starts a fresh
+             trajectory. -->
         <Parameter name="Restart" type="bool" value="true"/>
+        <!-- Source directory containing the checkpoint fields, compatibility metadata and
+             required history. -->
         <Parameter name="Restart directory" type="string" value="restartCheckpoints"/>
+        <!-- Physical time in seconds of the checkpoint to restore; this is not the timestep
+             duration dt. -->
         <Parameter name="Time step" type="double" value="0.005"/>
     </ParameterList>
 </ParameterList>

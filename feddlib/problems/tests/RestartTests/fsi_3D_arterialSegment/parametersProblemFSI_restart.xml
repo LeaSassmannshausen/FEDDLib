@@ -1,10 +1,26 @@
+<!--
+    Restart-phase override, merged into parametersProblemFSI.xml.
+    The runner selects the same outlet model as the producer and overrides
+    the restart time to test both 0.005 s and 0.01 s.
+    Both trajectories are compared with the reference checkpoint at 0.015 s.
+-->
 <ParameterList name="FSI">
     <!-- Overrides for phase 2; the case is defined in parametersProblemFSI.xml. -->
+    <!-- Time integration, checkpoint production/restoration and test comparisons. -->
     <ParameterList name="Timestepping Parameter">
+        <!-- Enable writes at the requested checkpoint times; restoration itself does not
+             require this flag. -->
         <Parameter name="Checkpointing" type="bool" value="false"/>
+        <!-- True restores physical time and required integration history; false starts a fresh
+             trajectory. -->
         <Parameter name="Restart" type="bool" value="true"/>
+        <!-- Source directory containing the checkpoint fields, compatibility metadata and
+             required history. -->
         <Parameter name="Restart directory" type="string" value="restartCheckpoints"/>
+        <!-- Physical time in seconds of the checkpoint to restore; this is not the timestep
+             duration dt. -->
         <Parameter name="Time step" type="double" value="0.005"/>
+        <!-- Physical stopping time of this phase in seconds. -->
         <Parameter name="Final time" type="double" value="0.015"/>
     </ParameterList>
 </ParameterList>

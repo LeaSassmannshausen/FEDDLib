@@ -1,8 +1,17 @@
+<!--
+    2D mesh override, merged into the shared parametersProblem.xml.
+    Also reused by the initial-solution and 2D recovery tests.
+    The test driver uses P1 velocity and P1 pressure on this mesh.
+-->
 <ParameterList name="unsteady Navier-Stokes">
+    <!-- Problem properties and nonlinear convergence controls. -->
     <ParameterList name="Parameter">
+        <!-- Spatial dimension; the selected mesh must have the same dimension. -->
         <Parameter name="Dimension" type="int" value="2"/>
     </ParameterList>
+    <!-- Mesh inputs and distribution across the MPI ranks of this run. -->
     <ParameterList name="Mesh Partitioner">
+        <!-- Mesh file for the fluid domain. -->
         <Parameter name="Mesh 1 Name" type="string" value="BFS2d_1600.mesh"/>
     </ParameterList>
 </ParameterList>

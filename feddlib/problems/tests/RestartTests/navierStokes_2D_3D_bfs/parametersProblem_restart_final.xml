@@ -1,11 +1,28 @@
+<!--
+    Override for continuation from the producer final checkpoint at 0.01 s.
+    Compare at 0.015 s against the separate uninterrupted reference.
+    This checks that the final accepted timestep is checkpointed without
+    requiring the producer to advance another timestep.
+-->
 <ParameterList name="unsteady Navier-Stokes">
     <!-- Resume the checkpoint produced by a run that stops exactly at 0.01. -->
+    <!-- Time integration, checkpoint production/restoration and test comparisons. -->
     <ParameterList name="Timestepping Parameter">
+        <!-- Enable writes at the requested checkpoint times; restoration itself does not
+             require this flag. -->
         <Parameter name="Checkpointing" type="bool" value="false"/>
+        <!-- True restores physical time and required integration history; false starts a fresh
+             trajectory. -->
         <Parameter name="Restart" type="bool" value="true"/>
+        <!-- Source directory containing the checkpoint fields, compatibility metadata and
+             required history. -->
         <Parameter name="Restart directory" type="string" value="restartCheckpoints"/>
+        <!-- Independent uninterrupted checkpoint source used only for the test comparison. -->
         <Parameter name="Reference directory" type="string" value="referenceCheckpoints"/>
+        <!-- Physical time in seconds of the checkpoint to restore; this is not the timestep
+             duration dt. -->
         <Parameter name="Time step" type="double" value="0.01"/>
+        <!-- Physical stopping time of this phase in seconds. -->
         <Parameter name="Final time" type="double" value="0.015"/>
     </ParameterList>
 </ParameterList>

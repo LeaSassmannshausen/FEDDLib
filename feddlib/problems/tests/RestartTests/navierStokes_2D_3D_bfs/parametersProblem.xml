@@ -1,40 +1,87 @@
+<!--
+    Base configuration for the 2D and 3D backward-facing-step restart tests.
+    The driver merges this file, the selected parametersProblem2D/3D.xml,
+    then any reference/restart override and the solver/preconditioner files.
+    The producer runs on four ranks; restoration is checked on four or six.
+    The BFS recovery test also reuses these inputs and generates its overrides.
+-->
 <ParameterList name="unsteady Navier-Stokes">
     <!-- Shared settings for both BFS meshes and both phases of the restart test. -->
+    <!-- Problem properties and nonlinear convergence controls. -->
     <ParameterList name="Parameter">
+        <!-- Kinematic viscosity (length squared per second); dynamic viscosity is density times
+             this value. -->
         <Parameter name="Viscosity" type="double" value="0.001"/>
+        <!-- Mass density, in the unit system of the mesh and material parameters. -->
         <Parameter name="Density" type="double" value="1.0"/>
+        <!-- Peak velocity used by the driver to scale the parabolic inlet profile. -->
         <Parameter name="MaxVelocity" type="double" value="1.5"/>
         <!-- Resolve solver error below the restart comparison bound across MPI partitions. -->
+        <!-- Relative nonlinear convergence tolerance; kept tight for the reference comparisons. -->
         <Parameter name="relNonLinTol" type="double" value="1.e-12"/>
+        <!-- Maximum permitted nonlinear updates in each solve. -->
         <Parameter name="MaxNonLinIts" type="int" value="10"/>
+        <!-- Use the nonlinear residual to measure convergence. -->
         <Parameter name="Criterion" type="string" value="Residual"/>
+        <!-- True uses the symmetric velocity gradient in the viscous operator; false uses the
+             gradient form. -->
         <Parameter name="Symmetric gradient" type="bool" value="false"/>
     </ParameterList>
+    <!-- Mesh inputs and distribution across the MPI ranks of this run. -->
     <ParameterList name="Mesh Partitioner">
+        <!-- Request contiguous mesh partitions from the partitioner. -->
         <Parameter name="Contiguous" type="bool" value="true"/>
     </ParameterList>
+    <!-- Solver coupling and optional visualization/diagnostic output. -->
     <ParameterList name="General">
+        <!-- Number of ranks reserved for the coarse solve; zero reserves no separate coarse
+             ranks. -->
         <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
+        <!-- Newton linearization for the nonlinear system. -->
         <Parameter name="Linearization" type="string" value="Newton"/>
+        <!-- Monolithic preconditioning for the single-physics system. -->
         <Parameter name="Preconditioner Method" type="string" value="Monolithic"/>
+        <!-- Enable visualization output; disabled here to reduce test I/O. -->
         <Parameter name="ParaViewExport" type="bool" value="false"/>
+        <!-- Enable timestep/iteration diagnostic text output; disabled here. -->
         <Parameter name="Export Data" type="bool" value="false"/>
     </ParameterList>
+    <!-- Time integration, checkpoint production/restoration and test comparisons. -->
     <ParameterList name="Timestepping Parameter">
+        <!-- Multistep time integration using the selected BDF order. -->
         <Parameter name="Class" type="string" value="Multistep"/>
+        <!-- Backward differentiation order; order two requires previous solution history. -->
         <Parameter name="BDF" type="int" value="2"/>
+        <!-- Use a fixed timestep size. -->
         <Parameter name="Timestepping type" type="string" value="non-adaptive"/>
+        <!-- Timestep duration in seconds; distinct from the physical restoration time named
+             Time step. -->
         <Parameter name="dt" type="double" value="0.0025"/>
+        <!-- True restores physical time and required integration history; false starts a fresh
+             trajectory. -->
         <Parameter name="Restart" type="bool" value="false"/>
+        <!-- Enable writes at the requested checkpoint times; restoration itself does not
+             require this flag. -->
         <Parameter name="Checkpointing" type="bool" value="true"/>
+        <!-- Destination for newly written checkpoint fields, metadata and any required
+             auxiliary state. -->
         <Parameter name="Checkpoint directory" type="string" value="restartCheckpoints"/>
+        <!-- Number of requested times in the Checkpoints sublist. -->
         <Parameter name="Number Checkpoints" type="int" value="2"/>
+        <!-- Requested physical checkpoint times in seconds; use times on the dt grid. -->
         <ParameterList name="Checkpoints">
+            <!-- Checkpoint 1: save the state at this physical time, together with the required
+                 history. -->
             <Parameter name="1" type="double" value="0.005"/>
+            <!-- Checkpoint 2: save the state at this physical time, together with the required
+                 history. -->
             <Parameter name="2" type="double" value="0.01"/>
         </ParameterList>
         <!-- The final accepted step must write the checkpoint at 0.01. -->
+        <!-- Physical stopping time of this phase in seconds. -->
         <Parameter name="Final time" type="double" value="0.01"/>
+        <!-- Relative l2 error bound for the test comparison, not a linear/nonlinear solver
+             tolerance. -->
         <Parameter name="Restart tolerance" type="double" value="1.e-12"/>
     </ParameterList>
 </ParameterList>

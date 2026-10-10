@@ -1,16 +1,38 @@
+<!--
+    Restart-phase override, merged into parametersProblemFSI.xml.
+    Load the coupled state at 0.005 s and compare at 0.01 s.
+    Write resumed checkpoints into a different directory so the source
+    checkpoint files cannot be truncated by output exporters.
+-->
 <ParameterList name="FSI">
     <!-- Overrides for phase 2; the case is defined in parametersProblemFSI.xml. -->
+    <!-- Time integration, checkpoint production/restoration and test comparisons. -->
     <ParameterList name="Timestepping Parameter">
+        <!-- Enable writes at the requested checkpoint times; restoration itself does not
+             require this flag. -->
         <Parameter name="Checkpointing" type="bool" value="true"/>
+        <!-- Destination for newly written checkpoint fields, metadata and any required
+             auxiliary state. -->
         <Parameter name="Checkpoint directory" type="string" value="resumedCheckpoints"/>
         <!-- Exercise checkpoint output after one completed resumed step. -->
+        <!-- Number of requested times in the Checkpoints sublist. -->
         <Parameter name="Number Checkpoints" type="int" value="1"/>
+        <!-- Requested physical checkpoint times in seconds; use times on the dt grid. -->
         <ParameterList name="Checkpoints">
+            <!-- Checkpoint 1: save the state at this physical time, together with the required
+                 history. -->
             <Parameter name="1" type="double" value="0.0075"/>
         </ParameterList>
+        <!-- True restores physical time and required integration history; false starts a fresh
+             trajectory. -->
         <Parameter name="Restart" type="bool" value="true"/>
+        <!-- Source directory containing the checkpoint fields, compatibility metadata and
+             required history. -->
         <Parameter name="Restart directory" type="string" value="restartCheckpoints"/>
+        <!-- Physical time in seconds of the checkpoint to restore; this is not the timestep
+             duration dt. -->
         <Parameter name="Time step" type="double" value="0.005"/>
+        <!-- Physical stopping time of this phase in seconds. -->
         <Parameter name="Final time" type="double" value="0.01"/>
     </ParameterList>
 </ParameterList>

@@ -1,11 +1,25 @@
+<!--
+    Override for an independent uninterrupted reference ending at 0.015 s.
+    Merged after the base settings and the selected 2D/3D mesh settings.
+    Its checkpoint supplies the comparison for continuation from the
+    producer final checkpoint at 0.01 s.
+-->
 <ParameterList name="unsteady Navier-Stokes">
     <!-- Independent uninterrupted reference for continuation beyond the producer's final time. -->
+    <!-- Time integration, checkpoint production/restoration and test comparisons. -->
     <ParameterList name="Timestepping Parameter">
+        <!-- Destination for newly written checkpoint fields, metadata and any required
+             auxiliary state. -->
         <Parameter name="Checkpoint directory" type="string" value="referenceCheckpoints"/>
+        <!-- Number of requested times in the Checkpoints sublist. -->
         <Parameter name="Number Checkpoints" type="int" value="1"/>
+        <!-- Requested physical checkpoint times in seconds; use times on the dt grid. -->
         <ParameterList name="Checkpoints">
+            <!-- Checkpoint 1: save the state at this physical time, together with the required
+                 history. -->
             <Parameter name="1" type="double" value="0.015"/>
         </ParameterList>
+        <!-- Physical stopping time of this phase in seconds. -->
         <Parameter name="Final time" type="double" value="0.015"/>
     </ParameterList>
 </ParameterList>

@@ -1,10 +1,25 @@
+<!--
+    Override for restarting at 0.005 s and comparing at 0.01 s.
+    The base file and selected mesh settings remain in effect.
+    Restoration includes velocity, pressure and the BDF history.
+-->
 <ParameterList name="unsteady Navier-Stokes">
     <!-- Phase 2 inherits the shared settings and selected 2D/3D case. -->
+    <!-- Time integration, checkpoint production/restoration and test comparisons. -->
     <ParameterList name="Timestepping Parameter">
+        <!-- Enable writes at the requested checkpoint times; restoration itself does not
+             require this flag. -->
         <Parameter name="Checkpointing" type="bool" value="false"/>
+        <!-- True restores physical time and required integration history; false starts a fresh
+             trajectory. -->
         <Parameter name="Restart" type="bool" value="true"/>
+        <!-- Source directory containing the checkpoint fields, compatibility metadata and
+             required history. -->
         <Parameter name="Restart directory" type="string" value="restartCheckpoints"/>
+        <!-- Physical time in seconds of the checkpoint to restore; this is not the timestep
+             duration dt. -->
         <Parameter name="Time step" type="double" value="0.005"/>
+        <!-- Physical stopping time of this phase in seconds. -->
         <Parameter name="Final time" type="double" value="0.01"/>
     </ParameterList>
 </ParameterList>
