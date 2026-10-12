@@ -5,6 +5,7 @@
 #include "feddlib/problems/specific/NavierStokes.hpp"
 #include <Teuchos_CommandLineProcessor.hpp>
 #include <Teuchos_GlobalMPISession.hpp>
+#include <Teuchos_StackedTimer.hpp>
 #include <Teuchos_TimeMonitor.hpp>
 #include <Teuchos_XMLParameterListHelpers.hpp>
 #include <Xpetra_DefaultPlatform.hpp>
@@ -70,6 +71,71 @@ private:
     std::streambuf* original_;
 };
 
+/** @brief Add a benchmark region above the nested library TimeMonitor counters.
+ * These regions introduce no synchronization. If TimeMonitor disables stacked
+ * timing after detecting overlapping timers, leave the damaged stack alone;
+ * the benchmark subsequently reports the error instead of publishing a report.
+ */
+class StackedRegion {
+public:
+    explicit StackedRegion(const std::string& name)
+        : timer_(Teuchos::TimeMonitor::getStackedTimer()), name_(name)
+    {
+        if (!timer_.is_null()) timer_->start(name_);
+    }
+    ~StackedRegion()
+    {
+        if (!timer_.is_null() && Teuchos::TimeMonitor::getStackedTimer() == timer_)
+            timer_->stop(name_);
+    }
+private:
+    RCP<Teuchos::StackedTimer> timer_;
+    std::string name_;
+};
+
+/** @brief Attach one stacked timer for this invocation and restore the prior binding.
+ * Checkpoint and solver TimeMonitor scopes automatically populate this stack.
+ * MPI aggregation/reporting happens collectively after stopping the root timer;
+ * writing the aggregated report is a rank-zero operation.
+ */
+class StackedTiming {
+public:
+    explicit StackedTiming(bool enabled) : previous_(Teuchos::TimeMonitor::getStackedTimer())
+    {
+        if (enabled) timer_ = rcp(new Teuchos::StackedTimer("BFS restart performance"));
+        Teuchos::TimeMonitor::setStackedTimer(timer_);
+    }
+    ~StackedTiming() { Teuchos::TimeMonitor::setStackedTimer(previous_); }
+
+    void check() const
+    {
+        TEUCHOS_TEST_FOR_EXCEPTION(!timer_.is_null() && Teuchos::TimeMonitor::getStackedTimer() != timer_,
+                                   std::runtime_error, "Stacked timing was disabled by a library timer overlap; no valid stacked report can be produced.");
+    }
+
+    void report(RCP<const Teuchos::Comm<int>> comm, const std::filesystem::path& directory)
+    {
+        if (timer_.is_null()) return;
+        check();
+        timer_->stop("BFS restart performance");
+        Teuchos::StackedTimer::OutputOptions options;
+        options.output_fraction = options.output_minmax = options.output_proc_minmax = true;
+        options.align_columns = true;
+        std::ostringstream output;
+        timer_->report(output, comm, options);
+        checkpoint::onRoot(*comm, [&] {
+            std::ofstream file(directory / "stacked_timings.txt");
+            file << output.str();
+            file.close();
+            if (!file) throw std::runtime_error("Cannot write stacked_timings.txt.");
+            std::cout << '\n' << output.str();
+        });
+    }
+
+private:
+    RCP<Teuchos::StackedTimer> previous_, timer_;
+};
+
 struct Measurement {
     std::string operation;
     double seconds;
@@ -95,9 +161,13 @@ void measure(const std::string& name, const Teuchos::Comm<int>& comm,
              std::vector<Measurement>& measurements, Operation operation)
 {
     comm.barrier();
-    const auto start = Clock::now();
-    operation();
-    const double seconds = std::chrono::duration<double>(Clock::now() - start).count();
+    double seconds;
+    {
+        StackedRegion region(name);
+        const auto start = Clock::now();
+        operation();
+        seconds = std::chrono::duration<double>(Clock::now() - start).count();
+    }
     measurements.push_back({name, seconds, 1});
     comm.barrier();
 }
@@ -212,7 +282,7 @@ int main(int argc, char* argv[])
     std::string problemFile = "parametersProblem.xml", precFile = "parametersPrec.xml";
     std::string solverFile = "parametersSolver.xml", outputDirectory = "performance_output";
     int dim = 2, ratio = 3, length = 4, steps = 4, continuationSteps = 2, repetitions = 1;
-    bool quiet = true, baseline = true, resumeOutput = true, initialSolution = true;
+    bool quiet = true, baseline = true, resumeOutput = true, initialSolution = true, stackedTimers = true;
     Teuchos::CommandLineProcessor commandLine;
     commandLine.setOption("problemfile", &problemFile, "Physics and time integration parameters.");
     commandLine.setOption("precfile", &precFile, "Preconditioner settings (replace for cluster runs if needed).");
@@ -224,7 +294,9 @@ int main(int argc, char* argv[])
     commandLine.setOption("restart-steps", &continuationSteps, "Timesteps in each continuation / initial-solution phase.");
     commandLine.setOption("repetitions", &repetitions, "Independent samples; each keeps its own output directory.");
     commandLine.setOption("output-directory", &outputDirectory, "New directory for checkpoints, exports and timings.csv.");
-    commandLine.setOption("quiet", "verbose", &quiet, "Only print CSV timing rows (default), or also library progress.");
+    commandLine.setOption("quiet", "verbose", &quiet, "Only print timing output (default), or also library progress.");
+    commandLine.setOption("stacked-timers", "no-stacked-timers", &stackedTimers,
+                          "Also print/save a hierarchical MPI timer report (default); disable for CSV-only output.");
     commandLine.setOption("baseline", "no-baseline", &baseline, "Also measure a fresh run without checkpoint/output I/O.");
     commandLine.setOption("resume-output", "no-resume-output", &resumeOutput, "Also measure continuation of ParaView/text output.");
     commandLine.setOption("initial-solution", "no-initial-solution", &initialSolution, "Also measure loading primary fields at time zero.");
@@ -275,8 +347,10 @@ int main(int argc, char* argv[])
             csv << header;
             Teuchos::writeParameterListToXmlFile(*base, (root / "parametersEffective.xml").string());
         });
+        StackedTiming stackedTiming(stackedTimers);
         const double checkpointTime = steps * dt;
         for (int repeat = 1; repeat <= repetitions; ++repeat) {
+            StackedRegion repetition("repeat_" + std::to_string(repeat));
             const auto repeatDirectory = root / ("repeat_" + std::to_string(repeat));
             const auto producerDirectory = repeatDirectory / "checkpoint_run";
             const auto checkpointDirectory = producerDirectory / "checkpoints";
@@ -301,8 +375,16 @@ int main(int argc, char* argv[])
                     Teuchos::writeParameterListToXmlFile(*parameters, (directory / (phase + ".xml")).string());
                 });
                 std::vector<Measurement> measurements;
-                const auto size = runPhase(parameters, comm, dim, subdivisions, ratio, length, quiet, measurements);
-                report(measurements, size, *comm, csv, repeat, phase, dim, ratio, subdivisions);
+                MeshSize size;
+                {
+                    StackedRegion phaseRegion(phase);
+                    size = runPhase(parameters, comm, dim, subdivisions, ratio, length, quiet, measurements);
+                }
+                stackedTiming.check();
+                {
+                    StackedRegion reportRegion("csv_report");
+                    report(measurements, size, *comm, csv, repeat, phase, dim, ratio, subdivisions);
+                }
                 std::filesystem::current_path(originalDirectory);
             };
             if (baseline) execute("baseline", false, false, false, false);
@@ -311,6 +393,7 @@ int main(int argc, char* argv[])
             if (resumeOutput) execute("resume_output", true, false, true, true);
             if (initialSolution) execute("initial_solution", false, true, false, false);
         }
+        stackedTiming.report(comm, root);
         return EXIT_SUCCESS;
     }
     catch (const std::exception& error) {

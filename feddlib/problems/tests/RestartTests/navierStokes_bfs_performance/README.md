@@ -15,7 +15,7 @@ ctest --test-dir build -R '^problems_navierStokes_bfs_performance_' -V
 
 Two short cases use nine MPI processes, H/h=3, four producer steps and two
 continuation steps. CTest recreates only each case's dedicated working directory.
-Results are in that directory's `results/timings.csv`. The `Performance` label
+Results are in that directory's `results/timings.csv` and `results/stacked_timings.txt`. The `Performance` label
 allows selection with `ctest -L Performance` or exclusion with `ctest -LE Performance`.
 
 ## Larger runs and weak scaling
@@ -98,13 +98,47 @@ disabled by default elsewhere. They use Teuchos counters without adding MPI
 barriers to the operations. `paraview_resume` covers exporter reopening; subsequent
 frame writes and diagnostic text-log resumption are part of the phase's `advance`.
 
-Standard output is CSV by default, also saved as `timings.csv`; `--verbose`
-adds ordinary library progress output. Rows contain rank-minimum, mean and
+Standard output contains CSV timing rows followed by a stacked timer report.
+The CSV is also saved separately as `timings.csv`; `--verbose` adds ordinary
+library progress output. Rows contain rank-minimum, mean and
 **maximum wall time in seconds**, call counts, global/owned DOF counts, MPI size
 and mesh settings. For scaling plots, use `seconds_max` as the parallel critical
 path; divide by the reported call count when a per-call average is desired.
 Each operation's row sums its calls within that phase. **Nested counters are
 inclusive: do not add child times to their parent or to the phase total.**
+
+Stacked timing is enabled by default (`--stacked-timers`) and saved as
+`stacked_timings.txt` beside the CSV. `--no-stacked-timers` disables the stack
+and keeps CSV-only output. The hierarchy separates each repetition and phase:
+
+```text
+BFS restart performance
+  repeat_1
+    checkpoint_run
+      advance
+        FEDD checkpoint - checkpoint_write
+          FEDD checkpoint - fields_write
+          FEDD checkpoint - metadata_write
+    restart
+      problem_initialization
+        FEDD checkpoint - metadata_prepare
+          FEDD checkpoint - compatibility_validate
+        FEDD checkpoint - primary_fields_read
+      advance
+        FEDD checkpoint - bdf_history_read
+```
+
+Existing solver/preconditioner `TimeMonitor` counters appear automatically
+under the stages that execute them. This requires Trilinos's
+`Teuchos_ENABLE_STACKED_TIMER_IN_TIME_MONITOR=ON` (the default).
+The stacked report provides MPI mean,
+minimum/maximum times, the ranks attaining those extrema, call counts and
+fractions of parent time. `Remainder` denotes time outside the measured children;
+the root/repetition regions include bookkeeping and CSV reporting (`csv_report`).
+These parent fractions describe inclusive timings, not extra costs to add.
+Stages use the same synchronization policy as the CSV; attaching the stacked
+timer adds no barriers to production checkpoint operations. A detected library
+timer overlap fails the run rather than publishing an incomplete stack.
 
 Phase timers synchronize their starts; operation timers do not. `total` includes
 setup, phase synchronization and exporter closure, but excludes CSV reporting.
