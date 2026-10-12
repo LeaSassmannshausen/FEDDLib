@@ -4,7 +4,8 @@ FILE(MAKE_DIRECTORY "${work}")
 EXECUTE_PROCESS(COMMAND "@MPI_EXEC@"
     @MPI_EXEC_PRE_NUMPROCS_FLAGS@ @MPI_EXEC_NUMPROCS_FLAG@ 9
     @MPI_EXEC_POST_NUMPROCS_FLAGS@ "${EXECUTABLE}"
-    --dimension=@dimension@ --H-h=3 --steps=4 --restart-steps=2
+    "--benchmarkfile=@CMAKE_CURRENT_BINARY_DIR@/parametersBenchmark.xml"
+    --aspect=all --dimension=@dimension@ --H-h=3 --steps=4 --restart-steps=2 --repetitions=1
     "--problemfile=@CMAKE_CURRENT_BINARY_DIR@/parametersProblem.xml"
     "--precfile=@CMAKE_CURRENT_BINARY_DIR@/parametersPrec.xml"
     "--solverfile=@CMAKE_CURRENT_BINARY_DIR@/parametersSolver.xml"
@@ -16,7 +17,8 @@ ENDIF()
 
 # Require measured operations, not a particular runtime or solution-error bound.
 FILE(READ "${work}/results/timings.csv" timings)
-FOREACH(operation checkpoint_write compatibility_validate primary_fields_read bdf_history_read initial_solution_load paraview_resume)
+FOREACH(operation checkpoint_write compatibility_validate primary_fields_read bdf_history_read initial_solution_load paraview_resume
+        check_for_export export)
     IF(NOT timings MATCHES ",${operation},")
         MESSAGE(FATAL_ERROR "Missing performance measurement: ${operation}")
     ENDIF()
@@ -28,7 +30,7 @@ FOREACH(region "BFS restart performance" repeat_1 checkpoint_run restart resume_
         mesh_build problem_initialization advance
         "FEDD checkpoint - checkpoint_write" "FEDD checkpoint - compatibility_validate"
         "FEDD checkpoint - bdf_history_read" "FEDD checkpoint - initial_solution_load"
-        "FEDD checkpoint - paraview_resume")
+        "FEDD checkpoint - paraview_resume" "FEDD checkpoint - check_for_export" "FEDD checkpoint - export")
     STRING(FIND "${stacked_timings}" "${region}" region_position)
     IF(region_position EQUAL -1)
         MESSAGE(FATAL_ERROR "Missing stacked timing region: ${region}")

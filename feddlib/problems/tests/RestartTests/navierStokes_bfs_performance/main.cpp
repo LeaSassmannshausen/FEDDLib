@@ -34,7 +34,8 @@ namespace {
 const std::vector<std::string> operations = {
     "metadata_prepare", "compatibility_validate", "primary_fields_read",
     "bdf_history_read", "fields_write", "metadata_write", "checkpoint_write",
-    "initial_solution_load", "paraview_resume"
+    "initial_solution_load", "paraview_resume", "check_for_export",
+    "check_for_export_and_export", "export"
 };
 
 void zero2D(double*, double* result, double, const double*)
@@ -281,7 +282,7 @@ int main(int argc, char* argv[])
     auto comm = Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
     std::string problemFile = "parametersProblem.xml", precFile = "parametersPrec.xml";
     std::string solverFile = "parametersSolver.xml", outputDirectory = "performance_output";
-    std::string benchmarkFile, aspect = "all";
+    std::string benchmarkFile= "parametersBenchmark.xml", aspect = "all";
     int dim = 2, ratio = 3, length = 4, steps = 4, continuationSteps = 2, repetitions = 1;
     bool quiet = true, baseline = true, resumeOutput = true, initialSolution = true, stackedTimers = true;
     Teuchos::CommandLineProcessor commandLine;

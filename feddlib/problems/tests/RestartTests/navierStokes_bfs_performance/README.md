@@ -86,7 +86,9 @@ mpirun -np 36 ./problems_navierStokes_bfs_performance.exe \
   --dimension=2 --H-h=12 --output-directory=weak_2D_36
 ```
 
-Existing invocations without `--benchmarkfile` retain their default full suite.
+Invocations without `--benchmarkfile` load `parametersBenchmark.xml` by default.
+Select `--aspect=all` to run the full suite; the local full-suite CTest cases do
+this explicitly and override the mesh/step/repetition controls for short runs.
 `--aspect=restart` also selects a single aspect without a benchmark XML. For a
 single selected aspect, its phase selection determines which scenarios run;
 the older `--no-baseline`, `--no-resume-output`, `--no-initial-solution` switches
@@ -166,6 +168,9 @@ Each phase reports `mesh_build`, `problem_initialization`, `spatial_assembly`,
 | `fields_write` | Collective HDF5 field writes, including exporter creation on the first write |
 | `metadata_write` | Checkpoint manifest serialization/publication |
 | `checkpoint_write` | Complete accepted-state checkpoint, including history and metadata |
+| `check_for_export` | Check save-all/checkpoint flags, initialize the schedule if needed and decide whether output is due; also measured when no write occurs |
+| `export` | Actual checkpoint export of fields/history and metadata, for accepted-step Navier-Stokes and the FSI/Newmark path |
+| `check_for_export_and_export` | Entire FSI/Newmark `TimeProblem::checkForExportAndExport` call, including optional recovery capture, decision checks and any export |
 | `initial_solution_load` | Initial-field validation and loading, without time/history restoration |
 | `paraview_resume` | Existing XMF/HDF5 validation, retained-frame selection and reopening |
 
@@ -173,6 +178,16 @@ The production hooks are enabled by `General/Checkpoint timings=true` and are
 disabled by default elsewhere. They use Teuchos counters without adding MPI
 barriers to the operations. `paraview_resume` covers exporter reopening; subsequent
 frame writes and diagnostic text-log resumption are part of the phase's `advance`.
+`export` measures checkpoint output, rather than ParaView frame output. In the
+Navier-Stokes accepted-step path it is nested inside `checkpoint_write`; the
+`check_for_export` decision is timed separately before that write. FSI/Newmark
+uses `check_for_export_and_export` as the parent, with separate decision and
+write regions. Its `export` region also contains `fields_write` and
+`metadata_write`. The full legacy parent includes recovery snapshot capture
+when enabled; that capture is outside the decision/write regions. Its timers
+appear in stacked reports when those paths are exercised, rather than in this
+standalone Navier-Stokes run. `fields_write` counts one call per accepted-step
+state, or per legacy field/history batch, so compare call counts accordingly.
 
 Standard output contains CSV timing rows followed by a stacked timer report.
 The CSV is also saved separately as `timings.csv`; `--verbose` adds ordinary
@@ -193,8 +208,9 @@ BFS restart performance
     checkpoint_run
       advance
         FEDD checkpoint - checkpoint_write
-          FEDD checkpoint - fields_write
-          FEDD checkpoint - metadata_write
+          FEDD checkpoint - export
+            FEDD checkpoint - fields_write
+            FEDD checkpoint - metadata_write
     restart
       problem_initialization
         FEDD checkpoint - metadata_prepare
