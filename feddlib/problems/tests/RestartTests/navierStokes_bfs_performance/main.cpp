@@ -281,9 +281,12 @@ int main(int argc, char* argv[])
     auto comm = Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
     std::string problemFile = "parametersProblem.xml", precFile = "parametersPrec.xml";
     std::string solverFile = "parametersSolver.xml", outputDirectory = "performance_output";
+    std::string benchmarkFile, aspect = "all";
     int dim = 2, ratio = 3, length = 4, steps = 4, continuationSteps = 2, repetitions = 1;
     bool quiet = true, baseline = true, resumeOutput = true, initialSolution = true, stackedTimers = true;
     Teuchos::CommandLineProcessor commandLine;
+    commandLine.setOption("benchmarkfile", &benchmarkFile, "XML benchmark controls; explicit command-line options override its values.");
+    commandLine.setOption("aspect", &aspect, "all, baseline, checkpoint_write, restart, initial_solution or resume_output.");
     commandLine.setOption("problemfile", &problemFile, "Physics and time integration parameters.");
     commandLine.setOption("precfile", &precFile, "Preconditioner settings (replace for cluster runs if needed).");
     commandLine.setOption("solverfile", &solverFile, "Linear solver settings.");
@@ -306,6 +309,43 @@ int main(int argc, char* argv[])
     if (parsed != Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL) return EXIT_FAILURE;
 
     try {
+        if (!benchmarkFile.empty()) {
+            auto controls = Teuchos::getParametersFromXmlFile(benchmarkFile);
+            dim = controls->get("Dimension", dim);
+            ratio = controls->get("H/h", ratio);
+            length = controls->get("BFS length", length);
+            steps = controls->get("Steps", steps);
+            continuationSteps = controls->get("Restart steps", continuationSteps);
+            repetitions = controls->get("Repetitions", repetitions);
+            aspect = controls->get("Aspect", aspect);
+            quiet = controls->get("Quiet", quiet);
+            stackedTimers = controls->get("Stacked timers", stackedTimers);
+            outputDirectory = controls->get("Output directory", outputDirectory);
+            // Input references are relative to the benchmark XML; output remains
+            // relative to the launch directory (typically shared cluster scratch).
+            const auto inputDirectory = std::filesystem::absolute(benchmarkFile).parent_path();
+            const auto inputPath = [&](const char* key, const std::string& fallback) {
+                return (inputDirectory / controls->get(key, fallback)).lexically_normal().string();
+            };
+            problemFile = inputPath("Problem file", problemFile);
+            precFile = inputPath("Preconditioner file", precFile);
+            solverFile = inputPath("Solver file", solverFile);
+            // Teuchos only changes options explicitly present on the command line.
+            // Reparse to apply those overrides to the defaults just read from XML.
+            if (commandLine.parse(argc, argv) != Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL)
+                return EXIT_FAILURE;
+        }
+        bool checkpointRun = true, restartRun = true;
+        if (aspect != "all") {
+            TEUCHOS_TEST_FOR_EXCEPTION(aspect != "baseline" && aspect != "checkpoint_write" && aspect != "restart" &&
+                                       aspect != "initial_solution" && aspect != "resume_output", std::logic_error,
+                                       "Unknown benchmark Aspect '" << aspect << "'. Use all, baseline, checkpoint_write, restart, initial_solution or resume_output.");
+            baseline = aspect == "baseline";
+            checkpointRun = !baseline;
+            restartRun = aspect == "restart";
+            resumeOutput = aspect == "resume_output";
+            initialSolution = aspect == "initial_solution";
+        }
         TEUCHOS_TEST_FOR_EXCEPTION((dim != 2 && dim != 3) || ratio < 2 || length < 1 || steps < 2 ||
                                    continuationSteps < 1 || repetitions < 1, std::logic_error,
                                    "Require dimension 2/3, H/h >= 2, length >= 1, steps >= 2, restart-steps >= 1 and repetitions >= 1.");
@@ -330,6 +370,19 @@ int main(int argc, char* argv[])
         base->sublist("Parameter").set("Dimension", dim).set("Cancel MaxNonLinIts", true);
         base->sublist("General").set("Checkpoint timings", true).set("Safe all solution", false);
         base->sublist("ThyraPreconditioner").sublist("Preconditioner Types").sublist("FROSch").set("DofsPerNode1", dim);
+        // Record the resolved run controls with the physical/solver parameters.
+        auto& benchmark = base->sublist("Benchmark");
+        benchmark.set("Dimension", dim).set("H/h", ratio).set("BFS length", length)
+            .set("Steps", steps).set("Restart steps", continuationSteps).set("Repetitions", repetitions)
+            .set("Aspect", aspect).set("Quiet", quiet).set("Stacked timers", stackedTimers)
+            .set("MPI ranks", comm->getSize()).set("Subdomains per unit", subdivisions)
+            .set("Output directory", std::filesystem::absolute(outputDirectory).string())
+            .set("Problem file", std::filesystem::absolute(problemFile).string())
+            .set("Preconditioner file", std::filesystem::absolute(precFile).string())
+            .set("Solver file", std::filesystem::absolute(solverFile).string())
+            .set("Run baseline", baseline).set("Run checkpoint producer", checkpointRun)
+            .set("Run restart", restartRun).set("Run output continuation", resumeOutput)
+            .set("Run initial solution", initialSolution);
         const auto originalDirectory = std::filesystem::current_path();
         const auto root = std::filesystem::absolute(outputDirectory);
         checkpoint::onRoot(*comm, [&] {
@@ -388,8 +441,8 @@ int main(int argc, char* argv[])
                 std::filesystem::current_path(originalDirectory);
             };
             if (baseline) execute("baseline", false, false, false, false);
-            execute("checkpoint_run", false, false, resumeOutput, true);
-            execute("restart", true, false, false, false);
+            if (checkpointRun) execute("checkpoint_run", false, false, resumeOutput, true);
+            if (restartRun) execute("restart", true, false, false, false);
             if (resumeOutput) execute("resume_output", true, false, true, true);
             if (initialSolution) execute("initial_solution", false, true, false, false);
         }

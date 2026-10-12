@@ -1,6 +1,6 @@
 TRIBITS_ADD_EXECUTABLE(navierStokes_bfs_performance SOURCES main.cpp)
 
-SET(performance_inputs parametersProblem.xml parametersPrec.xml parametersSolver.xml)
+SET(performance_inputs parametersBenchmark.xml parametersProblem.xml parametersPrec.xml parametersSolver.xml)
 TRIBITS_COPY_FILES_TO_BINARY_DIR(data_navierStokes_bfs_performance
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
     SOURCE_FILES ${performance_inputs}
@@ -24,4 +24,15 @@ IF(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 9)
             REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_navierStokes_bfs_performance>"
             TIMEOUT 600)
     ENDFOREACH()
+    SET(parameter_test_name ${PACKAGE_NAME}_navierStokes_bfs_performance_parameterFile_MPI_9)
+    SET(parameter_script ${CMAKE_CURRENT_BINARY_DIR}/${parameter_test_name}.cmake)
+    CONFIGURE_FILE(runParameterFile.cmake.in ${parameter_script} @ONLY)
+    ADD_TEST(NAME ${parameter_test_name}
+        COMMAND ${CMAKE_COMMAND}
+            "-DEXECUTABLE=$<TARGET_FILE:${PACKAGE_NAME}_navierStokes_bfs_performance>"
+            -P ${parameter_script})
+    SET_TESTS_PROPERTIES(${parameter_test_name} PROPERTIES
+        PROCESSORS 9 LABELS "${PACKAGE_NAME};RestartTests;Performance"
+        REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_navierStokes_bfs_performance>"
+        TIMEOUT 600)
 ENDIF()

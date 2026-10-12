@@ -1,0 +1,32 @@
+# Launch using only the benchmark XML. Put the inputs in a different directory
+# to exercise resolution of its relative physics/preconditioner/solver paths.
+SET(work "@CMAKE_CURRENT_BINARY_DIR@/@parameter_test_name@")
+FILE(REMOVE_RECURSE "${work}")
+FILE(MAKE_DIRECTORY "${work}/inputs")
+FOREACH(input IN ITEMS @performance_inputs@)
+    FILE(COPY "@CMAKE_CURRENT_BINARY_DIR@/${input}" DESTINATION "${work}/inputs")
+ENDFOREACH()
+EXECUTE_PROCESS(COMMAND "@MPI_EXEC@"
+    @MPI_EXEC_PRE_NUMPROCS_FLAGS@ @MPI_EXEC_NUMPROCS_FLAG@ 9
+    @MPI_EXEC_POST_NUMPROCS_FLAGS@ "${EXECUTABLE}"
+    --benchmarkfile=inputs/parametersBenchmark.xml
+    WORKING_DIRECTORY "${work}" RESULT_VARIABLE result)
+IF(NOT result STREQUAL "0")
+    MESSAGE(FATAL_ERROR "Parameter-file benchmark run failed: ${result}")
+ENDIF()
+FILE(STRINGS "${work}/performance_restart/timings.csv" timings)
+LIST(REMOVE_AT timings 0)
+FOREACH(row IN LISTS timings)
+    IF(NOT row MATCHES "^[12],(checkpoint_run|restart),[^,]+,2,9,5,1,")
+        MESSAGE(FATAL_ERROR "Unexpected aspect/dimension/H/h/repetition from XML: ${row}")
+    ENDIF()
+ENDFOREACH()
+STRING(JOIN "\n" rows ${timings})
+FOREACH(repeat 1 2)
+    IF(NOT rows MATCHES "${repeat},restart,bdf_history_read,")
+        MESSAGE(FATAL_ERROR "Missing restart history timing for repetition ${repeat}")
+    ENDIF()
+ENDFOREACH()
+IF(NOT EXISTS "${work}/performance_restart/stacked_timings.txt")
+    MESSAGE(FATAL_ERROR "Missing stacked report requested by XML")
+ENDIF()

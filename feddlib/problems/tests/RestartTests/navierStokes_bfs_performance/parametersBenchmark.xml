@@ -1,0 +1,52 @@
+<!-- Navier-Stokes structured BFS performance run controls.
+     Pass this file using the benchmarkfile command-line option. MPI rank count
+     comes from the launcher, not this XML. Explicit command-line options override
+     these values. No solution/reference comparisons are performed.
+
+     For weak scaling keep Dimension, H/h, BFS length, timestep counts, dt and
+     solver settings fixed, and increase only the MPI rank count.
+     With BFS length=4: 2D accepts 9,36,81,144,... ranks; 3D accepts
+     9,72,243,576,... ranks. In general ranks=(2*BFS length+1)*k^Dimension.
+     A new output directory is required for each invocation. -->
+<ParameterList name="Navier-Stokes BFS performance controls">
+    <!-- 2 or 3. The driver creates the corresponding structured BFS mesh. -->
+    <Parameter name="Dimension" type="int" value="2"/>
+    <!-- Mesh subdivisions per subdomain edge. Increasing this increases the local
+         workload; keep it fixed across a weak-scaling series. Minimum is 2. -->
+    <Parameter name="H/h" type="int" value="5"/>
+    <!-- Downstream length in the existing unit-width BFS geometry. Minimum is 1. -->
+    <Parameter name="BFS length" type="int" value="4"/>
+
+    <!-- Select one aspect:
+         all              : existing full benchmark suite;
+         baseline         : solve without checkpoint or visualization/text I/O;
+         checkpoint_write : producer only, checkpoint at the final accepted step;
+         restart          : producer, then field/time/history restore and continuation;
+         initial_solution : producer, then primary-field loading at time zero;
+         resume_output    : producer with exports, then restart with continued output.
+         Producers run automatically for aspects that need input checkpoints.
+         For restart, inspect compatibility_validate, primary_fields_read and
+         bdf_history_read individually to assess their contribution. -->
+    <Parameter name="Aspect" type="string" value="restart"/>
+    <!-- Producer/baseline timestep count, at least 2 for BDF2 history. Its final
+         accepted checkpoint time is Steps times dt from the problem XML. -->
+    <Parameter name="Steps" type="int" value="2"/>
+    <!-- Timesteps after restart, or from zero for initial_solution. Minimum is 1. -->
+    <Parameter name="Restart steps" type="int" value="1"/>
+    <!-- Independent samples, each with separate checkpoint files and a timer branch. -->
+    <Parameter name="Repetitions" type="int" value="2"/>
+
+    <!-- Relative to the launch working directory; absolute shared-scratch paths
+         are also supported. Existing directories are rejected, not overwritten. -->
+    <Parameter name="Output directory" type="string" value="performance_restart"/>
+    <!-- True suppresses ordinary solver progress, leaving timing output. -->
+    <Parameter name="Quiet" type="bool" value="true"/>
+    <!-- True prints/saves stacked_timings.txt in addition to timings.csv. -->
+    <Parameter name="Stacked timers" type="bool" value="true"/>
+
+    <!-- Input paths are relative to THIS file's directory, independent of the
+         launch directory. These separate XML files control physics/dt and solvers. -->
+    <Parameter name="Problem file" type="string" value="parametersProblem.xml"/>
+    <Parameter name="Preconditioner file" type="string" value="parametersPrec.xml"/>
+    <Parameter name="Solver file" type="string" value="parametersSolver.xml"/>
+</ParameterList>

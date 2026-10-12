@@ -17,6 +17,82 @@ Two short cases use nine MPI processes, H/h=3, four producer steps and two
 continuation steps. CTest recreates only each case's dedicated working directory.
 Results are in that directory's `results/timings.csv` and `results/stacked_timings.txt`. The `Performance` label
 allows selection with `ctest -L Performance` or exclusion with `ctest -LE Performance`.
+A third nine-process case verifies the parameter-file interface: two 2D restart
+samples with H/h=5, launching from outside the input-file directory.
+
+## Configure a run with a parameter file
+
+Edit [`parametersBenchmark.xml`](parametersBenchmark.xml), then launch the executable:
+
+```sh
+mpirun -np 9 ./problems_navierStokes_bfs_performance.exe \
+  --benchmarkfile=parametersBenchmark.xml
+```
+
+The supplied file selects `Aspect=restart`, dimension 2, H/h=5, two producer
+steps, one continuation step and two independent repetitions. Its output goes
+to `performance_restart` in the directory from which you launch the executable.
+Each repetition first creates its own checkpoint, then measures restoration and
+continuation. This runs directly on nine processes without editing other files.
+
+The controls are distinct from `parametersProblem.xml`, which sets physics, dt
+and nonlinear convergence settings. The benchmark XML references the problem,
+preconditioner and linear-solver files; those paths resolve relative to the
+benchmark XML's directory. Thus an absolute benchmark-file path also works when
+launching from a different shared-scratch working directory. Output paths resolve
+relative to the launch directory, or can be absolute shared-filesystem paths.
+
+| Benchmark parameter | Meaning |
+|---|---|
+| `Dimension` | 2D or 3D structured BFS |
+| `H/h` | Mesh subdivisions per subdomain edge, at least 2; fixes the local element workload |
+| `BFS length` | Downstream length; also determines supported rank counts |
+| `Aspect` | Select the measurement scenario from the table below |
+| `Steps` | Producer/baseline step count; final checkpoint time is `Steps × dt` |
+| `Restart steps` | Continuation length, or new steps from time zero for initial fields |
+| `Repetitions` | Independent samples with separate files and timer branches |
+| `Output directory` | New destination for timing reports, effective inputs and checkpoints |
+| `Quiet`, `Stacked timers` | Control solver progress and the additional hierarchical report |
+
+| `Aspect` value | Phases executed | Timings to inspect |
+|---|---|---|
+| `baseline` | `baseline` only | `spatial_assembly`, `advance`, `total` without checkpoint/export I/O |
+| `checkpoint_write` | `checkpoint_run` only, without visualization/text exports | `checkpoint_write`, `fields_write`, `metadata_write` |
+| `restart` | `checkpoint_run`, `restart` | `compatibility_validate`, `primary_fields_read`, `bdf_history_read` |
+| `initial_solution` | `checkpoint_run`, `initial_solution` | `initial_solution_load`, `primary_fields_read`; no history restoration |
+| `resume_output` | `checkpoint_run` with exports, `resume_output` | `paraview_resume`, and `advance` for resumed trajectory/export costs |
+| `all` | Existing complete benchmark suite | All stages and operations |
+
+Prerequisite producer time is reported separately from the selected aspect.
+For example, when assessing restart costs, read the `restart` rows in the CSV
+or the `restart` branch in the stacked report. No solutions are compared.
+You cannot infer isolated restart costs from the complete invocation time,
+because that also includes the producer, solves, setup and timing-report I/O.
+
+For a 3D cluster series, for example, set `Dimension=3`, `H/h=8`, `BFS length=4`,
+`Aspect=restart`, `Steps=4` and `Repetitions=3`, then launch on 9, 72, 243, ...
+ranks. Keep these settings and the physics/solver files fixed across the series;
+choose a different output directory for every allocation. MPI process count is
+set by the launcher, not by the XML. This example uses the default one-level
+preconditioner; select an appropriate cluster preconditioner in the referenced
+file when needed, and use the same one throughout a series.
+
+Explicit command-line options override XML controls. For example, to run that
+same file on 2D with a different output location:
+
+```sh
+mpirun -np 36 ./problems_navierStokes_bfs_performance.exe \
+  --benchmarkfile=parametersBenchmark.xml \
+  --dimension=2 --H-h=12 --output-directory=weak_2D_36
+```
+
+Existing invocations without `--benchmarkfile` retain their default full suite.
+`--aspect=restart` also selects a single aspect without a benchmark XML. For a
+single selected aspect, its phase selection determines which scenarios run;
+the older `--no-baseline`, `--no-resume-output`, `--no-initial-solution` switches
+customize `Aspect=all` only. `parametersEffective.xml` records the resolved
+controls, MPI layout and input-file paths; phase XML files retain that record
+alongside each phase's checkpoint/time settings.
 
 ## Larger runs and weak scaling
 

@@ -1,7 +1,8 @@
 <!-- Structured 2D/3D BFS performance benchmark, P1-P1 and BDF2.
      The driver selects dimension, H/h, rank-dependent subdivision count, run
      length and checkpoint paths. No reference solutions or error bounds are used.
-     the help option lists command-line controls. All durations below use seconds. -->
+     parametersBenchmark.xml selects dimension, H/h and one measurement aspect.
+     The help option lists command-line controls. All durations below use seconds. -->
 <ParameterList name="Navier-Stokes checkpoint performance">
     <ParameterList name="Parameter">
         <!-- Kinematic viscosity; density multiplies it in the viscous operator. -->
