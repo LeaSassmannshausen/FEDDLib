@@ -193,11 +193,13 @@ int main(int argc, char* argv[])
     std::string pressureModel = "Absorbing Paper";
     std::string checkpointOutput;
     double restartTime = -1.;
+    int restartSteps = 0;
     bool saveAll = false, validateOnly = false, incompatibleOutlet = false;
     Teuchos::CommandLineProcessor commandLine;
     commandLine.setOption("problemfile", &problemFile, "Case parameters or restart overrides.");
     commandLine.setOption("pressure-model", &pressureModel, "Resistance, Absorbing, or Absorbing Paper.");
     commandLine.setOption("restart-time", &restartTime, "Override the restart time.");
+    commandLine.setOption("restart-steps", &restartSteps, "Override restart length with a fixed step count; zero keeps the configured Final time.");
     commandLine.setOption("checkpoint-output", &checkpointOutput, "Enable checkpoint output to this directory.");
     commandLine.setOption("save-all", "selected-checkpoints", &saveAll, "Exercise saving every solution.");
     commandLine.setOption("validate-checkpoint", "solve", &validateOnly, "Validate checkpoint before simulation.");
@@ -221,6 +223,18 @@ int main(int argc, char* argv[])
     if (saveAll) {
         parameters->sublist("General").set("Safe all solution", true);
         parameters->sublist("Timestepping Parameter").set("Checkpointing", false);
+    }
+    auto& timeParameters = parameters->sublist("Timestepping Parameter");
+    TEUCHOS_TEST_FOR_EXCEPTION(restartSteps < 0, std::logic_error, "restart-steps must be nonnegative.");
+    if (timeParameters.get("Restart", false) && restartSteps > 0) {
+        const double dt = timeParameters.get<double>("dt");
+        TEUCHOS_TEST_FOR_EXCEPTION(restartSteps < 1 || !std::isfinite(dt) || dt <= 0., std::logic_error,
+                                   "Restart requires a positive dt and at least one restart step.");
+        const double startTime = timeParameters.get<double>("Time step");
+        timeParameters.set("Final time", startTime + restartSteps * dt);
+        if (comm->getRank() == 0 && !validateOnly)
+            std::cout << "Arterial restart: " << restartSteps << " timesteps from " << startTime
+                      << " to " << timeParameters.get<double>("Final time") << std::endl;
     }
 
     auto fluidParameters = Teuchos::getParametersFromXmlFile("parametersPrecFluidMono.xml");
@@ -320,8 +334,19 @@ int main(int argc, char* argv[])
     timeSolver.defineTimeStepping(*timeBlocks);
     timeSolver.setProblem(fsi);
     timeSolver.setupTimeStepping();
+    const bool restarting = timeParameters.get<bool>("Restart");
+    const auto* initialClock = restarting
+        ? checkpoint::clockState(parameters, timeParameters.get<double>("Time step")) : nullptr;
+    const long long initialStep = initialClock ? initialClock->get<long long>("Step number") : 0;
     timeSolver.advanceInTime();
-    if (parameters->sublist("Timestepping Parameter").get<bool>("Restart"))
+    if (restarting) {
+        if (restartSteps > 0) {
+            const auto* finalClock = checkpoint::clockState(parameters, timeParameters.get<double>("Final time"));
+            TEUCHOS_TEST_FOR_EXCEPTION(!initialClock || !finalClock ||
+                                       finalClock->get<long long>("Step number") - initialStep != restartSteps,
+                                       std::runtime_error, "The arterial restart did not execute the requested number of timesteps.");
+        }
         return compareRestart(fsi, parameters, comm) ? EXIT_SUCCESS : EXIT_FAILURE;
+    }
     return EXIT_SUCCESS;
 }

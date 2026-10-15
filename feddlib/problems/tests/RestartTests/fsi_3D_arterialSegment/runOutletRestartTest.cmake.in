@@ -5,16 +5,23 @@ FILE(MAKE_DIRECTORY "${work}")
 FOREACH(input IN ITEMS @fsi_3D_arterialSegment_parameter_files@ fsi_fluid_length_0_5_mm.mesh fsi_solid_length_0_5_mm.mesh)
     FILE(COPY "@CMAKE_CURRENT_BINARY_DIR@/${input}" DESTINATION "${work}")
 ENDFOREACH()
+# Normal tests only read a private copy of frozen reference checkpoints.
+# Rejection checks below may modify this copy; the committed bundle stays intact.
+SET(reference "@CMAKE_CURRENT_BINARY_DIR@/ReferenceSolutions/@outlet_name@")
+IF(NOT EXISTS "${reference}/Solutionu_f.h5")
+    MESSAGE(FATAL_ERROR "Missing arterial reference bundle: ${reference}. Generate it explicitly; CTest never regenerates references.")
+ENDIF()
+FILE(MAKE_DIRECTORY "${work}/restartCheckpoints")
+FILE(COPY "${reference}/" DESTINATION "${work}/restartCheckpoints")
 SET(command "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@
     @MPI_EXEC_NUMPROCS_FLAG@ 4 @MPI_EXEC_POST_NUMPROCS_FLAGS@
-    "${EXECUTABLE}" "--pressure-model=@outlet_model@")
+    "${EXECUTABLE}" "--pressure-model=@outlet_model@" --restart-steps=2)
 FUNCTION(run_phase label)
     EXECUTE_PROCESS(COMMAND ${command} ${ARGN} WORKING_DIRECTORY "${work}" RESULT_VARIABLE result)
     IF(NOT result STREQUAL "0")
         MESSAGE(FATAL_ERROR "${label} failed: ${result}")
     ENDIF()
 ENDFUNCTION()
-run_phase("Uninterrupted reference")
 run_phase("Restart before transition" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.005)
 run_phase("Restart after transition" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.01)
 
@@ -49,6 +56,11 @@ FILE(WRITE "${state}" "${original}")
 
 # Saving every solution must include scalar state even with Checkpointing=false.
 IF("@outlet_model@" STREQUAL "Resistance")
-    run_phase("Save every solution" --save-all)
-    run_phase("Restart from save-all output" --problemfile=parametersProblemFSI_restart.xml)
+    # Two steps write 0.005/0.0075. Restarting at 0.0075 then takes two steps
+    # to 0.0125, whose fields and scalar state are in the save-all reference bundle.
+    run_phase("Save every solution during restart" --problemfile=parametersProblemFSI_restart.xml
+        --restart-time=0.005 --save-all --checkpoint-output=saveAllCheckpoints)
+    FILE(WRITE "${work}/parametersSaveAllRestart.xml"
+        "<ParameterList><ParameterList name=\"Timestepping Parameter\"><Parameter name=\"Restart\" type=\"bool\" value=\"true\"/><Parameter name=\"Checkpointing\" type=\"bool\" value=\"false\"/><Parameter name=\"Restart directory\" type=\"string\" value=\"saveAllCheckpoints\"/><Parameter name=\"Reference directory\" type=\"string\" value=\"restartCheckpoints\"/></ParameterList></ParameterList>\n")
+    run_phase("Restart from save-all output" --problemfile=parametersSaveAllRestart.xml --restart-time=0.0075)
 ENDIF()

@@ -1,0 +1,70 @@
+<ParameterList name="ANONYMOUS">
+  <Parameter docString="" id="0" isDefault="false" isUsed="true" name="Format version" type="int" value="2"/>
+  <Parameter docString="" id="1" isDefault="false" isUsed="true" name="FSI" type="bool" value="false"/>
+  <Parameter docString="" id="2" isDefault="false" isUsed="true" name="Role" type="string" value="FSI structure"/>
+  <ParameterList id="9" name="Integration">
+    <Parameter docString="" id="3" isDefault="false" isUsed="true" name="Class" type="string" value="Newmark"/>
+    <Parameter docString="" id="4" isDefault="false" isUsed="true" name="dt" type="double" value="2.50000000000000005e-03"/>
+    <Parameter docString="" id="5" isDefault="false" isUsed="true" name="Layout" type="string" value="legacy-start-of-step-v1"/>
+    <Parameter docString="" id="6" isDefault="false" isUsed="true" name="beta" type="double" value="2.50000000000000000e-01"/>
+    <Parameter docString="" id="7" isDefault="false" isUsed="true" name="gamma" type="double" value="5.00000000000000000e-01"/>
+    <Parameter docString="" id="8" isDefault="false" isUsed="true" name="Solution history" type="int" value="2"/>
+  </ParameterList>
+  <ParameterList id="17" name="Fields">
+    <ParameterList id="16" name="d_s">
+      <Parameter docString="" id="10" isDefault="false" isUsed="true" name="FE type" type="string" value="P1"/>
+      <Parameter docString="" id="11" isDefault="false" isUsed="true" name="Dimension" type="int" value="3"/>
+      <Parameter docString="" id="12" isDefault="false" isUsed="true" name="Components" type="int" value="3"/>
+      <Parameter docString="" id="13" isDefault="false" isUsed="true" name="Global DOFs" type="string" value="3168"/>
+      <Parameter docString="" id="14" isDefault="false" isUsed="true" name="Index base" type="string" value="0"/>
+      <Parameter docString="" id="15" isDefault="false" isUsed="true" name="Reference mesh and DOF fingerprint" type="string" value="96200cde64488726:516269fb3227fa7c"/>
+    </ParameterList>
+  </ParameterList>
+  <Parameter docString="" id="18" isDefault="false" isUsed="true" name="Physical time" type="double" value="1.00000000000000002e-02"/>
+  <Parameter docString="" id="19" isDefault="false" isUsed="true" name="Step number" type="long long" value="4"/>
+  <ParameterList id="28" name="Time state">
+    <Parameter docString="" id="20" isDefault="false" isUsed="true" name="Physical time" type="double" value="1.00000000000000002e-02"/>
+    <Parameter docString="" id="21" isDefault="false" isUsed="true" name="dt" type="double" value="2.50000000000000005e-03"/>
+    <Parameter docString="" id="22" isDefault="false" isUsed="true" name="dt_prev" type="double" value="2.50000000000000005e-03"/>
+    <Parameter docString="" id="23" isDefault="false" isUsed="true" name="Step number" type="long long" value="4"/>
+    <ParameterList id="27" name="History times">
+      <Parameter docString="" id="24" isDefault="false" isUsed="true" name="0" type="double" value="1.00000000000000002e-02"/>
+      <Parameter docString="" id="25" isDefault="false" isUsed="true" name="1" type="double" value="7.49999999999999972e-03"/>
+      <Parameter docString="" id="26" isDefault="false" isUsed="true" name="2" type="double" value="5.00000000000000010e-03"/>
+    </ParameterList>
+  </ParameterList>
+  <ParameterList id="54" name="Required datasets">
+    <ParameterList id="33" name="Solutiond_s/0.010000">
+      <Parameter docString="" id="29" isDefault="false" isUsed="true" name="File" type="string" value="Solutiond_s.h5"/>
+      <Parameter docString="" id="30" isDefault="false" isUsed="true" name="Key" type="string" value="0.010000"/>
+      <Parameter docString="" id="31" isDefault="false" isUsed="true" name="Field" type="string" value="d_s"/>
+      <Parameter docString="" id="32" isDefault="false" isUsed="true" name="Global DOFs" type="string" value="3168"/>
+    </ParameterList>
+    <ParameterList id="38" name="SolutionNewmarkd_s/0.010000">
+      <Parameter docString="" id="34" isDefault="false" isUsed="true" name="File" type="string" value="SolutionNewmarkd_s.h5"/>
+      <Parameter docString="" id="35" isDefault="false" isUsed="true" name="Key" type="string" value="0.010000"/>
+      <Parameter docString="" id="36" isDefault="false" isUsed="true" name="Field" type="string" value="d_s"/>
+      <Parameter docString="" id="37" isDefault="false" isUsed="true" name="Global DOFs" type="string" value="3168"/>
+    </ParameterList>
+    <ParameterList id="43" name="SolutionNewmarkd_s/0.007500">
+      <Parameter docString="" id="39" isDefault="false" isUsed="true" name="File" type="string" value="SolutionNewmarkd_s.h5"/>
+      <Parameter docString="" id="40" isDefault="false" isUsed="true" name="Key" type="string" value="0.007500"/>
+      <Parameter docString="" id="41" isDefault="false" isUsed="true" name="Field" type="string" value="d_s"/>
+      <Parameter docString="" id="42" isDefault="false" isUsed="true" name="Global DOFs" type="string" value="3168"/>
+    </ParameterList>
+    <ParameterList id="48" name="ds_Velocity/0.010000">
+      <Parameter docString="" id="44" isDefault="false" isUsed="true" name="File" type="string" value="ds_Velocity.h5"/>
+      <Parameter docString="" id="45" isDefault="false" isUsed="true" name="Key" type="string" value="0.010000"/>
+      <Parameter docString="" id="46" isDefault="false" isUsed="true" name="Field" type="string" value="d_s"/>
+      <Parameter docString="" id="47" isDefault="false" isUsed="true" name="Global DOFs" type="string" value="3168"/>
+    </ParameterList>
+    <ParameterList id="53" name="ds_Acceleration/0.010000">
+      <Parameter docString="" id="49" isDefault="false" isUsed="true" name="File" type="string" value="ds_Acceleration.h5"/>
+      <Parameter docString="" id="50" isDefault="false" isUsed="true" name="Key" type="string" value="0.010000"/>
+      <Parameter docString="" id="51" isDefault="false" isUsed="true" name="Field" type="string" value="d_s"/>
+      <Parameter docString="" id="52" isDefault="false" isUsed="true" name="Global DOFs" type="string" value="3168"/>
+    </ParameterList>
+  </ParameterList>
+  <Validators/>
+</ParameterList>
+

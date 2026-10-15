@@ -2,7 +2,8 @@
     Restart-phase override, merged into parametersProblemFSI.xml.
     The runner selects the same outlet model as the producer and overrides
     the restart time to test both 0.005 s and 0.01 s.
-    Both trajectories are compared with the reference checkpoint at 0.015 s.
+    The driver advances two timesteps and compares with the frozen reference at
+    0.01 s (before-transition restart) or 0.015 s (after-transition restart).
 -->
 <ParameterList name="FSI">
     <!-- Overrides for phase 2; the case is defined in parametersProblemFSI.xml. -->
@@ -20,7 +21,8 @@
         <!-- Physical time in seconds of the checkpoint to restore; this is not the timestep
              duration dt. -->
         <Parameter name="Time step" type="double" value="0.005"/>
-        <!-- Physical stopping time of this phase in seconds. -->
-        <Parameter name="Final time" type="double" value="0.015"/>
+        <!-- Default two-step endpoint. The driver derives this from Time step
+             and dt when the runner selects a different starting checkpoint. -->
+        <Parameter name="Final time" type="double" value="0.01"/>
     </ParameterList>
 </ParameterList>

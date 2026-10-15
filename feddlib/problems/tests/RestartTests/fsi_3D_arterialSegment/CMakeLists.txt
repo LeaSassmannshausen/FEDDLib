@@ -20,8 +20,20 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_fsi_3D_arterialSegment
     EXEDEPS fsi_3D_arterialSegment
 )
 
-# Exercise all pressure models on the same 3D arterial segment. Each run has
-# its own files and restores once before and once after the area transition.
+SET(arterial_reference_root
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../UnitTest/ReferenceSolutions/fsi_3D_arterialSegment)
+FOREACH(reference_model Resistance Absorbing Absorbing_Paper)
+    SET(reference_source ${arterial_reference_root}/${reference_model})
+    FILE(GLOB reference_files RELATIVE ${reference_source}
+        "${reference_source}/*.h5" "${reference_source}/*.xml")
+    TRIBITS_COPY_FILES_TO_BINARY_DIR(references_fsi_3D_arterialSegment_${reference_model}
+        SOURCE_DIR ${reference_source} SOURCE_FILES ${reference_files}
+        DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions/${reference_model}
+        DEST_FILES ${reference_files} EXEDEPS fsi_3D_arterialSegment)
+ENDFOREACH()
+
+# Exercise all pressure models from frozen checkpoints. Each run has its own
+# files and advances two steps before/after the area transition.
 IF(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 4)
     FOREACH(outlet_model Resistance Absorbing "Absorbing Paper")
         STRING(REPLACE " " "_" outlet_name "${outlet_model}")
@@ -37,3 +49,7 @@ IF(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 4)
             REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_fsi_3D_arterialSegment>")
     ENDFOREACH()
 ENDIF()
+
+# Explicit maintenance operation; normal CTest cases never execute this script.
+CONFIGURE_FILE(generateOutletReferences.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/generateOutletReferences.cmake @ONLY)

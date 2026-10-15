@@ -1,0 +1,16 @@
+<ParameterList name="ANONYMOUS">
+  <Parameter docString="" id="0" isDefault="false" isUsed="true" name="Format version" type="int" value="1"/>
+  <Parameter docString="" id="1" isDefault="false" isUsed="true" name="Model" type="string" value="Resistance"/>
+  <Parameter docString="" id="2" isDefault="false" isUsed="true" name="Physical time" type="double" value="1.00000000000000002e-02"/>
+  <Parameter docString="" id="3" isDefault="false" isUsed="true" name="Layout" type="string" value="legacy-start-of-step-v1"/>
+  <Parameter docString="" id="4" isDefault="false" isUsed="true" name="Initial inlet area" type="double" value="0.00000000000000000e+00"/>
+  <Parameter docString="" id="5" isDefault="false" isUsed="true" name="Initial outlet area" type="double" value="0.00000000000000000e+00"/>
+  <Parameter docString="" id="6" isDefault="false" isUsed="true" name="Transition outlet area" type="double" value="0.00000000000000000e+00"/>
+  <Parameter docString="" id="7" isDefault="false" isUsed="true" name="Current flow rate" type="double" value="3.17840766621806559e+00"/>
+  <Parameter docString="" id="8" isDefault="false" isUsed="true" name="Previous flow rate" type="double" value="3.17840766621806559e+00"/>
+  <Parameter docString="" id="9" isDefault="false" isUsed="true" name="Outlet pressure" type="double" value="1.18892832757697548e+02"/>
+  <Parameter docString="" id="10" isDefault="false" isUsed="true" name="Initialized" type="bool" value="true"/>
+  <Parameter docString="" id="11" isDefault="false" isUsed="true" name="Transition captured" type="bool" value="false"/>
+  <Validators/>
+</ParameterList>
+

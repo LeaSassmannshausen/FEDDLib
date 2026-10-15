@@ -1,0 +1,5 @@
+Uninterrupted Absorbing Paper reference on 4 MPI ranks.
+Geometry: supplied 0.5 mm artery, P1/P1 fluid and P1 solid.
+Final time: 0.0175; dt: 0.0025.
+Resistance uses save-all checkpoints; absorbing models save at 0.005, 0.010, 0.015.
+These inputs plus the pressure-model/save-all command-line overrides generated this bundle.
