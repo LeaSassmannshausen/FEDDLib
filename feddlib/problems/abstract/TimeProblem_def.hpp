@@ -188,7 +188,9 @@ void TimeProblem<SC,LO,GO,NO>::updateMultistepRhs(vec_dbl_Type& coeff, int nmbTo
 
 }
 
-
+// At each timestep, the products of the mass matrix and the solution of the previous time steps 
+// are needed for the right-hand side of the time-discretized system. 
+// These are computed in each time step. No history of the processed products is kept.
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::updateMultistepRhsFSI(vec_dbl_Type& coeff, int nmbToUse){
 
@@ -196,27 +198,32 @@ void TimeProblem<SC,LO,GO,NO>::updateMultistepRhsFSI(vec_dbl_Type& coeff, int nm
 
     int size = massParameters_.size();
 
-    // The products M_i u_i of the mass matrix and the solution of the previous time steps i
-    // (unscaled). They are the checkpoint of this right-hand side, since the mass matrices of
-    // a moving mesh (the fluid of FSI) at and before the restart time cannot be rebuilt.
+    // The products M_i u_i of the mass matrix and the solution of the previous time steps i (unscaled) are needed
     BlockMultiVectorPtrArray_Type massSolutionPreviousTimesteps(nmbToUse);
 
+    // Restart
     bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
     double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
 
-    // A restart reads the products of the checkpoint at the restart time t_r in its first time
-    // step, where time_ is the start time t_r of the time step: the product i of the checkpoint
-    // (label t_r - i*dt) is the product i of this time step and the product i+k of the k-th time
-    // step after it.
+    // At restart, load the historical products M_i * u_i from the checkpoint
+    // at time t_r. The checkpoint entry j represents the product at
+    // t_r - i*dt, with i = 0 being the newest entry
     if(restart && restartMassSolutions_.size() == 0 && time_ - 1e-10 <= timeStepRestart)
     {
-        restoreMassProductHistory(nmbToUse, timeStepRestart);
+        restoreMassProductHistory(nmbToUse, timeStepRestart); // Restore the mass matrices
     }
     else if(restartMassSolutions_.size() > 0)
         timeStepsSinceRestart_++;
 
     for (int i=0; i<nmbToUse; i++) {
+
+        // After k time steps beyond the restart, the history has shifted by k
+        // positions. Therefore, the current history entry i corresponds to
+        // checkpoint entry i - k. If i - k is negative, that entry belongs to a
+        // newly computed time level and must be evaluated with the corresponding
+        // historical mass matrix and solution instead
         int k = i - timeStepsSinceRestart_;
+        // If the checkpoint products are available, use them; otherwise compute the product with the current mass matrix
         if(k >= 0 && k < restartMassSolutions_.size())
             massSolutionPreviousTimesteps[i] = restartMassSolutions_[k];
         else{
@@ -234,6 +241,10 @@ void TimeProblem<SC,LO,GO,NO>::updateMultistepRhsFSI(vec_dbl_Type& coeff, int nm
         problem_->getRhs()->update( coeff[i], *massSolutionPreviousTimesteps[i], 1. );
     }
 
+    // Restart/Recovery Feature
+    // Export M_i u_i for possible FSI restart, if they are not already exported
+    // Instead of saving M_i^n or u_i^n for the different time steps, only the products M_i^n u_i^n are saved.
+    // This creates a checkpoint
     checkForExportAndExport(massSolutionPreviousTimesteps,"Rhs");
 
 }

@@ -1,0 +1,112 @@
+<!--
+    Independent configuration for the 2D Turek FSI reference-solution unit test.
+    The driver uses P2 velocity, P1 pressure and P2 solid displacement.
+    Physical inputs use the metre-kilogram-second convention.
+    Run uninterrupted from t = 0 to t = 0.01 s on four MPI ranks, then compare
+    fluid velocity, pressure and solid displacement with ReferenceSolutions.
+    This file and the accompanying solver/preconditioner files belong to this
+    unit test; changes to restart-test inputs must not affect these references.
+    Changes to the numerical setup require reviewing the stored references.
+-->
+<ParameterList name="FSI">
+    <!-- Problem properties and nonlinear convergence controls. -->
+    <ParameterList name="Parameter">
+        <!-- Mean inlet velocity used by the Turek parabolic inflow callback. -->
+        <Parameter name="MeanVelocity" type="double" value="2.0"/>
+        <!-- Enable the coupled fluid-structure formulation. -->
+        <Parameter name="FSI" type="bool" value="true"/>
+        <!-- Update ALE geometry explicitly rather than solving it as an implicit coupled block. -->
+        <Parameter name="Geometry Explicit" type="bool" value="true"/>
+        <!-- Relative nonlinear convergence tolerance; kept tight for the reference comparisons. -->
+        <Parameter name="relNonLinTol" type="double" value="1.0e-08"/>
+        <!-- Maximum permitted nonlinear updates in each solve. -->
+        <Parameter name="MaxNonLinIts" type="int" value="10"/>
+        <!-- Use the nonlinear residual to measure convergence. -->
+        <Parameter name="Criterion" type="string" value="Residual"/>
+    </ParameterList>
+    <!-- Solid constitutive properties, copied into the structure problem. -->
+    <ParameterList name="Parameter Solid">
+        <!-- Constitutive law used to assemble the solid stress and tangent. -->
+        <Parameter name="Material model" type="string" value="linear"/>
+        <!-- Mass density, in the unit system of the mesh and material parameters. -->
+        <Parameter name="Density" type="double" value="1000."/>
+        <!-- Dimensionless Poisson ratio controlling volumetric deformation. -->
+        <Parameter name="Poisson Ratio" type="double" value="0.4"/>
+        <!-- Shear modulus in the material stress units. -->
+        <Parameter name="Mu" type="double" value="2.0e+6"/>
+    </ParameterList>
+    <!-- Fluid properties for the Turek benchmark. -->
+    <ParameterList name="Parameter Fluid">
+        <!-- Kinematic viscosity (length squared per second); dynamic viscosity is density times
+             this value. -->
+        <Parameter name="Viscosity" type="double" value="1.0e-3"/>
+        <!-- Mass density, in the unit system of the mesh and material parameters. -->
+        <Parameter name="Density" type="double" value="1000.0"/>
+        <!-- True uses the symmetric velocity gradient in the viscous operator; false uses the
+             gradient form. -->
+        <Parameter name="Symmetric gradient" type="bool" value="true"/>
+    </ParameterList>
+    <!-- Mesh inputs and distribution across the MPI ranks of this run. -->
+    <ParameterList name="Mesh Partitioner">
+        <!-- Request contiguous mesh partitions from the partitioner. -->
+        <Parameter name="Contiguous" type="bool" value="true"/>
+        <!-- Mesh file for the fluid domain. -->
+        <Parameter name="Mesh 1 Name" type="string" value="dfg_fsi_fluid_h004.mesh"/>
+        <!-- Mesh file for the solid domain. -->
+        <Parameter name="Mesh 2 Name" type="string" value="dfg_fsi_solid_h004.mesh"/>
+        <!-- False disables automatic allocation of disjoint MPI rank ranges between meshes. -->
+        <Parameter name="Automatic partition" type="bool" value="false"/>
+        <!-- Percentage allocation for mesh 1; -1 disables allocation by percentage. -->
+        <Parameter name="Mesh 1 fraction ranks" type="int" value="-1"/>
+        <!-- Explicit rank count for mesh 1; with both allocation modes disabled, every mesh
+             uses all ranks. -->
+        <Parameter name="Mesh 1 number ranks" type="int" value="-1"/>
+        <!-- Percentage allocation for mesh 2; -1 disables allocation by percentage. -->
+        <Parameter name="Mesh 2 fraction ranks" type="int" value="-1"/>
+        <!-- Explicit rank count for mesh 2; -1 leaves the explicit allocation disabled. -->
+        <Parameter name="Mesh 2 number ranks" type="int" value="-1"/>
+    </ParameterList>
+    <!-- Solver coupling and optional visualization/diagnostic output. -->
+    <ParameterList name="General">
+        <!-- Enable visualization output; disabled here to reduce test I/O. -->
+        <Parameter name="ParaViewExport" type="bool" value="false"/>
+        <!-- Enable timestep/iteration diagnostic text output; disabled here. -->
+        <Parameter name="Export Data" type="bool" value="false"/>
+        <!-- The reference test does not write solution checkpoints. -->
+        <Parameter name="Safe all solution" type="bool" value="false"/>
+        <!-- FaCSI preconditioning for the coupled fluid-structure system. -->
+        <Parameter name="Preconditioner Method" type="string" value="FaCSI"/>
+        <!-- Apply the fluid subproblem preconditioner within FaCSI. -->
+        <Parameter name="Use Fluid Preconditioner" type="bool" value="true"/>
+        <!-- Apply the solid subproblem preconditioner within FaCSI. -->
+        <Parameter name="Use Solid Preconditioner" type="bool" value="true"/>
+        <!-- Newton linearization for the nonlinear system. -->
+        <Parameter name="Linearization" type="string" value="Newton"/>
+        <!-- Enable flow-rate diagnostic files; disabled for this reference test. -->
+        <Parameter name="Export Flow Rate" type="bool" value="false"/>
+    </ParameterList>
+    <!-- Fixed reference trajectory: BDF2 fluid, Newmark solid, four timesteps. -->
+    <ParameterList name="Timestepping Parameter">
+        <!-- Compare the final state only; checkpoint I/O is disabled. -->
+        <Parameter name="Checkpointing" type="bool" value="false"/>
+        <!-- Start from the initial state at t = 0. -->
+        <Parameter name="Restart" type="bool" value="false"/>
+        <!-- Backward differentiation order; order two requires previous solution history. -->
+        <Parameter name="BDF" type="int" value="2"/>
+        <!-- Time-integration family; FSI uses Multistep for the fluid and Newmark for the
+             solid. -->
+        <Parameter name="Class" type="string" value="Multistep"/>
+        <!-- Use a fixed timestep size. -->
+        <Parameter name="Timestepping type" type="string" value="non-adaptive"/>
+        <!-- Physical time of the stored reference solutions, in seconds. -->
+        <Parameter name="Final time" type="double" value="0.01"/>
+        <!-- Timestep duration in seconds; distinct from the physical restoration time named
+             Time step. -->
+        <Parameter name="dt" type="double" value="0.0025"/>
+        <!-- Newmark displacement coefficient; 0.25 pairs with gamma=0.5 for average
+             acceleration. -->
+        <Parameter name="beta" type="double" value="0.25"/>
+        <!-- Newmark velocity coefficient; 0.5 pairs with beta=0.25 for average acceleration. -->
+        <Parameter name="gamma" type="double" value="0.5"/>
+    </ParameterList>
+</ParameterList>

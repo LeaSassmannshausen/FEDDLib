@@ -53,7 +53,7 @@ void inflow(double* x, double* result, double time, const double* parameters)
 
 } // namespace
 
-/** @brief Run the 2D Turek FSI case and compare its state at t = 0.02 with frozen references. */
+/** @brief Run the 2D Turek FSI case and compare its state at the configured final time with frozen references. */
 int main(int argc, char* argv[])
 {
     Tpetra::ScopeGuard tpetraScope(&argc, &argv);
@@ -70,24 +70,19 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     if (parseResult != Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL)
         return EXIT_FAILURE;
-    auto parameters = Teuchos::getParametersFromXmlFile("parametersProblemFSI.xml");
-    // Match the restart case at its comparison time, without checkpoint I/O.
-    parameters->sublist("Timestepping Parameter").set("Checkpointing", false);
-    parameters->sublist("Timestepping Parameter").set("Restart", false);
-    parameters->sublist("Timestepping Parameter").set("Final time", 0.02);
-    parameters->sublist("General").set("Safe all solution", false);
-    parameters->setParameters(*Teuchos::getParametersFromXmlFile("parametersSolverFSI.xml"));
+    auto parameters = Teuchos::getParametersFromXmlFile("parameters_FSI_Problem.xml");
+    parameters->setParameters(*Teuchos::getParametersFromXmlFile("parameters_FSI_Solver.xml"));
 
-    auto fluidParameters = Teuchos::getParametersFromXmlFile("parametersPrecFluidMono.xml");
+    auto fluidParameters = Teuchos::getParametersFromXmlFile("parameters_FSI_PrecFluidMono.xml");
     fluidParameters->sublist("Parameter").setParameters(parameters->sublist("Parameter Fluid"));
     fluidParameters->sublist("Timestepping Parameter").setParameters(parameters->sublist("Timestepping Parameter"));
 
-    auto solidParameters = Teuchos::getParametersFromXmlFile("parametersPrecStructure.xml");
+    auto solidParameters = Teuchos::getParametersFromXmlFile("parameters_FSI_PrecStructure.xml");
     solidParameters->sublist("Parameter").setParameters(parameters->sublist("Parameter Solid"));
     solidParameters->sublist("Timestepping Parameter").setParameters(parameters->sublist("Timestepping Parameter"));
 
-    auto geometryParameters = Teuchos::getParametersFromXmlFile("parametersPrecGeometry.xml");
-    geometryParameters->setParameters(*Teuchos::getParametersFromXmlFile("parametersSolverGeometry.xml"));
+    auto geometryParameters = Teuchos::getParametersFromXmlFile("parameters_FSI_PrecGeometry.xml");
+    geometryParameters->setParameters(*Teuchos::getParametersFromXmlFile("parameters_FSI_SolverGeometry.xml"));
     geometryParameters->sublist("General").set("Preconditioner Method", "MonolithicConstPrec");
     geometryParameters->sublist("Parameter").set("Model", "Laplace");
 

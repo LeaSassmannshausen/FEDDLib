@@ -12,15 +12,15 @@ tribits_copy_files_to_binary_dir(mesh_outputHistoryUnitTest
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR} DEST_FILES outputHistory-square.mesh
     EXEDEPS outputHistoryUnitTest)
 
-# Transient regression tests share the case inputs of the restart tests.
+# Keep the FSI reference-test inputs independent of the restart tests.
 tribits_add_executable(fsiUnitTest SOURCES fsiUnitTest.cpp)
 tribits_add_test(fsiUnitTest NAME fsi_2D_P2P1 NUM_MPI_PROCS 4)
 
 SET(fsi_reference_inputs
-    parametersProblemFSI.xml parametersPrecFluidMono.xml parametersPrecStructure.xml
-    parametersPrecGeometry.xml parametersSolverFSI.xml parametersSolverGeometry.xml)
+    parameters_FSI_Problem.xml parameters_FSI_PrecFluidMono.xml parameters_FSI_PrecStructure.xml
+    parameters_FSI_PrecGeometry.xml parameters_FSI_Solver.xml parameters_FSI_SolverGeometry.xml)
 tribits_copy_files_to_binary_dir(param_fsiUnitTest
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../RestartTests/fsi_2D_turek
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
     SOURCE_FILES ${fsi_reference_inputs}
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
     DEST_FILES ${fsi_reference_inputs}

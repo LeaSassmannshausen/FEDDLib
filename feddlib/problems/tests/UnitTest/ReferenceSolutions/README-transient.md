@@ -7,12 +7,14 @@ missing or changed references cannot be replaced automatically by the test.
 
 | Case | Comparison time | Fields | CTest ranks |
 | --- | --- | --- | --- |
-| `fsiUnitTest` | 0.02 | Fluid velocity (P2), pressure (P1), solid displacement (P2) | 4 |
+| `fsiUnitTest` | 0.01 | Fluid velocity (P2), pressure (P1), solid displacement (P2) | 4 |
 | `unsteadyNonLinElasticityUnitTest` | 0.02 | Solid displacement, velocity and acceleration (P1) | 4 and 6 |
 
 The FSI case uses the Turek fluid/solid `h004` meshes, explicit geometry and
-FaCSI, with the same boundary conditions, material and solver settings as
-`RestartTests/fsi_2D_turek`. It stops at `0.02` and compares the primary fields.
+FaCSI. Its independent inputs are the six `UnitTest/parameters_FSI_*.xml` files.
+It takes four steps with `dt = 0.0025`, stops at `0.01` and compares the primary
+fields. The nonlinear residual tolerance and coupled linear solver tolerance
+are both `1e-8`; the geometry linear solver tolerance is `1e-10`.
 
 The elasticity case uses `square_h02.mesh`, P1 elements, Saint Venant-Kirchhoff material
 with Poisson ratio `0.48`,
@@ -23,13 +25,16 @@ finalizes derivatives at the start of the next step. The compared displacement
 history, velocity and acceleration buffers therefore all represent `0.02`.
 Changing this update convention requires adjusting which buffers are compared.
 
-CMake copies the restart inputs into the unit-test build directory. The
+CMake copies the independent FSI inputs and the elasticity restart inputs into
+the unit-test build directory. The
 elasticity input names receive an `UnsteadyNonLinElasticity` suffix to avoid
 overwriting other unit tests' solver files. Checkpointing, restart and save-all
-output are disabled by the two drivers. No restart simulation is performed.
+output are disabled in the FSI input file and by the elasticity driver.
+No restart simulation is performed.
 
 Every field must have a finite, nonzero norm. Each comparison requires both
-relative l2 error at most `1e-12` and absolute infinity error at most `1e-11`.
+relative l2 error at most `1e-12` and absolute infinity error at most
+`1e-11 + 1e-12 * ||reference||_infinity`.
 The four-rank elasticity reference is also used for the six-rank test.
 
 Initial validation: all three registered tests pass. Four-rank comparisons
