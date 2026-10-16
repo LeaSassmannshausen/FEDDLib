@@ -17,13 +17,26 @@ SET(command "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@
     @MPI_EXEC_NUMPROCS_FLAG@ 4 @MPI_EXEC_POST_NUMPROCS_FLAGS@
     "${EXECUTABLE}" "--pressure-model=@outlet_model@" --restart-steps=2)
 FUNCTION(run_phase label)
+    MESSAGE(STATUS "Arterial @outlet_model@: ${label}")
     EXECUTE_PROCESS(COMMAND ${command} ${ARGN} WORKING_DIRECTORY "${work}" RESULT_VARIABLE result)
     IF(NOT result STREQUAL "0")
         MESSAGE(FATAL_ERROR "${label} failed: ${result}")
     ENDIF()
 ENDFUNCTION()
-run_phase("Restart before transition" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.005)
-run_phase("Restart after transition" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.01)
+IF("@outlet_model@" STREQUAL "Resistance")
+    # One two-step restart also checks save-all output with Checkpointing=false.
+    run_phase("Save-all restart: 0.005 to 0.01 s, two timesteps"
+        --problemfile=parametersProblemFSI_restart.xml
+        --restart-time=0.005 --save-all --checkpoint-output=saveAllCheckpoints)
+    FOREACH(saved_time 0.005000 0.007500)
+        IF(NOT EXISTS "${work}/saveAllCheckpoints/FSIOutletState_${saved_time}.xml")
+            MESSAGE(FATAL_ERROR "Missing save-all outlet state at ${saved_time}")
+        ENDIF()
+    ENDFOREACH()
+ELSE()
+    run_phase("Restart before transition" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.005)
+    run_phase("Restart after transition" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.01)
+ENDIF()
 
 # Assert rejection through the actual FSI constructor, before solution loading.
 FUNCTION(expect_rejection label diagnostic)
@@ -53,14 +66,3 @@ STRING(REPLACE "name=\"Format version\" type=\"int\" value=\"1\""
 FILE(WRITE "${state}" "${changed}")
 expect_rejection("unknown outlet state version" "Incompatible FSI outlet checkpoint")
 FILE(WRITE "${state}" "${original}")
-
-# Saving every solution must include scalar state even with Checkpointing=false.
-IF("@outlet_model@" STREQUAL "Resistance")
-    # Two steps write 0.005/0.0075. Restarting at 0.0075 then takes two steps
-    # to 0.0125, whose fields and scalar state are in the save-all reference bundle.
-    run_phase("Save every solution during restart" --problemfile=parametersProblemFSI_restart.xml
-        --restart-time=0.005 --save-all --checkpoint-output=saveAllCheckpoints)
-    FILE(WRITE "${work}/parametersSaveAllRestart.xml"
-        "<ParameterList><ParameterList name=\"Timestepping Parameter\"><Parameter name=\"Restart\" type=\"bool\" value=\"true\"/><Parameter name=\"Checkpointing\" type=\"bool\" value=\"false\"/><Parameter name=\"Restart directory\" type=\"string\" value=\"saveAllCheckpoints\"/><Parameter name=\"Reference directory\" type=\"string\" value=\"restartCheckpoints\"/></ParameterList></ParameterList>\n")
-    run_phase("Restart from save-all output" --problemfile=parametersSaveAllRestart.xml --restart-time=0.0075)
-ENDIF()

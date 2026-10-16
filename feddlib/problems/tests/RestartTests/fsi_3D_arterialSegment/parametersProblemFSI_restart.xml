@@ -1,7 +1,8 @@
 <!--
     Restart-phase override, merged into parametersProblemFSI.xml.
-    The runner selects the same outlet model as the producer and overrides
-    the restart time to test both 0.005 s and 0.01 s.
+    The runner selects the same outlet model as the producer. Resistance uses
+    one save-all restart at 0.005 s; the absorbing variants test both 0.005 s
+    and 0.01 s.
     The driver advances two timesteps and compares with the frozen reference at
     0.01 s (before-transition restart) or 0.015 s (after-transition restart).
 -->

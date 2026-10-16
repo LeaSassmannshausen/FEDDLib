@@ -169,7 +169,7 @@ Each phase reports `mesh_build`, `problem_initialization`, `spatial_assembly`,
 | `metadata_write` | Checkpoint manifest serialization/publication |
 | `checkpoint_write` | Complete accepted-state checkpoint, including history and metadata |
 | `check_for_export` | Check save-all/checkpoint flags, initialize the schedule if needed and decide whether output is due; also measured when no write occurs |
-| `export` | Actual checkpoint export of fields/history and metadata, for accepted-step Navier-Stokes and the FSI/Newmark path |
+| `export` | Checkpoint export of fields/history and auxiliary state, excluding metadata, for accepted-step Navier-Stokes and the FSI/Newmark path |
 | `check_for_export_and_export` | Entire FSI/Newmark `TimeProblem::checkForExportAndExport` call, including optional recovery capture, decision checks and any export |
 | `initial_solution_load` | Initial-field validation and loading, without time/history restoration |
 | `paraview_resume` | Existing XMF/HDF5 validation, retained-frame selection and reopening |
@@ -183,8 +183,9 @@ Navier-Stokes accepted-step path it is nested inside `checkpoint_write`; the
 `check_for_export` decision is timed separately before that write. FSI/Newmark
 uses `check_for_export_and_export` as the parent, with separate decision and
 write regions. Its `export` region also contains `fields_write` and
-`metadata_write`. The full legacy parent includes recovery snapshot capture
-when enabled; that capture is outside the decision/write regions. Its timers
+auxiliary-state writes. `metadata_write` is a sibling of `export` under the
+corresponding parent in both paths. The full legacy parent includes recovery
+snapshot capture when enabled; that capture is outside the decision/write regions. Its timers
 appear in stacked reports when those paths are exercised, rather than in this
 standalone Navier-Stokes run. `fields_write` counts one call per accepted-step
 state, or per legacy field/history batch, so compare call counts accordingly.
@@ -207,17 +208,17 @@ BFS restart performance
   repeat_1
     checkpoint_run
       advance
-        FEDD checkpoint - checkpoint_write
-          FEDD checkpoint - export
-            FEDD checkpoint - fields_write
-            FEDD checkpoint - metadata_write
+        FEDDlib: Checkpoint Feature - checkpoint_write
+          FEDDlib: Checkpoint Feature - export
+            FEDDlib: Checkpoint Feature - fields_write
+          FEDDlib: Checkpoint Feature - metadata_write
     restart
       problem_initialization
-        FEDD checkpoint - metadata_prepare
-          FEDD checkpoint - compatibility_validate
-        FEDD checkpoint - primary_fields_read
+        FEDDlib: Checkpoint Feature - metadata_prepare
+          FEDDlib: Checkpoint Feature - compatibility_validate
+        FEDDlib: Checkpoint Feature - primary_fields_read
       advance
-        FEDD checkpoint - bdf_history_read
+        FEDDlib: Checkpoint Feature - bdf_history_read
 ```
 
 Existing solver/preconditioner `TimeMonitor` counters appear automatically

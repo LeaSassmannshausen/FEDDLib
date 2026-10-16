@@ -6,6 +6,9 @@ set(Checkpointing_HEADERS
     Checkpointing/CheckpointMeshFingerprint.hpp
     Checkpointing/FSIOutletState.hpp
     Checkpointing/RecoveryCheckpoint.hpp
+    Checkpointing/RecoveryCheckpointPolicy.hpp
+    Checkpointing/RecoveryCheckpointSnapshot.hpp
+    Checkpointing/RecoveryCheckpointManager.hpp
 CACHE INTERNAL "")
 
 set(LOCAL_HEADERS)

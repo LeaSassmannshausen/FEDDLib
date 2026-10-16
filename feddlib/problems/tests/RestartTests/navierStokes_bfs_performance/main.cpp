@@ -149,7 +149,7 @@ Snapshot counters()
 {
     Snapshot result;
     for (const auto& operation : operations) {
-        auto timer = Teuchos::TimeMonitor::lookupCounter("FEDD checkpoint - " + operation);
+        auto timer = Teuchos::TimeMonitor::lookupCounter("FEDDlib: Checkpoint Feature - " + operation);
         result[operation] = timer.is_null() ? std::make_pair(0., 0)
             : std::make_pair(timer->totalElapsedTime(), timer->numCalls());
     }

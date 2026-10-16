@@ -33,7 +33,8 @@ FOREACH(reference_model Resistance Absorbing Absorbing_Paper)
 ENDFOREACH()
 
 # Exercise all pressure models from frozen checkpoints. Each run has its own
-# files and advances two steps before/after the area transition.
+# files. Resistance has one save-all restart; absorbing models each have two
+# restarts before/after the area transition. Every simulation advances two steps.
 IF(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 4)
     FOREACH(outlet_model Resistance Absorbing "Absorbing Paper")
         STRING(REPLACE " " "_" outlet_name "${outlet_model}")

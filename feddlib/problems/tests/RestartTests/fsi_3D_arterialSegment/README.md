@@ -13,11 +13,12 @@ shortened for this regression test. The solver uses Newton with relative residua
 tolerance 1e-10 and flexible GMRES with tolerance 1e-10.
 
 The `problems_fsi_3D_arterialSegment_Resistance`, `_Absorbing`, and `_Absorbing_Paper`
-tests use separate working directories and four MPI ranks. Their transition time
-is `0.00625`, between timesteps of size `0.0025`. Each test loads frozen references
-and restarts from both `0.005` and `0.01`, advancing **exactly two timesteps**:
-`0.005 -> 0.01` and `0.01 -> 0.015`. It compares velocity, pressure and displacement
-at the corresponding endpoint, together
+tests use separate working directories and four MPI ranks. Each loads frozen
+references and advances **exactly two timesteps per simulation**, with
+`dt = 0.0025`. Resistance runs once, from `0.005` to `0.01`, while writing
+save-all checkpoints. Each absorbing variant runs from both `0.005` to `0.01`
+and `0.01` to `0.015`, before and after its `0.00625` transition time.
+The tests compare velocity, pressure and displacement at the corresponding endpoint, together
 with initial areas, transition area, flow-rate history, outlet pressure and flags.
 The field comparison uses the combined l2 bound
 `absolute error <= 1e-15 + 1e-12 * reference l2 norm`. The absolute tolerance
@@ -45,13 +46,12 @@ time with a fixed step count; zero (the default) preserves the XML `Final time`.
 This keeps the separate variable-timestep regression's configured endpoints.
 
 The variants also verify that changed averaging, missing outlet state and an
-unknown state version are rejected. The Resistance variant additionally tests
-`Safe all solution = true` with `Checkpointing = false`, using two short runs:
-restart from `0.005` to `0.01` and write every solution in `saveAllCheckpoints`,
-then restore its `0.0075` checkpoint and advance to `0.0125`. Each executes two
-timesteps. The Resistance reference bundle contains the additional scalar states
-and fields needed for these checks. The analytic traction check and all existing
-field/scalar error bounds are retained.
+unknown state version are rejected. These are validation-only launches without
+timestepping. The single Resistance simulation uses `Safe all solution = true`
+with `Checkpointing = false` and writes every solution in `saveAllCheckpoints`.
+The runner requires outlet-state files at `0.005` and `0.0075`, without another
+simulation. Its analytic traction check and field/scalar error bounds are retained. Each
+simulation prints a phase description before the solver output.
 
 ## Outlet checkpoint contract
 

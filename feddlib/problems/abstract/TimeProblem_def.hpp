@@ -632,21 +632,26 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps, boo
         checkForExportAndExport( solutionPreviousTimesteps_,"Solution" );
 }
 
+
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::writeMultistepCheckpoint(double completedTime, double dt)
 {
     auto& timeParameters = parameterList_->sublist("Timestepping Parameter");
-    bool saveAll;
+    bool saveAll = parameterList_->sublist("General").get("Safe all solution", false);
     bool checkpointDue = false;
+
+    // Check export requirements
     {
-        checkpoint::ScopedTimer checkTimer(parameterList_, "check_for_export");
-        saveAll = parameterList_->sublist("General").get("Safe all solution", false);
-        const bool checkpointing = timeParameters.get("Checkpointing", false);
+        checkpoint::Timer checkTimer(parameterList_, "check_for_export");
+        const bool checkpointing = timeParameters.get("Checkpointing", false); // is checkpointing enabled?
         if (!saveAll && !checkpointing)
             return;
 
+        // For multistep checkpointing, the time step must be positive. Otherwise, the history times cannot be computed.
         TEUCHOS_TEST_FOR_EXCEPTION(!(dt > 0.), std::logic_error,
-                                   "A multistep checkpoint requires a positive timestep.");
+                                   "A multistep checkpoint requires a positive timestep > 0.");
+        
+        // If checkpointing is enabled, check if the current time step has reached any of the requested checkpoint times.                                   
         if (checkpointing) {
             const int count = timeParameters.get("Number Checkpoints", 0);
             for (int i = 1; i <= count; ++i) {
@@ -656,56 +661,99 @@ void TimeProblem<SC,LO,GO,NO>::writeMultistepCheckpoint(double completedTime, do
                     checkpointDue = true;
             }
         }
+        // If neither saving all solutions nor a checkpoint is due, exit early.
         if (!saveAll && !checkpointDue)
             return;
     }
 
-    checkpoint::ScopedTimer timer(parameterList_, "checkpoint_write");
-    checkpoint::ScopedTimer exportTimer(parameterList_, "export");
+    checkpoint::Timer timer(parameterList_, "checkpoint_write");
+
+    // Number of steps to save for multistep checkpointing. For BDF1, this is 1; for BDF2, this is 2; etc.
     int nmbSteps = timeParameters.get("BDF", 1);
     if (nmbSteps < 2 && parameterList_->sublist("General").get("Linearization", "FixedPoint") == "Extrapolation")
         nmbSteps = 2;
+    
+    // The number of steps we can save is limited by the number of previous solutions we have. 
+    // If we don't have enough history, throw an exception.
     TEUCHOS_TEST_FOR_EXCEPTION(!saveAll && solutionPreviousTimesteps_.size() < nmbSteps - 1,
                                std::logic_error, "Insufficient solution history for a multistep checkpoint.");
 
-    const auto writeState = [&](double stateTime, BlockMultiVectorConstPtr_Type state) {
+    /**
+     * @brief Write all solution blocks for one checkpoint or BDF history state.
+     *
+     * Each block is written to its Solution HDF5 file under a dataset key made
+     * from stateTime. Overlapping checkpoint histories can require the same
+     * state more than once. If its key is already recorded in
+     * multistepCheckpointTimesWritten_, return from this lambda call and let
+     * the surrounding checkpoint operation continue.
+     *
+     * The fields_write timer measures the field export, including exporter
+     * creation on the first write. Record the key only after all blocks have
+     * been written successfully.
+     *
+     * @param[in] stateTime Physical time of the state, used as the dataset key.
+     * @param[in] state Smart pointer to the solution blocks to write; the
+     *                  solution vectors are accessed without copying them.
+     */
+
+    const auto writeState = [&](double stateTime, BlockMultiVectorConstPtr_Type state) 
+    {
         const std::string key = std::to_string(stateTime);
         if (multistepCheckpointTimesWritten_.count(key))
             return;
-        checkpoint::ScopedTimer timer(parameterList_, "fields_write");
+        checkpoint::Timer timer(parameterList_, "fields_write");
         for (UN i = 0; i < state->size(); ++i)
             getExporter("Solution", i)->writeVariablesHDF5(key, state->getBlock(i));
         multistepCheckpointTimesWritten_.insert(key);
     };
-    writeState(completedTime, problem_->getSolution());
-    // The buffers still hold u_(n-1), u_(n-2), ... after solving for u_n.
-    // Saving all solutions already wrote these entries on earlier steps.
-    if (!saveAll) {
-        for (int j = 1; j < nmbSteps; ++j) {
-            const double historyTime = checkpoint::historyTime(parameterList_, completedTime, j, dt);
-            // At the first BDF2 checkpoint, u_0 is required to continue with BDF2.
-            if (historyTime >= 0.)
-                writeState(historyTime, solutionPreviousTimesteps_[j - 1]);
+
+    // Export fields and auxiliary state before timing metadata separately.
+    {
+        checkpoint::Timer exportTimer(parameterList_, "export");
+        writeState(completedTime, problem_->getSolution()); // Export the current solution at the completed time.
+
+        // The buffers still hold u_(n-1), u_(n-2), ... after solving for u_n.
+        // Saving all solutions from earlier steps
+        // If saveAll is true, we already saved all previous solutions
+        if (!saveAll) {
+            for (int j = 1; j < nmbSteps; ++j) {
+                const double historyTime = checkpoint::historyTime(parameterList_, completedTime, j, dt);
+                // At the first BDF2 checkpoint, u_0 is required to continue with BDF2.
+                if (historyTime >= 0.)
+                    writeState(historyTime, solutionPreviousTimesteps_[j - 1]);
+            }
         }
+        // Export values of interest for the current time step if a checkpoint is due
+        if (checkpointDue)
+            problem_->exportValuesOfInterest(completedTime);
     }
-    if (checkpointDue)
-        problem_->exportValuesOfInterest(completedTime);
+    // Write the checkpoint metadata after all fields have been written successfully
     problem_->writeCheckpointMetadata(completedTime);
 }
 
-
+// This function copies the current solution and its required history 
+// into an in-memory recovery snapshot. The recovery manager can later 
+// write that snapshot to disk if a solve becomes difficult or fails. 
+// Keeping independent copies protects the saved state while the solver 
+// changes the live solution vectors.
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::captureMultistepRecoveryState(double time, double dt, bool completedStep)
 {
     auto snapshot = problem_->getRecoverySnapshot();
-    if (snapshot.is_null()) return;
-    int history = parameterList_->sublist("Timestepping Parameter").get("BDF", 1);
+    if (snapshot.is_null()) 
+        return;
+    
+    int historyBDF = parameterList_->sublist("Timestepping Parameter").get("BDF", 1);
+
+    // If the linearization method is extrapolation, we need to capture at least two previous steps for recovery.
     if (parameterList_->sublist("General").get("Linearization", "Newton") == "Extrapolation")
-        history = std::max(history, 2);
+        historyBDF = std::max(historyBDF, 2);
+
+    // 
     for (UN i = 0; i < problem_->getSolution()->size(); ++i) {
         const auto file = "Solution" + problem_->getVariableName(i);
         snapshot->addVector(file, time, problem_->getSolution()->getBlock(i));
-        for (int j = 1; j < history && checkpoint::historyTime(parameterList_, time, j, dt) >= -1.e-12; ++j) {
+        for (int j = 1; j < historyBDF && checkpoint::historyTime(parameterList_, time, j, dt) >= -1.e-12; ++j) {
             const int index = completedStep ? j - 1 : j;
             TEUCHOS_TEST_FOR_EXCEPTION(index >= solutionPreviousTimesteps_.size(), std::logic_error,
                                        "Missing BDF history for recovery capture");
@@ -1385,7 +1433,7 @@ template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::restoreMultistepHistory(int nmbSteps, double restartTime)
 {
     problem_->validateRestartCheckpoint(restartTime);
-    checkpoint::ScopedTimer timer(parameterList_, "bdf_history_read");
+    checkpoint::Timer timer(parameterList_, "bdf_history_read");
     const double dt = getPreviousTimeIncrement(restartTime);
     const int size = problem_->getSolution()->size();
     solutionPreviousTimesteps_.resize(nmbSteps);
@@ -1482,7 +1530,7 @@ void TimeProblem<SC,LO,GO,NO>::importRestartValues(){
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray_Type solutionVec, std::string fileName){
 
-    checkpoint::ScopedTimer timer(parameterList_, "check_for_export_and_export");
+    checkpoint::Timer timer(parameterList_, "check_for_export_and_export");
     auto recovery = problem_->getRecoverySnapshot();
     if (!recovery.is_null()) {
         const double dt = getPreviousTimeIncrement();
@@ -1502,7 +1550,7 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
     // ----------
     bool safeAllSolution, checkPointing;
     {
-        checkpoint::ScopedTimer checkTimer(parameterList_, "check_for_export");
+        checkpoint::Timer checkTimer(parameterList_, "check_for_export");
         safeAllSolution = problem_->getParameterList()->sublist("General").get("Safe all solution", false);
         checkPointing = problem_->getParameterList()->sublist("Timestepping Parameter").get("Checkpointing", false);
         if (!safeAllSolution && checkPointing && checkPointTupel_.size() == 0)
@@ -1514,18 +1562,20 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
     if(safeAllSolution || checkPointing){
 
         if(safeAllSolution){
-            checkpoint::ScopedTimer exportTimer(parameterList_, "export");
             {
-                checkpoint::ScopedTimer fieldsTimer(parameterList_, "fields_write");
-                for (UN i = 0; i < size; i++)
+                checkpoint::Timer exportTimer(parameterList_, "export");
                 {
-                    std::string varName =  std::to_string(time_);
-                    this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i));
-                    // For time dependet problems, the different VarNames are the time.
+                    checkpoint::Timer fieldsTimer(parameterList_, "fields_write");
+                    for (UN i = 0; i < size; i++)
+                    {
+                        std::string varName =  std::to_string(time_);
+                        this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i));
+                        // For time dependet problems, the different VarNames are the time.
+                    }
                 }
+                if (fileName == "Solution")
+                    problem_->exportValuesOfInterest(time_);
             }
-            if (fileName == "Solution")
-                problem_->exportValuesOfInterest(time_);
             problem_->writeCheckpointMetadata(time_);
         }
         else if(checkPointing){
@@ -1535,7 +1585,7 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                 double dt;
                 bool checkpointDue;
                 {
-                    checkpoint::ScopedTimer checkTimer(parameterList_, "check_for_export");
+                    checkpoint::Timer checkTimer(parameterList_, "check_for_export");
                     dt = getPreviousTimeIncrement();
                     checkpointDue = time_ >= std::get<0>(checkPointTupel_[j])-1.e-10 &&
                         time_ - dt < std::get<0>(checkPointTupel_[j])-1.e-10;
@@ -1543,32 +1593,34 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                 // We previously defined the checkpoints. If a checkpoint is reached, the second value of the checkpoint row turns to true.
                 if(checkpointDue)
                 {
-                    checkpoint::ScopedTimer exportTimer(parameterList_, "export");
                     std::get<1>(checkPointTupel_[j])=true; // We export the checkpoint now
                     {
-                        checkpoint::ScopedTimer fieldsTimer(parameterList_, "fields_write");
-                        for (UN i = 0; i < size; i++)
+                        checkpoint::Timer exportTimer(parameterList_, "export");
                         {
-                            LO idVarname = i;
-                            if (verbose_)
-                                std::cout << " Export for filename " << fileName << " and " <<  problem_->getVariableName(idVarname) << " with i=" << i << std::endl;
-                            std::string varName =  std::to_string(time_);
-                            this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i));  // We use 0, because it was not updated yet with the newest solution
+                            checkpoint::Timer fieldsTimer(parameterList_, "fields_write");
+                            for (UN i = 0; i < size; i++)
+                            {
+                                LO idVarname = i;
+                                if (verbose_)
+                                    std::cout << " Export for filename " << fileName << " and " <<  problem_->getVariableName(idVarname) << " with i=" << i << std::endl;
+                                std::string varName =  std::to_string(time_);
+                                this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i));  // We use 0, because it was not updated yet with the newest solution
 
-                            if(solutionVec.size() >1 && checkpoint::historyTime(parameterList_, time_, 1, dt) >= 0.){
-                                varName = std::to_string(checkpoint::historyTime(parameterList_, time_, 1, dt)); // n-1
-                                this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[1]->getBlock(i));
+                                if(solutionVec.size() >1 && checkpoint::historyTime(parameterList_, time_, 1, dt) >= 0.){
+                                    varName = std::to_string(checkpoint::historyTime(parameterList_, time_, 1, dt)); // n-1
+                                    this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[1]->getBlock(i));
+                                }
+                                if(solutionVec.size() >2 && checkpoint::historyTime(parameterList_, time_, 2, dt) >= 0.){
+                                    varName = std::to_string(checkpoint::historyTime(parameterList_, time_, 2, dt)); // n-2
+                                    this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[2]->getBlock(i));
+                                }
+                                // For time dependet problems, the different VarNames are the time.
                             }
-                            if(solutionVec.size() >2 && checkpoint::historyTime(parameterList_, time_, 2, dt) >= 0.){
-                                varName = std::to_string(checkpoint::historyTime(parameterList_, time_, 2, dt)); // n-2
-                                this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[2]->getBlock(i));
-                            }
-                            // For time dependet problems, the different VarNames are the time.
                         }
+                        // Save additional problem-specific checkpoint state.
+                        if(fileName == "Solution")
+                            problem_->exportValuesOfInterest(time_);
                     }
-                    // Save additional problem-specific checkpoint state.
-                    if(fileName == "Solution")
-                        problem_->exportValuesOfInterest(time_);
                     problem_->writeCheckpointMetadata(time_);
                 }
 

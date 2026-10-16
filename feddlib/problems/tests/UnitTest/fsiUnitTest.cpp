@@ -58,6 +58,7 @@ int main(int argc, char* argv[])
 {
     Tpetra::ScopeGuard tpetraScope(&argc, &argv);
     auto comm = Tpetra::getDefaultComm();
+    ParameterListPtr_Type parameters = Teuchos::getParametersFromXmlFile("parameters_FSI_Problem.xml");
     std::string referenceDirectory = "ReferenceSolutions";
     bool writeReference = false;
     Teuchos::CommandLineProcessor commandLine;
@@ -70,18 +71,18 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     if (parseResult != Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL)
         return EXIT_FAILURE;
-    auto parameters = Teuchos::getParametersFromXmlFile("parameters_FSI_Problem.xml");
+    ParameterListPtr_Type parameters = Teuchos::getParametersFromXmlFile("parameters_FSI_Problem.xml");
     parameters->setParameters(*Teuchos::getParametersFromXmlFile("parameters_FSI_Solver.xml"));
 
-    auto fluidParameters = Teuchos::getParametersFromXmlFile("parameters_FSI_PrecFluidMono.xml");
+    ParameterListPtr_Type fluidParameters = Teuchos::getParametersFromXmlFile("parameters_FSI_PrecFluidMono.xml");
     fluidParameters->sublist("Parameter").setParameters(parameters->sublist("Parameter Fluid"));
     fluidParameters->sublist("Timestepping Parameter").setParameters(parameters->sublist("Timestepping Parameter"));
 
-    auto solidParameters = Teuchos::getParametersFromXmlFile("parameters_FSI_PrecStructure.xml");
+    ParameterListPtr_Type solidParameters = Teuchos::getParametersFromXmlFile("parameters_FSI_PrecStructure.xml");
     solidParameters->sublist("Parameter").setParameters(parameters->sublist("Parameter Solid"));
     solidParameters->sublist("Timestepping Parameter").setParameters(parameters->sublist("Timestepping Parameter"));
 
-    auto geometryParameters = Teuchos::getParametersFromXmlFile("parameters_FSI_PrecGeometry.xml");
+    ParameterListPtr_Type geometryParameters = Teuchos::getParametersFromXmlFile("parameters_FSI_PrecGeometry.xml");
     geometryParameters->setParameters(*Teuchos::getParametersFromXmlFile("parameters_FSI_SolverGeometry.xml"));
     geometryParameters->sublist("General").set("Preconditioner Method", "MonolithicConstPrec");
     geometryParameters->sublist("Parameter").set("Model", "Laplace");
