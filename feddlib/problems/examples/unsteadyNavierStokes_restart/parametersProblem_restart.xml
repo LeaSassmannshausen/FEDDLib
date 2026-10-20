@@ -1,0 +1,27 @@
+<!-- Optional override, merged after parametersProblem.xml via the restartfile option.
+     First run the base example to produce checkpoints at t=0.01.
+     All physical, mesh and discretization settings remain those of the base XML. -->
+<ParameterList name="unsteady Navier-Stokes restart example">
+    <ParameterList name="Timestepping Parameter">
+        <Parameter name="Restart" type="bool" value="true"/>
+        <!-- Directory containing the producer's HDF5 files and checkpoint metadata. -->
+        <Parameter name="Restart directory" type="string" value="checkpoints"/>
+        <!-- Physical checkpoint time to restore, not a timestep duration. -->
+        <Parameter name="Time step" type="double" value="0.01"/>
+        <Parameter name="Final time" type="double" value="0.02"/>
+        <!-- Further checkpoints must go to a different directory from the input. -->
+        <Parameter name="Checkpointing" type="bool" value="true"/>
+        <Parameter name="Checkpoint directory" type="string" value="continuedCheckpoints"/>
+        <Parameter name="Number Checkpoints" type="int" value="1"/>
+        <ParameterList name="Checkpoints">
+            <Parameter name="1" type="double" value="0.02"/>
+        </ParameterList>
+    </ParameterList>
+    <ParameterList name="Exporter">
+        <!-- Append ParaView and diagnostic output from the producer in the same
+             working directory. Set false to start a new series; Keep old output
+             then archives the previous output under old_output/run_N. -->
+        <Parameter name="Resume output" type="bool" value="true"/>
+        <Parameter name="Keep old output" type="bool" value="true"/>
+    </ParameterList>
+</ParameterList>

@@ -441,6 +441,21 @@ namespace FEDD
             !time.get("Initial solution", false) &&
             !parameterList_->sublist("General").get("Safe all solution", false))
             return;
+        // Check the actual mesh, since drivers need not set Parameter/Mesh Type.
+        // The schema guard above limits this warning to once per problem.
+        if (verbose_ && (time.get("Checkpointing", false) || time.get("Failure recovery", false) ||
+                         parameterList_->sublist("General").get("Safe all solution", false))) {
+            for (const DomainConstPtr_Type& domain : domainPtr_vec_) {
+                if (!Teuchos::rcp_dynamic_cast<const MeshStructured<SC, LO, GO, NO>>(domain->getMesh(), false).is_null()) {
+                    std::cerr << "WARNING: Checkpointing is enabled for a structured mesh partition. "
+                              << "Restart requires the same global mesh and DOFs. Use the same number of MPI ranks (currently "
+                              << comm_->getSize() << ") and the same H/h and geometry settings to reproduce this mesh; "
+                              << "changing the rank count or H/h can make the checkpoint incompatible."
+                              << std::endl;
+                    break;
+                }
+            }
+        }
         checkpoint::Timer timer(parameterList_, "metadata_prepare");
         std::vector<checkpoint::FieldDescription> fields;
         fields.reserve(domainPtr_vec_.size());

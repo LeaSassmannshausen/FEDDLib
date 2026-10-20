@@ -1,0 +1,63 @@
+<!-- Fresh run: 3D unstructured backward-facing step, P2/P1, BDF2.
+     Run from the example's build directory, where CMake copies the mesh/inputs.
+     See parametersProblem_restart.xml for a continuation from the final checkpoint. -->
+<ParameterList name="unsteady Navier-Stokes restart example">
+    <ParameterList name="Parameter">
+        <!-- This example supports only Dimension=3 and Mesh Type=unstructured. -->
+        <Parameter name="Dimension" type="int" value="3"/>
+        <Parameter name="Mesh Type" type="string" value="unstructured"/>
+        <Parameter name="Discretization Velocity" type="string" value="P2"/>
+        <Parameter name="Discretization Pressure" type="string" value="P1"/>
+        <!-- Kinematic viscosity; dynamic viscosity is Density times Viscosity. -->
+        <Parameter name="Viscosity" type="double" value="0.001"/>
+        <Parameter name="Density" type="double" value="1.0"/>
+        <!-- The supplied BFS inlet spans y,z in [0,1], with flow along +x. -->
+        <Parameter name="MaxVelocity" type="double" value="1.5"/>
+        <Parameter name="Inlet height" type="double" value="1.0"/>
+        <Parameter name="relNonLinTol" type="double" value="1.e-8"/>
+        <Parameter name="Criterion" type="string" value="Residual"/>
+        <Parameter name="MaxNonLinIts" type="int" value="15"/>
+        <Parameter name="Cancel MaxNonLinIts" type="bool" value="true"/>
+        <Parameter name="Symmetric gradient" type="bool" value="false"/>
+    </ParameterList>
+    <ParameterList name="Mesh Partitioner">
+        <!-- Repartition the same input mesh on the ranks of each invocation. -->
+        <Parameter name="Mesh 1 Name" type="string" value="BFS3dCC.mesh"/>
+        <Parameter name="Contiguous" type="bool" value="true"/>
+        <Parameter name="Build Edge List" type="bool" value="true"/>
+        <Parameter name="Build Surface List" type="bool" value="true"/>
+    </ParameterList>
+    <ParameterList name="General">
+        <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
+        <Parameter name="Linearization" type="string" value="Newton"/>
+        <Parameter name="Preconditioner Method" type="string" value="Monolithic"/>
+        <Parameter name="ParaViewExport" type="bool" value="true"/>
+        <Parameter name="Export Data" type="bool" value="true"/>
+        <!-- Report checkpoint feature timers alongside the stacked solver timings. -->
+        <Parameter name="Checkpoint timings" type="bool" value="true"/>
+    </ParameterList>
+    <ParameterList name="Timestepping Parameter">
+        <Parameter name="Class" type="string" value="Multistep"/>
+        <Parameter name="BDF" type="int" value="2"/>
+        <Parameter name="Timestepping type" type="string" value="non-adaptive"/>
+        <!-- dt is the step duration; Time step below is the physical start time. -->
+        <Parameter name="dt" type="double" value="0.0025"/>
+        <Parameter name="Time step" type="double" value="0.0"/>
+        <Parameter name="Final time" type="double" value="0.01"/>
+        <Parameter name="Restart" type="bool" value="false"/>
+        <!-- Write velocity, pressure, compatibility metadata and required BDF history.
+             The final accepted step is checkpointed without an extra solve. -->
+        <Parameter name="Checkpointing" type="bool" value="true"/>
+        <Parameter name="Checkpoint directory" type="string" value="checkpoints"/>
+        <Parameter name="Number Checkpoints" type="int" value="1"/>
+        <ParameterList name="Checkpoints">
+            <Parameter name="1" type="double" value="0.01"/>
+        </ParameterList>
+    </ParameterList>
+    <ParameterList name="Exporter">
+        <Parameter name="Export every X timesteps" type="int" value="1"/>
+        <!-- A fresh run starts new output. Archive existing output when rerunning. -->
+        <Parameter name="Resume output" type="bool" value="false"/>
+        <Parameter name="Keep old output" type="bool" value="true"/>
+    </ParameterList>
+</ParameterList>
