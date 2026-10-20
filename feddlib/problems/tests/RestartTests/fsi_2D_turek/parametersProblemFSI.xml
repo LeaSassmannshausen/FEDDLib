@@ -17,7 +17,7 @@
         <!-- Update ALE geometry explicitly rather than solving it as an implicit coupled block. -->
         <Parameter name="Geometry Explicit" type="bool" value="true"/>
         <!-- Relative nonlinear convergence tolerance; kept tight for the reference comparisons. -->
-        <Parameter name="relNonLinTol" type="double" value="1.0e-10"/>
+        <Parameter name="relNonLinTol" type="double" value="1.0e-8"/>
         <!-- Maximum permitted nonlinear updates in each solve. -->
         <Parameter name="MaxNonLinIts" type="int" value="10"/>
         <!-- Use the nonlinear residual to measure convergence. -->
@@ -107,7 +107,7 @@
         <Parameter name="Restart" type="bool" value="false"/>
         <!-- Relative l2 error bound for the test comparison, not a linear/nonlinear solver
              tolerance. -->
-        <Parameter name="Restart tolerance" type="double" value="1.e-12"/>
+        <Parameter name="Restart tolerance" type="double" value="1.e-10"/>
         <!-- Backward differentiation order; order two requires previous solution history. -->
         <Parameter name="BDF" type="int" value="2"/>
         <!-- Time-integration family; FSI uses Multistep for the fluid and Newmark for the

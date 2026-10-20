@@ -10,7 +10,7 @@ BCBuilder to the prescribed volumetric flow. The old stored profile files belong
 to a different mesh and are not used. The supplied material properties and flow
 amplitude are retained; ramp/transition times and the simulation duration are
 shortened for this regression test. The solver uses Newton with relative residual
-tolerance 1e-10 and flexible GMRES with tolerance 1e-10.
+tolerance 1e-6 and flexible GMRES with tolerance 1e-10.
 
 The `problems_fsi_3D_arterialSegment_Resistance`, `_Absorbing`, and `_Absorbing_Paper`
 tests use separate working directories and four MPI ranks. Each loads frozen
