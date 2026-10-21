@@ -7,7 +7,7 @@ tribits_add_test(
     fsi
     NAME fsi
     ARGS
-    NUM_MPI_PROCS 2
+    NUM_MPI_PROCS 4
 )
 
 tribits_copy_files_to_binary_dir(data_fsiTest
