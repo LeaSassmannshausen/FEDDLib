@@ -7,6 +7,13 @@ Boundary markers are 1 for walls, 2 for the prescribed parabolic inlet and 3 for
 natural outflow; marker 4, when present, is treated as a no-slip obstacle.
 Replacing the mesh requires matching these boundary markers and the inlet profile.
 
+`Parameter/Inflow ramp time` sets a smooth half-cosine startup ramp in seconds
+(default: 0.01 s). The inlet starts at zero, reaches half its final velocity at
+half the ramp time, then reaches `MaxVelocity` at the ramp time and stays steady.
+Set the ramp time to zero to apply the full profile immediately. The ramp uses
+physical simulation time, so a restart during the ramp continues from its saved
+time. Keep the ramp setting unchanged between the producer and restart.
+
 Build the target from the workspace directory containing `source/` and `build/`:
 
 ```sh

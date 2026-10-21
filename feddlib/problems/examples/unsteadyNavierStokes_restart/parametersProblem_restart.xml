@@ -1,6 +1,8 @@
 <!-- Optional override, merged after parametersProblem.xml via the restartfile option.
      First run the base example to produce checkpoints at t=0.01.
-     All physical, mesh and discretization settings remain those of the base XML. -->
+     All physical, mesh and discretization settings remain those of the base XML.
+     Inflow ramp time is inherited from the base XML; the ramp uses the restored
+     physical time and does not begin again at restart. -->
 <ParameterList name="unsteady Navier-Stokes restart example">
     <ParameterList name="Timestepping Parameter">
         <Parameter name="Restart" type="bool" value="true"/>

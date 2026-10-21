@@ -14,6 +14,11 @@
         <!-- The supplied BFS inlet spans y,z in [0,1], with flow along +x. -->
         <Parameter name="MaxVelocity" type="double" value="1.5"/>
         <Parameter name="Inlet height" type="double" value="1.0"/>
+        <!-- Smooth half-cosine ramp from zero velocity at t=0 to MaxVelocity
+             at this physical time in seconds, then hold the full inlet profile.
+             Zero disables the ramp. Restarts continue at the restored physical
+             time; keep this setting the same in the producer and restart. -->
+        <Parameter name="Inflow ramp time" type="double" value="0.01"/>
         <Parameter name="relNonLinTol" type="double" value="1.e-8"/>
         <Parameter name="Criterion" type="string" value="Residual"/>
         <Parameter name="MaxNonLinIts" type="int" value="15"/>
