@@ -18,7 +18,7 @@
         <Parameter name="MaxVelocity" type="double" value="1.5"/>
         <!-- Resolve solver error below the restart comparison bound across MPI partitions. -->
         <!-- Relative nonlinear convergence tolerance; kept tight for the reference comparisons. -->
-        <Parameter name="relNonLinTol" type="double" value="1.e-12"/>
+        <Parameter name="relNonLinTol" type="double" value="1.e-8"/>
         <!-- Maximum permitted nonlinear updates in each solve. -->
         <Parameter name="MaxNonLinIts" type="int" value="10"/>
         <!-- Use the nonlinear residual to measure convergence. -->

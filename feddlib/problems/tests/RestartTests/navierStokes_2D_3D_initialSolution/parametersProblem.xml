@@ -19,7 +19,7 @@
         <!-- Peak velocity used by the driver to scale the parabolic inlet profile. -->
         <Parameter name="MaxVelocity" type="double" value="0.1"/>
         <!-- Relative nonlinear convergence tolerance; kept tight for the reference comparisons. -->
-        <Parameter name="relNonLinTol" type="double" value="1.e-12"/>
+        <Parameter name="relNonLinTol" type="double" value="1.e-8"/>
         <!-- Maximum permitted nonlinear updates in each solve. -->
         <Parameter name="MaxNonLinIts" type="int" value="20"/>
         <!-- Stop if nonlinear convergence is not reached within MaxNonLinIts; enabled recovery

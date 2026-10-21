@@ -3,3 +3,7 @@ Geometry: supplied 0.5 mm artery, P1/P1 fluid and P1 solid.
 Final time: 0.0175; dt: 0.0025.
 Resistance uses save-all checkpoints; absorbing models save at 0.005, 0.010, 0.015.
 These inputs plus the pressure-model/save-all command-line overrides generated this bundle.
+Regenerated: 2026-10-21.
+Nonlinear relative tolerance: 1.e-6.
+Coupled linear tolerance: 1e-6.
+Geometry linear tolerance: 1e-10.

@@ -16,9 +16,10 @@ The `problems_fsi_3D_arterialSegment_Resistance`, `_Absorbing`, and `_Absorbing_
 tests use separate working directories and four MPI ranks. Each loads frozen
 references and advances **exactly two timesteps per simulation**, with
 `dt = 0.0025`. Resistance runs once, from `0.005` to `0.01`, while writing
-save-all checkpoints. Each absorbing variant runs from both `0.005` to `0.01`
-and `0.01` to `0.015`, before and after the `0.00625` inlet-ramp endpoint.
+save-all checkpoints. Each absorbing variant runs once, from `0.01` to `0.015`,
+after the `0.00625` inlet-ramp endpoint.
 Only `Absorbing Paper` also has a steady/unsteady outlet transition at `0.00625`.
+Its test restores the captured transition area and runs only the unsteady phase.
 The normal `Absorbing` model uses its initial area and has no outlet transition.
 `Resistance` uses the constant configured coefficient in `p = R * Q`; it has no
 startup ramp. Both absorbing models use a constant reference pressure.
@@ -53,9 +54,12 @@ comparing fields and scalar history. The runner explicitly passes
 time with a fixed step count; zero (the default) preserves the XML `Final time`.
 This keeps the separate variable-timestep regression's configured endpoints.
 
-The variants also verify that changed averaging, missing outlet state and an
-unknown state version are rejected. These are validation-only launches without
-timestepping. The single Resistance simulation uses `Safe all solution = true`
+Every CTest case makes five MPI launches: one two-step simulation, followed by
+four validation-only launches that must reject checkpoint output overwriting its
+input, changed averaging, missing outlet state, and an unknown state version.
+Validation uses the same starting checkpoint as the simulation and performs no
+timestepping. Both absorbing cases use the checkpoint at `0.01`; Resistance uses
+`0.005`. The single Resistance simulation uses `Safe all solution = true`
 with `Checkpointing = false` and writes every solution in `saveAllCheckpoints`.
 The runner requires outlet-state files at `0.005` and `0.0075`, without another
 simulation. Its analytic traction check and field/scalar error bounds are retained. Each

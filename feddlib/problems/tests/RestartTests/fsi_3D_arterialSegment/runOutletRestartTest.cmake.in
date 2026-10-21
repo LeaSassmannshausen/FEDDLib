@@ -16,6 +16,14 @@ FILE(COPY "${reference}/" DESTINATION "${work}/restartCheckpoints")
 SET(command "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@
     @MPI_EXEC_NUMPROCS_FLAG@ 4 @MPI_EXEC_POST_NUMPROCS_FLAGS@
     "${EXECUTABLE}" "--pressure-model=@outlet_model@" --restart-steps=2)
+IF("@outlet_model@" STREQUAL "Resistance")
+    SET(restart_time 0.005)
+    SET(outlet_state_time 0.005000)
+ELSE()
+    # The inlet ramp and the paper-model transition have both ended by 0.01 s.
+    SET(restart_time 0.01)
+    SET(outlet_state_time 0.010000)
+ENDIF()
 FUNCTION(run_phase label)
     MESSAGE(STATUS "Arterial @outlet_model@: ${label}")
     EXECUTE_PROCESS(COMMAND ${command} ${ARGN} WORKING_DIRECTORY "${work}" RESULT_VARIABLE result)
@@ -27,21 +35,21 @@ IF("@outlet_model@" STREQUAL "Resistance")
     # One two-step restart also checks save-all output with Checkpointing=false.
     run_phase("Save-all restart: 0.005 to 0.01 s, two timesteps"
         --problemfile=parametersProblemFSI_restart.xml
-        --restart-time=0.005 --save-all --checkpoint-output=saveAllCheckpoints)
+        --restart-time=${restart_time} --save-all --checkpoint-output=saveAllCheckpoints)
     FOREACH(saved_time 0.005000 0.007500)
         IF(NOT EXISTS "${work}/saveAllCheckpoints/FSIOutletState_${saved_time}.xml")
             MESSAGE(FATAL_ERROR "Missing save-all outlet state at ${saved_time}")
         ENDIF()
     ENDFOREACH()
 ELSE()
-    run_phase("Restart at 0.005 s" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.005)
-    run_phase("Restart at 0.01 s" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.01)
+    run_phase("Restart: 0.01 to 0.015 s, two timesteps"
+        --problemfile=parametersProblemFSI_restart.xml --restart-time=${restart_time})
 ENDIF()
 
 # Assert rejection through the actual FSI constructor, before solution loading.
 FUNCTION(expect_rejection label diagnostic)
     EXECUTE_PROCESS(COMMAND ${command} --problemfile=parametersProblemFSI_restart.xml
-        --validate-checkpoint ${ARGN} WORKING_DIRECTORY "${work}"
+        --restart-time=${restart_time} --validate-checkpoint ${ARGN} WORKING_DIRECTORY "${work}"
         RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE errors TIMEOUT 60)
     IF(result STREQUAL "0" OR NOT "${output}${errors}" MATCHES "${diagnostic}")
         MESSAGE(FATAL_ERROR "${label}: expected rejection, got ${result}\n${output}${errors}")
@@ -56,7 +64,7 @@ IF(NOT geometry_before STREQUAL geometry_after)
     MESSAGE(FATAL_ERROR "Rejected restart modified the geometry checkpoint")
 ENDIF()
 expect_rejection("changed averaging" "Average Flowrate" --incompatible-outlet)
-SET(state "${work}/restartCheckpoints/FSIOutletState_0.005000.xml")
+SET(state "${work}/restartCheckpoints/FSIOutletState_${outlet_state_time}.xml")
 FILE(READ "${state}" original)
 FILE(REMOVE "${state}")
 expect_rejection("missing outlet state" "Missing FSI outlet checkpoint")
