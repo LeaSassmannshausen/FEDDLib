@@ -53,24 +53,6 @@ void lift3D(double* x, double* res, double t, const double* parameters)
     
     return;
 }
-void pressureRamp(double* x, double* res, double* parameters){
-
-    double pressureValue = parameters[1];
-    double flag = parameters[3];
-    double ramp = parameters[2];
-  	res[0] =0.;
-    
-    if(parameters[0]+1.e-12 < ramp)
-        pressureValue = parameters[0]*pressureValue/ramp;
-    else
-        pressureValue = parameters[1];
-
-    res[0] = pressureValue;  // Usually we check here for the correct flag. But as the boundary condition is limited to the outlet anyway, we have no issues
-    
-
-    return;
-}
-
 namespace FEDD {
 // Funktionen fuer die rechte Seite der Struktur/ Fluid/ Geometrie sind im jeweiligen Problem
 
@@ -390,8 +372,8 @@ void FSI<SC,LO,GO,NO>::assemble( std::string type ) const
         // Sollte (bzw. muss) erst aufgerufen werden, wenn alle Bloecke aus assemble()
         // in das ganze System hineingeschrieben worden ist. Ansonsten findet
         // blockExists() keinen Block
-    //    this->initializeVectors();
-    //    this->initializeVectorsNonLinear();
+        // this->initializeVectors();
+        // this->initializeVectorsNonLinear();
         //NOX
 
         // We set the vector from the partial problems
@@ -1205,12 +1187,18 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const
     const double time = timeSteppingTool_->currentTime();
     const int flagInlet = this->parameterList_->sublist("General").get("Flag Inlet Fluid", 4);
     const int flagOutlet = this->parameterList_->sublist("General").get("Flag Outlet Fluid", 5);
+
     MultiVectorPtr_Type rhs = Teuchos::rcp(new MultiVector_Type(this->getDomain(0)->getMapVecFieldRepeated()));
+
     // Import before every flow-rate evaluation, including the resistance model.
     u_rep_->importFromVector(this->solution_->getBlock(0), true);
 
-    this->feFactory_->assemblyFlowRate(this->dim_, outletState_.currentFlowRate,
-        this->getDomain(0)->getFEType(), this->dim_, flagOutlet, u_rep_);
+    // Compute flowrate
+    // The computed flowrate is stored in the outletState_ struct, which is used to store information
+    // on the outflow pressure boundary conditions
+    this->feFactory_->assemblyFlowRate(this->dim_, outletState_.currentFlowRate, this->getDomain(0)->getFEType(), this->dim_, flagOutlet, u_rep_);
+    
+    // initialize the outletState_ struct if this is the first time step, and validate the state if resuming from a checkpoint
     if (!outletState_.initialized) {
         TEUCHOS_TEST_FOR_EXCEPTION(time != 0., std::runtime_error,
             "FSI outlet history must be restored before resuming a pressure boundary model.");
@@ -1221,35 +1209,37 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const
         }
         outletState_.initialized = true;
     }
+    // validate the outletState_ struct if resuming from a checkpoint
     checkpoint::validateOutletState(outletState_, model, time);
 
+    // Extract both current and previous flow rates for the pressure boundary evaluation. 
     vec_dbl_Type flowRates = {outletState_.previousFlowRate, outletState_.currentFlowRate};
-    vec_dbl_Type rampParameters(1, time);
     if (model == "Resistance") {
         outletState_.pressure = this->feFactory_->assemblyResistanceBoundary(this->dim_,
-            this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates, rampParameters,
-            pressureRamp, this->parameterList_, 0);
+            this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates, this->parameterList_, 0);
     }
-    else {
+    else if (model == "Absorbing Paper") {
         // Capture once on the first evaluation reaching the transition. This
         // also handles a transition time that is not exactly on the dt grid.
-        const double transition = model == "Absorbing Paper"
-            ? fluid.get("Unsteady Start", 0.2) : fluid.get("Max Ramp Time", 0.1);
+        const double transition = fluid.get("Unsteady Start", 0.2);
         if (!outletState_.transitionCaptured && time + 1.e-12 >= transition) {
             this->feFactory_->assemblyArea(this->dim_, outletState_.transitionOutletArea, flagOutlet);
             outletState_.transitionCaptured = true;
             checkpoint::validateOutletState(outletState_, model, time);
         }
-        if (model == "Absorbing Paper")
-            outletState_.pressure = this->feFactory_->assemblyAbsorbingBoundaryPaper(this->dim_,
-                this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates, rampParameters,
-                pressureRamp, outletState_.initialOutletArea, outletState_.transitionOutletArea,
-                this->parameterList_, 0);
-        else
-            outletState_.pressure = this->feFactory_->assemblyAbsorbingBoundary(this->dim_,
-                this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates, rampParameters,
-                pressureRamp, outletState_.initialOutletArea, outletState_.transitionOutletArea,
-                this->parameterList_, 0);
+        outletState_.pressure = this->feFactory_->assemblyAbsorbingBoundaryPaper(this->dim_,
+            this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates, time,
+            outletState_.initialOutletArea, outletState_.transitionOutletArea,
+            this->parameterList_, 0);
+    }
+    else {
+        // The normal absorbing law uses the initial area, without a transition.
+        // Discard unused transition fields retained by older checkpoints.
+        outletState_.transitionOutletArea = 0.;
+        outletState_.transitionCaptured = false;
+        outletState_.pressure = this->feFactory_->assemblyAbsorbingBoundary(this->dim_,
+            this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates,
+            outletState_.initialOutletArea, this->parameterList_, 0);
     }
     outletState_.previousFlowRate = outletState_.currentFlowRate;
     checkpoint::validateOutletState(outletState_, model, time);

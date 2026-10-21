@@ -133,13 +133,12 @@ class FE: public FE_ElementAssembly<SC,LO,GO,NO> {
                                      BC_func_Type func,
                                      std::vector<SC>& funcParameter);
     
+    /// Assemble outlet traction with the constant configured resistance, p = R * Q.
     double assemblyResistanceBoundary(int dim, 
                                 std::string FEType, 
                                 MultiVectorPtr_Type f, 
                                 MultiVectorPtr_Type u_rep,
                                 vec_dbl_Type flowRate_vec, 
-                                std::vector<SC>& funcParameter, 
-                                RhsFunc_Type func, 
                                 ParameterListPtr_Type params, 
                                 int FEloc=0);
     double assemblyAbsorbingBoundary(int dim, 
@@ -147,34 +146,31 @@ class FE: public FE_ElementAssembly<SC,LO,GO,NO> {
                                 MultiVectorPtr_Type f, 
                                 MultiVectorPtr_Type u_rep, 
                                 vec_dbl_Type flowRate_vec, 
-                                std::vector<SC>& funcParameter, 
-                                RhsFunc_Type func, 
                                 double areaOutlet_init, 
-                                double areaOutlet_T, 
                                 ParameterListPtr_Type params, 
                                 int FEloc=0);
 
+    /// Evaluate the paper model at physical time, including its steady/unsteady transition.
     double assemblyAbsorbingBoundaryPaper(int dim, 
                                 std::string FEType, 
                                 MultiVectorPtr_Type f, 
                                 MultiVectorPtr_Type u_rep, 
                                 vec_dbl_Type flowRate_vec, 
-                                std::vector<SC>& funcParameter, 
-                                RhsFunc_Type func, 
+                                double time,
                                 double areaOutlet_init, 
                                 double areaOutlet_T, 
                                 ParameterListPtr_Type params, 
                                 int FEloc=0);
+
     double assemblyAbsorbingResistanceBoundary(int dim, 
                                 std::string FEType, 
                                 MultiVectorPtr_Type f, 
                                 MultiVectorPtr_Type u_rep, 
                                 vec_dbl_Type flowRate_vec, 
-                                std::vector<SC>& funcParameter, 
-                                RhsFunc_Type func, 
                                 double areaOutlet_init, 
                                 ParameterListPtr_Type params, 
                                 int FEloc=0);
+
     void assemblyArea(int dim,
                             double &area,
                             int inflowFlag,

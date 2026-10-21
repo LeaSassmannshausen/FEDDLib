@@ -61,12 +61,13 @@
         <!-- Prescribed inlet volumetric flow rate in cm^3/s; used to normalize the parabolic
              profile. -->
         <Parameter name="Flowrate" type="double" value="3" />
-        <!-- Outlet-model transition time in seconds; its captured area/state must survive
-             restoration. -->
+        <!-- Steady/unsteady transition time for Absorbing Paper only; its captured
+             outlet area must survive restoration. Normal Absorbing has no transition. -->
         <Parameter name="Unsteady Start" type="double" value="0.00625" />
         <!-- Use the mean of the two retained outlet flow rates in the pressure model. -->
         <Parameter name="Average Flowrate" type="bool" value="true" />
-        <!-- Reference-pressure ramp duration in seconds; zero applies it without a ramp. -->
+        <!-- Legacy outlet-ramp parameter, ignored by all pressure models.
+             Resistance is constant; both absorbing models use constant reference pressure. -->
         <Parameter name="BC Ramp" type="double" value="0.0" />
         <!-- Sign/scale applied to normals in the outlet pressure traction assembly. -->
         <Parameter name="Normal Scale" type="double" value="-1.0" />

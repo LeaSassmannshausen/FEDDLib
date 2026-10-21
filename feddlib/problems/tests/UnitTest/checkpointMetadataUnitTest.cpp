@@ -353,6 +353,35 @@ int main(int argc, char** argv)
     };
     writeOutlet();
     validate(outletFsi);
+    {
+        auto noRampSettings = outletSettings;
+        noRampSettings.sublist("Parameter Fluid").set("BC Ramp", 0.5);
+        validate(checkpoint::makeSchema(noRampSettings, fsiFields));
+        if (comm->getRank() == 0)
+            std::cout << "PASS paper reference pressure ignores removed BC Ramp setting\n";
+
+        auto normalSettings = noRampSettings;
+        normalSettings.sublist("Parameter Fluid").set("Pressure Boundary Condition", std::string("Absorbing"));
+        const auto normalFsi = checkpoint::makeSchema(normalSettings, fsiFields);
+        fixtureFor(normalFsi);
+        FSIOutletState normalOutlet = outlet;
+        normalOutlet.transitionOutletArea = 0.;
+        normalOutlet.transitionCaptured = false;
+        checkpoint::onRoot(*comm, [&] {
+            checkpoint::writeOutletState(normalOutlet, outletFile, "Absorbing", time);
+        });
+        validate(normalFsi);
+        normalSettings.sublist("Parameter Fluid").set("Unsteady Start", 0.).set("BC Ramp", 1.);
+        validate(checkpoint::makeSchema(normalSettings, fsiFields));
+        if (comm->getRank() == 0)
+            std::cout << "PASS normal absorbing restart requires no transition\n";
+        normalSettings.sublist("Parameter Fluid").set("Heart Beat Start", 0.123);
+        rejects("changed prescribed inlet pulse timing", "Heart Beat Start", [&] {
+            validate(checkpoint::makeSchema(normalSettings, fsiFields));
+        });
+        fixtureFor(outletFsi);
+        writeOutlet();
+    }
     checkpoint::onRoot(*comm, [&] {
         const auto read = checkpoint::readOutletState(outletFile, "Absorbing Paper", time);
         if (read.initialInletArea != outlet.initialInletArea || read.initialOutletArea != outlet.initialOutletArea ||
@@ -403,6 +432,11 @@ int main(int argc, char** argv)
         checkpoint::writeOutletState(outlet, outletFile, "Resistance", time);
     });
     validate(resistanceFsi);
+    auto noRampResistanceSettings = resistanceSettings;
+    noRampResistanceSettings.sublist("Parameter Fluid").set("BC Ramp", 0.5);
+    validate(checkpoint::makeSchema(noRampResistanceSettings, fsiFields));
+    if (comm->getRank() == 0)
+        std::cout << "PASS constant resistance ignores removed BC Ramp setting\n";
     for (const std::string setting : {std::string("Density"), std::string("Viscosity")}) {
         auto changedSettings = resistanceSettings;
         changedSettings.sublist("Parameter Fluid").set(setting, 0.125);

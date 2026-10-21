@@ -3249,8 +3249,7 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
                                               MultiVectorPtr_Type f,
                                               MultiVectorPtr_Type u_rep,
                                               vec_dbl_Type flowRate_vec,
-                                              std::vector<SC>& funcParameter, 
-                                              RhsFunc_Type func, 
+                                              double time,
                                               double areaOutlet_init,
                                               double areaOutlet_T,
                                               ParameterListPtr_Type params,
@@ -3285,12 +3284,8 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
     double density = params->sublist("Parameter Fluid").get("Density",1000.0); 
     double p_ref_input = params->sublist("Parameter Fluid").get("Reference fluid pressure",10666.); 
 
-    double rampTime = params->sublist("Parameter Fluid").get("Max Ramp Time",0.1); 
     double unsteadyStart = params->sublist("Parameter Fluid").get("Unsteady Start",0.2); 
     double flowRateInput = params->sublist("Parameter Fluid").get("Flowrate",3.0); 
-
-    double bcRamp =  params->sublist("Parameter Fluid").get("BC Ramp",0.1);
-
 
     SC elScaling;
     SmallMatrix<SC> B(dim);
@@ -3319,22 +3314,14 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
     this->assemblyArea(dim, areaInlet, flagInlet);
 
     double beta=0.;
-    if(funcParameter[0] < unsteadyStart)
+    if(time < unsteadyStart)
         beta = ((wallThickness* E)/(1.-pow(poissonRatio,2))) * (M_PI/areaOutlet_init ) ;
     else
         beta = ((wallThickness* E)/(1.-pow(poissonRatio,2))) * (M_PI/areaOutlet_T ) ;
 
-    // We determine p_ref via a ramp
-    funcParameter.push_back(p_ref_input);
-    funcParameter.push_back(bcRamp); 
-    funcParameter.push_back(flagOutlet); 
-    SC* paramsFunc = &(funcParameter[0]);
-    vec_dbl_Type x_tmp(dim,0.); //dummy
-    paramsFunc[ funcParameter.size() - 1 ] =flagOutlet;          
-    paramsFunc[ 1 ]  = p_ref_input;
-    func( &x_tmp[0], &valueFunc[0], paramsFunc);
-    double p_ref = valueFunc[0];
-    if(funcParameter[0]+1e-12 >= unsteadyStart){
+    
+    double p_ref = p_ref_input;
+    if(time+1e-12 >= unsteadyStart){
         p_ref = p_ref - std::pow( (std::sqrt(density)/(2*std::sqrt(2)) * flowRateInput/areaOutlet_T + std::sqrt(beta*std::sqrt(areaOutlet_T))),2) + beta*std::sqrt(areaOutlet_T);
 
         if(this->domainVec_.at(0)->getComm()->getRank()==0){
@@ -3355,7 +3342,7 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
     double A_bar = 1./((std::sqrt(beta*std::sqrt(areaOutlet_init)+p_ref_input)-std::sqrt(beta*std::sqrt(areaOutlet_init)))*2.*std::sqrt(2.)*(1./std::sqrt(density))*(1./flowRateInput));
     double h_x = 0.;
 
-    if(funcParameter[0] < unsteadyStart)
+    if(time < unsteadyStart)
         h_x=  std::pow( (std::sqrt(density)/(2*std::sqrt(2)) * flowRateUse/A_bar + std::sqrt(beta*std::sqrt(areaOutlet_init))),2) - beta*std::sqrt(areaOutlet_init);
     else
         h_x=  std::pow( (std::sqrt(density)/(2*std::sqrt(2)) * flowRateUse/areaOutlet + std::sqrt(beta*std::sqrt(areaOutlet_T))),2) - beta*std::sqrt(areaOutlet_T) + p_ref;
@@ -3367,7 +3354,6 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
         std::cout << " ---------------------------------------------------------- " <<std::endl;
         std::cout << " Absorbing Boundary Condition " <<std::endl;
         std::cout << " Input p_ref: " << p_ref_input <<std::endl;
-        std::cout << " Adjusted p_ref: " << p_ref <<std::endl;
         std::cout << " Unsteady start time_ " << unsteadyStart <<std::endl;
         std::cout << " Volmetric flow Inlet: " << flowRateInlet <<std::endl;
         std::cout << " Volmetric flow Outlet: " << flowRateOutlet <<std::endl;
@@ -3467,10 +3453,7 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundary(int dim,
                                               MultiVectorPtr_Type f,
                                               MultiVectorPtr_Type u_rep,
                                               vec_dbl_Type flowRate_vec,
-                                              std::vector<SC>& funcParameter, 
-                                              RhsFunc_Type func, 
                                               double areaOutlet_init,
-                                              double areaOutlet_T,
                                               ParameterListPtr_Type params,
                                               int FEloc) {
 
@@ -3501,13 +3484,6 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundary(int dim,
      
     double density = params->sublist("Parameter Fluid").get("Density",1.0); 
     double p_ref_input = params->sublist("Parameter Fluid").get("Reference fluid pressure",10666.); 
-
-    double rampTime = params->sublist("Parameter Fluid").get("Max Ramp Time",0.1); 
-    double unsteadyStart = params->sublist("Parameter Fluid").get("Heart Beat Start",0.2); 
-    double flowRateInput = params->sublist("Parameter Fluid").get("Flowrate",3.0e-06); 
-
-    double bcRamp =  params->sublist("Parameter Fluid").get("BC Ramp",0.1);
-
 
     SC elScaling;
     SmallMatrix<SC> B(dim);
@@ -3541,23 +3517,8 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundary(int dim,
     
     beta = ((wallThickness* E)/(1.-pow(poissonRatio,2))) * (M_PI/areaOutlet_init ) ;
     
-
-    funcParameter.push_back(p_ref_input);
-    funcParameter.push_back(bcRamp); 
-    funcParameter.push_back(flagOutlet); 
-    // We determine p_ref via a ramp
-    SC* paramsFunc = &(funcParameter[0]);
-    vec_dbl_Type x_tmp(dim,0.); //dummy
-      // Adding parameters
-
-    // paramsFunc[ funcParameter.size() - 1 ] =flagOutlet;          
-    // paramsFunc[ 1 ]  = p_ref_input;
-    func( &x_tmp[0], &valueFunc[0], paramsFunc);
-    double p_ref = valueFunc[0];
-    //if(funcParameter[0]+1e-12 >= unsteadyStart){
-   
-
-    //}
+    double p_ref = p_ref_input;
+  
     // Value of h_x for this timestep
     double flowRateUse = flowRateOutlet;
     if(params->sublist("Parameter Fluid").get("Average Flowrate",false) )
@@ -3575,14 +3536,12 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundary(int dim,
     
     double h_x = pow( (sqrt(density)/(2*sqrt(2)) * flowRateUse/areaOutlet + sqrt(beta*sqrt(areaOutlet_init))),2) - beta*sqrt(areaOutlet_init)+p_ref;
 
-    //         h_x=  pow( (sqrt(density)/(2*sqrt(2)) * flowRateUse/areaOutlet + sqrt(beta*sqrt(areaOutlet_init))),2) - beta*sqrt(areaOutlet_init) + p_ref;
 
     if(this->domainVec_.at(0)->getComm()->getRank()==0){
         std::cout << " ---------------------------------------------------------- " <<std::endl;
         std::cout << " ---------------------------------------------------------- " <<std::endl;
         std::cout << " Absorbing Boundary Condition " <<std::endl;
         std::cout << " Input p_ref: " << p_ref_input <<std::endl;
-        std::cout << " Adjusted p_ref: " << p_ref <<std::endl;
         std::cout << " Volmetric flow Inlet: " << flowRateInlet <<std::endl;
         std::cout << " Volmetric flow Outlet: " << flowRateOutlet <<std::endl;
         std::cout << " Averaged volmetric flow Outlet: " << flowRateOutletAveraged <<std::endl;
@@ -3674,8 +3633,6 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingResistanceBoundary(int dim,
                                               MultiVectorPtr_Type f,
                                               MultiVectorPtr_Type u_rep,
                                               vec_dbl_Type flowRate_vec,
-                                              std::vector<SC>& funcParameter, 
-                                              RhsFunc_Type func, 
                                               double areaOutlet_init,
                                               ParameterListPtr_Type params,
                                               int FEloc) {
@@ -3709,7 +3666,6 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingResistanceBoundary(int dim,
     double wallThickness = params->sublist("Parameter Fluid").get("Wall thickness",0.001); 
     double density = params->sublist("Parameter Fluid").get("Density",1000.0); 
     double p_ref_input = params->sublist("Parameter Fluid").get("Reference fluid pressure",8000.); 
-    double resistanceRamp = params->sublist("Parameter Fluid").get("Resistance Ramp",2.); // Ramp time of fluid
     double resistance = params->sublist("Parameter Fluid").get("Resistance",1.0); 
 
     SC elScaling;
@@ -3738,33 +3694,15 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingResistanceBoundary(int dim,
     this->assemblyArea(dim, areaInlet, flagInlet);
 
     double beta = (((wallThickness* E)/(1-pow(poissonRatio,2))) * M_PI/areaOutlet_init ) *sqrt(areaOutlet_init);
-    // We determine p_ref via a ramp
-    SC* paramsFunc = &(funcParameter[0]);
-    vec_dbl_Type x_tmp(dim,0.); //dummy
-    paramsFunc[ funcParameter.size() - 1 ] =flagOutlet;          
-    //paramsFunc[ 1 ]  = p_ref;
-    //p_ref = valueFunc[0];
+   
     // Value of h_x for this timestep
     double flowRateUse = flowRateOutlet;
     if(params->sublist("Parameter Fluid").get("Average Flowrate",false) )
         flowRateUse = flowRateOutletAveraged;
 
-    double p_ref = 0.;
-    if(paramsFunc[0] < resistanceRamp){
-        //func( &x_tmp[0], &valueFunc[0], paramsFunc);
-        p_ref = flowRateUse*resistance;
-
-    }
-    else{         
-        paramsFunc[ 1 ]  = p_ref_input;
-        func( &x_tmp[0], &valueFunc[0], paramsFunc);
-        //p_ref = valueFunc[0];
-        p_ref = valueFunc[0];
-
-    }
+    double p_ref = flowRateUse*resistance;
 
     double h_x =  pow( (sqrt(density)/(2*sqrt(2)) * flowRateUse/areaOutlet + sqrt(beta)),2) - beta + p_ref;
-
     
     if(this->domainVec_.at(0)->getComm()->getRank()==0){
         std::cout << " ---------------------------------------------------------- " <<std::endl;
@@ -3867,8 +3805,6 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
                                               MultiVectorPtr_Type f,
                                               MultiVectorPtr_Type u_rep,
                                               vec_dbl_Type flowRate_vec, 
-                                              std::vector<SC>& funcParameter,
-                                              RhsFunc_Type func,
                                               ParameterListPtr_Type params,
                                               int FEloc) {
 
@@ -3901,8 +3837,6 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
 
     double normalScale = params->sublist("Parameter Fluid").get("Normal Scale",1.0); 
     double resistance = params->sublist("Parameter Fluid").get("Resistance",1.0); 
-    double bcRamp =  params->sublist("Parameter Fluid").get("BC Ramp",0.1);
-
     double referencePressure =  params->sublist("Parameter Fluid").get("Reference fluid pressure",11.99e1);
 
 
@@ -3915,14 +3849,6 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
     f->putScalar(0.);
     Teuchos::ArrayRCP< SC > valuesF = f->getDataNonConst(0);
        
-    std::vector<double> valueFunc(dim);
-    
-    // Adding parameters
-    funcParameter.push_back(resistance);
-    funcParameter.push_back(bcRamp); 
-    funcParameter.push_back(flagOutlet); 
-
-    SC* paramsFunc = &(funcParameter[0]);
     double flowRateInlet=0.;
     double flowRateOutlet=0.;
     this->assemblyFlowRate(dim, flowRateInlet, FEType , dim, flagInlet , u_rep);
@@ -3932,11 +3858,6 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
 
     double flowRateOutletAveraged = (flowRate_vec[0] + flowRate_vec[1]) / 2.;
 
-    vec_dbl_Type x_tmp(dim,0.); //dummy
-    // paramsFunc[ funcParameter.size() - 1 ] =flagOutlet;          
-
-    func( &x_tmp[0], &valueFunc[0], paramsFunc);
-
     if(this->domainVec_.at(0)->getComm()->getRank()==0){
         std::cout << " ---------------------------------------------------------- " << std::endl;
         std::cout << " ---------------------------------------------------------- " << std::endl;
@@ -3944,9 +3865,9 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
         std::cout << " Volmetric flow Inlet: " << flowRateInlet << std::endl;
         std::cout << " Volmetric flow Outlet: " << flowRateOutlet << std::endl;
         std::cout << " Averaged volmetric flow Outlet: " << flowRateOutletAveraged << std::endl;
-        std::cout << " Resistance per Input: " << valueFunc[0] << std::endl;
+        std::cout << " Resistance per Input: " << resistance << std::endl;
         std::cout << " Assumed reference pressure at outlet " << referencePressure<< std::endl;
-        std::cout << " Implicit pressure at outlet with p=R*Q: " << flowRateOutlet*valueFunc[0] << std::endl;
+        std::cout << " Implicit pressure at outlet with p=R*Q: " << flowRateOutlet*resistance << std::endl;
         std::cout << " Resistance based on (referencePressure)/flowRateInlet at this point would be: " << resistanceRef << std::endl;
         std::cout << " --------------------------------------------------------- " << std::endl;
         std::cout << " --------------------------------------------------------- " << std::endl;
@@ -3960,7 +3881,7 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
     if(isNeg==1)
         flowRateUse = 0.;
     
-    double p_out = flowRateUse*valueFunc[0];
+    double p_out = flowRateUse*resistance;
 
     // Second step: use flow rate to determine pressure with resistance
     for (UN T=0; T<elements->numberElements(); T++) {

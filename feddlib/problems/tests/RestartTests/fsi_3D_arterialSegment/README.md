@@ -10,16 +10,24 @@ BCBuilder to the prescribed volumetric flow. The old stored profile files belong
 to a different mesh and are not used. The supplied material properties and flow
 amplitude are retained; ramp/transition times and the simulation duration are
 shortened for this regression test. The solver uses Newton with relative residual
-tolerance 1e-6 and flexible GMRES with tolerance 1e-10.
+tolerance 1e-6; the flexible GMRES tolerance is configured in `parametersSolverFSI.xml`.
 
 The `problems_fsi_3D_arterialSegment_Resistance`, `_Absorbing`, and `_Absorbing_Paper`
 tests use separate working directories and four MPI ranks. Each loads frozen
 references and advances **exactly two timesteps per simulation**, with
 `dt = 0.0025`. Resistance runs once, from `0.005` to `0.01`, while writing
 save-all checkpoints. Each absorbing variant runs from both `0.005` to `0.01`
-and `0.01` to `0.015`, before and after its `0.00625` transition time.
+and `0.01` to `0.015`, before and after the `0.00625` inlet-ramp endpoint.
+Only `Absorbing Paper` also has a steady/unsteady outlet transition at `0.00625`.
+The normal `Absorbing` model uses its initial area and has no outlet transition.
+`Resistance` uses the constant configured coefficient in `p = R * Q`; it has no
+startup ramp. Both absorbing models use a constant reference pressure.
+The legacy `BC Ramp` input is ignored by all three outlet models.
 The tests compare velocity, pressure and displacement at the corresponding endpoint, together
-with initial areas, transition area, flow-rate history, outlet pressure and flags.
+with initial areas, flow-rate history, outlet pressure and flags. The transition
+area and capture flag are compared only for the paper variant; the other models
+must not capture a transition. Unused transition values in older plain-absorbing
+references are ignored.
 The field comparison uses the combined l2 bound
 `absolute error <= 1e-15 + 1e-12 * reference l2 norm`. The absolute tolerance
 is in the stored field's units and covers round-off for small displacements;

@@ -34,8 +34,8 @@ IF("@outlet_model@" STREQUAL "Resistance")
         ENDIF()
     ENDFOREACH()
 ELSE()
-    run_phase("Restart before transition" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.005)
-    run_phase("Restart after transition" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.01)
+    run_phase("Restart at 0.005 s" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.005)
+    run_phase("Restart at 0.01 s" --problemfile=parametersProblemFSI_restart.xml --restart-time=0.01)
 ENDIF()
 
 # Assert rejection through the actual FSI constructor, before solution loading.

@@ -225,6 +225,8 @@ public:
     double getPressureOutlet(){return outletState_.pressure;};
 
     /// Read-only outlet history, including initialization and transition status.
+    // We need to capture certain information when we want to restart the FSI simulation
+    // with certain pressure boundary conditions. 
     const FSIOutletState& getOutletState() const { return outletState_; }
 
     /*####################*/

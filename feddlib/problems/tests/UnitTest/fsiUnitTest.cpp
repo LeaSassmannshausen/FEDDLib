@@ -58,7 +58,6 @@ int main(int argc, char* argv[])
 {
     Tpetra::ScopeGuard tpetraScope(&argc, &argv);
     auto comm = Tpetra::getDefaultComm();
-    ParameterListPtr_Type parameters = Teuchos::getParametersFromXmlFile("parameters_FSI_Problem.xml");
     std::string referenceDirectory = "ReferenceSolutions";
     bool writeReference = false;
     Teuchos::CommandLineProcessor commandLine;

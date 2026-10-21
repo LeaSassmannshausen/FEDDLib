@@ -59,8 +59,6 @@ void flowRate(double*, double* result, double time, const double* parameters)
     result[0] = parameters[2] * ramp;
 }
 
-void constantResistance(double*, double* result, double*) { result[0] = 2.; }
-
 // An affine velocity has constant grad(u)*n. Summed nodal loads on the planar
 // outlet must equal its area times the analytic pressure and viscous traction.
 bool checkResistanceAssembly(DomainPtr_Type domain, RCP<const Teuchos::Comm<int>> comm)
@@ -78,14 +76,15 @@ bool checkResistanceAssembly(DomainPtr_Type domain, RCP<const Teuchos::Comm<int>
         values[3 * i + 2] = 3. + 7. * x[0] + 8. * x[1] + 9. * x[2];
     }
     auto settings = rcp(new Teuchos::ParameterList);
-    settings->sublist("Parameter Fluid").set("Viscosity", 0.25).set("Density", 0.5);
+    settings->sublist("Parameter Fluid").set("Viscosity", 0.25).set("Density", 0.5)
+        .set("Resistance", 2.).set("BC Ramp", 10.);
     double flow = 0., area = 0.;
     const int backflow = fe.assemblyFlowRate(3, flow, "P1", 3, 5, velocity);
     fe.assemblyArea(3, area, 5);
-    vec_dbl_Type flowRates(2, flow), time(1, 0.);
+    vec_dbl_Type flowRates(2, flow);
     auto repeatedLoad = rcp(new MultiVector_Type(domain->getMapVecFieldRepeated()));
     const double pressure = fe.assemblyResistanceBoundary(3, "P1", repeatedLoad, velocity,
-        flowRates, time, constantResistance, settings, 0);
+        flowRates, settings, 0);
     MultiVector_Type load(domain->getMapVecFieldUnique());
     load.exportFromVector(repeatedLoad, false, "Add");
     double local[3] = {0., 0., 0.}, total[3] = {0., 0., 0.};
@@ -155,7 +154,10 @@ bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, RCP<const T
                     ? joinPath(timeParameters.get<std::string>("Reference directory"), checkpoint::outletStateName(finalTime))
                     : restartFile(parameters, checkpoint::outletStateName(finalTime)), model, finalTime);
             const auto& state = fsi.getOutletState();
-            if (state.initialized != reference.initialized || state.transitionCaptured != reference.transitionCaptured)
+            const bool paper = model == "Absorbing Paper";
+            if (state.initialized != reference.initialized ||
+                (paper && state.transitionCaptured != reference.transitionCaptured) ||
+                (!paper && state.transitionCaptured))
                 passed = false;
             const double values[] = {state.initialInletArea, state.initialOutletArea, state.transitionOutletArea,
                                      state.currentFlowRate, state.previousFlowRate, state.pressure};
@@ -164,6 +166,8 @@ bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, RCP<const T
             const char* names[] = {"initial inlet area", "initial outlet area", "transition outlet area",
                                    "current flow rate", "previous flow rate", "outlet pressure"};
             for (int i = 0; i < 6; ++i) {
+                // Legacy plain-absorbing references contain an unused captured area.
+                if (i == 2 && !paper) continue;
                 const double error = std::abs(values[i] - references[i]);
                 const double allowed = 1.e-14 + tolerance * std::abs(references[i]);
                 const bool matches = std::isfinite(error) && error <= allowed;

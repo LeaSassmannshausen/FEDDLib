@@ -14,9 +14,13 @@ namespace FEDD {
 
 /** @brief Persistent pressure-boundary history at the start of an FSI timestep.
  * The previous flow rate is the value retained by the last pressure evaluation,
- * not the flow computed from the checkpoint's current velocity. Transition areas
+ * not the flow computed from the checkpoint's current velocity. Only Absorbing
+ * Paper captures an area at its steady/unsteady transition; the normal Absorbing
+ * model uses its initial area without a transition. Captured areas
  * retain their original capture time across restarts. Zero areas are allowed
  * only while the corresponding initialization/capture flag is false.
+ * The previous flow rate is required by all models when flow-rate averaging is
+ * enabled. Transition history is required only by the paper variant.
  */
 struct FSIOutletState
 {
@@ -56,7 +60,9 @@ inline Teuchos::ParameterList outletConfiguration(Teuchos::ParameterList& parame
     result.set("Flag Inlet Fluid", general.get("Flag Inlet Fluid", 4));
     result.set("Flag Outlet Fluid", general.get("Flag Outlet Fluid", 5));
     result.set("Normal Scale", fluid.get("Normal Scale", 1.));
-    result.set("BC Ramp", fluid.get("BC Ramp", 0.1));
+    // Retain the legacy key for compatibility with unramped checkpoints.
+    // All outlet models now ignore the removed ramp parameter.
+    result.set("BC Ramp", 0.);
     if (model == "Resistance") {
         result.set("Resistance", fluid.get("Resistance", 1.));
         result.set("Viscosity", fluid.get("Viscosity", parameters.sublist("Parameter").get("Viscosity", 0.49)));
@@ -72,6 +78,8 @@ inline Teuchos::ParameterList outletConfiguration(Teuchos::ParameterList& parame
         result.set("Reference fluid pressure", fluid.get("Reference fluid pressure", 10666.));
         result.set("Max Ramp Time", fluid.get("Max Ramp Time", 0.1));
         result.set("Flowrate", fluid.get("Flowrate", paper ? 3. : 3.e-6));
+        // Heart Beat Start controls the prescribed inlet pulse, not a
+        // transition in the normal absorbing outlet law.
         result.set(paper ? "Unsteady Start" : "Heart Beat Start",
                    fluid.get(paper ? "Unsteady Start" : "Heart Beat Start", 0.2));
     }
