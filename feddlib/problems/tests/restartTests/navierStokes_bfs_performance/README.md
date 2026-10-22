@@ -10,7 +10,7 @@ nonconvergence, invalid input and I/O failures still fail the run.
 Build `problems_navierStokes_bfs_performance`, then run:
 
 ```sh
-ctest --test-dir build -R '^problems_navierStokes_bfs_performance_' -V
+ctest --test-dir build -R '^problems_tests_restartTests_navierStokes_bfs_performance_' -V
 ```
 
 Two short cases use nine MPI processes, H/h=3, four producer steps and two

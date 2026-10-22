@@ -5,6 +5,8 @@ A timing covers the complete CTest case, including all MPI launches, setup,
 reference production and validation phases. The categories remain fixed when
 running on another machine; a later run does not automatically reclassify tests.
 They describe expected wall-clock time, not enforced time limits.
+Case names below use the current folder-based prefixes; the timings come from
+the supplied log recorded before the naming change.
 
 | Test tier | Baseline runtime | Cases in this baseline |
 |---|---|---|
@@ -28,7 +30,7 @@ Other package/MPI settings can register fewer tests. Invalid tier values are
 rejected during configuration.
 
 The supplied log names the general FSI example `problems_fsi_MPI_2` (20.80 s).
-Its current source registration uses four ranks (`problems_fsi_MPI_4`); it keeps
+Its current source registration uses four ranks (`problems_examples_fsi_MPI_4`); it keeps
 the Medium estimate from that case. The original two-rank timing is retained
 in the baseline table below and should be updated after measuring the new run.
 
@@ -69,7 +71,7 @@ can consequently have different tiers. For example:
 ```cmake
 feddlib_set_test_runtimes(
     DEFAULT Low
-    MEDIUM ${PACKAGE_NAME}_unsteadyNonLinElasticity_restart_2D_4_to_6
+    MEDIUM ${PACKAGE_NAME}_tests_restartTests_unsteadyNonLinElasticity_restart_2D_4_to_6
 )
 ```
 
@@ -119,86 +121,86 @@ configuration are ignored. Update the baseline below when reviewing new timings.
 | `core_fe_test_linElas_MPI_1` | 1.37 | Low |
 | `core_fe_test_nonlinElas_MPI_4` | 1.40 | Low |
 | `core_interface_test_MPI_1` | 1.05 | Low |
-| `problems_facsi_MPI_2` | 1.33 | Low |
-| `problems_steadyNavierStokesAssFE_2D_unstructured_P2_P1_MPI_4` | 4.90 | Low |
-| `problems_steadyNavierStokesAssFE_2D_structured_P1_P1_MPI_9` | 3.26 | Low |
-| `problems_steadyNavierStokesAssFE_2D_structured_P2_P1_MPI_9` | 5.06 | Low |
-| `problems_steadyNavierStokesAssFE_3D_structured_P1_P1_MPI_9` | 4.70 | Low |
-| `problems_steadyNavierStokesAssFE_3D_structured_P2_P1_MPI_9` | 7.99 | Low |
-| `problems_steadyNavierStokesAssFE_2D_structured_P2_P1_Newton_MPI_9` | 4.53 | Low |
-| `problems_steadyNavierStokesAssFE_3D_structured_P2_P1_Newton_MPI_9` | 8.15 | Low |
-| `problems_unsteadyNavierStokesAssFE_MPI_4` | 6.96 | Low |
-| `problems_steadyGeneralizedNewtonianAssFE_MPI_4` | 20.62 | Medium |
-| `problems_unsteadyLinElasAssFE_MPI_2` | 1.69 | Low |
-| `problems_steadyLinElasAssFE_MPI_4` | 1.60 | Low |
-| `problems_steadyNonLinElasAssFE_MPI_4` | 2.44 | Low |
-| `problems_timeStepping_MPI_2` | 1.33 | Low |
-| `problems_checkpointMetadata_MPI_2` | 3.80 | Low |
-| `problems_recoveryCheckpoint_MPI_2` | 1.48 | Low |
-| `problems_outputHistory_MPI_2` | 3.58 | Low |
-| `problems_fsi_2D_P2P1_MPI_4` | 14.04 | Medium |
-| `problems_unsteadyNonLinElasticity_2D_P1_4cores_MPI_4` | 8.99 | Low |
-| `problems_unsteadyNonLinElasticity_2D_P1_6cores_MPI_6` | 10.39 | Medium |
-| `problems_laplace_2D_P1_MPI_4` | 1.09 | Low |
-| `problems_laplace_2D_P2_MPI_4` | 1.39 | Low |
-| `problems_laplace_3D_P1_MPI_8` | 1.67 | Low |
-| `problems_laplace_3D_P2_MPI_8` | 21.68 | Medium |
-| `problems_linElas_2D_P1_MPI_4` | 0.76 | Low |
-| `problems_linElas_2D_P2_MPI_4` | 1.38 | Low |
-| `problems_linElas_3D_P1_MPI_8` | 2.11 | Low |
-| `problems_linElas_3D_P2_MPI_8` | 43.33 | High |
-| `problems_stokes_2D_P1_MPI_4` | 0.93 | Low |
-| `problems_stokes_2D_P2_MPI_4` | 1.39 | Low |
-| `problems_stokes_3D_P1_MPI_8` | 1.82 | Low |
-| `problems_stokes_3D_P2_MPI_8` | 6.98 | Low |
-| `problems_GNF_2D_P2_MPI_4` | 11.37 | Medium |
-| `problems_nonLinElasticity_2D_P1_MPI_4` | 0.95 | Low |
-| `problems_nonLinElasticity_3D_P1_MPI_8` | 19.58 | Medium |
-| `problems_nonLinLaplace_2D_P1_MPI_4` | 0.95 | Low |
-| `problems_nonLinLaplace_2D_P1_MPI_8` | 18.67 | Medium |
-| `problems_navierStokes_2D_P1_Newton_MPI_4` | 0.85 | Low |
-| `problems_navierStokes_2D_P2_Newton_MPI_4` | 1.57 | Low |
-| `problems_navierStokes_3D_P1_Newton_MPI_8` | 2.94 | Low |
-| `problems_navierStokes_3D_P2_Newton_MPI_8` | 45.74 | High |
-| `problems_navierStokes_2D_P1_Monolithic_MPI_9` | 1.13 | Low |
-| `problems_navierStokes_2D_P2_Block_MPI_9` | 2.68 | Low |
-| `problems_navierStokes_2D_P2_PCD_MPI_9` | 2.97 | Low |
-| `problems_navierStokes_2D_P2_Teko_MPI_9` | 2.07 | Low |
-| `problems_fsi_3D_arterialSegment_Resistance` | 21.98 | Medium |
-| `problems_fsi_3D_arterialSegment_Absorbing` | 21.04 | Medium |
-| `problems_fsi_3D_arterialSegment_Absorbing_Paper` | 20.83 | Medium |
-| `problems_fsi_2D_turek` | 23.00 | Medium |
-| `problems_navierStokes_2D_3D_bfs_2D_4_to_4` | 27.88 | Medium |
-| `problems_navierStokes_2D_3D_bfs_2D_4_to_6` | 18.58 | Medium |
-| `problems_navierStokes_2D_3D_bfs_3D_4_to_4` | 28.80 | Medium |
-| `problems_navierStokes_2D_3D_bfs_3D_4_to_6` | 27.44 | Medium |
-| `problems_unsteadyNonLinElasticity_restart_2D_4_to_4` | 9.87 | Low |
-| `problems_unsteadyNonLinElasticity_restart_2D_4_to_6` | 10.04 | Medium |
-| `problems_fsi_2D_turek_recovery` | 62.10 | High |
-| `problems_navierStokes_2D_3D_bfs_recovery` | 25.68 | Medium |
-| `problems_navierStokes_2D_3D_initialSolution_2D_4_to_4` | 15.38 | Medium |
-| `problems_navierStokes_2D_3D_initialSolution_2D_4_to_6` | 12.64 | Medium |
-| `problems_navierStokes_2D_3D_initialSolution_3D_4_to_4` | 17.18 | Medium |
-| `problems_navierStokes_2D_3D_initialSolution_3D_4_to_6` | 18.41 | Medium |
-| `problems_navierStokes_variableTimeStep_restart` | 16.83 | Medium |
-| `problems_fsi_variableTimeStep_restart` | 49.88 | High |
-| `problems_newmark_variableTimeStep_restart` | 20.14 | Medium |
-| `problems_artery_variableTimeStep_restart` | 55.21 | High |
-| `problems_navierStokes_bfs_performance_2D_MPI_9` | 5.33 | Low |
-| `problems_navierStokes_bfs_performance_3D_MPI_9` | 10.77 | Medium |
-| `problems_navierStokes_bfs_performance_parameterFile_MPI_9` | 3.49 | Low |
-| `problems_fsi_MPI_2` | 20.80 | Medium |
-| `problems_geometry_MPI_4` | 2.18 | Low |
-| `problems_laplace_MPI_4` | 1.70 | Low |
-| `problems_steadyLinElas_MPI_4` | 1.72 | Low |
-| `problems_steadyLinElas_Perf_MPI_8` | 2.12 | Low |
-| `problems_unsteadyReactionDiffusion_MPI_4` | 2.27 | Low |
-| `problems_steadyNavierStokes_MPI_4` | 2.01 | Low |
-| `problems_steadyGeneralizedNewtonianAssFE_PowerLaw_MPI_4` | 43.81 | High |
-| `problems_stokes_MPI_4` | 1.28 | Low |
-| `problems_unsteadyLinElas_MPI_2` | 1.79 | Low |
-| `problems_unsteadyNavierStokes_MPI_2` | 5.85 | Low |
-| `problems_unsteadyNonLinElasticity_MPI_4` | 2.17 | Low |
+| `problems_tests_Solver_facsi_MPI_2` | 1.33 | Low |
+| `problems_tests_assembleFETests_steadyNavierStokesAssFE_2D_unstructured_P2_P1_MPI_4` | 4.90 | Low |
+| `problems_tests_assembleFETests_steadyNavierStokesAssFE_2D_structured_P1_P1_MPI_9` | 3.26 | Low |
+| `problems_tests_assembleFETests_steadyNavierStokesAssFE_2D_structured_P2_P1_MPI_9` | 5.06 | Low |
+| `problems_tests_assembleFETests_steadyNavierStokesAssFE_3D_structured_P1_P1_MPI_9` | 4.70 | Low |
+| `problems_tests_assembleFETests_steadyNavierStokesAssFE_3D_structured_P2_P1_MPI_9` | 7.99 | Low |
+| `problems_tests_assembleFETests_steadyNavierStokesAssFE_2D_structured_P2_P1_Newton_MPI_9` | 4.53 | Low |
+| `problems_tests_assembleFETests_steadyNavierStokesAssFE_3D_structured_P2_P1_Newton_MPI_9` | 8.15 | Low |
+| `problems_tests_assembleFETests_unsteadyNavierStokesAssFE_MPI_4` | 6.96 | Low |
+| `problems_tests_assembleFETests_steadyGeneralizedNewtonianAssFE_MPI_4` | 20.62 | Medium |
+| `problems_tests_assembleFETests_unsteadyLinElasAssFE_MPI_2` | 1.69 | Low |
+| `problems_tests_interfaceTests_steadyLinElasAssFE_MPI_4` | 1.60 | Low |
+| `problems_tests_interfaceTests_steadyNonLinElasAssFE_MPI_4` | 2.44 | Low |
+| `problems_tests_UnitTest_timeStepping_MPI_2` | 1.33 | Low |
+| `problems_tests_UnitTest_checkpointMetadata_MPI_2` | 3.80 | Low |
+| `problems_tests_UnitTest_recoveryCheckpoint_MPI_2` | 1.48 | Low |
+| `problems_tests_UnitTest_outputHistory_MPI_2` | 3.58 | Low |
+| `problems_tests_UnitTest_fsi_2D_P2P1_MPI_4` | 14.04 | Medium |
+| `problems_tests_UnitTest_unsteadyNonLinElasticity_2D_P1_4cores_MPI_4` | 8.99 | Low |
+| `problems_tests_UnitTest_unsteadyNonLinElasticity_2D_P1_6cores_MPI_6` | 10.39 | Medium |
+| `problems_tests_UnitTest_laplace_2D_P1_MPI_4` | 1.09 | Low |
+| `problems_tests_UnitTest_laplace_2D_P2_MPI_4` | 1.39 | Low |
+| `problems_tests_UnitTest_laplace_3D_P1_MPI_8` | 1.67 | Low |
+| `problems_tests_UnitTest_laplace_3D_P2_MPI_8` | 21.68 | Medium |
+| `problems_tests_UnitTest_linElas_2D_P1_MPI_4` | 0.76 | Low |
+| `problems_tests_UnitTest_linElas_2D_P2_MPI_4` | 1.38 | Low |
+| `problems_tests_UnitTest_linElas_3D_P1_MPI_8` | 2.11 | Low |
+| `problems_tests_UnitTest_linElas_3D_P2_MPI_8` | 43.33 | High |
+| `problems_tests_UnitTest_stokes_2D_P1_MPI_4` | 0.93 | Low |
+| `problems_tests_UnitTest_stokes_2D_P2_MPI_4` | 1.39 | Low |
+| `problems_tests_UnitTest_stokes_3D_P1_MPI_8` | 1.82 | Low |
+| `problems_tests_UnitTest_stokes_3D_P2_MPI_8` | 6.98 | Low |
+| `problems_tests_UnitTest_GNF_2D_P2_MPI_4` | 11.37 | Medium |
+| `problems_tests_UnitTest_nonLinElasticity_2D_P1_MPI_4` | 0.95 | Low |
+| `problems_tests_UnitTest_nonLinElasticity_3D_P1_MPI_8` | 19.58 | Medium |
+| `problems_tests_UnitTest_nonLinLaplace_2D_P1_MPI_4` | 0.95 | Low |
+| `problems_tests_UnitTest_nonLinLaplace_2D_P1_MPI_8` | 18.67 | Medium |
+| `problems_tests_UnitTest_navierStokes_2D_P1_Newton_MPI_4` | 0.85 | Low |
+| `problems_tests_UnitTest_navierStokes_2D_P2_Newton_MPI_4` | 1.57 | Low |
+| `problems_tests_UnitTest_navierStokes_3D_P1_Newton_MPI_8` | 2.94 | Low |
+| `problems_tests_UnitTest_navierStokes_3D_P2_Newton_MPI_8` | 45.74 | High |
+| `problems_tests_UnitTest_navierStokes_2D_P1_Monolithic_MPI_9` | 1.13 | Low |
+| `problems_tests_UnitTest_navierStokes_2D_P2_Block_MPI_9` | 2.68 | Low |
+| `problems_tests_UnitTest_navierStokes_2D_P2_PCD_MPI_9` | 2.97 | Low |
+| `problems_tests_UnitTest_navierStokes_2D_P2_Teko_MPI_9` | 2.07 | Low |
+| `problems_tests_restartTests_fsi_3D_arterialSegment_Resistance` | 21.98 | Medium |
+| `problems_tests_restartTests_fsi_3D_arterialSegment_Absorbing` | 21.04 | Medium |
+| `problems_tests_restartTests_fsi_3D_arterialSegment_Absorbing_Paper` | 20.83 | Medium |
+| `problems_tests_restartTests_fsi_2D_turek` | 23.00 | Medium |
+| `problems_tests_restartTests_navierStokes_2D_3D_bfs_2D_4_to_4` | 27.88 | Medium |
+| `problems_tests_restartTests_navierStokes_2D_3D_bfs_2D_4_to_6` | 18.58 | Medium |
+| `problems_tests_restartTests_navierStokes_2D_3D_bfs_3D_4_to_4` | 28.80 | Medium |
+| `problems_tests_restartTests_navierStokes_2D_3D_bfs_3D_4_to_6` | 27.44 | Medium |
+| `problems_tests_restartTests_unsteadyNonLinElasticity_restart_2D_4_to_4` | 9.87 | Low |
+| `problems_tests_restartTests_unsteadyNonLinElasticity_restart_2D_4_to_6` | 10.04 | Medium |
+| `problems_tests_restartTests_fsi_2D_turek_recovery` | 62.10 | High |
+| `problems_tests_restartTests_navierStokes_2D_3D_bfs_recovery` | 25.68 | Medium |
+| `problems_tests_restartTests_navierStokes_2D_3D_initialSolution_2D_4_to_4` | 15.38 | Medium |
+| `problems_tests_restartTests_navierStokes_2D_3D_initialSolution_2D_4_to_6` | 12.64 | Medium |
+| `problems_tests_restartTests_navierStokes_2D_3D_initialSolution_3D_4_to_4` | 17.18 | Medium |
+| `problems_tests_restartTests_navierStokes_2D_3D_initialSolution_3D_4_to_6` | 18.41 | Medium |
+| `problems_tests_restartTests_navierStokes_variableTimeStep_restart` | 16.83 | Medium |
+| `problems_tests_restartTests_fsi_variableTimeStep_restart` | 49.88 | High |
+| `problems_tests_restartTests_newmark_variableTimeStep_restart` | 20.14 | Medium |
+| `problems_tests_restartTests_artery_variableTimeStep_restart` | 55.21 | High |
+| `problems_tests_restartTests_navierStokes_bfs_performance_2D_MPI_9` | 5.33 | Low |
+| `problems_tests_restartTests_navierStokes_bfs_performance_3D_MPI_9` | 10.77 | Medium |
+| `problems_tests_restartTests_navierStokes_bfs_performance_parameterFile_MPI_9` | 3.49 | Low |
+| `problems_examples_fsi_MPI_4` | 20.80 | Medium |
+| `problems_examples_geometry_MPI_4` | 2.18 | Low |
+| `problems_examples_laplace_MPI_4` | 1.70 | Low |
+| `problems_examples_steadyLinElas_MPI_4` | 1.72 | Low |
+| `problems_examples_steadyLinElas_Perf_MPI_8` | 2.12 | Low |
+| `problems_examples_unsteadyReactionDiffusion_MPI_4` | 2.27 | Low |
+| `problems_examples_steadyNavierStokes_MPI_4` | 2.01 | Low |
+| `problems_examples_steadyGeneralizedNewtonianAssFE_PowerLaw_MPI_4` | 43.81 | High |
+| `problems_examples_stokes_MPI_4` | 1.28 | Low |
+| `problems_examples_unsteadyLinElas_MPI_2` | 1.79 | Low |
+| `problems_examples_unsteadyNavierStokes_MPI_2` | 5.85 | Low |
+| `problems_examples_unsteadyNonLinElasticity_MPI_4` | 2.17 | Low |
 | `amr_laplaceAdaptive2D_MPI_4` | 4.13 | Low |
 | `amr_laplaceAdaptive3D_MPI_4` | 6.85 | Low |
 | `amr_stokesAdaptive_MPI_2` | 8.17 | Low |

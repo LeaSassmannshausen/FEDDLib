@@ -12,7 +12,7 @@ amplitude are retained; ramp/transition times and the simulation duration are
 shortened for this regression test. The solver uses Newton with relative residual
 tolerance 1e-6; the flexible GMRES tolerance is configured in `parametersSolverFSI.xml`.
 
-The `problems_fsi_3D_arterialSegment_Resistance`, `_Absorbing`, and `_Absorbing_Paper`
+The `problems_tests_restartTests_fsi_3D_arterialSegment_Resistance`, `_Absorbing`, and `_Absorbing_Paper`
 tests use separate working directories and four MPI ranks. Each loads frozen
 references and advances **exactly two timesteps per simulation**, with
 `dt = 0.0025`. Resistance runs once, from `0.005` to `0.01`, while writing
@@ -92,7 +92,7 @@ including when `Allow legacy restart` is enabled.
 Run these tests with:
 
 ```sh
-ctest --test-dir build -V -R 'problems_fsi_3D_arterialSegment'
+ctest --test-dir build -V -R 'problems_tests_restartTests_fsi_3D_arterialSegment'
 ```
 
 The metadata unit test additionally checks scalar round-trip precision, invalid
@@ -106,9 +106,9 @@ build the driver and run the generated maintenance script into a new directory:
 
 ```sh
 cmake \
-  -DEXECUTABLE="$PWD/build/feddlib/problems/tests/RestartTests/fsi_3D_arterialSegment/problems_fsi_3D_arterialSegment.exe" \
+  -DEXECUTABLE="$PWD/build/feddlib/problems/tests/restartTests/fsi_3D_arterialSegment/problems_fsi_3D_arterialSegment.exe" \
   -DREFERENCE_OUTPUT_DIRECTORY=/tmp/new-arterial-references \
-  -P build/feddlib/problems/tests/RestartTests/fsi_3D_arterialSegment/generateOutletReferences.cmake
+  -P build/feddlib/problems/tests/restartTests/fsi_3D_arterialSegment/generateOutletReferences.cmake
 ```
 
 This runs each model uninterrupted on four ranks to `0.0175`, with `dt=0.0025`.

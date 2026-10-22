@@ -82,7 +82,7 @@ archive folder; prior archives are not overwritten. `Resume output = true`
 takes precedence over `Keep old output`. These options do not alter checkpoint
 files or the separate restart/checkpoint-directory requirement.
 
-`problems_outputHistory_MPI_2` exercises real scalar/vector HDF5 datasets,
+`problems_tests_UnitTest_outputHistory_MPI_2` exercises real scalar/vector HDF5 datasets,
 moving meshes, rewinding and appending, duplicate suppression, sparse exports,
 changed/interval timestep sizes, repeated restarts, legacy text/ParaView output,
 default overwrite behavior and shared archives.
@@ -90,7 +90,7 @@ default overwrite behavior and shared archives.
 ## Checkpoint timing benchmark
 
 The structured Navier-Stokes timing benchmark in
-[`RestartTests/navierStokes_bfs_performance`](../feddlib/problems/tests/RestartTests/navierStokes_bfs_performance/README.md)
+[`restartTests/navierStokes_bfs_performance`](../feddlib/problems/tests/restartTests/navierStokes_bfs_performance/README.md)
 reports checkpoint writes, compatibility validation, field/history reads,
 initial-solution loading and ParaView output resumption without solution comparisons.
 It supports 2D/3D weak-scaling layouts and configurable H/h; local CTest cases use
@@ -137,7 +137,7 @@ The XML manifest is descriptive metadata, **not** a completion marker. The
 reader checks the actual HDF5 data even when a manifest exists. Publishing whole
 checkpoints atomically and replacing decimal dataset keys remain separate work.
 
-`problems_checkpointMetadata_MPI_2` exercises incompatible mesh/FE/DOF metadata,
+`problems_tests_UnitTest_checkpointMetadata_MPI_2` exercises incompatible mesh/FE/DOF metadata,
 BDF order and timestep changes, unknown versions, missing history, inconsistent
 HDF5 length/vector-count/shape/type, a mismatched destination map, and explicit
 legacy mode. Rejections are checked on every MPI rank. The 2D 4-to-4
@@ -254,7 +254,7 @@ states are not supported yet because geometry, structural derivatives and outlet
 state need additional initialization rules. Use a separate checkpoint output
 directory when writing the new trajectory to preserve the source files.
 
-[navierStokes_2D_3D_initialSolution](../feddlib/problems/tests/RestartTests/navierStokes_2D_3D_initialSolution/README.md)
+[navierStokes_2D_3D_initialSolution](../feddlib/problems/tests/restartTests/navierStokes_2D_3D_initialSolution/README.md)
 generates converged steady BFS solutions in 2D and 3D on four ranks, then loads
 them on four or six ranks. It checks exact initial field loading, zero time and
 empty history, a zero-duration run, and the first two timesteps against direct
@@ -458,5 +458,5 @@ limits for continuation. Two four-rank 2D integration tests exercise warning,
 stop and continue modes and compare recovery restarts against independently
 computed reference solutions; a two-rank unit test checks criteria and interrupted
 publication. Their setups are documented in
-[fsi_2D_turek_recovery](../feddlib/problems/tests/RestartTests/fsi_2D_turek_recovery/README.md)
-and [navierStokes_2D_3D_bfs_recovery](../feddlib/problems/tests/RestartTests/navierStokes_2D_3D_bfs_recovery/README.md).
+[fsi_2D_turek_recovery](../feddlib/problems/tests/restartTests/fsi_2D_turek_recovery/README.md)
+and [navierStokes_2D_3D_bfs_recovery](../feddlib/problems/tests/restartTests/navierStokes_2D_3D_bfs_recovery/README.md).

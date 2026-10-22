@@ -2,7 +2,7 @@ if(NOT TPL_ENABLE_MPI OR MPI_EXEC_MAX_NUMPROCS LESS 4)
     return()
 endif()
 foreach(model IN ITEMS navierStokes fsi newmark artery)
-    set(variable_test_name ${PACKAGE_NAME}_${model}_variableTimeStep_restart)
+    set(variable_test_name ${PACKAGE_NAME}_tests_restartTests_${model}_variableTimeStep_restart)
     if(model STREQUAL "navierStokes")
         set(input_case navierStokes_2D_3D_bfs)
         set(driver navierStokes_2D_3D_bfs)
@@ -32,6 +32,6 @@ endforeach()
 feddlib_set_test_runtimes(
     DEFAULT Medium
     HIGH
-        ${PACKAGE_NAME}_fsi_variableTimeStep_restart
-        ${PACKAGE_NAME}_artery_variableTimeStep_restart
+        ${PACKAGE_NAME}_tests_restartTests_fsi_variableTimeStep_restart
+        ${PACKAGE_NAME}_tests_restartTests_artery_variableTimeStep_restart
 )

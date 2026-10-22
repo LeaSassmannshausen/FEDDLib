@@ -6,7 +6,7 @@ tribits_add_executable(
 )
 tribits_add_test(
 	steadyNavierStokesAssFE
-	NAME steadyNavierStokesAssFE_2D_unstructured_P2_P1
+	NAME tests_assembleFETests_steadyNavierStokesAssFE_2D_unstructured_P2_P1
 	ARGS "--problemfile=parametersProblem.xml --precfile=parametersPrec.xml"
 	COMM mpi
 	NUM_MPI_PROCS 4
@@ -14,7 +14,7 @@ tribits_add_test(
 
 tribits_add_test(
 	steadyNavierStokesAssFE
-	NAME steadyNavierStokesAssFE_2D_structured_P1_P1
+	NAME tests_assembleFETests_steadyNavierStokesAssFE_2D_structured_P1_P1
 	ARGS "--problemfile=parametersProblemP1_structured.xml --precfile=parametersPrec.xml"
 	COMM mpi
 	NUM_MPI_PROCS 9
@@ -22,34 +22,34 @@ tribits_add_test(
 
 tribits_add_test(
 	steadyNavierStokesAssFE
-	NAME steadyNavierStokesAssFE_2D_structured_P2_P1
+	NAME tests_assembleFETests_steadyNavierStokesAssFE_2D_structured_P2_P1
 	ARGS "--problemfile=parametersProblemP2_structured.xml --precfile=parametersPrec.xml"
 	NUM_MPI_PROCS 9
 )
 tribits_add_test(
 	steadyNavierStokesAssFE
-	NAME steadyNavierStokesAssFE_3D_structured_P1_P1
+	NAME tests_assembleFETests_steadyNavierStokesAssFE_3D_structured_P1_P1
 	ARGS "--problemfile=parametersProblemP1_structured_3D.xml --precfile=parametersPrec_3D.xml"
 	NUM_MPI_PROCS 9
 )
 
 tribits_add_test(
 	steadyNavierStokesAssFE
-	NAME steadyNavierStokesAssFE_3D_structured_P2_P1
+	NAME tests_assembleFETests_steadyNavierStokesAssFE_3D_structured_P2_P1
 	ARGS "--problemfile=parametersProblemP2_structured_3D.xml --precfile=parametersPrec_3D.xml"
 	NUM_MPI_PROCS 9
 )
 
 tribits_add_test(
 	steadyNavierStokesAssFE
-	NAME steadyNavierStokesAssFE_2D_structured_P2_P1_Newton
+	NAME tests_assembleFETests_steadyNavierStokesAssFE_2D_structured_P2_P1_Newton
 	ARGS "--problemfile=parametersProblemP2_structured_Newton.xml --precfile=parametersPrec.xml"
 	NUM_MPI_PROCS 9
 )
 
 tribits_add_test(
 	steadyNavierStokesAssFE
-	NAME steadyNavierStokesAssFE_3D_structured_P2_P1_Newton
+	NAME tests_assembleFETests_steadyNavierStokesAssFE_3D_structured_P2_P1_Newton
 	ARGS "--problemfile=parametersProblemP2_structured_3D_Newton.xml --precfile=parametersPrec_3D.xml"
 	NUM_MPI_PROCS 9
 )

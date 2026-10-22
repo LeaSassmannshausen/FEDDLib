@@ -9,7 +9,7 @@ TRIBITS_ADD_EXECUTABLE(
 # from the checkpoint at t = 0.005 and must reproduce the uninterrupted solution
 # at t = 0.01.
 TRIBITS_ADD_ADVANCED_TEST(
-    fsi_2D_turek
+    tests_restartTests_fsi_2D_turek
     TEST_0 EXEC fsi_2D_turek
         ARGS --problemfile=parametersProblemFSI.xml
         NUM_MPI_PROCS 4

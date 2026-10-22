@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	unsteadyNavierStokesAssFE
-	NAME unsteadyNavierStokesAssFE
+	NAME tests_assembleFETests_unsteadyNavierStokesAssFE
 	ARGS
 	#--precfile=parametersPrecMumps.xml
 	NUM_MPI_PROCS 4

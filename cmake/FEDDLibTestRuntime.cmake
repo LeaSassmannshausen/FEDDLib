@@ -42,7 +42,7 @@ function(feddlib_set_test_runtimes)
             message(FATAL_ERROR "Multiple runtime tiers assigned to test '${test}'")
         endif()
 
-        # Append so package, RestartTests and Performance labels are retained.
+        # Append so package, restartTests and Performance labels are retained.
         set_property(TEST "${test}" APPEND PROPERTY LABELS "Runtime${tier}")
         set_property(GLOBAL APPEND PROPERTY FEDDLib_RUNTIME_CLASSIFIED_TESTS "${test}")
         list(FIND tiers "${tier}" test_tier)

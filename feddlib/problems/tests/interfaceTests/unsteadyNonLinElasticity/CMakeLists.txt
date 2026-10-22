@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	unsteadyNonLinElasticityAssFE
-	NAME unsteadyNonLinElasticityAssFE
+	NAME tests_interfaceTests_unsteadyNonLinElasticityAssFE
 	ARGS
 #--precfile=parametersPrecMumps.xml
 	NUM_MPI_PROCS 4

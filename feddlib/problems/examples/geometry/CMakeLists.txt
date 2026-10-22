@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
     geometry
-    NAME geometry
+    NAME examples_geometry
     ARGS
     NUM_MPI_PROCS 4
 )

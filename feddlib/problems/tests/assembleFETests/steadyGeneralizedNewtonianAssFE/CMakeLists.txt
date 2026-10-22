@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	steadyGeneralizedNewtonianAssFE
-	NAME steadyGeneralizedNewtonianAssFE
+	NAME tests_assembleFETests_steadyGeneralizedNewtonianAssFE
 	ARGS
 	NUM_MPI_PROCS 4
 )

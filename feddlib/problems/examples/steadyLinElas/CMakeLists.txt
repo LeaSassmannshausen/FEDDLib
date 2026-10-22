@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	steadyLinElas
-	NAME steadyLinElas
+	NAME examples_steadyLinElas
 	ARGS
 #--precfile=parametersPrecMumps.xml
 	NUM_MPI_PROCS 4

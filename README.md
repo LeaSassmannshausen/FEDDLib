@@ -63,6 +63,17 @@ Run the configured selection with `ctest --test-dir <build-directory> --output-o
 The [runtime overview](doc/TestRuntimes.md) lists all measured tests, their tiers,
 runtime labels, and examples for changing the selection in an existing build.
 
+CTest case names identify their source folders:
+
+- `problems_examples_<case>` for cases in `feddlib/problems/examples`.
+- `problems_tests_<group>_<case>` for `assembleFETests`, `interfaceTests`,
+  `UnitTest`, and `restartTests` in `feddlib/problems/tests`.
+- `problems_tests_Solver_<case>` for `feddlib/problems/Solver/tests`.
+
+For example, use `ctest --test-dir <build-directory> -R '^problems_tests_restartTests_'`
+to select restart cases. This can be combined with the runtime labels. Executable
+and build-target names keep their existing problem names.
+
 ## Simulation Setup from a User Perspective
 
 1. **Mesh**

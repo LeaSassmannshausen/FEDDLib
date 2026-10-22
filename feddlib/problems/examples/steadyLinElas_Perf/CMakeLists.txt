@@ -9,7 +9,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	steadyLinElas_Perf
-	NAME steadyLinElas_Perf
+	NAME examples_steadyLinElas_Perf
 	ARGS
 	NUM_MPI_PROCS 8
 )

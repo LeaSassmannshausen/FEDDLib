@@ -9,7 +9,7 @@ FOREACH(restart_mpi_procs 4 6)
         OR restart_mpi_procs GREATER MPI_EXEC_MAX_NUMPROCS)
         CONTINUE()
     ENDIF()
-    SET(restart_test_name ${PACKAGE_NAME}_unsteadyNonLinElasticity_restart_2D_${reference_mpi_procs}_to_${restart_mpi_procs})
+    SET(restart_test_name ${PACKAGE_NAME}_tests_restartTests_unsteadyNonLinElasticity_restart_2D_${reference_mpi_procs}_to_${restart_mpi_procs})
     SET(restart_test_script ${CMAKE_CURRENT_BINARY_DIR}/${restart_test_name}.cmake)
     CONFIGURE_FILE(runRestartTest.cmake.in ${restart_test_script} @ONLY)
     ADD_TEST(NAME ${restart_test_name}
@@ -40,5 +40,5 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(mesh_unsteadyNonLinElasticity_restart
 feddlib_set_test_runtimes(
     DEFAULT Low
     MEDIUM
-        ${PACKAGE_NAME}_unsteadyNonLinElasticity_restart_2D_4_to_6
+        ${PACKAGE_NAME}_tests_restartTests_unsteadyNonLinElasticity_restart_2D_4_to_6
 )

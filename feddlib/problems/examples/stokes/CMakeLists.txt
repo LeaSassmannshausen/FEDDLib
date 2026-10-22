@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	stokes
-	NAME stokes
+	NAME examples_stokes
 	ARGS
 #--precfile=parametersPrecMumps.xml
 	NUM_MPI_PROCS 4

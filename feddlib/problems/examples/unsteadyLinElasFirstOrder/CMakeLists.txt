@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	unsteadyLinElasFirstOrder
-	NAME unsteadyLinElasFirstOrder
+	NAME examples_unsteadyLinElasFirstOrder
 	ARGS
 #--precfile=parametersPrecMumps.xml
 	NUM_MPI_PROCS 2

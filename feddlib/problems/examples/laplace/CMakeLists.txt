@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	laplace
-    NAME laplace
+    NAME examples_laplace
     ARGS
     NUM_MPI_PROCS 4
 )

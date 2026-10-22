@@ -6,7 +6,7 @@ if(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 4)
     set(recovery_input_files parametersProblemFSI.xml parametersPrecFluidMono.xml parametersPrecStructure.xml
     parametersPrecGeometry.xml parametersSolverFSI.xml parametersSolverGeometry.xml)
     set(recovery_mesh_files dfg_fsi_fluid_h004.mesh dfg_fsi_solid_h004.mesh)
-    set(recovery_test_name ${PACKAGE_NAME}_fsi_2D_turek_recovery)
+    set(recovery_test_name ${PACKAGE_NAME}_tests_restartTests_fsi_2D_turek_recovery)
     configure_file(../runRecoveryTest.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/${recovery_test_name}.cmake @ONLY)
     add_test(NAME ${recovery_test_name}
         COMMAND ${CMAKE_COMMAND} "-DEXECUTABLE=$<TARGET_FILE:${recovery_executable}>"

@@ -19,7 +19,7 @@ are both `1e-8`; the geometry linear solver tolerance is `1e-10`.
 The elasticity case uses `square_h02.mesh`, P1 elements, Saint Venant-Kirchhoff material
 with Poisson ratio `0.48`,
 a clamped left edge and a constant right-edge surface load, as in
-`RestartTests/unsteadyNonLinElasticity_restart`. Newmark parameters are `beta = 0.25`,
+`restartTests/unsteadyNonLinElasticity_restart`. Newmark parameters are `beta = 0.25`,
 `gamma = 0.5`, `dt = 0.0025`. It runs to `0.0225`: the existing Newmark loop
 finalizes derivatives at the start of the next step. The compared displacement
 history, velocity and acceleration buffers therefore all represent `0.02`.

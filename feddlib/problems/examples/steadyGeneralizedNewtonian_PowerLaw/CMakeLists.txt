@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	steadyGeneralizedNewtonianAssFE_PowerLaw  
-	NAME steadyGeneralizedNewtonianAssFE_PowerLaw  
+	NAME examples_steadyGeneralizedNewtonianAssFE_PowerLaw
 	ARGS
 #--precfile=parametersPrecMumps.xml
 	NUM_MPI_PROCS 4

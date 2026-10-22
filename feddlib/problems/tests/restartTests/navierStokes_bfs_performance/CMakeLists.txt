@@ -12,7 +12,7 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(data_navierStokes_bfs_performance
 # Short local smoke runs; larger MPI jobs invoke the same executable directly.
 IF(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 9)
     FOREACH(dimension 2 3)
-        SET(performance_test_name ${PACKAGE_NAME}_navierStokes_bfs_performance_${dimension}D_MPI_9)
+        SET(performance_test_name ${PACKAGE_NAME}_tests_restartTests_navierStokes_bfs_performance_${dimension}D_MPI_9)
         SET(performance_script ${CMAKE_CURRENT_BINARY_DIR}/${performance_test_name}.cmake)
         CONFIGURE_FILE(runPerformance.cmake.in ${performance_script} @ONLY)
         ADD_TEST(NAME ${performance_test_name}
@@ -20,11 +20,11 @@ IF(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 9)
                 "-DEXECUTABLE=$<TARGET_FILE:${PACKAGE_NAME}_navierStokes_bfs_performance>"
                 -P ${performance_script})
         SET_TESTS_PROPERTIES(${performance_test_name} PROPERTIES
-            PROCESSORS 9 LABELS "${PACKAGE_NAME};RestartTests;Performance"
+            PROCESSORS 9 LABELS "${PACKAGE_NAME};restartTests;Performance"
             REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_navierStokes_bfs_performance>"
             TIMEOUT 600)
     ENDFOREACH()
-    SET(parameter_test_name ${PACKAGE_NAME}_navierStokes_bfs_performance_parameterFile_MPI_9)
+    SET(parameter_test_name ${PACKAGE_NAME}_tests_restartTests_navierStokes_bfs_performance_parameterFile_MPI_9)
     SET(parameter_script ${CMAKE_CURRENT_BINARY_DIR}/${parameter_test_name}.cmake)
     CONFIGURE_FILE(runParameterFile.cmake.in ${parameter_script} @ONLY)
     ADD_TEST(NAME ${parameter_test_name}
@@ -32,7 +32,7 @@ IF(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 9)
             "-DEXECUTABLE=$<TARGET_FILE:${PACKAGE_NAME}_navierStokes_bfs_performance>"
             -P ${parameter_script})
     SET_TESTS_PROPERTIES(${parameter_test_name} PROPERTIES
-        PROCESSORS 9 LABELS "${PACKAGE_NAME};RestartTests;Performance"
+        PROCESSORS 9 LABELS "${PACKAGE_NAME};restartTests;Performance"
         REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_navierStokes_bfs_performance>"
         TIMEOUT 600)
 ENDIF()
@@ -41,5 +41,5 @@ ENDIF()
 feddlib_set_test_runtimes(
     DEFAULT Low
     MEDIUM
-        ${PACKAGE_NAME}_navierStokes_bfs_performance_3D_MPI_9
+        ${PACKAGE_NAME}_tests_restartTests_navierStokes_bfs_performance_3D_MPI_9
 )

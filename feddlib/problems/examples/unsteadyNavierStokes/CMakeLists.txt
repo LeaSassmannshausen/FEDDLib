@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	unsteadyNavierStokes
-	NAME unsteadyNavierStokes
+	NAME examples_unsteadyNavierStokes
 	ARGS
 	#--precfile=parametersPrecMumps.xml
 	NUM_MPI_PROCS 2

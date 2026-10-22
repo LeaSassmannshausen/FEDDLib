@@ -1,6 +1,6 @@
 # 2D BFS2d_1600 Navier–Stokes recovery test
 
-`problems_navierStokes_2D_3D_bfs_recovery` runs on four MPI ranks. It reuses the
+`problems_tests_restartTests_navierStokes_2D_3D_bfs_recovery` runs on four MPI ranks. It reuses the
 inputs and executable from `../navierStokes_2D_3D_bfs` and generates its reference
 solutions independently in an isolated working directory.
 
@@ -26,7 +26,7 @@ reference comparisons retain the existing restart error tolerance. The tests
 also check completion markers, recovery diagnostics and retention of exactly
 one protected and one latest generation.
 
-`problems_recoveryCheckpoint_MPI_2` in `UnitTest` checks the exact threshold boundary,
+`problems_tests_UnitTest_recoveryCheckpoint_MPI_2` in `UnitTest` checks the exact threshold boundary,
 zero linear solves, final-iteration convergence classification, nonfinite and
 failed-linear-solve classification, independent vector copies, and an interrupted
 checkpoint write on two MPI ranks. A partial write must leave the previous

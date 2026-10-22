@@ -2,7 +2,7 @@
 
 These bundles were generated from uninterrupted four-rank simulations of the
 supplied 0.5 mm artery, using the settings in
-`RestartTests/fsi_3D_arterialSegment`. They are numerical regression baselines;
+`restartTests/fsi_3D_arterialSegment`. They are numerical regression baselines;
 normal tests only read them and never regenerate them.
 
 Each model directory contains complete restart state, not just final solution
@@ -30,6 +30,6 @@ the field comparison retains `error_l2 <= 1e-15 + 1e-12 * norm(reference)` and
 the scalar history bound remains `1e-14 + 1e-12 * abs(reference)`.
 
 Regenerate deliberately with the script documented in
-[`fsi_3D_arterialSegment/README.md`](../../../RestartTests/fsi_3D_arterialSegment/README.md).
+[`fsi_3D_arterialSegment/README.md`](../../../restartTests/fsi_3D_arterialSegment/README.md).
 Review numerical changes before replacing these source bundles, then rebuild.
 CTest mutates only isolated copies for missing-state/version compatibility tests.

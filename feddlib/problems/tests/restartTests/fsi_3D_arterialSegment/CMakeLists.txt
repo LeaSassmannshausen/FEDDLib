@@ -39,7 +39,7 @@ ENDFOREACH()
 IF(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 4)
     FOREACH(outlet_model Resistance Absorbing "Absorbing Paper")
         STRING(REPLACE " " "_" outlet_name "${outlet_model}")
-        SET(outlet_test_name ${PACKAGE_NAME}_fsi_3D_arterialSegment_${outlet_name})
+        SET(outlet_test_name ${PACKAGE_NAME}_tests_restartTests_fsi_3D_arterialSegment_${outlet_name})
         SET(outlet_test_script ${CMAKE_CURRENT_BINARY_DIR}/${outlet_test_name}.cmake)
         CONFIGURE_FILE(runOutletRestartTest.cmake.in ${outlet_test_script} @ONLY)
         ADD_TEST(NAME ${outlet_test_name}

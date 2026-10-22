@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	steadyNonLinElasAssFE
-	NAME steadyNonLinElasAssFE
+	NAME tests_interfaceTests_steadyNonLinElasAssFE
 	ARGS
 	NUM_MPI_PROCS 4
 )

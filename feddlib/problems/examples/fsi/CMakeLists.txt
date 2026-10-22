@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
     fsi
-    NAME fsi
+    NAME examples_fsi
     ARGS
     NUM_MPI_PROCS 4
 )

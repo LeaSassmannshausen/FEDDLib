@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	unsteadyLinElasAssFE
-	NAME unsteadyLinElasAssFE
+	NAME tests_assembleFETests_unsteadyLinElasAssFE
 	ARGS
 #--precfile=parametersPrecMumps.xml
 	NUM_MPI_PROCS 2

@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	unsteadyReactionDiffusion
-	NAME unsteadyReactionDiffusion
+	NAME examples_unsteadyReactionDiffusion
     ARGS
     NUM_MPI_PROCS 4
 )

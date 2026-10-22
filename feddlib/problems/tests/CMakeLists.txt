@@ -1,1 +1,1 @@
-add_subdirectories(assembleFETests interfaceTests UnitTest RestartTests)
+add_subdirectories(assembleFETests interfaceTests UnitTest restartTests)

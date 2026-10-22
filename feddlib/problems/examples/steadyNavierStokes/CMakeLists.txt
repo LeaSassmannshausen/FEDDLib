@@ -5,7 +5,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	steadyNavierStokes
-	NAME steadyNavierStokes
+	NAME examples_steadyNavierStokes
 	ARGS
 	NUM_MPI_PROCS 4
 )
