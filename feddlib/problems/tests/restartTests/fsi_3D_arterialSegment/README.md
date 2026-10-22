@@ -45,7 +45,7 @@ viscous traction uses dynamic viscosity (density times kinematic viscosity).
 
 Normal CTest runs perform no uninterrupted reference simulation. Complete
 checkpoint bundles are stored in
-`UnitTest/ReferenceSolutions/fsi_3D_arterialSegment/{Resistance,Absorbing,Absorbing_Paper}`.
+`unitTests/ReferenceSolutions/fsi_3D_arterialSegment/{Resistance,Absorbing,Absorbing_Paper}`.
 The build copies them into the test's binary directory. Every CTest case makes
 its own writable copy; mutation/rejection checks leave the frozen bundles intact.
 The driver verifies the completed timestep-counter difference, in addition to

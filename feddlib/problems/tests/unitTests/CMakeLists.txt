@@ -1,12 +1,12 @@
 # Checkpoint compatibility failures must reach every MPI rank without hanging.
 tribits_add_executable(timeSteppingUnitTest SOURCES timeSteppingUnitTest.cpp)
-tribits_add_test(timeSteppingUnitTest NAME tests_UnitTest_timeStepping NUM_MPI_PROCS 2 TIMEOUT 60)
+tribits_add_test(timeSteppingUnitTest NAME tests_unitTests_timeStepping NUM_MPI_PROCS 2 TIMEOUT 60)
 tribits_add_executable(checkpointMetadataUnitTest SOURCES checkpointMetadataUnitTest.cpp)
-tribits_add_test(checkpointMetadataUnitTest NAME tests_UnitTest_checkpointMetadata NUM_MPI_PROCS 2 TIMEOUT 60)
+tribits_add_test(checkpointMetadataUnitTest NAME tests_unitTests_checkpointMetadata NUM_MPI_PROCS 2 TIMEOUT 60)
 tribits_add_executable(recoveryCheckpointUnitTest SOURCES recoveryCheckpointUnitTest.cpp)
-tribits_add_test(recoveryCheckpointUnitTest NAME tests_UnitTest_recoveryCheckpoint NUM_MPI_PROCS 2 TIMEOUT 60)
+tribits_add_test(recoveryCheckpointUnitTest NAME tests_unitTests_recoveryCheckpoint NUM_MPI_PROCS 2 TIMEOUT 60)
 tribits_add_executable(outputHistoryUnitTest SOURCES outputHistoryUnitTest.cpp)
-tribits_add_test(outputHistoryUnitTest NAME tests_UnitTest_outputHistory NUM_MPI_PROCS 2 TIMEOUT 60)
+tribits_add_test(outputHistoryUnitTest NAME tests_unitTests_outputHistory NUM_MPI_PROCS 2 TIMEOUT 60)
 tribits_copy_files_to_binary_dir(mesh_outputHistoryUnitTest
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes SOURCE_FILES square.mesh
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR} DEST_FILES outputHistory-square.mesh
@@ -14,7 +14,7 @@ tribits_copy_files_to_binary_dir(mesh_outputHistoryUnitTest
 
 # Keep the FSI reference-test inputs independent of the restart tests.
 tribits_add_executable(fsiUnitTest SOURCES fsiUnitTest.cpp)
-tribits_add_test(fsiUnitTest NAME tests_UnitTest_fsi_2D_P2P1 NUM_MPI_PROCS 4)
+tribits_add_test(fsiUnitTest NAME tests_unitTests_fsi_2D_P2P1 NUM_MPI_PROCS 4)
 
 SET(fsi_reference_inputs
     parameters_FSI_Problem.xml parameters_FSI_PrecFluidMono.xml parameters_FSI_PrecStructure.xml
@@ -35,7 +35,7 @@ tribits_copy_files_to_binary_dir(mesh_fsiUnitTest
 tribits_add_executable(unsteadyNonLinElasticityUnitTest SOURCES unsteadyNonLinElasticityUnitTest.cpp)
 FOREACH(mpi_procs 4 6)
     tribits_add_test(unsteadyNonLinElasticityUnitTest
-        NAME tests_UnitTest_unsteadyNonLinElasticity_2D_P1_${mpi_procs}cores NUM_MPI_PROCS ${mpi_procs})
+        NAME tests_unitTests_unsteadyNonLinElasticity_2D_P1_${mpi_procs}cores NUM_MPI_PROCS ${mpi_procs})
 ENDFOREACH()
 tribits_copy_files_to_binary_dir(param_unsteadyNonLinElasticityUnitTest
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../restartTests/unsteadyNonLinElasticity_restart
@@ -80,25 +80,25 @@ tribits_add_executable(
 
 tribits_add_test(
 	laplaceUnitTest
-	NAME tests_UnitTest_laplace_2D_P1
+	NAME tests_unitTests_laplace_2D_P1
 	ARGS "--dim=2 --FEType=P1"
 	NUM_MPI_PROCS 4
 )
 tribits_add_test(
 	laplaceUnitTest
-	NAME tests_UnitTest_laplace_2D_P2
+	NAME tests_unitTests_laplace_2D_P2
 	ARGS "--dim=2 --FEType=P2"
 	NUM_MPI_PROCS 4
 )
 tribits_add_test(
 	laplaceUnitTest
-	NAME tests_UnitTest_laplace_3D_P1
+	NAME tests_unitTests_laplace_3D_P1
 	ARGS "--dim=3 --FEType=P1"
 	NUM_MPI_PROCS 8
 )
 tribits_add_test(
 	laplaceUnitTest
-	NAME tests_UnitTest_laplace_3D_P2
+	NAME tests_unitTests_laplace_3D_P2
 	ARGS "--dim=3 --FEType=P2"
 	NUM_MPI_PROCS 8
 )
@@ -129,25 +129,25 @@ tribits_add_executable(
 
 tribits_add_test(
 	linElasUnitTest
-	NAME tests_UnitTest_linElas_2D_P1
+	NAME tests_unitTests_linElas_2D_P1
 	ARGS "--dim=2 --FEType=P1"
 	NUM_MPI_PROCS 4
 )
 tribits_add_test(
 	linElasUnitTest
-	NAME tests_UnitTest_linElas_2D_P2
+	NAME tests_unitTests_linElas_2D_P2
 	ARGS "--dim=2 --FEType=P2"
 	NUM_MPI_PROCS 4
 )
 tribits_add_test(
 	linElasUnitTest
-	NAME tests_UnitTest_linElas_3D_P1
+	NAME tests_unitTests_linElas_3D_P1
 	ARGS "--dim=3 --FEType=P1"
 	NUM_MPI_PROCS 8
 )
 tribits_add_test(
 	linElasUnitTest
-	NAME tests_UnitTest_linElas_3D_P2
+	NAME tests_unitTests_linElas_3D_P2
 	ARGS "--dim=3 --FEType=P2"
 	NUM_MPI_PROCS 8
 )
@@ -169,25 +169,25 @@ tribits_add_executable(
 )
 tribits_add_test(
 	stokesUnitTest
-	NAME tests_UnitTest_stokes_2D_P1
+	NAME tests_unitTests_stokes_2D_P1
 	ARGS "--dim=2 --FEType=P1"
 	NUM_MPI_PROCS 4
 )
 tribits_add_test(
 	stokesUnitTest
-	NAME tests_UnitTest_stokes_2D_P2
+	NAME tests_unitTests_stokes_2D_P2
 	ARGS "--dim=2 --FEType=P2"
 	NUM_MPI_PROCS 4
 )
 tribits_add_test(
 	stokesUnitTest
-	NAME tests_UnitTest_stokes_3D_P1
+	NAME tests_unitTests_stokes_3D_P1
 	ARGS "--dim=3 --FEType=P1"
 	NUM_MPI_PROCS 8
 )
 tribits_add_test(
 	stokesUnitTest
-	NAME tests_UnitTest_stokes_3D_P2
+	NAME tests_unitTests_stokes_3D_P2
 	ARGS "--dim=3 --FEType=P2"
 	NUM_MPI_PROCS 8
 )
@@ -218,7 +218,7 @@ tribits_add_executable(
 
 tribits_add_test(
 	generalizedNewtonianPowerLawTest
-	NAME tests_UnitTest_GNF_2D_P2
+	NAME tests_unitTests_GNF_2D_P2
 	ARGS "--dim=2 --FEType=P2"
 	NUM_MPI_PROCS 4
 )
@@ -257,13 +257,13 @@ tribits_add_executable(
 
 tribits_add_test(
 	nonLinElasticityUnitTest
-	NAME tests_UnitTest_nonLinElasticity_2D_P1
+	NAME tests_unitTests_nonLinElasticity_2D_P1
 	ARGS "--dim=2"
 	NUM_MPI_PROCS 4
 )
 tribits_add_test(
   nonLinElasticityUnitTest
-	NAME tests_UnitTest_nonLinElasticity_3D_P1
+	NAME tests_unitTests_nonLinElasticity_3D_P1
 	ARGS "--dim=3"
 	NUM_MPI_PROCS 8
 )
@@ -295,13 +295,13 @@ tribits_add_executable(
 
 tribits_add_test(
   nonLinLaplaceUnitTest
-  NAME tests_UnitTest_nonLinLaplace_2D_P1
+  NAME tests_unitTests_nonLinLaplace_2D_P1
 	ARGS "--dim=2"
 	NUM_MPI_PROCS 4
 )
 tribits_add_test(
   nonLinLaplaceUnitTest
-  NAME tests_UnitTest_nonLinLaplace_2D_P1
+  NAME tests_unitTests_nonLinLaplace_2D_P1
 	ARGS "--dim=3"
 	NUM_MPI_PROCS 8
 )
@@ -333,50 +333,50 @@ tribits_add_executable(
 )
 # tribits_add_test(
 # 	navierStokesUnitTest
-# 	NAME tests_UnitTest_navierStokes_2D_P1_NOX
+# 	NAME tests_unitTests_navierStokes_2D_P1_NOX
 # 	ARGS "--dim=2 --FEType=P1 --nonlinearSolver=NOX"
 # 	NUM_MPI_PROCS 4
 # )
 # tribits_add_test(
 # 	navierStokesUnitTest
-# 	NAME tests_UnitTest_navierStokes_2D_P2_NOX
+# 	NAME tests_unitTests_navierStokes_2D_P2_NOX
 # 	ARGS "--dim=2 --FEType=P2 --nonlinearSolver=NOX"
 # 	NUM_MPI_PROCS 4
 # )
 # tribits_add_test(
 # 	navierStokesUnitTest
-# 	NAME tests_UnitTest_navierStokes_3D_P1_NOX
+# 	NAME tests_unitTests_navierStokes_3D_P1_NOX
 # 	ARGS "--dim=3 --FEType=P1 --nonlinearSolver=NOX"
 # 	NUM_MPI_PROCS 8
 # )
 # tribits_add_test(
 # 	navierStokesUnitTest
-# 	NAME tests_UnitTest_navierStokes_3D_P2_NOX
+# 	NAME tests_unitTests_navierStokes_3D_P2_NOX
 # 	ARGS "--dim=3 --FEType=P2 --nonlinearSolver=NOX"
 # 	NUM_MPI_PROCS 8
 # )
 
 tribits_add_test(
 	navierStokesUnitTest
-	NAME tests_UnitTest_navierStokes_2D_P1_Newton
+	NAME tests_unitTests_navierStokes_2D_P1_Newton
 	ARGS "--dim=2 --FEType=P1"
 	NUM_MPI_PROCS 4
 )
 tribits_add_test(
 	navierStokesUnitTest
-	NAME tests_UnitTest_navierStokes_2D_P2_Newton
+	NAME tests_unitTests_navierStokes_2D_P2_Newton
 	ARGS "--dim=2 --FEType=P2"
 	NUM_MPI_PROCS 4
 )
 tribits_add_test(
 	navierStokesUnitTest
-	NAME tests_UnitTest_navierStokes_3D_P1_Newton
+	NAME tests_unitTests_navierStokes_3D_P1_Newton
 	ARGS "--dim=3 --FEType=P1"
 	NUM_MPI_PROCS 8
 )
 tribits_add_test(
 	navierStokesUnitTest
-	NAME tests_UnitTest_navierStokes_3D_P2_Newton
+	NAME tests_unitTests_navierStokes_3D_P2_Newton
 	ARGS "--dim=3 --FEType=P2"
 	NUM_MPI_PROCS 8
 )
@@ -415,25 +415,25 @@ tribits_copy_files_to_binary_dir(param_navierStokesUnitTestPrec
 
 tribits_add_test(
 	navierStokesUnitTestPrec
-	NAME tests_UnitTest_navierStokes_2D_P1_Monolithic
+	NAME tests_unitTests_navierStokes_2D_P1_Monolithic
 	ARGS "--dim=2 --FEType=P1 --precMethod=Monolithic"
 	NUM_MPI_PROCS 9
 )
 tribits_add_test(
 	navierStokesUnitTestPrec
-	NAME tests_UnitTest_navierStokes_2D_P2_Block
+	NAME tests_unitTests_navierStokes_2D_P2_Block
 	ARGS "--dim=2 --FEType=P1 --precMethod=Diagonal"
 	NUM_MPI_PROCS 9
 )
 tribits_add_test(
 	navierStokesUnitTestPrec
-	NAME tests_UnitTest_navierStokes_2D_P2_PCD
+	NAME tests_unitTests_navierStokes_2D_P2_PCD
 	ARGS "--dim=2 --FEType=P1 --precMethod=PCD"
 	NUM_MPI_PROCS 9
 )
 tribits_add_test(
 	navierStokesUnitTestPrec
-	NAME tests_UnitTest_navierStokes_2D_P2_Teko
+	NAME tests_unitTests_navierStokes_2D_P2_Teko
 	ARGS "--dim=2 --FEType=P1 --precMethod=Teko"
 	NUM_MPI_PROCS 9
 )
@@ -450,13 +450,13 @@ tribits_copy_files_to_binary_dir(data_navierStokesUnitTestPrec
 feddlib_set_test_runtimes(
     DEFAULT Low
     MEDIUM
-        ${PACKAGE_NAME}_tests_UnitTest_fsi_2D_P2P1_MPI_4
-        ${PACKAGE_NAME}_tests_UnitTest_unsteadyNonLinElasticity_2D_P1_6cores_MPI_6
-        ${PACKAGE_NAME}_tests_UnitTest_laplace_3D_P2_MPI_8
-        ${PACKAGE_NAME}_tests_UnitTest_GNF_2D_P2_MPI_4
-        ${PACKAGE_NAME}_tests_UnitTest_nonLinElasticity_3D_P1_MPI_8
-        ${PACKAGE_NAME}_tests_UnitTest_nonLinLaplace_2D_P1_MPI_8
+        ${PACKAGE_NAME}_tests_unitTests_fsi_2D_P2P1_MPI_4
+        ${PACKAGE_NAME}_tests_unitTests_unsteadyNonLinElasticity_2D_P1_6cores_MPI_6
+        ${PACKAGE_NAME}_tests_unitTests_laplace_3D_P2_MPI_8
+        ${PACKAGE_NAME}_tests_unitTests_GNF_2D_P2_MPI_4
+        ${PACKAGE_NAME}_tests_unitTests_nonLinElasticity_3D_P1_MPI_8
+        ${PACKAGE_NAME}_tests_unitTests_nonLinLaplace_2D_P1_MPI_8
     HIGH
-        ${PACKAGE_NAME}_tests_UnitTest_linElas_3D_P2_MPI_8
-        ${PACKAGE_NAME}_tests_UnitTest_navierStokes_3D_P2_Newton_MPI_8
+        ${PACKAGE_NAME}_tests_unitTests_linElas_3D_P2_MPI_8
+        ${PACKAGE_NAME}_tests_unitTests_navierStokes_3D_P2_Newton_MPI_8
 )

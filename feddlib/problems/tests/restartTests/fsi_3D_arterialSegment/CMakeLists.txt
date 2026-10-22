@@ -21,7 +21,7 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_fsi_3D_arterialSegment
 )
 
 SET(arterial_reference_root
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../UnitTest/ReferenceSolutions/fsi_3D_arterialSegment)
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../unitTests/ReferenceSolutions/fsi_3D_arterialSegment)
 FOREACH(reference_model Resistance Absorbing Absorbing_Paper)
     SET(reference_source ${arterial_reference_root}/${reference_model})
     FILE(GLOB reference_files RELATIVE ${reference_source}

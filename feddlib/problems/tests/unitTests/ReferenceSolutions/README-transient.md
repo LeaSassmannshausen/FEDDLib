@@ -11,7 +11,7 @@ missing or changed references cannot be replaced automatically by the test.
 | `unsteadyNonLinElasticityUnitTest` | 0.02 | Solid displacement, velocity and acceleration (P1) | 4 and 6 |
 
 The FSI case uses the Turek fluid/solid `h004` meshes, explicit geometry and
-FaCSI. Its independent inputs are the six `UnitTest/parameters_FSI_*.xml` files.
+FaCSI. Its independent inputs are the six `unitTests/parameters_FSI_*.xml` files.
 It takes four steps with `dt = 0.0025`, stops at `0.01` and compares the primary
 fields. The nonlinear residual tolerance and coupled linear solver tolerance
 are both `1e-8`; the geometry linear solver tolerance is `1e-10`.
@@ -47,12 +47,12 @@ From the repository workspace containing `source/FEDDLib` and `build`:
 
 ```sh
 cmake --build build --target problems_fsiUnitTest problems_unsteadyNonLinElasticityUnitTest -j 2
-ctest --test-dir build -V -R 'problems_(fsi_2D_P2P1|unsteadyNonLinElasticity_2D_P1_)'
+ctest --test-dir build -V -R 'problems_tests_unitTests_(fsi_2D_P2P1|unsteadyNonLinElasticity_2D_P1_)'
 ```
 
 To deliberately regenerate baselines after reviewing a numerical change, run
 the executables with `--write-reference` and an explicit output directory.
-For example, from `build/feddlib/problems/tests/UnitTest`:
+For example, from `build/feddlib/problems/tests/unitTests`:
 
 ```sh
 mkdir -p /tmp/transient-unit-new-references

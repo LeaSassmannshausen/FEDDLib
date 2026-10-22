@@ -82,7 +82,7 @@ archive folder; prior archives are not overwritten. `Resume output = true`
 takes precedence over `Keep old output`. These options do not alter checkpoint
 files or the separate restart/checkpoint-directory requirement.
 
-`problems_tests_UnitTest_outputHistory_MPI_2` exercises real scalar/vector HDF5 datasets,
+`problems_tests_unitTests_outputHistory_MPI_2` exercises real scalar/vector HDF5 datasets,
 moving meshes, rewinding and appending, duplicate suppression, sparse exports,
 changed/interval timestep sizes, repeated restarts, legacy text/ParaView output,
 default overwrite behavior and shared archives.
@@ -137,7 +137,7 @@ The XML manifest is descriptive metadata, **not** a completion marker. The
 reader checks the actual HDF5 data even when a manifest exists. Publishing whole
 checkpoints atomically and replacing decimal dataset keys remain separate work.
 
-`problems_tests_UnitTest_checkpointMetadata_MPI_2` exercises incompatible mesh/FE/DOF metadata,
+`problems_tests_unitTests_checkpointMetadata_MPI_2` exercises incompatible mesh/FE/DOF metadata,
 BDF order and timestep changes, unknown versions, missing history, inconsistent
 HDF5 length/vector-count/shape/type, a mismatched destination map, and explicit
 legacy mode. Rejections are checked on every MPI rank. The 2D 4-to-4
@@ -272,7 +272,7 @@ With tests enabled and the required Trilinos solvers available:
 
 ```sh
 cmake --build build --target problems_navierStokes_2D_3D_bfs problems_fsi_2D_turek problems_unsteadyNonLinElasticity_restart
-ctest --test-dir build --output-on-failure -R 'problems_(navierStokes_2D_3D_bfs|fsi_2D_turek|unsteadyNonLinElasticity_restart)'
+ctest --test-dir build --output-on-failure -R 'problems_tests_restartTests_(navierStokes_2D_3D_bfs|fsi_2D_turek|unsteadyNonLinElasticity_restart)'
 ```
 
 - `navierStokes_2D_3D_bfs` runs the 2D `BFS2d_1600.mesh` and 3D

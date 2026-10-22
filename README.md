@@ -67,7 +67,7 @@ CTest case names identify their source folders:
 
 - `problems_examples_<case>` for cases in `feddlib/problems/examples`.
 - `problems_tests_<group>_<case>` for `assembleFETests`, `interfaceTests`,
-  `UnitTest`, and `restartTests` in `feddlib/problems/tests`.
+  `unitTests`, and `restartTests` in `feddlib/problems/tests`.
 - `problems_tests_Solver_<case>` for `feddlib/problems/Solver/tests`.
 
 For example, use `ctest --test-dir <build-directory> -R '^problems_tests_restartTests_'`
