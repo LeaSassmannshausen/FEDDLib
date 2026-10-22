@@ -26,9 +26,11 @@ static herr_t FindDataset(hid_t loc_id, const char *name, void *opdata)
 }
 
 template <class SC, class LO, class GO, class NO>
-HDF5Toolbox<SC, LO, GO, NO>::HDF5Toolbox(CommConstPtr_Type comm):
+HDF5Toolbox<SC, LO, GO, NO>::HDF5Toolbox(CommConstPtr_Type comm,
+                                      Teuchos::RCP<Teuchos::ParameterList> parameters):
+  isOpen_(false),
   comm_(comm),
-  isOpen_(false)
+  parameters_(parameters)
 {}
 
 // ----------------------------------------------------------------

@@ -35,7 +35,17 @@ const std::vector<std::string> operations = {
     "metadata_prepare", "compatibility_validate", "primary_fields_read",
     "bdf_history_read", "fields_write", "metadata_write", "checkpoint_write",
     "initial_solution_load", "paraview_resume", "check_for_export",
-    "check_for_export_and_export", "export"
+    "check_for_export_and_export", "export", "files_close"
+};
+
+// Solver costs are reported separately from checkpoint feature costs.
+const std::map<std::string, std::string> solverOperations = {
+    {"nonlinear_solve", "FEDD - NonLinearSolver - Solve"},
+    {"nonlinear_residual", "FEDD - TimeProblem - Nonlinear Residual"},
+    {"jacobian_assembly", "FEDD - NonLinearSolver - Jacobian Assembly"},
+    {"combine_systems", "FEDD - TimeProblem - Combine Systems"},
+    {"bdf_history_update", "FEDD - TimeProblem - BDF History Update"},
+    {"bdf_rhs", "FEDD - TimeProblem - BDF RHS"}
 };
 
 void zero2D(double*, double* result, double, const double*)
@@ -153,6 +163,11 @@ Snapshot counters()
         result[operation] = timer.is_null() ? std::make_pair(0., 0)
             : std::make_pair(timer->totalElapsedTime(), timer->numCalls());
     }
+    for (const auto& operation : solverOperations) {
+        const RCP<Teuchos::Time> timer = Teuchos::TimeMonitor::lookupCounter(operation.second);
+        result[operation.first] = timer.is_null() ? std::make_pair(0., 0)
+            : std::make_pair(timer->totalElapsedTime(), timer->numCalls());
+    }
     return result;
 }
 
@@ -200,9 +215,11 @@ MeshSize runPhase(ParameterListPtr_Type parameters, RCP<const Teuchos::Comm<int>
                              : rcp(new DomainType(origin, length + 1., 1., 2., comm));
             domain->buildMesh(2, "BFS", dim, "P1", subdivisions, ratio);
         });
-        const auto map = domain->getMapUnique();
-        size.global = static_cast<long long>(map->getGlobalNumElements()) * (dim + 1);
-        size.local = static_cast<long long>(map->getNodeNumElements()) * (dim + 1);
+        {
+            const auto map = domain->getMapUnique();
+            size.global = static_cast<long long>(map->getGlobalNumElements()) * (dim + 1);
+            size.local = static_cast<long long>(map->getNodeNumElements()) * (dim + 1);
+        }
 
         auto boundaries = rcp(new BCBuilder<default_sc,default_lo,default_go,default_no>());
         std::vector<double> inlet = {parameters->sublist("Parameter").get<double>("MaxVelocity")};
@@ -211,29 +228,39 @@ MeshSize runPhase(ParameterListPtr_Type parameters, RCP<const Teuchos::Comm<int>
         boundaries->addBC(zero, 4, 0, domain, "Dirichlet", dim);
         boundaries->addBC(dim == 2 ? inflow2D : inflow3D, 2, 0, domain, "Dirichlet", dim, inlet);
 
-        NavierStokesType problem(domain, "P1", domain, "P1", parameters);
-        problem.addBoundaries(boundaries);
-        measure("problem_initialization", *comm, measurements, [&] { problem.initializeProblem(); });
+        RCP<NavierStokesType> problem = rcp(new NavierStokesType(domain, "P1", domain, "P1", parameters));
+        problem->addBoundaries(boundaries);
+        measure("problem_initialization", *comm, measurements, [&] { problem->initializeProblem(); });
         measure("spatial_assembly", *comm, measurements, [&] {
-            problem.assemble();
-            problem.setBoundariesRHS();
+            problem->assemble();
+            problem->setBoundariesRHS();
         });
         SmallMatrix<int> timeBlocks(2);
         timeBlocks[0][0] = timeBlocks[0][1] = 1;
-        TimeSolver solver(parameters, comm);
+        RCP<TimeSolver> solver = rcp(new TimeSolver(parameters, comm));
         measure("time_setup", *comm, measurements, [&] {
-            solver.defineTimeStepping(timeBlocks);
-            solver.setProblem(problem);
-            solver.setupTimeStepping();
+            solver->defineTimeStepping(timeBlocks);
+            solver->setProblem(*problem);
+            solver->setupTimeStepping();
         });
-        measure("advance", *comm, measurements, [&] { solver.advanceInTime(); });
-        // Destruction closes exporters before the next phase reads their files.
+        measure("advance", *comm, measurements, [&] { solver->advanceInTime(); });
+        // Preserve destruction order and close files before the next phase reads them.
+        // files_close is nested here; other destruction is the teardown remainder.
+        measure("teardown", *comm, measurements, [&] {
+            solver = Teuchos::null;
+            problem = Teuchos::null;
+            boundaries = Teuchos::null;
+            domain = Teuchos::null;
+        });
     }
     measurements.push_back({"total", std::chrono::duration<double>(Clock::now() - start).count(), 1});
     const auto after = counters();
     for (const auto& operation : operations)
         measurements.push_back({operation, after.at(operation).first - before.at(operation).first,
                                after.at(operation).second - before.at(operation).second});
+    for (const auto& operation : solverOperations)
+        measurements.push_back({operation.first, after.at(operation.first).first - before.at(operation.first).first,
+                               after.at(operation.first).second - before.at(operation.first).second});
     return size;
 }
 

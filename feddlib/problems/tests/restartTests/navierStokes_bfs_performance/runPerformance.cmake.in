@@ -18,7 +18,8 @@ ENDIF()
 # Require measured operations, not a particular runtime or solution-error bound.
 FILE(READ "${work}/results/timings.csv" timings)
 FOREACH(operation checkpoint_write compatibility_validate primary_fields_read bdf_history_read initial_solution_load paraview_resume
-        check_for_export export)
+        check_for_export export files_close teardown nonlinear_solve nonlinear_residual
+        jacobian_assembly combine_systems bdf_history_update bdf_rhs)
     IF(NOT timings MATCHES ",${operation},")
         MESSAGE(FATAL_ERROR "Missing performance measurement: ${operation}")
     ENDIF()
@@ -27,7 +28,11 @@ ENDFOREACH()
 # TimeMonitor scopes must also appear beneath the benchmark regions in the stack.
 FILE(READ "${work}/results/stacked_timings.txt" stacked_timings)
 FOREACH(region "BFS restart performance" repeat_1 checkpoint_run restart resume_output initial_solution
-        mesh_build problem_initialization advance
+        mesh_build problem_initialization advance teardown
+        "FEDD - NonLinearSolver - Solve" "FEDD - NonLinearSolver - Jacobian Assembly"
+        "FEDD - TimeProblem - Nonlinear Residual" "FEDD - TimeProblem - Combine Systems"
+        "FEDD - TimeProblem - BDF History Update" "FEDD - TimeProblem - BDF RHS"
+        "FEDDlib: Checkpoint Feature - files_close"
         "FEDDlib: Checkpoint Feature - checkpoint_write" "FEDDlib: Checkpoint Feature - compatibility_validate"
         "FEDDlib: Checkpoint Feature - bdf_history_read" "FEDDlib: Checkpoint Feature - initial_solution_load"
         "FEDDlib: Checkpoint Feature - paraview_resume" "FEDDlib: Checkpoint Feature - check_for_export" "FEDDlib: Checkpoint Feature - export")

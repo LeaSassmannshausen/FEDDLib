@@ -4,14 +4,15 @@
 namespace FEDD {
  
 template<class SC,class LO,class GO,class NO>
-HDF5Export<SC,LO,GO,NO>::HDF5Export(MapConstPtr_Type writeMap, std::string outputFilename):
+HDF5Export<SC,LO,GO,NO>::HDF5Export(MapConstPtr_Type writeMap, std::string outputFilename,
+                                Teuchos::RCP<Teuchos::ParameterList> parameters):
 hdf5exporter_(),
 comm_()
 {
 
     Teuchos::RCP<const Teuchos::MpiComm<int> > mpiComm = Teuchos::rcp_dynamic_cast<const Teuchos::MpiComm<int> >( writeMap->getComm() );
 
-    hdf5exporter_.reset( new HDF5_Type(mpiComm) ); // Building HDF5 Exporter
+    hdf5exporter_.reset( new HDF5_Type(mpiComm, parameters) ); // Building HDF5 Exporter
 
     // The output file may lie in a (checkpoint) directory: create it first
     std::string::size_type slash = outputFilename.rfind('/');

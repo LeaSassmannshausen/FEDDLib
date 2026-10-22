@@ -1728,7 +1728,7 @@ void FSI<SC,LO,GO,NO>::exportValuesOfInterest(double time)
         if (exporterGeometry_.is_null())
             exporterGeometry_.reset(new HDF5Export<SC,LO,GO,NO>(
                 this->getDomain(4)->getMapVecFieldUnique(),
-                checkpointFile(this->parameterList_, "Solutiond_f")));
+                checkpointFile(this->parameterList_, "Solutiond_f"), this->parameterList_));
         std::string varName = std::to_string(time);
         exporterGeometry_->writeVariablesHDF5(varName,problemGeometry_->getSolution()->getBlockNonConst(0));
     }

@@ -8,6 +8,7 @@
 #include "feddlib/core/General/DefaultTypeDefs.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 #include "feddlib/core/LinearAlgebra/Map.hpp"
+#include "feddlib/core/Checkpointing/CheckpointTiming.hpp"
 
 /*!
  Declaration of HDF5Toolbox
@@ -40,7 +41,9 @@ class HDF5Toolbox{
         typedef Teuchos::RCP<Map_Type> MapPtr_Type;
         typedef Teuchos::RCP<const Map_Type> MapConstPtr_Type;
 
-        HDF5Toolbox(CommConstPtr_Type Comm);
+        /// @param parameters Optional checkpoint timing settings, retained until file closure.
+        HDF5Toolbox(CommConstPtr_Type Comm,
+                    Teuchos::RCP<Teuchos::ParameterList> parameters = Teuchos::null);
 
         /// @brief Write/export a vector X to the HDF5 file under the group name GroupName
         /// @param GroupName 
@@ -84,6 +87,8 @@ class HDF5Toolbox{
         //! Close the file.
         void close()
         {
+            // Includes H5Fclose when invoked explicitly or by the destructor.
+            checkpoint::Timer timer(parameters_, "files_close");
 
             // ssize_t nopen = H5Fget_obj_count(file_id_, H5F_OBJ_ALL);
             
@@ -132,6 +137,7 @@ class HDF5Toolbox{
     private:
         bool isOpen_; // Flag if file is open
         CommConstPtr_Type comm_;
+        Teuchos::RCP<Teuchos::ParameterList> parameters_;
         hid_t       file_id_;
         hid_t	plist_id_;
         herr_t	status;

@@ -110,6 +110,9 @@ void TimeProblem<SC,LO,GO,NO>::reAssembleAndFill( BlockMatrixPtr_Type bMat, std:
 
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::combineSystems() const{
+    static const Teuchos::RCP<Teuchos::Time> counter =
+        Teuchos::TimeMonitor::getNewCounter("FEDD - TimeProblem - Combine Systems");
+    Teuchos::TimeMonitor timer(*counter);
     BlockMatrixPtr_Type tmpSystem = problem_->getSystem();
     int size = tmpSystem->size();
     systemCombined_.reset( new BlockMatrix_Type ( size ) );
@@ -166,6 +169,9 @@ void TimeProblem<SC,LO,GO,NO>::updateRhs(){
 
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::updateMultistepRhs(vec_dbl_Type& coeff, int nmbToUse){
+    static const Teuchos::RCP<Teuchos::Time> counter =
+        Teuchos::TimeMonitor::getNewCounter("FEDD - TimeProblem - BDF RHS");
+    Teuchos::TimeMonitor timer(*counter);
 
     problem_->getRhs()->putScalar(0.);
 
@@ -193,6 +199,9 @@ void TimeProblem<SC,LO,GO,NO>::updateMultistepRhs(vec_dbl_Type& coeff, int nmbTo
 // These are computed in each time step. No history of the processed products is kept.
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::updateMultistepRhsFSI(vec_dbl_Type& coeff, int nmbToUse){
+    static const Teuchos::RCP<Teuchos::Time> counter =
+        Teuchos::TimeMonitor::getNewCounter("FEDD - TimeProblem - BDF RHS (FSI)");
+    Teuchos::TimeMonitor timer(*counter);
 
     problem_->getRhs()->putScalar(0.);
 
@@ -474,6 +483,10 @@ double TimeProblem<SC,LO,GO,NO>::calculateResidualNorm(){
 
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::calculateNonLinResidualVec( std::string type, double time ) const{
+    // Includes spatial reassembly, the transient mass term and residual BCs.
+    static const Teuchos::RCP<Teuchos::Time> counter =
+        Teuchos::TimeMonitor::getNewCounter("FEDD - TimeProblem - Nonlinear Residual");
+    Teuchos::TimeMonitor timer(*counter);
 
     NonLinProbPtr_Type nonLinProb = Teuchos::rcp_dynamic_cast<NonLinProb_Type>(problem_);
     TEUCHOS_TEST_FOR_EXCEPTION(nonLinProb.is_null(), std::runtime_error, "Nonlinear problem is null.");
@@ -603,6 +616,9 @@ void TimeProblem<SC,LO,GO,NO>::updateSolutionPreviousStep(){
 
 template<class SC,class LO,class GO,class NO>
 void TimeProblem<SC,LO,GO,NO>::updateSolutionMultiPreviousStep(int nmbSteps, bool exportValues){
+    static const Teuchos::RCP<Teuchos::Time> counter =
+        Teuchos::TimeMonitor::getNewCounter("FEDD - TimeProblem - BDF History Update");
+    Teuchos::TimeMonitor timer(*counter);
 
     int size = solutionPreviousTimesteps_.size();
     if (size<nmbSteps &&  size > 0) {
@@ -1715,17 +1731,17 @@ void TimeProblem<SC,LO,GO,NO>::initExporter(std::string fileName  ){
 
     // All checkpoint files are written to the checkpoint directory (see CheckpointFiles.hpp)
     if(fileName == "ds_Velocity")
-        HDF5exporterDsVelocity_.reset(new HDF5Export<SC,LO,GO,NO>(problem_->getSolution()->getBlock(0)->getMap(),checkpointFile(parameterList_, fileName))); // This happens for structure subproblems
+        HDF5exporterDsVelocity_.reset(new HDF5Export<SC,LO,GO,NO>(problem_->getSolution()->getBlock(0)->getMap(),checkpointFile(parameterList_, fileName), parameterList_)); // This happens for structure subproblems
 
     else if(fileName =="ds_Acceleration")
-        HDF5exporterDsAcceleration_.reset(new HDF5Export<SC,LO,GO,NO>(problem_->getSolution()->getBlock(0)->getMap(),checkpointFile(parameterList_, fileName))); // This happens for structure subproblems
+        HDF5exporterDsAcceleration_.reset(new HDF5Export<SC,LO,GO,NO>(problem_->getSolution()->getBlock(0)->getMap(),checkpointFile(parameterList_, fileName), parameterList_)); // This happens for structure subproblems
 
     // Moving-mesh mass products used by FSI.
     else if(fileName =="Rhs"){
         int size = this->getSolution()->size();
         for (UN i = 0; i < size; i++)
         {
-            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),checkpointFile(parameterList_, fileName+problem_->getVariableName(i))));
+            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),checkpointFile(parameterList_, fileName+problem_->getVariableName(i)), parameterList_));
             HDF5exporterRhs_.push_back(exporter);
         }
     }
@@ -1735,12 +1751,12 @@ void TimeProblem<SC,LO,GO,NO>::initExporter(std::string fileName  ){
         for (UN i = 0; i < size; i++)
         {
             LO idVarname = i;
-            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),checkpointFile(parameterList_, fileName+problem_->getVariableName(idVarname))));
+            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),checkpointFile(parameterList_, fileName+problem_->getVariableName(idVarname)), parameterList_));
             HDF5exporterSolution_.push_back(exporter);
         }
     }
     else if(fileName =="SolutionNewmark"){
-        HDF5exporterSolutionNewmark_.reset(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(0)->getMap(),checkpointFile(parameterList_, fileName+problem_->getVariableName(0))));
+        HDF5exporterSolutionNewmark_.reset(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(0)->getMap(),checkpointFile(parameterList_, fileName+problem_->getVariableName(0)), parameterList_));
     }
     else
         TEUCHOS_TEST_FOR_EXCEPTION( true, std::runtime_error,"TimeProblem:: Init Exporter - no exporter for file name");

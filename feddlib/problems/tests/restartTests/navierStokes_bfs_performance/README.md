@@ -157,7 +157,7 @@ visualization/text output, providing an isolated checkpoint-write measurement.
 Recovery/failure injection and FSI/Newmark are outside this Navier-Stokes benchmark.
 
 Each phase reports `mesh_build`, `problem_initialization`, `spatial_assembly`,
-`time_setup`, `advance` and `total`, plus the operations actually executed:
+`time_setup`, `advance`, `teardown` and `total`, plus the operations actually executed:
 
 | Operation | Timed work |
 |---|---|
@@ -167,12 +167,30 @@ Each phase reports `mesh_build`, `problem_initialization`, `spatial_assembly`,
 | `bdf_history_read` | Collective HDF5 reads and allocation of BDF solution history |
 | `fields_write` | Collective HDF5 field writes, including exporter creation on the first write |
 | `metadata_write` | Checkpoint manifest serialization/publication |
-| `checkpoint_write` | Complete accepted-state checkpoint, including history and metadata |
+| `checkpoint_write` | Accepted-state checkpoint write, including history and metadata; file closure is measured separately |
+| `files_close` | HDF5 checkpoint file closure, including closure during exporter destruction; one call per file |
 | `check_for_export` | Check save-all/checkpoint flags, initialize the schedule if needed and decide whether output is due; also measured when no write occurs |
 | `export` | Checkpoint export of fields/history and auxiliary state, excluding metadata, for accepted-step Navier-Stokes and the FSI/Newmark path |
 | `check_for_export_and_export` | Entire FSI/Newmark `TimeProblem::checkForExportAndExport` call, including optional recovery capture, decision checks and any export |
 | `initial_solution_load` | Initial-field validation and loading, without time/history restoration |
 | `paraview_resume` | Existing XMF/HDF5 validation, retained-frame selection and reopening |
+
+Solver counters also appear in the CSV and stacked report:
+
+| CSV operation | Stacked timer | Timed work |
+|---|---|---|
+| `nonlinear_solve` | `FEDD - NonLinearSolver - Solve` | Entire transient nonlinear solve, including assembly, linear solves and convergence checks |
+| `nonlinear_residual` | `FEDD - TimeProblem - Nonlinear Residual` | Spatial reassembly, transient mass term and residual boundary conditions |
+| `jacobian_assembly` | `FEDD - NonLinearSolver - Jacobian Assembly` | Newton matrix assembly and combination with the transient mass matrix |
+| `combine_systems` | `FEDD - TimeProblem - Combine Systems` | Allocation, addition and completion of the combined spatial/mass matrix |
+| `bdf_history_update` | `FEDD - TimeProblem - BDF History Update` | BDF history allocation/copies and any restart-history loading or legacy export performed by that call |
+| `bdf_rhs` | `FEDD - TimeProblem - BDF RHS` | History mass-matrix products and accumulation of the transient right-hand side |
+
+These solver timers are ordinary Teuchos counters and also run outside the
+benchmark. The FSI-specific history mass products use
+`FEDD - TimeProblem - BDF RHS (FSI)`. Timers add no MPI barriers.
+`combine_systems` is included in `jacobian_assembly` during Newton solves;
+both residual and Jacobian work are included in `nonlinear_solve`.
 
 The production hooks are enabled by `General/Checkpoint timings=true` and are
 disabled by default elsewhere. They use Teuchos counters without adding MPI
@@ -189,6 +207,13 @@ snapshot capture when enabled; that capture is outside the decision/write region
 appear in stacked reports when those paths are exercised, rather than in this
 standalone Navier-Stokes run. `fields_write` counts one call per accepted-step
 state, or per legacy field/history batch, so compare call counts accordingly.
+`files_close` uses the same optional checkpoint timing setting and measures the
+actual HDF5 close, whether requested explicitly or triggered by destruction.
+The benchmark's `teardown` stage destroys the solver, problem, boundary data and
+mesh in that order. Checkpoint file closure is nested in this stage; its remainder
+contains other destruction. For a combined write-and-close cost, sum
+`files_close` and `checkpoint_write` locally on each rank before taking the MPI
+maximum. The rest of `teardown` is not a checkpoint measurement.
 
 Standard output contains CSV timing rows followed by a stacked timer report.
 The CSV is also saved separately as `timings.csv`; `--verbose` adds ordinary
@@ -208,17 +233,26 @@ BFS restart performance
   repeat_1
     checkpoint_run
       advance
+        FEDD - TimeProblem - BDF History Update
+        FEDD - TimeProblem - BDF RHS
+        FEDD - NonLinearSolver - Solve
+          FEDD - TimeProblem - Nonlinear Residual
+          FEDD - NonLinearSolver - Jacobian Assembly
+            FEDD - TimeProblem - Combine Systems
         FEDDlib: Checkpoint Feature - checkpoint_write
           FEDDlib: Checkpoint Feature - export
             FEDDlib: Checkpoint Feature - fields_write
           FEDDlib: Checkpoint Feature - metadata_write
+      teardown
+        FEDDlib: Checkpoint Feature - files_close
     restart
       problem_initialization
         FEDDlib: Checkpoint Feature - metadata_prepare
           FEDDlib: Checkpoint Feature - compatibility_validate
         FEDDlib: Checkpoint Feature - primary_fields_read
       advance
-        FEDDlib: Checkpoint Feature - bdf_history_read
+        FEDD - TimeProblem - BDF History Update
+          FEDDlib: Checkpoint Feature - bdf_history_read
 ```
 
 Existing solver/preconditioner `TimeMonitor` counters appear automatically
@@ -234,7 +268,7 @@ timer adds no barriers to production checkpoint operations. A detected library
 timer overlap fails the run rather than publishing an incomplete stack.
 
 Phase timers synchronize their starts; operation timers do not. `total` includes
-setup, phase synchronization and exporter closure, but excludes CSV reporting.
+setup, phase synchronization and teardown, but excludes CSV reporting.
 Measurements use the actual filesystem with no cache flushing: repetitions and
 later reads may benefit from filesystem caches. Inspect repetitions separately
 and report warm/cold-cache conditions when publishing results.

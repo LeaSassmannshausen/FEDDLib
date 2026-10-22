@@ -53,6 +53,10 @@ void NonLinearSolver<SC,LO,GO,NO>::solve(NonLinearProblem_Type &problem,vec_dbl_
 
 template<class SC,class LO,class GO,class NO>
 void NonLinearSolver<SC,LO,GO,NO>::solve(TimeProblem_Type &problem, double time, vec_dbl_ptr_Type valuesForExport){
+    // Include residual/assembly work and convergence checks around linear solves.
+    static const Teuchos::RCP<Teuchos::Time> counter =
+        Teuchos::TimeMonitor::getNewCounter("FEDD - NonLinearSolver - Solve");
+    Teuchos::TimeMonitor timer(*counter);
 
     if (!type_.compare("FixedPoint")) {
         solveIterative(problem, time, valuesForExport, false);
@@ -566,7 +570,12 @@ void NonLinearSolver<SC,LO,GO,NO>::solveIterative(TimeProblem_Type &problem, dou
                           << "  relative nonlinear residual : " << criterionValue << std::endl;
             if (!std::isfinite(criterionValue) || criterionValue < tolerance) break;
         }
-        if (newton) problem.assemble("Newton");
+        if (newton) {
+            static const Teuchos::RCP<Teuchos::Time> counter =
+                Teuchos::TimeMonitor::getNewCounter("FEDD - NonLinearSolver - Jacobian Assembly");
+            Teuchos::TimeMonitor timer(*counter);
+            problem.assemble("Newton");
+        }
         else problem.combineSystems();
         problem.setBoundariesSystem();
         lastSolveReport_.totalLinearIterations += problem.solveAndUpdate(
