@@ -50,3 +50,6 @@ tribits_copy_files_to_binary_dir(mesh_stokesAdaptive2D2
         DEST_FILES circle.mesh
 	EXEDEPS stokesAdaptive
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Low)

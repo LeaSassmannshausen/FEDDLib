@@ -445,3 +445,18 @@ tribits_copy_files_to_binary_dir(data_navierStokesUnitTestPrec
  	DEST_FILES solution_navier_stokes_velocity_Diagonal_2d_P1_9cores.h5 solution_navier_stokes_velocity_Monolithic_2d_P1_9cores.h5 solution_navier_stokes_velocity_Teko_2d_P1_9cores.h5 solution_navier_stokes_velocity_PCD_2d_P1_9cores.h5 solution_navier_stokes_pressure_Diagonal_2d_P1_9cores.h5 solution_navier_stokes_pressure_Monolithic_2d_P1_9cores.h5 solution_navier_stokes_pressure_Teko_2d_P1_9cores.h5 solution_navier_stokes_pressure_PCD_2d_P1_9cores.h5  
  	EXEDEPS navierStokesUnitTestPrec
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(
+    DEFAULT Low
+    MEDIUM
+        ${PACKAGE_NAME}_fsi_2D_P2P1_MPI_4
+        ${PACKAGE_NAME}_unsteadyNonLinElasticity_2D_P1_6cores_MPI_6
+        ${PACKAGE_NAME}_laplace_3D_P2_MPI_8
+        ${PACKAGE_NAME}_GNF_2D_P2_MPI_4
+        ${PACKAGE_NAME}_nonLinElasticity_3D_P1_MPI_8
+        ${PACKAGE_NAME}_nonLinLaplace_2D_P1_MPI_8
+    HIGH
+        ${PACKAGE_NAME}_linElas_3D_P2_MPI_8
+        ${PACKAGE_NAME}_navierStokes_3D_P2_Newton_MPI_8
+)

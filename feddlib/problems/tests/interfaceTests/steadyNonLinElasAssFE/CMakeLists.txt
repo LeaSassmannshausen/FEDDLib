@@ -25,3 +25,6 @@ tribits_copy_files_to_binary_dir(mesh_steadyNonLinElasAssFE
 	DEST_FILES cube_h_1.mesh
 	EXEDEPS steadyNonLinElasAssFE
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Low)

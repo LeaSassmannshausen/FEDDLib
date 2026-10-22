@@ -45,7 +45,9 @@ cmake_minimum_required(VERSION ${TRIBITS_CMAKE_MINIMUM_REQUIRED})
 tribits_include_directories(${CMAKE_SOURCE_DIR})
 
 # Do all of the processing for this Tribits project
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FEDDLibTestRuntime.cmake)
 tribits_project()
+feddlib_check_test_runtimes(${CMAKE_CURRENT_SOURCE_DIR})
 
 
 foreach(ENABLED_PACKAGE ${FEDDLib_ENABLED_PACKAGES})

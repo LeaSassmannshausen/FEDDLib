@@ -25,3 +25,6 @@ tribits_copy_files_to_binary_dir(mesh_steadyNavierStokes
 	DEST_FILES dfg_fsi_fluid_h004.mesh
 	EXEDEPS steadyNavierStokes
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Low)

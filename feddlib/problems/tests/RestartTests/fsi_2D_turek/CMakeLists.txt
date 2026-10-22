@@ -45,3 +45,6 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_fsi_2D_turekTest
     DEST_FILES dfg_fsi_fluid_h004.mesh dfg_fsi_solid_h004.mesh
     EXEDEPS fsi_2D_turek
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Medium)

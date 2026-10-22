@@ -18,3 +18,6 @@ tribits_copy_files_to_binary_dir(data_stokes
 	DEST_FILES parametersPrec.xml parametersProblem.xml parametersSolver.xml parametersTeko.xml parametersPrecBlock.xml
 	EXEDEPS stokes
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Low)

@@ -34,3 +34,6 @@ FOREACH(dimension 2 3)
             LABELS ${PACKAGE_NAME} REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_navierStokes_2D_3D_initialSolution>")
     ENDFOREACH()
 ENDFOREACH()
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Medium)

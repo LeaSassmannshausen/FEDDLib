@@ -21,3 +21,6 @@ tribits_copy_files_to_binary_dir(data_steadyLinElas_Perf
 	DEST_FILES parametersPrec.xml  parametersProblem.xml parametersSolver.xml
 	EXEDEPS steadyLinElas_Perf
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Low)

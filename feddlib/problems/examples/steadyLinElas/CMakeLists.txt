@@ -26,3 +26,6 @@ tribits_copy_files_to_binary_dir(mesh_steadyLinElas
 	DEST_FILES dfg_fsi_solid_h002.mesh
 	EXEDEPS steadyLinElas
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Low)

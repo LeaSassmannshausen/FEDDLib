@@ -61,3 +61,6 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(mesh_navierStokes_2D_3D_bfs
     DEST_FILES ${navier_stokes_restart_mesh_files}
     EXEDEPS navierStokes_2D_3D_bfs
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Medium)

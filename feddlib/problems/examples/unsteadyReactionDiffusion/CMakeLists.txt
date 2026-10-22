@@ -26,3 +26,6 @@ tribits_copy_files_to_binary_dir(mesh_unsteadyReactionDiffusion
 	EXEDEPS unsteadyReactionDiffusion
 )
 
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Low)

@@ -337,3 +337,6 @@ tribits_copy_files_to_binary_dir(meshes_meshes_custom_partition
   DEST_FILES dfg_fsi_fluid_h004.mesh dfg_fsi_solid_h004.mesh
   EXEDEPS meshes_custom_partition
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Low)

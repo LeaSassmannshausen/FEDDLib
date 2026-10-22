@@ -25,3 +25,6 @@ tribits_copy_files_to_binary_dir(meshes_fsiTest
 	DEST_FILES dfg_fsi_fluid_h004.mesh dfg_fsi_solid_h004.mesh fsi_fluid_length_0_5_mm.mesh fsi_solid_length_0_5_mm.mesh fsi_fluid_2mm.mesh fsi_solid_2mm.mesh
 	EXEDEPS fsi
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Medium)

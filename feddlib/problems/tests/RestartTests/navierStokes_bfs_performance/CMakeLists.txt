@@ -36,3 +36,10 @@ IF(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 9)
         REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_navierStokes_bfs_performance>"
         TIMEOUT 600)
 ENDIF()
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(
+    DEFAULT Low
+    MEDIUM
+        ${PACKAGE_NAME}_navierStokes_bfs_performance_3D_MPI_9
+)

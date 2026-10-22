@@ -25,3 +25,6 @@ tribits_copy_files_to_binary_dir(mesh_laplace
 	DEST_FILES square.mesh
 	EXEDEPS laplace
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Low)

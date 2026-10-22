@@ -13,3 +13,6 @@ if(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 4)
     set_tests_properties(${recovery_test_name} PROPERTIES PROCESSORS 4 TIMEOUT 600 LABELS ${PACKAGE_NAME}
         REQUIRED_FILES "$<TARGET_FILE:${recovery_executable}>")
 endif()
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Medium)

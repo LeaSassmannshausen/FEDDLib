@@ -55,3 +55,6 @@ ENDIF()
 # Explicit maintenance operation; normal CTest cases never execute this script.
 CONFIGURE_FILE(generateOutletReferences.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/generateOutletReferences.cmake @ONLY)
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Medium)

@@ -42,3 +42,10 @@ tribits_copy_files_to_binary_dir(mesh_refinementFlag
 )
 
 ### 
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(
+    DEFAULT Low
+    MEDIUM
+        ${PACKAGE_NAME}_refinementFlagsTestUniform_MPI_4
+)

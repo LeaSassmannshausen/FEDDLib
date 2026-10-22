@@ -19,3 +19,6 @@ tribits_copy_files_to_binary_dir(data_parameterList
 	EXEDEPS parameterList
 )
 
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Low)

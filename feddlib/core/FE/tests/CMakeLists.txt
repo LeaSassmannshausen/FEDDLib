@@ -85,3 +85,6 @@ tribits_copy_files_to_binary_dir(data_mesh_2dSquare
 	DEST_FILES square.mesh
 	EXEDEPS surfaceIntegral
 )
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(DEFAULT Low)

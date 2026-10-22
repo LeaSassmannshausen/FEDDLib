@@ -35,3 +35,10 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(mesh_unsteadyNonLinElasticity_restart
     DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
     DEST_FILES square_h02.mesh
     EXEDEPS unsteadyNonLinElasticity_restart)
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(
+    DEFAULT Low
+    MEDIUM
+        ${PACKAGE_NAME}_unsteadyNonLinElasticity_restart_2D_4_to_6
+)

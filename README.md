@@ -51,6 +51,18 @@ The FEDDLib has an optional dependency on an interface to [AceGEN](https://www.w
 ```
 
 
+## Test runtime selection
+
+With tests enabled, add `-D FEDDLib_TEST_RUNTIME:STRING=Low` to your CMake
+configure command/script. `Low` runs tests expected to take less than 10 seconds;
+`Medium` also includes tests below 30 seconds; `High` includes all tests and is
+the default. These are fixed estimates from the laptop timing baseline, not
+execution timeouts. Tests above the selected tier are shown as disabled by CTest.
+
+Run the configured selection with `ctest --test-dir <build-directory> --output-on-failure`.
+The [runtime overview](doc/TestRuntimes.md) lists all measured tests, their tiers,
+runtime labels, and examples for changing the selection in an existing build.
+
 ## Simulation Setup from a User Perspective
 
 1. **Mesh**

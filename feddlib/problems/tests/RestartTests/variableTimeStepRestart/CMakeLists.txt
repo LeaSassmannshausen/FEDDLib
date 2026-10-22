@@ -27,3 +27,11 @@ foreach(model IN ITEMS navierStokes fsi newmark artery)
     set_tests_properties(${variable_test_name} PROPERTIES PROCESSORS 4 LABELS ${PACKAGE_NAME}
         REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_${driver}>")
 endforeach()
+
+# Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
+feddlib_set_test_runtimes(
+    DEFAULT Medium
+    HIGH
+        ${PACKAGE_NAME}_fsi_variableTimeStep_restart
+        ${PACKAGE_NAME}_artery_variableTimeStep_restart
+)
