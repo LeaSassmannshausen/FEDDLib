@@ -13,9 +13,14 @@ version 2, including actual clock counters, dt/dt_prev and history timestamps.
 
 | Model | Stored snapshots | Normal restart comparisons |
 |---|---|---|
-| Resistance | Every step from 0 to 0.015 | One save-all restart, 0.005 -> 0.010 |
+| Resistance | Every step from 0 to 0.015 | One restart, 0.005 -> 0.010 |
 | Absorbing | 0.005, 0.010, 0.015 with prior history | One restart, 0.010 -> 0.015 |
 | Absorbing Paper | 0.005, 0.010, 0.015 with prior history | One unsteady-phase restart, 0.010 -> 0.015 |
+
+The existing Resistance bundle was generated with save-all output and contains
+additional intermediate snapshots. The current restart test reads its frozen
+checkpoint at 0.005; future reference generation uses selected checkpoints for
+all three models.
 
 The reference producer stops at 0.0175 so the existing FSI start-of-step export
 writes the 0.015 snapshot. Normal tests advance exactly two timesteps per restart

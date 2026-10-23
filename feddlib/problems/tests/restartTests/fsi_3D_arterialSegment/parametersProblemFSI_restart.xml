@@ -1,8 +1,8 @@
 <!--
     Restart-phase override, merged into parametersProblemFSI.xml.
-    The runner selects the same outlet model as the producer. Resistance uses
-    one save-all restart at 0.005 s; each absorbing variant restarts once at
-    0.01 s and compares with the frozen reference at 0.015 s after two timesteps.
+    The runner selects the same outlet model as the producer. Resistance restarts
+    at 0.005 s and compares at 0.01 s; each absorbing variant restarts at 0.01 s
+    and compares with the frozen reference at 0.015 s after two timesteps.
     Absorbing Paper therefore tests only its unsteady phase, using the already
     captured transition area from the checkpoint. Normal Absorbing has no transition.
 -->

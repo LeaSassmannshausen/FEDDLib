@@ -15,11 +15,10 @@ FOREACH(model Resistance Absorbing "Absorbing Paper")
     FOREACH(input IN ITEMS @fsi_3D_arterialSegment_parameter_files@ fsi_fluid_length_0_5_mm.mesh fsi_solid_length_0_5_mm.mesh)
         FILE(COPY "@CMAKE_CURRENT_BINARY_DIR@/${input}" DESTINATION "${work}")
     ENDFOREACH()
-    SET(extra)
     EXECUTE_PROCESS(COMMAND "@MPI_EXEC@"
         @MPI_EXEC_PRE_NUMPROCS_FLAGS@ @MPI_EXEC_NUMPROCS_FLAG@ 4 @MPI_EXEC_POST_NUMPROCS_FLAGS@
         "${EXECUTABLE}" "--pressure-model=${model}"
-        "--checkpoint-output=${destination}/${name}" ${extra}
+        "--checkpoint-output=${destination}/${name}"
         WORKING_DIRECTORY "${work}" RESULT_VARIABLE result)
     IF(NOT result STREQUAL "0")
         MESSAGE(FATAL_ERROR "Reference generation failed for ${model}: ${result}")
@@ -28,5 +27,5 @@ FOREACH(model Resistance Absorbing "Absorbing Paper")
         FILE(COPY "${work}/${input}" DESTINATION "${destination}/${name}/GenerationInputs")
     ENDFOREACH()
     FILE(WRITE "${destination}/${name}/Generation.txt"
-        "Uninterrupted ${model} reference on 4 MPI ranks.\nGeometry: supplied 0.5 mm artery, P1/P1 fluid and P1 solid.\nFinal time: 0.0175; dt: 0.0025.\nResistance uses save-all checkpoints; absorbing models save at 0.005, 0.010, 0.015.\nThese inputs plus the pressure-model/save-all command-line overrides generated this bundle.\n")
+        "Uninterrupted ${model} reference on 4 MPI ranks.\nGeometry: supplied 0.5 mm artery, P1/P1 fluid and P1 solid.\nFinal time: 0.0175; dt: 0.0025.\nCheckpoints at 0.005, 0.010, 0.015 with required history.\nThese inputs plus the pressure-model and checkpoint-output command-line overrides generated this bundle.\n")
 ENDFOREACH()

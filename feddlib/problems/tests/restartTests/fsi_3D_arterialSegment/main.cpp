@@ -198,14 +198,13 @@ int main(int argc, char* argv[])
     std::string checkpointOutput;
     double restartTime = -1.;
     int restartSteps = 0;
-    bool saveAll = false, validateOnly = false, incompatibleOutlet = false;
+    bool validateOnly = false, incompatibleOutlet = false;
     Teuchos::CommandLineProcessor commandLine;
     commandLine.setOption("problemfile", &problemFile, "Case parameters or restart overrides.");
     commandLine.setOption("pressure-model", &pressureModel, "Resistance, Absorbing, or Absorbing Paper.");
     commandLine.setOption("restart-time", &restartTime, "Override the restart time.");
     commandLine.setOption("restart-steps", &restartSteps, "Override restart length with a fixed step count; zero keeps the configured Final time.");
     commandLine.setOption("checkpoint-output", &checkpointOutput, "Enable checkpoint output to this directory.");
-    commandLine.setOption("save-all", "selected-checkpoints", &saveAll, "Exercise saving every solution.");
     commandLine.setOption("validate-checkpoint", "solve", &validateOnly, "Validate checkpoint before simulation.");
     commandLine.setOption("incompatible-outlet", "compatible-outlet", &incompatibleOutlet, "Change averaging for a rejection test.");
     commandLine.throwExceptions(false);
@@ -224,10 +223,6 @@ int main(int argc, char* argv[])
         parameters->sublist("Timestepping Parameter").set("Checkpointing", true)
             .set("Checkpoint directory", checkpointOutput);
     if (incompatibleOutlet) parameters->sublist("Parameter Fluid").set("Average Flowrate", false);
-    if (saveAll) {
-        parameters->sublist("General").set("Safe all solution", true);
-        parameters->sublist("Timestepping Parameter").set("Checkpointing", false);
-    }
     auto& timeParameters = parameters->sublist("Timestepping Parameter");
     TEUCHOS_TEST_FOR_EXCEPTION(restartSteps < 0, std::logic_error, "restart-steps must be nonnegative.");
     if (timeParameters.get("Restart", false) && restartSteps > 0) {

@@ -33,9 +33,9 @@ FOREACH(reference_model Resistance Absorbing Absorbing_Paper)
 ENDFOREACH()
 
 # Exercise all pressure models from frozen checkpoints. Each run has its own
-# files and one two-step simulation. Resistance checks save-all output; both
-# absorbing models restart at 0.01 s, after the inlet ramp and the paper-model
-# transition. Four validation-only MPI launches follow each simulation.
+# files and one two-step simulation. Resistance restarts at 0.005 s; both absorbing
+# models restart at 0.01 s, after the inlet ramp and the paper-model transition.
+# Four validation-only MPI launches follow each simulation.
 IF(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 4)
     FOREACH(outlet_model Resistance Absorbing "Absorbing Paper")
         STRING(REPLACE " " "_" outlet_name "${outlet_model}")

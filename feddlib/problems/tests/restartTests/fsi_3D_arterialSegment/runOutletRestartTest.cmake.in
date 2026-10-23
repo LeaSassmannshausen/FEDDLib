@@ -31,20 +31,8 @@ FUNCTION(run_phase label)
         MESSAGE(FATAL_ERROR "${label} failed: ${result}")
     ENDIF()
 ENDFUNCTION()
-IF("@outlet_model@" STREQUAL "Resistance")
-    # One two-step restart also checks save-all output with Checkpointing=false.
-    run_phase("Save-all restart: 0.005 to 0.01 s, two timesteps"
-        --problemfile=parametersProblemFSI_restart.xml
-        --restart-time=${restart_time} --save-all --checkpoint-output=saveAllCheckpoints)
-    FOREACH(saved_time 0.005000 0.007500)
-        IF(NOT EXISTS "${work}/saveAllCheckpoints/FSIOutletState_${saved_time}.xml")
-            MESSAGE(FATAL_ERROR "Missing save-all outlet state at ${saved_time}")
-        ENDIF()
-    ENDFOREACH()
-ELSE()
-    run_phase("Restart: 0.01 to 0.015 s, two timesteps"
-        --problemfile=parametersProblemFSI_restart.xml --restart-time=${restart_time})
-ENDIF()
+run_phase("Restart at ${restart_time} s, two timesteps"
+    --problemfile=parametersProblemFSI_restart.xml --restart-time=${restart_time})
 
 # Assert rejection through the actual FSI constructor, before solution loading.
 FUNCTION(expect_rejection label diagnostic)

@@ -15,8 +15,8 @@ tolerance 1e-6; the flexible GMRES tolerance is configured in `parametersSolverF
 The `problems_tests_restartTests_fsi_3D_arterialSegment_Resistance`, `_Absorbing`, and `_Absorbing_Paper`
 tests use separate working directories and four MPI ranks. Each loads frozen
 references and advances **exactly two timesteps per simulation**, with
-`dt = 0.0025`. Resistance runs once, from `0.005` to `0.01`, while writing
-save-all checkpoints. Each absorbing variant runs once, from `0.01` to `0.015`,
+`dt = 0.0025`. Resistance runs once, from `0.005` to `0.01`.
+Each absorbing variant runs once, from `0.01` to `0.015`,
 after the `0.00625` inlet-ramp endpoint.
 Only `Absorbing Paper` also has a steady/unsteady outlet transition at `0.00625`.
 Its test restores the captured transition area and runs only the unsteady phase.
@@ -59,11 +59,10 @@ four validation-only launches that must reject checkpoint output overwriting its
 input, changed averaging, missing outlet state, and an unknown state version.
 Validation uses the same starting checkpoint as the simulation and performs no
 timestepping. Both absorbing cases use the checkpoint at `0.01`; Resistance uses
-`0.005`. The single Resistance simulation uses `Safe all solution = true`
-with `Checkpointing = false` and writes every solution in `saveAllCheckpoints`.
-The runner requires outlet-state files at `0.005` and `0.0075`, without another
-simulation. Its analytic traction check and field/scalar error bounds are retained. Each
-simulation prints a phase description before the solver output.
+`0.005`. All three restart simulations use `Checkpointing = false` and compare
+their final fields and outlet state against the frozen references. The Resistance
+case also retains its analytic traction check. Each simulation prints a phase
+description before the solver output.
 
 ## Outlet checkpoint contract
 
@@ -112,8 +111,8 @@ cmake \
 ```
 
 This runs each model uninterrupted on four ranks to `0.0175`, with `dt=0.0025`.
-Resistance uses save-all output; the absorbing models save checkpoints at
-`0.005`, `0.01` and `0.015` with their required prior history. The generated model
+All models save checkpoints at `0.005`, `0.01` and `0.015` with their required
+prior history. The generated model
 directories contain field/ALE/derivative/RHS HDF5 files, manifests, scalar outlet
 snapshots and generation notes. Review them before replacing the corresponding
 source reference directories; rebuild to refresh the binary copies. The script
