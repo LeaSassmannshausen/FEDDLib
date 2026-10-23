@@ -9,14 +9,11 @@
 #include <Teuchos_TimeMonitor.hpp>
 #include <Teuchos_XMLParameterListHelpers.hpp>
 #include <Xpetra_DefaultPlatform.hpp>
-#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
-#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -27,26 +24,8 @@ using Teuchos::rcp;
 using DomainType = Domain<default_sc,default_lo,default_go,default_no>;
 using NavierStokesType = NavierStokes<default_sc,default_lo,default_go,default_no>;
 using TimeSolver = DAESolverInTime<default_sc,default_lo,default_go,default_no>;
-using Clock = std::chrono::steady_clock;
 
 namespace {
-
-const std::vector<std::string> operations = {
-    "metadata_prepare", "compatibility_validate", "primary_fields_read",
-    "bdf_history_read", "fields_write", "metadata_write", "checkpoint_write",
-    "initial_solution_load", "paraview_resume", "check_for_export",
-    "check_for_export_and_export", "export", "files_close"
-};
-
-// Solver costs are reported separately from checkpoint feature costs.
-const std::map<std::string, std::string> solverOperations = {
-    {"nonlinear_solve", "FEDD - NonLinearSolver - Solve"},
-    {"nonlinear_residual", "FEDD - TimeProblem - Nonlinear Residual"},
-    {"jacobian_assembly", "FEDD - NonLinearSolver - Jacobian Assembly"},
-    {"combine_systems", "FEDD - TimeProblem - Combine Systems"},
-    {"bdf_history_update", "FEDD - TimeProblem - BDF History Update"},
-    {"bdf_rhs", "FEDD - TimeProblem - BDF RHS"}
-};
 
 void zero2D(double*, double* result, double, const double*)
 {
@@ -111,22 +90,21 @@ private:
  */
 class StackedTiming {
 public:
-    explicit StackedTiming(bool enabled) : previous_(Teuchos::TimeMonitor::getStackedTimer())
+    StackedTiming() : previous_(Teuchos::TimeMonitor::getStackedTimer()),
+                     timer_(rcp(new Teuchos::StackedTimer("BFS restart performance")))
     {
-        if (enabled) timer_ = rcp(new Teuchos::StackedTimer("BFS restart performance"));
         Teuchos::TimeMonitor::setStackedTimer(timer_);
     }
     ~StackedTiming() { Teuchos::TimeMonitor::setStackedTimer(previous_); }
 
     void check() const
     {
-        TEUCHOS_TEST_FOR_EXCEPTION(!timer_.is_null() && Teuchos::TimeMonitor::getStackedTimer() != timer_,
+        TEUCHOS_TEST_FOR_EXCEPTION(Teuchos::TimeMonitor::getStackedTimer() != timer_,
                                    std::runtime_error, "Stacked timing was disabled by a library timer overlap; no valid stacked report can be produced.");
     }
 
     void report(RCP<const Teuchos::Comm<int>> comm, const std::filesystem::path& directory)
     {
-        if (timer_.is_null()) return;
         check();
         timer_->stop("BFS restart performance");
         Teuchos::StackedTimer::OutputOptions options;
@@ -147,156 +125,67 @@ private:
     RCP<Teuchos::StackedTimer> previous_, timer_;
 };
 
-struct Measurement {
-    std::string operation;
-    double seconds;
-    int calls;
-};
-
-using Snapshot = std::map<std::string, std::pair<double, int>>;
-
-Snapshot counters()
-{
-    Snapshot result;
-    for (const auto& operation : operations) {
-        auto timer = Teuchos::TimeMonitor::lookupCounter("FEDDlib: Checkpoint Feature - " + operation);
-        result[operation] = timer.is_null() ? std::make_pair(0., 0)
-            : std::make_pair(timer->totalElapsedTime(), timer->numCalls());
-    }
-    for (const auto& operation : solverOperations) {
-        const RCP<Teuchos::Time> timer = Teuchos::TimeMonitor::lookupCounter(operation.second);
-        result[operation.first] = timer.is_null() ? std::make_pair(0., 0)
-            : std::make_pair(timer->totalElapsedTime(), timer->numCalls());
-    }
-    return result;
-}
-
-/** @brief Time a phase with a synchronized start; reduce across ranks only after it ends. */
+/** @brief Execute a stage inside a stacked timer, synchronizing its boundaries. */
 template<class Operation>
-void measure(const std::string& name, const Teuchos::Comm<int>& comm,
-             std::vector<Measurement>& measurements, Operation operation)
+void measure(const std::string& name, const Teuchos::Comm<int>& comm, Operation operation)
 {
     comm.barrier();
-    double seconds;
     {
         StackedRegion region(name);
-        const auto start = Clock::now();
         operation();
-        seconds = std::chrono::duration<double>(Clock::now() - start).count();
     }
-    measurements.push_back({name, seconds, 1});
     comm.barrier();
 }
 
-struct MeshSize {
-    long long global = 0;
-    long long local = 0;
-};
-
-/** @brief Execute a genuine Navier-Stokes trajectory and collect checkpoint counter deltas.
+/** @brief Execute a Navier-Stokes trajectory with nested stage and library timers.
  * Each phase constructs its own mesh, problem and time solver, so startup costs
  * are reported separately from I/O and continuation. No reference is loaded and
  * no solution-error comparison is performed.
  */
-MeshSize runPhase(ParameterListPtr_Type parameters, RCP<const Teuchos::Comm<int>> comm,
-                  int dim, int subdivisions, int ratio, int length, bool quiet,
-                  std::vector<Measurement>& measurements)
+void runPhase(ParameterListPtr_Type parameters, RCP<const Teuchos::Comm<int>> comm,
+              int dim, int subdivisions, int ratio, int length, bool quiet)
 {
-    const auto before = counters();
-    const auto start = Clock::now();
-    MeshSize size;
-    {
-        QuietOutput silence(quiet);
-        RCP<DomainType> domain;
-        measure("mesh_build", *comm, measurements, [&] {
-            const std::vector<double> origin = dim == 2
-                ? std::vector<double>{-1., -1.} : std::vector<double>{-1., 0., -1.};
-            domain = dim == 2 ? rcp(new DomainType(origin, length + 1., 2., comm))
-                             : rcp(new DomainType(origin, length + 1., 1., 2., comm));
-            domain->buildMesh(2, "BFS", dim, "P1", subdivisions, ratio);
-        });
-        {
-            const auto map = domain->getMapUnique();
-            size.global = static_cast<long long>(map->getGlobalNumElements()) * (dim + 1);
-            size.local = static_cast<long long>(map->getNodeNumElements()) * (dim + 1);
-        }
+    QuietOutput silence(quiet);
+    RCP<DomainType> domain;
+    measure("mesh_build", *comm, [&] {
+        const std::vector<double> origin = dim == 2
+            ? std::vector<double>{-1., -1.} : std::vector<double>{-1., 0., -1.};
+        domain = dim == 2 ? rcp(new DomainType(origin, length + 1., 2., comm))
+                         : rcp(new DomainType(origin, length + 1., 1., 2., comm));
+        domain->buildMesh(2, "BFS", dim, "P1", subdivisions, ratio);
+    });
 
-        auto boundaries = rcp(new BCBuilder<default_sc,default_lo,default_go,default_no>());
-        std::vector<double> inlet = {parameters->sublist("Parameter").get<double>("MaxVelocity")};
-        auto zero = dim == 2 ? zero2D : zero3D;
-        boundaries->addBC(zero, 1, 0, domain, "Dirichlet", dim);
-        boundaries->addBC(zero, 4, 0, domain, "Dirichlet", dim);
-        boundaries->addBC(dim == 2 ? inflow2D : inflow3D, 2, 0, domain, "Dirichlet", dim, inlet);
+    auto boundaries = rcp(new BCBuilder<default_sc,default_lo,default_go,default_no>());
+    std::vector<double> inlet = {parameters->sublist("Parameter").get<double>("MaxVelocity")};
+    auto zero = dim == 2 ? zero2D : zero3D;
+    boundaries->addBC(zero, 1, 0, domain, "Dirichlet", dim);
+    boundaries->addBC(zero, 4, 0, domain, "Dirichlet", dim);
+    boundaries->addBC(dim == 2 ? inflow2D : inflow3D, 2, 0, domain, "Dirichlet", dim, inlet);
 
-        RCP<NavierStokesType> problem = rcp(new NavierStokesType(domain, "P1", domain, "P1", parameters));
-        problem->addBoundaries(boundaries);
-        measure("problem_initialization", *comm, measurements, [&] { problem->initializeProblem(); });
-        measure("spatial_assembly", *comm, measurements, [&] {
-            problem->assemble();
-            problem->setBoundariesRHS();
-        });
-        SmallMatrix<int> timeBlocks(2);
-        timeBlocks[0][0] = timeBlocks[0][1] = 1;
-        RCP<TimeSolver> solver = rcp(new TimeSolver(parameters, comm));
-        measure("time_setup", *comm, measurements, [&] {
-            solver->defineTimeStepping(timeBlocks);
-            solver->setProblem(*problem);
-            solver->setupTimeStepping();
-        });
-        measure("advance", *comm, measurements, [&] { solver->advanceInTime(); });
-        // Preserve destruction order and close files before the next phase reads them.
-        // files_close is nested here; other destruction is the teardown remainder.
-        measure("teardown", *comm, measurements, [&] {
-            solver = Teuchos::null;
-            problem = Teuchos::null;
-            boundaries = Teuchos::null;
-            domain = Teuchos::null;
-        });
-    }
-    measurements.push_back({"total", std::chrono::duration<double>(Clock::now() - start).count(), 1});
-    const auto after = counters();
-    for (const auto& operation : operations)
-        measurements.push_back({operation, after.at(operation).first - before.at(operation).first,
-                               after.at(operation).second - before.at(operation).second});
-    for (const auto& operation : solverOperations)
-        measurements.push_back({operation.first, after.at(operation.first).first - before.at(operation.first).first,
-                               after.at(operation.first).second - before.at(operation.first).second});
-    return size;
-}
-
-/** @brief Write rank-minimum, mean and maximum elapsed seconds as CSV.
- * The maximum represents the critical path for a parallel operation. Core
- * checkpoint counters accumulate all calls in this phase and are inclusive.
- */
-void report(const std::vector<Measurement>& measurements, MeshSize size,
-            const Teuchos::Comm<int>& comm, std::ofstream& csv, int repetition,
-            const std::string& phase, int dim, int ratio, int subdivisions)
-{
-    long long localMin, localMax;
-    Teuchos::reduceAll(comm, Teuchos::REDUCE_MIN, 1, &size.local, &localMin);
-    Teuchos::reduceAll(comm, Teuchos::REDUCE_MAX, 1, &size.local, &localMax);
-    for (const auto& measurement : measurements) {
-        double minimum, maximum, sum;
-        int callsMin, callsMax;
-        Teuchos::reduceAll(comm, Teuchos::REDUCE_MIN, 1, &measurement.seconds, &minimum);
-        Teuchos::reduceAll(comm, Teuchos::REDUCE_MAX, 1, &measurement.seconds, &maximum);
-        Teuchos::reduceAll(comm, Teuchos::REDUCE_SUM, 1, &measurement.seconds, &sum);
-        Teuchos::reduceAll(comm, Teuchos::REDUCE_MIN, 1, &measurement.calls, &callsMin);
-        Teuchos::reduceAll(comm, Teuchos::REDUCE_MAX, 1, &measurement.calls, &callsMax);
-        if (!callsMax) continue;
-        checkpoint::onRoot(comm, [&] {
-            std::ostringstream row;
-            row << std::setprecision(12) << repetition << ',' << phase << ',' << measurement.operation
-                << ',' << dim << ',' << comm.getSize() << ',' << ratio << ',' << subdivisions
-                << ',' << size.global << ',' << localMin << ',' << localMax
-                << ',' << callsMin << ',' << callsMax << ',' << minimum
-                << ',' << sum / comm.getSize() << ',' << maximum << '\n';
-            std::cout << row.str();
-            csv << row.str();
-            csv.flush();
-            if (!csv) throw std::runtime_error("Cannot write timings.csv.");
-        });
-    }
+    RCP<NavierStokesType> problem = rcp(new NavierStokesType(domain, "P1", domain, "P1", parameters));
+    problem->addBoundaries(boundaries);
+    measure("problem_initialization", *comm, [&] { problem->initializeProblem(); });
+    measure("spatial_assembly", *comm, [&] {
+        problem->assemble();
+        problem->setBoundariesRHS();
+    });
+    SmallMatrix<int> timeBlocks(2);
+    timeBlocks[0][0] = timeBlocks[0][1] = 1;
+    RCP<TimeSolver> solver = rcp(new TimeSolver(parameters, comm));
+    measure("time_setup", *comm, [&] {
+        solver->defineTimeStepping(timeBlocks);
+        solver->setProblem(*problem);
+        solver->setupTimeStepping();
+    });
+    measure("advance", *comm, [&] { solver->advanceInTime(); });
+    // Preserve destruction order and close files before the next phase reads them.
+    // files_close is nested here; other destruction is the teardown remainder.
+    measure("teardown", *comm, [&] {
+        solver = Teuchos::null;
+        problem = Teuchos::null;
+        boundaries = Teuchos::null;
+        domain = Teuchos::null;
+    });
 }
 
 } // namespace
@@ -311,7 +200,7 @@ int main(int argc, char* argv[])
     std::string solverFile = "parametersSolver.xml", outputDirectory = "performance_output";
     std::string benchmarkFile= "parametersBenchmark.xml", aspect = "all";
     int dim = 2, ratio = 3, length = 4, steps = 4, continuationSteps = 2, repetitions = 1;
-    bool quiet = true, baseline = true, resumeOutput = true, initialSolution = true, stackedTimers = true;
+    bool quiet = true, baseline = true, resumeOutput = true, initialSolution = true;
     Teuchos::CommandLineProcessor commandLine;
     commandLine.setOption("benchmarkfile", &benchmarkFile, "XML benchmark controls; explicit command-line options override its values.");
     commandLine.setOption("aspect", &aspect, "all, baseline, checkpoint_write, restart, initial_solution or resume_output.");
@@ -324,10 +213,8 @@ int main(int argc, char* argv[])
     commandLine.setOption("steps", &steps, "Producer timesteps; its final accepted state is checkpointed.");
     commandLine.setOption("restart-steps", &continuationSteps, "Timesteps in each continuation / initial-solution phase.");
     commandLine.setOption("repetitions", &repetitions, "Independent samples; each keeps its own output directory.");
-    commandLine.setOption("output-directory", &outputDirectory, "New directory for checkpoints, exports and timings.csv.");
+    commandLine.setOption("output-directory", &outputDirectory, "New directory for checkpoints, exports and stacked_timings.txt.");
     commandLine.setOption("quiet", "verbose", &quiet, "Only print timing output (default), or also library progress.");
-    commandLine.setOption("stacked-timers", "no-stacked-timers", &stackedTimers,
-                          "Also print/save a hierarchical MPI timer report (default); disable for CSV-only output.");
     commandLine.setOption("baseline", "no-baseline", &baseline, "Also measure a fresh run without checkpoint/output I/O.");
     commandLine.setOption("resume-output", "no-resume-output", &resumeOutput, "Also measure continuation of ParaView/text output.");
     commandLine.setOption("initial-solution", "no-initial-solution", &initialSolution, "Also measure loading primary fields at time zero.");
@@ -347,7 +234,6 @@ int main(int argc, char* argv[])
             repetitions = controls->get("Repetitions", repetitions);
             aspect = controls->get("Aspect", aspect);
             quiet = controls->get("Quiet", quiet);
-            stackedTimers = controls->get("Stacked timers", stackedTimers);
             outputDirectory = controls->get("Output directory", outputDirectory);
             // Input references are relative to the benchmark XML; output remains
             // relative to the launch directory (typically shared cluster scratch).
@@ -402,7 +288,7 @@ int main(int argc, char* argv[])
         auto& benchmark = base->sublist("Benchmark");
         benchmark.set("Dimension", dim).set("H/h", ratio).set("BFS length", length)
             .set("Steps", steps).set("Restart steps", continuationSteps).set("Repetitions", repetitions)
-            .set("Aspect", aspect).set("Quiet", quiet).set("Stacked timers", stackedTimers)
+            .set("Aspect", aspect).set("Quiet", quiet)
             .set("MPI ranks", comm->getSize()).set("Subdomains per unit", subdivisions)
             .set("Output directory", std::filesystem::absolute(outputDirectory).string())
             .set("Problem file", std::filesystem::absolute(problemFile).string())
@@ -419,16 +305,10 @@ int main(int argc, char* argv[])
             std::filesystem::create_directories(root);
         });
         comm->barrier();
-        std::ofstream csv;
         checkpoint::onRoot(*comm, [&] {
-            csv.open(root / "timings.csv");
-            if (!csv) throw std::runtime_error("Cannot create timings.csv.");
-            const std::string header = "repetition,phase,operation,dimension,ranks,H_over_h,subdomains_per_unit,global_dofs,local_dofs_min,local_dofs_max,calls_min,calls_max,seconds_min,seconds_mean,seconds_max\n";
-            std::cout << header;
-            csv << header;
             Teuchos::writeParameterListToXmlFile(*base, (root / "parametersEffective.xml").string());
         });
-        StackedTiming stackedTiming(stackedTimers);
+        StackedTiming stackedTiming;
         const double checkpointTime = steps * dt;
         for (int repeat = 1; repeat <= repetitions; ++repeat) {
             StackedRegion repetition("repeat_" + std::to_string(repeat));
@@ -455,17 +335,11 @@ int main(int argc, char* argv[])
                 checkpoint::onRoot(*comm, [&] {
                     Teuchos::writeParameterListToXmlFile(*parameters, (directory / (phase + ".xml")).string());
                 });
-                std::vector<Measurement> measurements;
-                MeshSize size;
                 {
                     StackedRegion phaseRegion(phase);
-                    size = runPhase(parameters, comm, dim, subdivisions, ratio, length, quiet, measurements);
+                    runPhase(parameters, comm, dim, subdivisions, ratio, length, quiet);
                 }
                 stackedTiming.check();
-                {
-                    StackedRegion reportRegion("csv_report");
-                    report(measurements, size, *comm, csv, repeat, phase, dim, ratio, subdivisions);
-                }
                 std::filesystem::current_path(originalDirectory);
             };
             if (baseline) execute("baseline", false, false, false, false);

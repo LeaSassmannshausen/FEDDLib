@@ -15,7 +15,8 @@ ctest --test-dir build -R '^problems_tests_restartTests_navierStokes_bfs_perform
 
 Two short cases use nine MPI processes, H/h=3, four producer steps and two
 continuation steps. CTest recreates only each case's dedicated working directory.
-Results are in that directory's `results/timings.csv` and `results/stacked_timings.txt`. The `Performance` label
+The stacked timer report is printed and saved as `results/stacked_timings.txt`.
+The `Performance` label
 allows selection with `ctest -L Performance` or exclusion with `ctest -LE Performance`.
 A third nine-process case verifies the parameter-file interface: two 2D restart
 samples with H/h=5, launching from outside the input-file directory.
@@ -52,11 +53,11 @@ relative to the launch directory, or can be absolute shared-filesystem paths.
 | `Restart steps` | Continuation length, or new steps from time zero for initial fields |
 | `Repetitions` | Independent samples with separate files and timer branches |
 | `Output directory` | New destination for timing reports, effective inputs and checkpoints |
-| `Quiet`, `Stacked timers` | Control solver progress and the additional hierarchical report |
+| `Quiet` | Suppress ordinary solver progress, leaving the stacked timer report |
 
 | `Aspect` value | Phases executed | Timings to inspect |
 |---|---|---|
-| `baseline` | `baseline` only | `spatial_assembly`, `advance`, `total` without checkpoint/export I/O |
+| `baseline` | `baseline` only | `spatial_assembly`, `advance` and the enclosing `baseline` timer without checkpoint/export I/O |
 | `checkpoint_write` | `checkpoint_run` only, without visualization/text exports | `checkpoint_write`, `fields_write`, `metadata_write` |
 | `restart` | `checkpoint_run`, `restart` | `compatibility_validate`, `primary_fields_read`, `bdf_history_read` |
 | `initial_solution` | `checkpoint_run`, `initial_solution` | `initial_solution_load`, `primary_fields_read`; no history restoration |
@@ -64,8 +65,8 @@ relative to the launch directory, or can be absolute shared-filesystem paths.
 | `all` | Existing complete benchmark suite | All stages and operations |
 
 Prerequisite producer time is reported separately from the selected aspect.
-For example, when assessing restart costs, read the `restart` rows in the CSV
-or the `restart` branch in the stacked report. No solutions are compared.
+For example, when assessing restart costs, read the `restart` branch in the
+stacked report. No solutions are compared.
 You cannot infer isolated restart costs from the complete invocation time,
 because that also includes the producer, solves, setup and timing-report I/O.
 
@@ -130,16 +131,16 @@ The driver sets N=k and the mesh spacing h=1/(k × H/h), retaining the same numb
 of elements per rank (2 × (H/h)^2 triangles or 6 × (H/h)^3 tetrahedra). The physical
 BFS stays fixed as it is refined. This is computational weak scaling; changing
 h can still affect solver iterations, which is why solve and I/O times are separate.
-Owned DOFs differ slightly at boundaries; CSV includes their rank minimum/maximum.
+Owned DOFs differ slightly at boundaries.
 
 The default preconditioner is a one-level FROSch configuration for short local
 runs. For large jobs, select an appropriate scalable preconditioner with
 `--precfile`; keep it identical across the scaling series. Use a consistent
 optimized build, MPI placement, thread count and filesystem for measurements.
 
-## Phases and timing rows
+## Phases and stacked timers
 
-The default invocation executes:
+`--aspect=all` executes:
 
 1. `baseline`: fresh solve with checkpoint and visualization/text output disabled.
 2. `checkpoint_run`: fresh solve, writes the final accepted checkpoint with BDF2
@@ -156,8 +157,10 @@ respective optional phases. With `--no-resume-output`, the producer also disable
 visualization/text output, providing an isolated checkpoint-write measurement.
 Recovery/failure injection and FSI/Newmark are outside this Navier-Stokes benchmark.
 
-Each phase reports `mesh_build`, `problem_initialization`, `spatial_assembly`,
-`time_setup`, `advance`, `teardown` and `total`, plus the operations actually executed:
+Each phase contains `mesh_build`, `problem_initialization`, `spatial_assembly`,
+`time_setup`, `advance` and `teardown` timers. The enclosing phase timer measures
+the complete trajectory, including setup and teardown. Checkpoint operations
+appear beneath the stages that execute them:
 
 | Operation | Timed work |
 |---|---|
@@ -175,22 +178,22 @@ Each phase reports `mesh_build`, `problem_initialization`, `spatial_assembly`,
 | `initial_solution_load` | Initial-field validation and loading, without time/history restoration |
 | `paraview_resume` | Existing XMF/HDF5 validation, retained-frame selection and reopening |
 
-Solver counters also appear in the CSV and stacked report:
+Solver counters also appear in the stacked report:
 
-| CSV operation | Stacked timer | Timed work |
-|---|---|---|
-| `nonlinear_solve` | `FEDD - NonLinearSolver - Solve` | Entire transient nonlinear solve, including assembly, linear solves and convergence checks |
-| `nonlinear_residual` | `FEDD - TimeProblem - Nonlinear Residual` | Spatial reassembly, transient mass term and residual boundary conditions |
-| `jacobian_assembly` | `FEDD - NonLinearSolver - Jacobian Assembly` | Newton matrix assembly and combination with the transient mass matrix |
-| `combine_systems` | `FEDD - TimeProblem - Combine Systems` | Allocation, addition and completion of the combined spatial/mass matrix |
-| `bdf_history_update` | `FEDD - TimeProblem - BDF History Update` | BDF history allocation/copies and any restart-history loading or legacy export performed by that call |
-| `bdf_rhs` | `FEDD - TimeProblem - BDF RHS` | History mass-matrix products and accumulation of the transient right-hand side |
+| Stacked timer | Timed work |
+|---|---|
+| `FEDD - NonLinearSolver - Solve` | Entire transient nonlinear solve, including assembly, linear solves and convergence checks |
+| `FEDD - TimeProblem - Nonlinear Residual` | Spatial reassembly, transient mass term and residual boundary conditions |
+| `FEDD - NonLinearSolver - Jacobian Assembly` | Newton matrix assembly and combination with the transient mass matrix |
+| `FEDD - TimeProblem - Combine Systems` | Allocation, addition and completion of the combined spatial/mass matrix |
+| `FEDD - TimeProblem - BDF History Update` | BDF history allocation/copies and any restart-history loading or legacy export performed by that call |
+| `FEDD - TimeProblem - BDF RHS` | History mass-matrix products and accumulation of the transient right-hand side |
 
 These solver timers are ordinary Teuchos counters and also run outside the
 benchmark. The FSI-specific history mass products use
 `FEDD - TimeProblem - BDF RHS (FSI)`. Timers add no MPI barriers.
-`combine_systems` is included in `jacobian_assembly` during Newton solves;
-both residual and Jacobian work are included in `nonlinear_solve`.
+`Combine Systems` is included in `Jacobian Assembly` during Newton solves;
+both residual and Jacobian work are included in `Solve`.
 
 The production hooks are enabled by `General/Checkpoint timings=true` and are
 disabled by default elsewhere. They use Teuchos counters without adding MPI
@@ -215,18 +218,13 @@ contains other destruction. For a combined write-and-close cost, sum
 `files_close` and `checkpoint_write` locally on each rank before taking the MPI
 maximum. The rest of `teardown` is not a checkpoint measurement.
 
-Standard output contains CSV timing rows followed by a stacked timer report.
-The CSV is also saved separately as `timings.csv`; `--verbose` adds ordinary
-library progress output. Rows contain rank-minimum, mean and
-**maximum wall time in seconds**, call counts, global/owned DOF counts, MPI size
-and mesh settings. For scaling plots, use `seconds_max` as the parallel critical
-path; divide by the reported call count when a per-call average is desired.
-Each operation's row sums its calls within that phase. **Nested counters are
-inclusive: do not add child times to their parent or to the phase total.**
-
-Stacked timing is enabled by default (`--stacked-timers`) and saved as
-`stacked_timings.txt` beside the CSV. `--no-stacked-timers` disables the stack
-and keeps CSV-only output. The hierarchy separates each repetition and phase:
+The stacked timer report is always printed and saved as `stacked_timings.txt`.
+`--verbose` also prints ordinary library progress. The report contains MPI mean,
+minimum and maximum wall times in seconds, call counts and fractions of parent
+time. For scaling plots, use the `max` value as the parallel critical path;
+divide by the call count when a per-call average is desired. **Nested counters
+are inclusive: do not add child times to their parent or to the phase total.**
+The hierarchy separates each repetition and phase:
 
 ```text
 BFS restart performance
@@ -261,14 +259,14 @@ under the stages that execute them. This requires Trilinos's
 The stacked report provides MPI mean,
 minimum/maximum times, the ranks attaining those extrema, call counts and
 fractions of parent time. `Remainder` denotes time outside the measured children;
-the root/repetition regions include bookkeeping and CSV reporting (`csv_report`).
+the root/repetition regions include bookkeeping between the measured phases.
 These parent fractions describe inclusive timings, not extra costs to add.
-Stages use the same synchronization policy as the CSV; attaching the stacked
-timer adds no barriers to production checkpoint operations. A detected library
-timer overlap fails the run rather than publishing an incomplete stack.
+Attaching the stacked timer adds no barriers to production checkpoint operations.
+A detected library timer overlap fails the run rather than publishing an
+incomplete stack.
 
-Phase timers synchronize their starts; operation timers do not. `total` includes
-setup, phase synchronization and teardown, but excludes CSV reporting.
+Stage timers synchronize their boundaries; production operation timers do not.
+The enclosing phase timer includes setup, stage synchronization and teardown.
 Measurements use the actual filesystem with no cache flushing: repetitions and
 later reads may benefit from filesystem caches. Inspect repetitions separately
 and report warm/cold-cache conditions when publishing results.

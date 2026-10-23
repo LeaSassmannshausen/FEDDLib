@@ -41,8 +41,7 @@
     <Parameter name="Output directory" type="string" value="performance_restart"/>
     <!-- True suppresses ordinary solver progress, leaving timing output. -->
     <Parameter name="Quiet" type="bool" value="true"/>
-    <!-- True prints/saves stacked_timings.txt in addition to timings.csv. -->
-    <Parameter name="Stacked timers" type="bool" value="true"/>
+    <!-- Timings are always printed and saved to stacked_timings.txt. -->
 
     <!-- Input paths are relative to THIS file's directory, independent of the
          launch directory. These separate XML files control physics/dt and solvers. -->
