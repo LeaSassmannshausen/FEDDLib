@@ -48,9 +48,13 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
   // need a linear distribution to use hyperslabs
   MultiVectorPtr_Type linearX;
 
-  MapPtr_Type linearMap = Teuchos::rcp(new Map_Type(X->getMap()->getGlobalNumElements(),X->getMap()->getNodeNumElements(), X->getMap()->getIndexBase(), X->getMap()->getComm()));
-  linearX = Teuchos::rcp(new MultiVector_Type(linearMap, X->getNumVectors()));
-  linearX->importFromVector(X);
+  {
+    // Include map/buffer allocation and communication into the contiguous layout.
+    checkpoint::Timer timer(parameters_, "hdf5_redistribution");
+    MapPtr_Type linearMap = Teuchos::rcp(new Map_Type(X->getMap()->getGlobalNumElements(),X->getMap()->getNodeNumElements(), X->getMap()->getIndexBase(), X->getMap()->getComm()));
+    linearX = Teuchos::rcp(new MultiVector_Type(linearMap, X->getNumVectors()));
+    linearX->importFromVector(X);
+  }
 
 
   int NumVectors = X->getNumVectors();
@@ -65,17 +69,21 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
   hsize_t q_dimsf[] = {static_cast<hsize_t>(GlobalLength), static_cast<hsize_t>(GlobalLength)};
   q_dimsf[indexT] = NumVectors;
 
-  filespace_id = H5Screate_simple(2, q_dimsf, NULL);
+  int localWriteError = 0;
+  {
+    checkpoint::Timer timer(parameters_, "hdf5_dataset_create");
+    filespace_id = H5Screate_simple(2, q_dimsf, NULL);
 
-  if (!isContained(GroupName))
-    createGroup(GroupName);
+    if (!isContained(GroupName))
+      createGroup(GroupName);
 
-  group_id = H5Gopen(file_id_, GroupName.c_str(), H5P_DEFAULT);
+    group_id = H5Gopen(file_id_, GroupName.c_str(), H5P_DEFAULT);
 
-  // Create the dataset with default properties and close filespace_id.
-  dset_id = H5Dcreate(group_id, "Values", H5T_NATIVE_DOUBLE, filespace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  int localWriteError = filespace_id < 0 || group_id < 0 || dset_id < 0;
-  H5Sclose(filespace_id);
+    // Create the dataset with default properties and close filespace_id.
+    dset_id = H5Dcreate(group_id, "Values", H5T_NATIVE_DOUBLE, filespace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    localWriteError = filespace_id < 0 || group_id < 0 || dset_id < 0;
+    H5Sclose(filespace_id);
+  }
 
   // Create property list for collective dataset write.
   plist_id_ = H5Pcreate(H5P_DATASET_XFER);
@@ -144,10 +152,14 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
     //           << " | plist_id = " << plist_id_
     //           << std::endl;
 
-    // Perform the write
-    herr_t writeStatus = H5Dwrite(
+    // Measure the vector-data transfer separately from dataset preparation.
+    herr_t writeStatus;
+    {
+      checkpoint::Timer timer(parameters_, "hdf5_dataset_write");
+      writeStatus = H5Dwrite(
         dset_id, H5T_NATIVE_DOUBLE, memspace_id, filespace_id,
         plist_id_, linearX->getData(n).get());
+    }
 
     if (writeStatus < 0) {
       localWriteError = 1;
@@ -181,12 +193,20 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
   // Close local memory dataspace
   H5Sclose(memspace_id);
   
-  write(GroupName, "GlobalLength", GlobalLength);
-  write(GroupName, "NumVectors", NumVectors);
-  write(GroupName, "__type__", "Tpetra_MultiVector");
+  {
+    // These HDF5 records describe a vector; the checkpoint manifest is timed elsewhere.
+    checkpoint::Timer timer(parameters_, "hdf5_vector_metadata_write");
+    write(GroupName, "GlobalLength", GlobalLength);
+    write(GroupName, "NumVectors", NumVectors);
+    write(GroupName, "__type__", "Tpetra_MultiVector");
+  }
   // Do not let checkpoint publication treat a logged vector-write error as
   // success. All healthy ranks finish the write sequence before failing together.
-  if (H5Fflush(file_id_, H5F_SCOPE_GLOBAL) < 0) localWriteError = 1;
+  {
+    // Keep this distinct from the subsequent explicit exporter flush.
+    checkpoint::Timer timer(parameters_, "hdf5_flush_after_write");
+    if (H5Fflush(file_id_, H5F_SCOPE_GLOBAL) < 0) localWriteError = 1;
+  }
   int globalWriteError = 0;
   Teuchos::reduceAll(*comm_, Teuchos::REDUCE_MAX, 1, &localWriteError, &globalWriteError);
   TEUCHOS_TEST_FOR_EXCEPTION(globalWriteError != 0, std::runtime_error,
@@ -360,6 +380,7 @@ void HDF5Toolbox<SC, LO, GO, NO>::create(const std::string FileName)
 {
   TEUCHOS_TEST_FOR_EXCEPTION(isOpen(),std::runtime_error,"HDF5Toolbox:: an HDF5 is already open, first close the current one - using method Close(), then open/create a new one");
 
+  checkpoint::Timer timer(parameters_, "hdf5_file_create");
   FileName_ = FileName;
 
   // Set up file access property list with parallel I/O access

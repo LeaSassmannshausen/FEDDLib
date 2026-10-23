@@ -25,6 +25,10 @@ FOREACH(region "BFS restart performance" repeat_1 baseline checkpoint_run restar
         "FEDDlib: Checkpoint Feature - files_close"
         "FEDDlib: Checkpoint Feature - checkpoint_write" "FEDDlib: Checkpoint Feature - compatibility_validate"
         "FEDDlib: Checkpoint Feature - primary_fields_read" "FEDDlib: Checkpoint Feature - fields_write"
+        "FEDDlib: Checkpoint Feature - hdf5_redistribution" "FEDDlib: Checkpoint Feature - hdf5_file_create"
+        "FEDDlib: Checkpoint Feature - hdf5_dataset_create" "FEDDlib: Checkpoint Feature - hdf5_dataset_write"
+        "FEDDlib: Checkpoint Feature - hdf5_vector_metadata_write"
+        "FEDDlib: Checkpoint Feature - hdf5_flush_after_write" "FEDDlib: Checkpoint Feature - hdf5_flush:"
         "FEDDlib: Checkpoint Feature - metadata_write"
         "FEDDlib: Checkpoint Feature - bdf_history_read" "FEDDlib: Checkpoint Feature - initial_solution_load"
         "FEDDlib: Checkpoint Feature - paraview_resume" "FEDDlib: Checkpoint Feature - check_for_export" "FEDDlib: Checkpoint Feature - export")

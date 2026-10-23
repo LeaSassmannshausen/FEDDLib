@@ -41,13 +41,16 @@ class HDF5Toolbox{
         typedef Teuchos::RCP<Map_Type> MapPtr_Type;
         typedef Teuchos::RCP<const Map_Type> MapConstPtr_Type;
 
-        /// @param parameters Optional checkpoint timing settings, retained until file closure.
+        /// @param parameters Optional checkpoint timing settings for writes, creation, flush and closure.
         HDF5Toolbox(CommConstPtr_Type Comm,
                     Teuchos::RCP<Teuchos::ParameterList> parameters = Teuchos::null);
 
         /// @brief Write/export a vector X to the HDF5 file under the group name GroupName
         /// @param GroupName 
         /// @param X 
+        /// @details With General/Checkpoint timings enabled, separate counters measure
+        /// redistribution, dataset creation, vector transfer, vector-property records
+        /// and the final flush. File creation and explicit flush calls have their own counters.
         void write(const std::string &GroupName, const MultiVectorConstPtr_Type X, bool writeTranspose = false);
 
         bool isContained(std::string Name, std::string GroupName = "");
@@ -125,6 +128,8 @@ class HDF5Toolbox{
         //! Flush the content to the file
         void flush()
         {
+            // Explicit exporter flush; the flush inside write() has a separate timer.
+            checkpoint::Timer timer(parameters_, "hdf5_flush");
             H5Fflush(file_id_, H5F_SCOPE_GLOBAL);
         }
 

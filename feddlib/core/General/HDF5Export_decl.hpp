@@ -47,7 +47,7 @@ public:
     /// @brief Constructor for HDF5 Exporter
     /// @param writeMap Map for writing file. Parallel distribution for of the exported multivector. 
     /// @param outputFilename Name for output file
-    /// @param parameters Optional settings for timing checkpoint file closure.
+    /// @param parameters Optional checkpoint timing settings for HDF5 creation, writes, flush and closure.
     HDF5Export(MapConstPtr_Type writeMap, std::string outputFilename,
                Teuchos::RCP<Teuchos::ParameterList> parameters = Teuchos::null);
 

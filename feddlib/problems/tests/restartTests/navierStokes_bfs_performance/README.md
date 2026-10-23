@@ -169,6 +169,13 @@ appear beneath the stages that execute them:
 | `primary_fields_read` | Collective HDF5 velocity/pressure import and installation |
 | `bdf_history_read` | Collective HDF5 reads and allocation of BDF solution history |
 | `fields_write` | Collective HDF5 field writes, including exporter creation on the first write |
+| `hdf5_redistribution` | Contiguous map and vector allocation, plus import from the solution's distribution |
+| `hdf5_file_create` | Parallel file-access setup and collective HDF5 file creation; occurs on the first write to each file |
+| `hdf5_dataset_create` | Time-group lookup/creation, file dataspace creation and creation of the vector's `Values` dataset |
+| `hdf5_dataset_write` | The vector-data `H5Dwrite` call, once per multivector column; excludes setup, vector-property records and explicit flushing |
+| `hdf5_vector_metadata_write` | HDF5 `GlobalLength`, `NumVectors` and `__type__` records; separate from the checkpoint manifest |
+| `hdf5_flush_after_write` | The global file flush at the end of each vector write |
+| `hdf5_flush` | The additional explicit file flush requested by the exporter after each vector write |
 | `metadata_write` | Checkpoint manifest serialization/publication |
 | `checkpoint_write` | Accepted-state checkpoint write, including history and metadata; file closure is measured separately |
 | `files_close` | HDF5 checkpoint file closure, including closure during exporter destruction; one call per file |
@@ -210,6 +217,13 @@ snapshot capture when enabled; that capture is outside the decision/write region
 appear in stacked reports when those paths are exercised, rather than in this
 standalone Navier-Stokes run. `fields_write` counts one call per accepted-step
 state, or per legacy field/history batch, so compare call counts accordingly.
+The `hdf5_*` write timers are children of `fields_write`. In a fresh BDF2
+Navier-Stokes checkpoint, its two states each contain velocity and pressure:
+`fields_write` therefore has two calls, `hdf5_file_create` has two calls, and
+each remaining HDF5 write timer has four calls (with one column per field).
+The two flush counters distinguish the existing flush calls; enabling timers
+does not change the write/flush sequence. Dataset preparation/cleanup and
+collective error checking outside these regions remain in the parent's remainder.
 `files_close` uses the same optional checkpoint timing setting and measures the
 actual HDF5 close, whether requested explicitly or triggered by destruction.
 The benchmark's `teardown` stage destroys the solver, problem, boundary data and
@@ -240,6 +254,13 @@ BFS restart performance
         FEDDlib: Checkpoint Feature - checkpoint_write
           FEDDlib: Checkpoint Feature - export
             FEDDlib: Checkpoint Feature - fields_write
+              FEDDlib: Checkpoint Feature - hdf5_file_create
+              FEDDlib: Checkpoint Feature - hdf5_redistribution
+              FEDDlib: Checkpoint Feature - hdf5_dataset_create
+              FEDDlib: Checkpoint Feature - hdf5_dataset_write
+              FEDDlib: Checkpoint Feature - hdf5_vector_metadata_write
+              FEDDlib: Checkpoint Feature - hdf5_flush_after_write
+              FEDDlib: Checkpoint Feature - hdf5_flush
           FEDDlib: Checkpoint Feature - metadata_write
       teardown
         FEDDlib: Checkpoint Feature - files_close
