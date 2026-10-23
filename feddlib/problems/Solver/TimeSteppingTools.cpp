@@ -55,7 +55,8 @@ verbose_(false),
 // exporterTxtDt_(),
 // exporterTxtError_(),
 beta_(0.25),
-gamma_(0.5)
+gamma_(0.5),
+restart_(false)
 {
 
 }
@@ -93,7 +94,8 @@ verbose_(comm->getRank() == 0),
 // exporterTxtDt_(),
 // exporterTxtError_(),
 beta_(0.25),
-gamma_(0.5)
+gamma_(0.5),
+restart_(false)
 {
     setParameter();
 }
@@ -107,58 +109,33 @@ void TimeSteppingTools::setParameter(){
     beta_ = parameterList_->get("beta",0.25);
     gamma_ = parameterList_->get("gamma",0.5);
 
-    // if (!parameterList_->get("Class","Singlestep").compare("Singlestep")) {
-    //     butcherTableNmb_ = parameterList_->get("Butcher table",0);
-    //     if ( !parameterList_->get("Timestepping type","non-adaptive").compare("adaptive") ) {
-    //         tsType_ = ADAPTIVE;
-    //         setupTxtExporter();
-    //     }
-    //     else{
-    //         tsType_ = NON_ADAPTIVE;
-    //     }
-    //     /* adaptive variables*/
-    //     rho_	= parameterList_->get("Safety factor",1.);
-    //     tolAdaptive_ = parameterList_->get("Adaptive tolerance",0.01);
-    //     dtmin_	= parameterList_->get("dtmin",0.001);
-    //     dtmax_	= parameterList_->get("dtmax",0.1);
-    //     if (parameterList_->get("Adaptive error",0)==0) {
-    //         adaptiveError_ = EUCLIDIAN;
-    //     }
-    //     else if(parameterList_->get("Adaptive error",0)==1){
-    //         adaptiveError_ = L2;
-    //     }
-
-    //     if (parameterList_->get("Adaptive calculation",0)==0) {
-    //         adaptiveCalculation_ = 0;
-    //     }
-    //     else if(parameterList_->get("Adaptive calculation",0)==1){
-    //         adaptiveCalculation_ = 1;
-    //     }
-
-
-    //     setTableInformationRK();
-
-    // }
+    BDFNmb_ = 0;
+    BDFInformation_ = Teuchos::null;
     if(!parameterList_->get("Class","Multistep").compare("Multistep")){
-//         tsType_ = NON_ADAPTIVE;
         BDFNmb_ = parameterList_->get("BDF",1);
-        setInformationBDF();
     }
 
-    // Updating time if restart occurs.
+    // Start a new clock or wait for the validated checkpoint clock. In particular,
+    // the new input dt cannot reconstruct history from a nonuniform trajectory.
     restart_ = this->parameterList_->get("Restart", false);
-    double timeStep = this->parameterList_->get("Time step", 0.0);
-    if(restart_)
-        t_ = timeStep;
+    t_ = restart_ ? parameterList_->get("Time step", 0.0) : 0.;
+    step_ = 0;
+    restartClockRestored_ = false;
+    historyTimes_.clear();
+    parameterList_->remove("_Checkpoint time state", false);
 
-    historyTimes_ = {t_, t_ - dt_prev_, t_ - 2. * dt_prev_};
+    // Determine time step based on restart and time stepping intervals.
     prepareStep();
 
 }
 
+// Determine time step based on restart and time stepping intervals. 
 void TimeSteppingTools::prepareStep()
 {
     if (restart_ && !restartClockRestored_ && parameterList_->isSublist("_Restart time state")) {
+        // Restore actual timestamps, independent of the upcoming timestep schedule.
+        // Checkpoint validation also supplies this clock for uniform legacy files;
+        // only that compatibility path may reconstruct history from a fixed dt.
         const auto& saved = parameterList_->sublist("_Restart time state");
         dt_prev_ = saved.get<double>("dt_prev");
         step_ = saved.get<long long>("Step number");
@@ -167,34 +144,62 @@ void TimeSteppingTools::prepareStep()
             historyTimes_.push_back(saved.sublist("History times").get<double>(std::to_string(i)));
         restartClockRestored_ = true;
     }
+
     dt_ = parameterList_->get("dt", 0.01);
     auto& intervals = parameterList_->sublist("Timestepping Intervalls");
     const int count = intervals.get("Number of Segments", 0);
     double nextBoundary = tEnd_;
     double lastStart = -1.;
+
     for (int i = 1; i <= count; ++i) {
         const auto& interval = intervals.sublist(std::to_string(i));
         const double start = interval.get<double>("Start Time");
         const double increment = interval.get<double>("dt");
+
         if (!std::isfinite(start) || start < 0. || start <= lastStart ||
             !std::isfinite(increment) || increment <= 0.)
             throw std::logic_error("Timestepping intervals require increasing nonnegative start times and positive dt");
         lastStart = start;
-        if (start <= t_ + timeTolerance(tEnd_)) dt_ = increment;
-        else nextBoundary = std::min(nextBoundary, start);
+
+        if (start <= t_ + timeTolerance(tEnd_)) 
+            dt_ = increment;
+        else 
+            nextBoundary = std::min(nextBoundary, start);
     }
+
     if (!std::isfinite(dt_) || dt_ <= 0. || !std::isfinite(dt_prev_) || dt_prev_ <= 0.)
         throw std::logic_error("Timesteps must be finite and positive");
-    if (nextBoundary - t_ > timeTolerance(tEnd_)) dt_ = std::min(dt_, nextBoundary - t_);
-    if (BDFNmb_ > 0) setInformationBDF();
+
+    if (nextBoundary - t_ > timeTolerance(tEnd_)) 
+        dt_ = std::min(dt_, nextBoundary - t_);
+
+    if (!restart_ && step_ == 0) {
+        // Only t=0 exists at startup. Negative placeholders are never restored as
+        // solution history and are replaced by actual accepted times as we advance.
+        // Use the first selected increment, including an interval starting at zero
+        // or a first step shortened to an interval/final boundary.
+        dt_prev_ = dt_;
+        historyTimes_ = {0., -dt_, -2. * dt_};
+    }
+
+    if (BDFNmb_ > 0 && (!restart_ || restartClockRestored_))
+        setInformationBDF();
+    
     publishClock();
 }
 
 void TimeSteppingTools::publishClock()
 {
+    // Some problem constructors create their clock before checkpoint validation.
+    // Keep it pending instead of publishing invented history for the restart time.
+    if (restart_ && !restartClockRestored_)
+        return;
+
     auto& state = parameterList_->sublist("_Checkpoint time state");
     state.set("Physical time", t_).set("dt", dt_).set("dt_prev", dt_prev_).set("Step number", step_);
-    for (int i = 0; i < 3; ++i) state.sublist("History times").set(std::to_string(i), historyTimes_.at(i));
+    
+    for (int i = 0; i < 3; ++i) 
+        state.sublist("History times").set(std::to_string(i), historyTimes_.at(i));
 }
 
 double TimeSteppingTools::currentTime(){
@@ -218,6 +223,8 @@ double TimeSteppingTools::get_dt_prev(){
 }
 
 void TimeSteppingTools::advanceTime(bool printInfo){
+    if (restart_ && !restartClockRestored_)
+        throw std::logic_error("Restore the validated restart time state with prepareStep() before advancing time");
 
     // if (tsType_ == ADAPTIVE) {
     //     exporterTxtTime_->exportData(t_);
@@ -252,9 +259,6 @@ void TimeSteppingTools::printInfo(){
         std::cout << " -------- Time step " << currentTime() << std::endl;
         std::cout << "        - dt     = " << get_dt() << std::endl;
         std::cout << "        - dt_prev= " << get_dt_prev() <<  std::endl;
-        // std::cout << "        - r_m = " << error_ << "  r_m_prev_ = " << error_prev_ << std::endl;
-//        std::cout << "        - rho*tm^2/tm_1 = " <<rho * dt*dt / dt_prev_ << std::endl;
-//        std::cout << "        - TOL*rm-1 / (rm^2) = "<<TOLRK*(r_m_prev_)/((r_m_)*(r_m_)) << "  (...)^1/p = " << std::pow(TOLRK*(r_m_prev_)/((r_m_)*(r_m_)),1./p) << std::endl;
         std::cout << " --------------------------------------------------------------" << std::endl;
         std::cout <<  std::endl;
         }
@@ -272,7 +276,12 @@ void TimeSteppingTools::printInfo(){
 // }
 
 double TimeSteppingTools::getInformationBDF(int i){
-    TEUCHOS_TEST_FOR_EXCEPTION(i+1>BDFInformation_->size() || i<0, std::logic_error, "Wrong bdf table access!");
+    if (restart_ && !restartClockRestored_) {
+        prepareStep();
+        if (!restartClockRestored_)
+            throw std::logic_error("Validate checkpoint metadata before requesting restart BDF coefficients");
+    }
+    TEUCHOS_TEST_FOR_EXCEPTION(BDFInformation_.is_null() || i+1>BDFInformation_->size() || i<0, std::logic_error, "Wrong bdf table access!");
     return BDFInformation_->at(i);
 }
 
@@ -296,7 +305,7 @@ void TimeSteppingTools::setInformationBDF(){
             BDFInformation_->at(1) = 1.;
             BDFInformation_->at(2) = 1+omega_n ; // BDFInformation_->at(0) *  (1.+omega_n) * (1.+omega_n)/ (1.+2.*omega_n);
             BDFInformation_->at(3) = - omega_n * omega_n / (1+omega_n) ; // BDFInformation_->at(0) * (omega_n * omega_n) / (1.+2.*omega_n);
-            // std::cout << " BDF2 with variable time step size: " << BDFInformation_->at(0) << " " << BDFInformation_->at(1) << " " << BDFInformation_->at(2) << " " << BDFInformation_->at(3) << std::endl;
+
             break;
         default:
             break;

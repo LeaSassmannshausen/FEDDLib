@@ -17,7 +17,10 @@ between the source checkpoint and the first completed resumed step.
 
 The `timeStepping` unit test independently checks BDF2 against a quadratic,
 interval-boundary landing, a shortened final step, saved incoming dt and the
-step counter. Metadata tests retain incompatible-field/history checks and
+step counter. It checks all three retained timestamps across interval changes
+and restart, including a clock constructed before checkpoint validation finishes.
+Only fresh runs create negative startup placeholders; restart histories come
+from validated metadata. Metadata tests retain incompatible-field/history checks and
 exercise loading version-1 uniform checkpoints with a changed next timestep,
 version-2 nonuniform history and invalid or incomplete saved clocks.
 

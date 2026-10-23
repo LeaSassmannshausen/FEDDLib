@@ -181,7 +181,11 @@ int main(int argc, char** argv)
         changed = schema;
         changed.sublist("Integration").set("dt", 0.005);
         validate(changed);
-        if (parameters->sublist("Timestepping Parameter").sublist("_Restart time state").get<double>("dt_prev") != 0.0025) ++failures;
+        const auto& legacyClock = parameters->sublist("Timestepping Parameter").sublist("_Restart time state");
+        if (legacyClock.get<double>("dt_prev") != 0.0025) ++failures;
+        for (int i = 0; i < 3; ++i)
+            if (std::abs(legacyClock.sublist("History times").get<double>(std::to_string(i)) - (time - i * 0.0025)) > 1.e-14)
+                ++failures;
         if (comm->getRank() == 0) std::cout << "PASS changed timestep restores version-1 source increment\n";
         changed = schema;
         changed.set("Format version", 999);
