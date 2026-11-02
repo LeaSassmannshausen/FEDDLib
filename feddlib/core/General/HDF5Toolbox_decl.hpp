@@ -51,7 +51,10 @@ class HDF5Toolbox{
         /// @details With General/Checkpoint timings enabled, separate counters measure
         /// redistribution, dataset creation, vector transfer, vector-property records
         /// and the final flush. File creation and explicit flush calls have their own counters.
-        void write(const std::string &GroupName, const MultiVectorConstPtr_Type X, bool writeTranspose = false);
+        /// @param flushAfterWrite Flush before returning; when false the caller must
+        /// collectively flush the file before publishing checkpoint metadata.
+        void write(const std::string &GroupName, const MultiVectorConstPtr_Type X,
+                   bool writeTranspose = false, bool flushAfterWrite = true);
 
         bool isContained(std::string Name, std::string GroupName = "");
 
@@ -122,15 +125,21 @@ class HDF5Toolbox{
 
             H5Fclose(file_id_);
             isOpen_ = false;
+            linearWriteBuffer_ = Teuchos::null;
+            writeSourceMap_ = Teuchos::null;
 
         }
 
         //! Flush the content to the file
         void flush()
         {
-            // Explicit exporter flush; the flush inside write() has a separate timer.
+            TEUCHOS_TEST_FOR_EXCEPTION(!isOpen(), std::logic_error, "Cannot flush a closed HDF5 file");
             checkpoint::Timer timer(parameters_, "hdf5_flush");
-            H5Fflush(file_id_, H5F_SCOPE_GLOBAL);
+            const int localError = H5Fflush(file_id_, H5F_SCOPE_GLOBAL) < 0;
+            int globalError = 0;
+            Teuchos::reduceAll(*comm_, Teuchos::REDUCE_MAX, 1, &localError, &globalError);
+            TEUCHOS_TEST_FOR_EXCEPTION(globalError, std::runtime_error,
+                                       "HDF5 flush failed for " << FileName_);
         }
 
         //! Return \c true if a file has already been opened using Open()/Create()
@@ -143,6 +152,8 @@ class HDF5Toolbox{
         bool isOpen_; // Flag if file is open
         CommConstPtr_Type comm_;
         Teuchos::RCP<Teuchos::ParameterList> parameters_;
+        MultiVectorPtr_Type linearWriteBuffer_; // Reuse the contiguous buffer and its importer.
+        MapConstPtr_Type writeSourceMap_; // Rebuild when ownership, ordering or index base changes.
         hid_t       file_id_;
         hid_t	plist_id_;
         herr_t	status;

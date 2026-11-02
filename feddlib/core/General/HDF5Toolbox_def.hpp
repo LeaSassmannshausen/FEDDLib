@@ -10,6 +10,39 @@
 
 namespace FEDD {
 
+namespace hdf5_detail {
+
+/** @brief Collectively write a replicated scalar/string dataset using rank zero's value.
+ * All ranks supply the same datatype and extent. Non-root ranks select no data,
+ * but still participate in H5Dwrite. Return an error on every rank if preparation
+ * or writing fails, allowing the caller to close its handles before throwing.
+ */
+inline int writeReplicatedDataset(hid_t dataset, hid_t datatype, hid_t space,
+                                  const void* value, const Teuchos::Comm<int>& comm)
+{
+    checkpoint::H5Handle fileSpace(H5Scopy(space), H5Sclose);
+    checkpoint::H5Handle memorySpace(H5Scopy(space), H5Sclose);
+    checkpoint::H5Handle transfer(H5Pcreate(H5P_DATASET_XFER), H5Pclose);
+    int localError = dataset < 0 || datatype < 0 || fileSpace < 0 || memorySpace < 0 || transfer < 0;
+    if (!localError && comm.getRank() != 0) {
+        if (H5Sselect_none(fileSpace) < 0 || H5Sselect_none(memorySpace) < 0)
+            localError = 1;
+    }
+#ifdef HAVE_MPI
+    if (transfer >= 0 && H5Pset_dxpl_mpio(transfer, H5FD_MPIO_COLLECTIVE) < 0)
+        localError = 1;
+#endif
+    int globalError = 0;
+    Teuchos::reduceAll(comm, Teuchos::REDUCE_MAX, 1, &localError, &globalError);
+    if (globalError)
+        return globalError;
+    localError = H5Dwrite(dataset, datatype, memorySpace, fileSpace, transfer, value) < 0;
+    Teuchos::reduceAll(comm, Teuchos::REDUCE_MAX, 1, &localError, &globalError);
+    return globalError;
+}
+
+} // namespace hdf5_detail
+
 struct FindDataset_t
 {
   std::string name;
@@ -36,7 +69,8 @@ HDF5Toolbox<SC, LO, GO, NO>::HDF5Toolbox(CommConstPtr_Type comm,
 // ----------------------------------------------------------------
 /// @brief Write/export a vector X to the HDF5 file under the group name GroupName
 template <class SC, class LO, class GO, class NO>
-void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const MultiVectorConstPtr_Type X, bool writeTranspose)
+void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const MultiVectorConstPtr_Type X,
+                                      bool writeTranspose, bool flushAfterWrite)
 {
 
   TEUCHOS_TEST_FOR_EXCEPTION(!isOpen(),std::runtime_error,"HDF5Toolbox:: no file open yet");
@@ -49,11 +83,28 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
   MultiVectorPtr_Type linearX;
 
   {
-    // Include map/buffer allocation and communication into the contiguous layout.
+    // Reuse the target buffer/importer while the source distribution and column count match.
     checkpoint::Timer timer(parameters_, "hdf5_redistribution");
-    MapPtr_Type linearMap = Teuchos::rcp(new Map_Type(X->getMap()->getGlobalNumElements(),X->getMap()->getNodeNumElements(), X->getMap()->getIndexBase(), X->getMap()->getComm()));
-    linearX = Teuchos::rcp(new MultiVector_Type(linearMap, X->getNumVectors()));
-    linearX->importFromVector(X);
+    const MapConstPtr_Type sourceMap = X->getMap();
+    // Tpetra maps are distributed objects. Reject partial replacement before
+    // entering importer communication with inconsistent map-directory lifetimes.
+    const int localRebuild = linearWriteBuffer_.is_null() || writeSourceMap_.is_null() ||
+        linearWriteBuffer_->getNumVectors() != X->getNumVectors() ||
+        writeSourceMap_->getTpetraMap().getRawPtr() != X->getMapTpetra().getRawPtr();
+    int rebuild = 0;
+    Teuchos::reduceAll(*comm_, Teuchos::REDUCE_SUM, 1, &localRebuild, &rebuild);
+    TEUCHOS_TEST_FOR_EXCEPTION(rebuild != 0 && rebuild != comm_->getSize(), std::logic_error,
+        "HDF5 write maps and column counts must be replaced collectively on all ranks");
+    checkpoint::Timer setupTimer(parameters_, "hdf5_buffer_setup", rebuild != 0);
+    if (rebuild) {
+      MapPtr_Type linearMap = Teuchos::rcp(new Map_Type(sourceMap->getGlobalNumElements(),
+          sourceMap->getNodeNumElements(), sourceMap->getIndexBase(), sourceMap->getComm()));
+      linearWriteBuffer_ = Teuchos::rcp(new MultiVector_Type(linearMap, X->getNumVectors()));
+      // Retain the immutable underlying map even if the caller replaces its wrapper's contents.
+      writeSourceMap_ = Teuchos::rcp(new Map_Type(X->getMapTpetra()));
+    }
+    linearWriteBuffer_->importFromVector(X, true);
+    linearX = linearWriteBuffer_;
   }
 
 
@@ -84,6 +135,17 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
     localWriteError = filespace_id < 0 || group_id < 0 || dset_id < 0;
     H5Sclose(filespace_id);
   }
+
+  // Reject a failed collective dataset creation before writing vector properties.
+  // In particular, an existing Values dataset must remain a vector-write error.
+  int globalWriteError = 0;
+  Teuchos::reduceAll(*comm_, Teuchos::REDUCE_MAX, 1, &localWriteError, &globalWriteError);
+  if (globalWriteError) {
+    if (dset_id >= 0) H5Dclose(dset_id);
+    if (group_id >= 0) H5Gclose(group_id);
+  }
+  TEUCHOS_TEST_FOR_EXCEPTION(globalWriteError, std::runtime_error,
+                             "HDF5 vector write failed for group " << GroupName);
 
   // Create property list for collective dataset write.
   plist_id_ = H5Pcreate(H5P_DATASET_XFER);
@@ -202,12 +264,11 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const Mult
   }
   // Do not let checkpoint publication treat a logged vector-write error as
   // success. All healthy ranks finish the write sequence before failing together.
-  {
-    // Keep this distinct from the subsequent explicit exporter flush.
+  if (flushAfterWrite) {
+    // Standalone writes flush immediately; checkpoint batches flush at completion.
     checkpoint::Timer timer(parameters_, "hdf5_flush_after_write");
     if (H5Fflush(file_id_, H5F_SCOPE_GLOBAL) < 0) localWriteError = 1;
   }
-  int globalWriteError = 0;
   Teuchos::reduceAll(*comm_, Teuchos::REDUCE_MAX, 1, &localWriteError, &globalWriteError);
   TEUCHOS_TEST_FOR_EXCEPTION(globalWriteError != 0, std::runtime_error,
                              "HDF5 vector write failed for group " << GroupName);
@@ -439,6 +500,16 @@ void HDF5Toolbox<SC, LO, GO, NO>::create(const std::string FileName)
     //
     // [last accessed 06 Oct 2011]
     H5Pset_fapl_mpio(plist_id_, mpiComm, MPI_INFO_NULL);
+
+    // Aggregate HDF5's internal metadata-cache writes during collective flushes.
+    // Application property datasets are handled separately by writeReplicatedDataset.
+    const int localMetadataError = H5Pset_coll_metadata_write(plist_id_, true) < 0;
+    int globalMetadataError = 0;
+    Teuchos::reduceAll(*comm_, Teuchos::REDUCE_MAX, 1, &localMetadataError, &globalMetadataError);
+    if (globalMetadataError)
+      H5Pclose(plist_id_);
+    TEUCHOS_TEST_FOR_EXCEPTION(globalMetadataError, std::runtime_error,
+                               "Cannot enable collective HDF5 metadata writes for " << FileName);
   }
 // #endif
 
@@ -515,13 +586,15 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const std:
   hid_t dset_id = H5Dcreate(group_id, DataSetName.c_str(), H5T_NATIVE_DOUBLE,
                             filespace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-  herr_t status = H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL,
-                           filespace_id, H5P_DEFAULT, &what);
+  const int writeError = hdf5_detail::writeReplicatedDataset(
+      dset_id, H5T_NATIVE_DOUBLE, filespace_id, &what, *comm_);
 
   // Close/release resources.
   H5Dclose(dset_id);
   H5Gclose(group_id);
   H5Sclose(filespace_id);
+  TEUCHOS_TEST_FOR_EXCEPTION(writeError, std::runtime_error,
+                             "HDF5 property write failed for " << GroupName << "/" << DataSetName);
 }
 
 // ==========================================================================
@@ -538,13 +611,15 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName, const std:
   hid_t dset_id = H5Dcreate(group_id, DataSetName.c_str(), H5T_NATIVE_INT,
                       filespace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-  herr_t status = H5Dwrite(dset_id, H5T_NATIVE_INT, H5S_ALL, filespace_id,
-                           H5P_DEFAULT, &what);
+  const int writeError = hdf5_detail::writeReplicatedDataset(
+      dset_id, H5T_NATIVE_INT, filespace_id, &what, *comm_);
 
   // Close/release resources.
   H5Dclose(dset_id);
   H5Gclose(group_id);
   H5Sclose(filespace_id);
+  TEUCHOS_TEST_FOR_EXCEPTION(writeError, std::runtime_error,
+                             "HDF5 property write failed for " << GroupName << "/" << DataSetName);
 }
 
 
@@ -569,11 +644,16 @@ void HDF5Toolbox<SC, LO, GO, NO>::write(const std::string& GroupName,
   hid_t dataset_id = H5Dcreate(group_id, DataSetName.c_str(), atype,
                                dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-  H5Dwrite(dataset_id, atype, H5S_ALL, H5S_ALL,H5P_DEFAULT, data.c_str());
+  const int writeError = hdf5_detail::writeReplicatedDataset(
+      dataset_id, atype, dataspace_id, data.c_str(), *comm_);
   
   // Close/release resources.
   H5Dclose(dataset_id);
   H5Gclose(group_id);
+  H5Sclose(dataspace_id);
+  H5Tclose(atype);
+  TEUCHOS_TEST_FOR_EXCEPTION(writeError, std::runtime_error,
+                             "HDF5 property write failed for " << GroupName << "/" << DataSetName);
 }
 // ==========================================================================
 // ==========================================================================

@@ -432,6 +432,8 @@ private:
     void initCheckPoints();
     double getPreviousTimeIncrement(double timeStep =-1.0);
     Teuchos::RCP<HDF5Export<SC, LO, GO, NO>> getExporter(std::string fileName, int i);
+    /// Flush each field file in a completed checkpoint batch before publishing metadata.
+    void flushCheckpointFiles(const std::string& fileName);
 
     std::vector<std::tuple<double,bool>> checkPointTupel_;
     std::set<std::string> multistepCheckpointTimesWritten_; // shared history is written once per output file

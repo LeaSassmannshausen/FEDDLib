@@ -91,7 +91,8 @@ public:
         onRoot(comm, [&] { makeRecoveryDirectory(directory); });
         for (const auto& file : vectors_) {
             HDF5Export<SC,LO,GO,NO> exporter(file.second.begin()->second->getMap(), joinPath(directory, file.first));
-            for (const auto& dataset : file.second) exporter.writeVariablesHDF5(dataset.first, dataset.second);
+            for (const auto& dataset : file.second) exporter.writeVariablesHDF5(dataset.first, dataset.second, false);
+            // Explicit closure checks the deferred flush before validation/publication.
             exporter.closeExporter();
         }
         onRoot(comm, [&] {

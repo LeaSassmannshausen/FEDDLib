@@ -1,5 +1,8 @@
 # Structured BFS checkpoint performance
 
+The [checkpoint I/O optimization report](IOOptimizations.md) records the four
+cumulative write-path changes, local measurements and validation procedure.
+
 This executable measures the production Navier-Stokes checkpoint/restart paths
 on structured P1-P1 backward-facing-step meshes, in 2D or 3D with BDF2. There
 are no reference-solution comparisons or runtime pass/fail thresholds. Solver
@@ -168,14 +171,16 @@ appear beneath the stages that execute them:
 | `compatibility_validate` | Manifest, integration/field/mesh and required-history compatibility checks |
 | `primary_fields_read` | Collective HDF5 velocity/pressure import and installation |
 | `bdf_history_read` | Collective HDF5 reads and allocation of BDF solution history |
-| `fields_write` | Collective HDF5 field writes, including exporter creation on the first write |
-| `hdf5_redistribution` | Contiguous map and vector allocation, plus import from the solution's distribution |
+| `fields_write` | Collective HDF5 field/history writes, including exporter creation on the first write; batch flushing is measured separately |
+| `fields_flush` | Checked completion of a field/history batch, flushing each participating field file once before checkpoint metadata publication |
+| `hdf5_redistribution` | Collectively decide whether to reuse the contiguous buffer/importer or rebuild them when the underlying source map identity or column count changes, then import the current values |
+| `hdf5_buffer_setup` | Contiguous buffer allocation and first import, including importer construction; occurs on first use and when the source map identity or column count changes |
 | `hdf5_file_create` | Parallel file-access setup and collective HDF5 file creation; occurs on the first write to each file |
 | `hdf5_dataset_create` | Time-group lookup/creation, file dataspace creation and creation of the vector's `Values` dataset |
 | `hdf5_dataset_write` | The vector-data `H5Dwrite` call, once per multivector column; excludes setup, vector-property records and explicit flushing |
-| `hdf5_vector_metadata_write` | HDF5 `GlobalLength`, `NumVectors` and `__type__` records; separate from the checkpoint manifest |
-| `hdf5_flush_after_write` | The global file flush at the end of each vector write |
-| `hdf5_flush` | The additional explicit file flush requested by the exporter after each vector write |
+| `hdf5_vector_metadata_write` | HDF5 `GlobalLength`, `NumVectors` and `__type__` records, collectively written using rank zero's values; separate from the checkpoint manifest |
+| `hdf5_flush_after_write` | Immediate global file flush for ordinary standalone/auxiliary vector writes; absent from batched Navier-Stokes checkpoint writes |
+| `hdf5_flush` | Explicit, checked global file flush; nested under `fields_flush` for checkpoint batches |
 | `metadata_write` | Checkpoint manifest serialization/publication |
 | `checkpoint_write` | Accepted-state checkpoint write, including history and metadata; file closure is measured separately |
 | `files_close` | HDF5 checkpoint file closure, including closure during exporter destruction; one call per file |
@@ -217,12 +222,22 @@ snapshot capture when enabled; that capture is outside the decision/write region
 appear in stacked reports when those paths are exercised, rather than in this
 standalone Navier-Stokes run. `fields_write` counts one call per accepted-step
 state, or per legacy field/history batch, so compare call counts accordingly.
-The `hdf5_*` write timers are children of `fields_write`. In a fresh BDF2
+The HDF5 allocation, redistribution and dataset-write timers are children of `fields_write`. In a fresh BDF2
 Navier-Stokes checkpoint, its two states each contain velocity and pressure:
 `fields_write` therefore has two calls, `hdf5_file_create` has two calls, and
-each remaining HDF5 write timer has four calls (with one column per field).
-The two flush counters distinguish the existing flush calls; enabling timers
-does not change the write/flush sequence. Dataset preparation/cleanup and
+the redistribution and dataset-write timers have four calls (with one column per field).
+`hdf5_buffer_setup` is nested under `hdf5_redistribution` and has two calls:
+the buffer/importer is created once per field file and reused for its history state.
+The cache follows the vector's actual Tpetra storage map, including copied history
+vectors with separate FEDD map wrappers. A new distributed map/column count must
+be used on all ranks; partial-rank replacement is rejected collectively before I/O.
+`fields_flush` is a sibling of `fields_write` under `export` and contains two
+`hdf5_flush` calls, one per file. It completes before `metadata_write` publishes
+the checkpoint. Ordinary exporter calls still flush immediately by default;
+passing `flushAfterWrite=false` defers that work until `flush()` or explicit
+`closeExporter()`. Recovery snapshots batch each file and check its flush on
+explicit closure before validating the persisted data and publishing `Complete.xml`.
+Dataset preparation/cleanup and
 collective error checking outside these regions remain in the parent's remainder.
 `files_close` uses the same optional checkpoint timing setting and measures the
 actual HDF5 close, whether requested explicitly or triggered by destruction.
@@ -256,10 +271,11 @@ BFS restart performance
             FEDDlib: Checkpoint Feature - fields_write
               FEDDlib: Checkpoint Feature - hdf5_file_create
               FEDDlib: Checkpoint Feature - hdf5_redistribution
+                FEDDlib: Checkpoint Feature - hdf5_buffer_setup
               FEDDlib: Checkpoint Feature - hdf5_dataset_create
               FEDDlib: Checkpoint Feature - hdf5_dataset_write
               FEDDlib: Checkpoint Feature - hdf5_vector_metadata_write
-              FEDDlib: Checkpoint Feature - hdf5_flush_after_write
+            FEDDlib: Checkpoint Feature - fields_flush
               FEDDlib: Checkpoint Feature - hdf5_flush
           FEDDlib: Checkpoint Feature - metadata_write
       teardown

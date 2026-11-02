@@ -719,7 +719,7 @@ void TimeProblem<SC,LO,GO,NO>::writeMultistepCheckpoint(double completedTime, do
             return;
         checkpoint::Timer timer(parameterList_, "fields_write");
         for (UN i = 0; i < state->size(); ++i)
-            getExporter("Solution", i)->writeVariablesHDF5(key, state->getBlock(i));
+            getExporter("Solution", i)->writeVariablesHDF5(key, state->getBlock(i), false);
         multistepCheckpointTimesWritten_.insert(key);
     };
 
@@ -742,6 +742,8 @@ void TimeProblem<SC,LO,GO,NO>::writeMultistepCheckpoint(double completedTime, do
         // Export values of interest for the current time step if a checkpoint is due
         if (checkpointDue)
             problem_->exportValuesOfInterest(completedTime);
+        // All current/history states must reach the files before metadata is published.
+        flushCheckpointFiles("Solution");
     }
     // Write the checkpoint metadata after all fields have been written successfully
     problem_->writeCheckpointMetadata(completedTime);
@@ -1585,10 +1587,11 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                     for (UN i = 0; i < size; i++)
                     {
                         std::string varName =  std::to_string(time_);
-                        this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i));
+                        this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i), false);
                         // For time dependet problems, the different VarNames are the time.
                     }
                 }
+                flushCheckpointFiles(fileName);
                 if (fileName == "Solution")
                     problem_->exportValuesOfInterest(time_);
             }
@@ -1620,19 +1623,20 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                                 if (verbose_)
                                     std::cout << " Export for filename " << fileName << " and " <<  problem_->getVariableName(idVarname) << " with i=" << i << std::endl;
                                 std::string varName =  std::to_string(time_);
-                                this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i));  // We use 0, because it was not updated yet with the newest solution
+                                this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i), false);  // We use 0, because it was not updated yet with the newest solution
 
                                 if(solutionVec.size() >1 && checkpoint::historyTime(parameterList_, time_, 1, dt) >= 0.){
                                     varName = std::to_string(checkpoint::historyTime(parameterList_, time_, 1, dt)); // n-1
-                                    this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[1]->getBlock(i));
+                                    this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[1]->getBlock(i), false);
                                 }
                                 if(solutionVec.size() >2 && checkpoint::historyTime(parameterList_, time_, 2, dt) >= 0.){
                                     varName = std::to_string(checkpoint::historyTime(parameterList_, time_, 2, dt)); // n-2
-                                    this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[2]->getBlock(i));
+                                    this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[2]->getBlock(i), false);
                                 }
                                 // For time dependet problems, the different VarNames are the time.
                             }
                         }
+                        flushCheckpointFiles(fileName);
                         // Save additional problem-specific checkpoint state.
                         if(fileName == "Solution")
                             problem_->exportValuesOfInterest(time_);
@@ -1688,6 +1692,14 @@ void TimeProblem<SC,LO,GO,NO>::initCheckPoints(){
     }
 
 }
+template<class SC,class LO,class GO,class NO>
+void TimeProblem<SC,LO,GO,NO>::flushCheckpointFiles(const std::string& fileName)
+{
+    checkpoint::Timer timer(parameterList_, "fields_flush");
+    for (UN i = 0; i < this->getSolution()->size(); ++i)
+        getExporter(fileName, i)->flush();
+}
+
 template<class SC,class LO,class GO,class NO>
 Teuchos::RCP <HDF5Export<SC,LO,GO,NO>> TimeProblem<SC,LO,GO,NO>::getExporter(std::string fileName, int i){
     if(fileName == "ds_Velocity"){

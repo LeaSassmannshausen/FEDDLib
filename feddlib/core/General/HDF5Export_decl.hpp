@@ -54,7 +54,13 @@ public:
     /// @brief Exporting MultiVector writeVector as HDF5 File with the variable name varName
     /// @param varName Variable name of MultiVector
     /// @param writeVector Vector to be exported, corresponding to writeMap_ 
-    void writeVariablesHDF5(std::string varName,const MultiVectorConstPtr_Type writeVector);
+    /// @param flushAfterWrite Flush immediately by default. Pass false to batch
+    /// history states, then call flush() before publishing checkpoint metadata.
+    void writeVariablesHDF5(std::string varName,const MultiVectorConstPtr_Type writeVector,
+                            bool flushAfterWrite = true);
+
+    /// @brief Collectively flush pending data and report failures on every rank.
+    void flush();
 
      /// @brief Closing Exporter
     void closeExporter();
@@ -68,6 +74,7 @@ protected:
     // READ 
     // ------------------------
     std::string outputFilename_;
+    bool pendingWrites_; // Deferred writes must be flushed before explicit closure.
     std::vector<std::string>   		varNamesRead_;
 
 };

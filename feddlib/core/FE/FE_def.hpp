@@ -1345,23 +1345,23 @@ void FE<SC,LO,GO,NO>::assemblyElasticityJacobianAndStressAceFEM(int dim,
     
     double poissonRatio = pList->sublist("Parameter").get("Poisson Ratio",0.4);
     double mue = pList->sublist("Parameter").get("Mu",2.0e+6);
-    double mue1 = pList->sublist("Parameter").get("Mu1",2.0e+6);
-    double mue2 = pList->sublist("Parameter").get("Mu2",2.0e+6);
+    // double mue1 = pList->sublist("Parameter").get("Mu1",2.0e+6);
+    // double mue2 = pList->sublist("Parameter").get("Mu2",2.0e+6);
     // Berechne daraus nun E (Youngsches Modul) und die erste Lamé-Konstante \lambda
     double E = pList->sublist("Parameter").get("E",3.0e+6); // For StVK mue_*2.*(1. + poissonRatio_);
-    double E1 = pList->sublist("Parameter").get("E1",3.0e+6); // For StVK mue_*2.*(1. + poissonRatio_);
-    double E2 = pList->sublist("Parameter").get("E2",3.0e+6); // For StVK mue_*2.*(1. + poissonRatio_);
+    // double E1 = pList->sublist("Parameter").get("E1",3.0e+6); // For StVK mue_*2.*(1. + poissonRatio_);
+    // double E2 = pList->sublist("Parameter").get("E2",3.0e+6); // For StVK mue_*2.*(1. + poissonRatio_);
     
     if (material_model=="Saint Venant-Kirchhoff") {
         E = mue*2.*(1. + poissonRatio);
-        E1 = mue1*2.*(1. + poissonRatio);
-        E2 = mue2*2.*(1. + poissonRatio);
+        // E1 = mue1*2.*(1. + poissonRatio);
+        // E2 = mue2*2.*(1. + poissonRatio);
     }
     
     // For StVK (poissonRatio*E)/((1 + poissonRatio)*(1 - 2*poissonRatio));
     double lambda = (poissonRatio*E)/((1 + poissonRatio)*(1 - 2*poissonRatio));
-    double lambda1 = (poissonRatio*E1)/((1 + poissonRatio)*(1 - 2*poissonRatio));
-    double lambda2 = (poissonRatio*E2)/((1 + poissonRatio)*(1 - 2*poissonRatio));
+    // double lambda1 = (poissonRatio*E1)/((1 + poissonRatio)*(1 - 2*poissonRatio));
+    // double lambda2 = (poissonRatio*E2)/((1 + poissonRatio)*(1 - 2*poissonRatio));
     
     if (dim == 2){
         double* v;
@@ -1433,17 +1433,17 @@ void FE<SC,LO,GO,NO>::assemblyElasticityJacobianAndStressAceFEM(int dim,
                     }
                 }
                                 
-                elementFlag = elements->getElement(T).getFlag();
-                if (elementFlag == 1){
-                    lambda = lambda1;
-                    mue = mue1;
-                    E = E1;
-                }
-                else if (elementFlag == 2){
-                    lambda = lambda2;
-                    mue = mue2;
-                    E = E2;
-                }
+                // elementFlag = elements->getElement(T).getFlag();
+                // if (elementFlag == 1){
+                //     lambda = lambda1;
+                //     mue = mue1;
+                //     E = E1;
+                // }
+                // else if (elementFlag == 2){
+                //     lambda = lambda2;
+                //     mue = mue2;
+                //     E = E2;
+                // }
                 
                 if ( !material_model.compare("Saint Venant-Kirchhoff") )
                     stvk2d(v, &lambda, &mue, F, Pmat, Amat);
@@ -1629,17 +1629,17 @@ void FE<SC,LO,GO,NO>::assemblyElasticityJacobianAndStressAceFEM(int dim,
                     }
                 }
                 
-                elementFlag = elements->getElement(T).getFlag();
-                if (elementFlag == 1){
-                    lambda = lambda1;
-                    mue = mue1;
-                    E = E1;
-                }
-                else if (elementFlag == 2){
-                    lambda = lambda2;
-                    mue = mue2;
-                    E = E2;
-                }
+                // elementFlag = elements->getElement(T).getFlag();
+                // if (elementFlag == 1){
+                //     lambda = lambda1;
+                //     mue = mue1;
+                //     E = E1;
+                // }
+                // else if (elementFlag == 2){
+                //     lambda = lambda2;
+                //     mue = mue2;
+                //     E = E2;
+                // }
                 
                 if ( !material_model.compare("Neo-Hooke") )
                     nh3d(v, &E, &poissonRatio, F, Pmat, Amat);

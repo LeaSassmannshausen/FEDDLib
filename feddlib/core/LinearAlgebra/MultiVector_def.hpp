@@ -326,8 +326,10 @@ void MultiVector<SC,LO,GO,NO>::importFromVector( MultiVectorConstPtr_Type mvIn, 
             TEUCHOS_TEST_FOR_EXCEPTION( true, std::logic_error,"Unknown type for import. Choose Forward or Reverse")
     }
     else{
-        TEUCHOS_TEST_FOR_EXCEPTION( !importer_->getSourceMap()->isSameAs( *mvIn->getMap()->getTpetraMap() ), std::logic_error,"Source maps of Importer and Multivector are not the same.")
-        TEUCHOS_TEST_FOR_EXCEPTION( !importer_->getTargetMap()->isSameAs( *this->getMap()->getTpetraMap() ), std::logic_error,"Target maps of Importer and Multivector are not the same.")
+        // Validate the actual storage maps used to construct the importer above.
+        // A copied FEDD map wrapper may own a separate, equivalent Tpetra map.
+        TEUCHOS_TEST_FOR_EXCEPTION( !importer_->getSourceMap()->isSameAs( *mvIn->getMapTpetra() ), std::logic_error,"Source maps of Importer and Multivector are not the same.")
+        TEUCHOS_TEST_FOR_EXCEPTION( !importer_->getTargetMap()->isSameAs( *this->getMapTpetra() ), std::logic_error,"Target maps of Importer and Multivector are not the same.")
     }
 
         

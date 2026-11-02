@@ -7,7 +7,8 @@ template<class SC,class LO,class GO,class NO>
 HDF5Export<SC,LO,GO,NO>::HDF5Export(MapConstPtr_Type writeMap, std::string outputFilename,
                                 Teuchos::RCP<Teuchos::ParameterList> parameters):
 hdf5exporter_(),
-comm_()
+comm_(),
+pendingWrites_(false)
 {
 
     Teuchos::RCP<const Teuchos::MpiComm<int> > mpiComm = Teuchos::rcp_dynamic_cast<const Teuchos::MpiComm<int> >( writeMap->getComm() );
@@ -28,19 +29,27 @@ comm_()
 }
 
 template<class SC,class LO,class GO,class NO>
-void HDF5Export<SC,LO,GO,NO>::writeVariablesHDF5(std::string varName, const MultiVectorConstPtr_Type writeVector){
+void HDF5Export<SC,LO,GO,NO>::writeVariablesHDF5(std::string varName,
+    const MultiVectorConstPtr_Type writeVector, bool flushAfterWrite){
 
-    hdf5exporter_->write(varName,writeVector); // Writing u_export as variable 'varName' in file
+    hdf5exporter_->write(varName, writeVector, false, flushAfterWrite);
+    pendingWrites_ = !flushAfterWrite;
     
     if(writeVector->getMap()->getComm()->getRank() == 0 )
         std::cout << " HDF5_Export:: Exporting to file " << outputFilename_ << " with variable name " << varName << std::endl;
 
+}
+
+template<class SC,class LO,class GO,class NO>
+void HDF5Export<SC,LO,GO,NO>::flush(){
     hdf5exporter_->flush();
-    
+    pendingWrites_ = false;
 }
 
 template<class SC,class LO,class GO,class NO>
 void HDF5Export<SC,LO,GO,NO>::closeExporter(){
+    if (pendingWrites_)
+        flush();
     hdf5exporter_->close();
 }
 
