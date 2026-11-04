@@ -1186,10 +1186,68 @@ void FE_ElementAssembly<SC,LO,GO,NO>::assemblyNavierStokes(int dim,
 }
 
 
-/*!
- \brief  Method to loop over all assembleFESpecific elements and set the defined linearization 
-@param[in] string linearization e.g. "Picard" or "Newton"
-*/
+// Refresh the element solution without advancing time or committing history.
+template <class SC, class LO, class GO, class NO>
+void FE_ElementAssembly<SC,LO,GO,NO>::updateSolutionAssemblyFEElements(
+    MultiVectorPtr_Type d_rep, MultiVectorPtr_Type c_rep)
+{
+    auto domain = domainVec_.at(0);
+    auto elements = domain->getElementsC();
+    TEUCHOS_TEST_FOR_EXCEPTION(assemblyFEElements_.size() != elements->numberElements(),
+        std::logic_error, "Assemble the material elements before post-processing.");
+    for (UN t = 0; t < assemblyFEElements_.size(); ++t) {
+        const auto nodes = elements->getElement(t).getVectorNodeList();
+        auto solution = getSolution(nodes, d_rep, domain->getDimension());
+        const auto concentration = getSolution(nodes, c_rep, 1);
+        solution.insert(solution.end(), concentration.begin(), concentration.end());
+        assemblyFEElements_[t]->updateSolution(solution);
+    }
+}
+
+// Project one AceGen output column using its nodal volume weights.
+// This lives in FE_ElementAssembly, which owns assemblyFEElements_ in this branch.
+template <class SC, class LO, class GO, class NO>
+void FE_ElementAssembly<SC,LO,GO,NO>::postProcessing(int type, MultiVectorPtr_Type& postProcessingVec)
+{
+    MapConstPtr_Type mapRep = this->domainVec_.at(0)->getMapRepeated();
+    MapConstPtr_Type mapUni = this->domainVec_.at(0)->getMapUnique();
+    ElementsPtr_Type elements = this->domainVec_.at(0)->getElementsC();
+    TEUCHOS_TEST_FOR_EXCEPTION(type < 0 || assemblyFEElements_.size() != elements->numberElements(),
+        std::logic_error, "Invalid post-processing column or uninitialized material elements.");
+
+    // Sum the nodal volume weights and weighted values over all local elements.
+    MultiVectorPtr_Type multiRep = Teuchos::rcp(new MultiVector_Type(mapRep, 1));
+    multiRep->putScalar(0.);
+    Teuchos::ArrayRCP<SC> arrayMultiRep = multiRep->getDataNonConst(0);
+    MultiVectorPtr_Type resRep = Teuchos::rcp(new MultiVector_Type(mapRep, 1));
+    resRep->putScalar(0.);
+    Teuchos::ArrayRCP<SC> arrayRep = resRep->getDataNonConst(0);
+    for (UN T = 0; T < assemblyFEElements_.size(); ++T) {
+        vec_LO_Type nodeList = elements->getElement(T).getVectorNodeList();
+        assemblyFEElements_[T]->postProcessing();
+        vec2D_dbl_ptr_Type postProcessingData = assemblyFEElements_[T]->getPostProcessingData();
+        TEUCHOS_TEST_FOR_EXCEPTION(postProcessingData.is_null() || postProcessingData->size() != nodeList.size(),
+            std::logic_error, "Material post-processing returned the wrong number of nodes.");
+        for (UN i = 0; i < nodeList.size(); ++i) {
+            TEUCHOS_TEST_FOR_EXCEPTION(type >= (*postProcessingData)[i].size(), std::out_of_range,
+                "Material post-processing column is unavailable: " << type);
+            arrayMultiRep[nodeList[i]] += (*postProcessingData)[i][0];
+            arrayRep[nodeList[i]] += (*postProcessingData)[i][type];
+        }
+    }
+
+    // Add contributions from shared nodes before dividing by their total weight.
+    MultiVectorPtr_Type multiUni = Teuchos::rcp(new MultiVector_Type(mapUni, 1));
+    multiUni->putScalar(0.);
+    multiUni->exportFromVector(multiRep, true, "Add");
+    postProcessingVec->putScalar(0.);
+    postProcessingVec->exportFromVector(resRep, true, "Add");
+    Teuchos::ArrayRCP<SC> arrayMultiUni = multiUni->getDataNonConst(0);
+    Teuchos::ArrayRCP<SC> arrayUni = postProcessingVec->getDataNonConst(0);
+    for (LO i = 0; i < arrayUni.size(); ++i)
+        arrayUni[i] = arrayMultiUni[i] != 0. ? arrayUni[i] / arrayMultiUni[i] : 0.;
+}
+
 template <class SC, class LO, class GO, class NO>
 void FE_ElementAssembly<SC,LO,GO,NO>::changeLinearizationFE(std::string linearization)
 {

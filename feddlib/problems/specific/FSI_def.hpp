@@ -112,6 +112,15 @@ exporterGeo_()
     const auto& timeParameters = this->parameterList_->sublist("Timestepping Parameter");
     parameterListFluid->sublist("Timestepping Parameter") = timeParameters;
     parameterListStructure->sublist("Timestepping Parameter") = timeParameters;
+    // AceGen adapters read these named material sublists, whereas the FSI
+    // drivers also copy solid settings into the component's "Parameter" list.
+    for (const std::string name : {"Parameter Solid", "Parameter Diffusion"}) {
+        if (this->parameterList_->isSublist(name)) {
+            auto supplied = parameterListStructure->sublist(name);
+            parameterListStructure->sublist(name) = this->parameterList_->sublist(name);
+            parameterListStructure->sublist(name).setParameters(supplied);
+        }
+    }
     // Saving the coupled state requires the fluid and Newmark history as well.
     if (this->parameterList_->sublist("General").get("Safe all solution", false)) {
         parameterListFluid->sublist("General").set("Safe all solution", true);
@@ -196,6 +205,8 @@ FSI<SC,LO,GO,NO>::~FSI()
     if (!exporterGeo_.is_null()) {
        exporterGeo_->closeExporter();
     }
+    if (!exporterMaterial_.is_null())
+        exporterMaterial_->closeExporter();
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -1437,9 +1448,20 @@ void FSI<SC,LO,GO,NO>::setSolidMassmatrix( MatrixPtr_Type& massmatrix ) const
 template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::updateTime() const
 {
+
     timeSteppingTool_->advanceTime();
-    this->problemTimeFluid_->updateTime(timeSteppingTool_->t_);
-    this->problemTimeStructure_->updateTime(timeSteppingTool_->t_);
+
+    if(this->verbose_)
+        std::cout << "FSI: Update time to " << timeSteppingTool_->currentTime() << " with dt_prev_ = " << timeSteppingTool_->dt_prev_ << std::endl;
+
+    this->problemTimeFluid_->updateTime(this->timeSteppingTool_->t_);
+    this->problemTimeStructure_->updateTime(this->timeSteppingTool_->t_);
+
+    this->newtonStep_ = 0;
+
+    if (!this->problemStructureNonLin_.is_null())
+        this->problemStructureNonLin_->assemble("UpdateTime");
+
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -1547,6 +1569,29 @@ void FSI<SC,LO,GO,NO>::getValuesOfInterest3DBenchmark( vec_dbl_Type& values ){
     
 template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::computeValuesOfInterestAndExport(){
+    if (this->parameterList_->sublist("Exporter").get("Export material fields", false)) {
+        const auto names = getPostprocessingNames();
+        TEUCHOS_TEST_FOR_EXCEPTION(names.empty(), std::logic_error,
+            "Export material fields requires a solid material with post-processing support.");
+        auto values = getPostProcessingData();
+        if (exporterMaterial_.is_null()) {
+            materialOutput_ = values;
+            auto domain = this->getDomain(2);
+            auto mesh = Teuchos::rcp_const_cast<Mesh_Type>(domain->getMesh());
+            exporterMaterial_ = Teuchos::rcp(new Exporter_Type());
+            exporterMaterial_->setup("solid_material", mesh, domain->getFEType(),
+                this->parameterList_->sublist("Exporter").get("Export every X timesteps", 1),
+                this->parameterList_);
+            for (UN i = 0; i < names.size(); ++i) {
+                MultiVectorConstPtr_Type field = materialOutput_->getBlock(i);
+                exporterMaterial_->addVariable(field, names[i], "Scalar", 1, domain->getMapUnique());
+            }
+        } else {
+            materialOutput_->update(1., *values, 0.);
+        }
+        // This hook runs after convergence, before committing the timestep.
+        exporterMaterial_->save(timeSteppingTool_->currentTime() + timeSteppingTool_->get_dt());
+    }
     if ( this->getParameterList()->sublist("General").get("Export drag and lift",false) ) {
         
         int dim = this->dim_;
@@ -1714,6 +1759,21 @@ void FSI<SC,LO,GO,NO>::captureAdditionalRecoveryState(double time)
             checkpoint::writeOutletState(state, path, model, time);
         });
     }
+}
+
+template<class SC,class LO,class GO,class NO>
+typename FSI<SC,LO,GO,NO>::BlockMultiVectorPtr_Type FSI<SC,LO,GO,NO>::getPostProcessingData() const
+{
+    if (problemStructureNonLin_.is_null())
+        return Teuchos::rcp(new BlockMultiVector_Type(0));
+    return problemStructureNonLin_->getPostProcessingData();
+}
+
+template<class SC,class LO,class GO,class NO>
+vec_string_Type FSI<SC,LO,GO,NO>::getPostprocessingNames() const
+{
+    return problemStructureNonLin_.is_null() ? vec_string_Type{} :
+        problemStructureNonLin_->getPostprocessingNames();
 }
 
 template<class SC,class LO,class GO,class NO>

@@ -6,6 +6,7 @@
 #endif
 
 #include <vector>
+#include <algorithm>
 //#include <iostream>
 
 namespace FEDD {
@@ -188,6 +189,104 @@ AssembleFE<SC,LO,GO,NO>(flag, nodesRefConfig, params, tuple)
     massMatrix_ = Teuchos::rcp( new SmallMatrix_Type(10,0.));
 }
 
+
+template <class SC, class LO, class GO, class NO>
+vec_dbl_Type AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC,LO,GO,NO>::getDomainData() const
+{
+    std::vector<double> domainData = {this->fA_, this->lambdaC50_, this->gamma3_, this->lambdaBarCDotMax_, this->lambdaBarCDotMin_, this->gamma2_, this->gamma1_, this->eta_, this->ca50_, this->k2_, this->k5_,
+						   this->k3_, this->k4_, this->k7_, this->kappa_, this->beta1_, this->muA_, this->beta2_, this->alpha2_, this->alpha3_, this->alpha1_, this->alpha4_, this->alpha5_,
+						   this->gamma6_, this->lambdaP50_, this->kDotMin_, this->zeta1_, this->kDotMax_, this->gamma4_, this->lambdaBarDotPMin_, this->lambdaBarDotPMax_, this->gamma5_, this->zeta2_,
+                           this->DeltaLambdaBarPMin_, this->p1_, this->p3_, this->c50_, this->d0_, this->m_, this->activeStartTime_, this->kEtaPlus_, this->mEtaPlus_, this->growthStartTime_,
+						   this->reorientationStartTime_, this->growthEndTime_, this->reorientationEndTime_, this->kThetaPlus_, this->kThetaMinus_, this->mThetaPlus_, this->mThetaMinus_, this->thetaPlus1_,
+						   this->thetaPlus2_, this->thetaPlus3_, this->thetaMinus1_, this->thetaMinus2_, this->thetaMinus3_, this->kMin_, this->rho_};
+#ifdef FEDD_HAVE_ACEGENINTERFACE
+    AceGenInterface::DeformationDiffusionSmoothMuscleActiveGrowthReorientationTetrahedra3D10 metadata;
+    const vec_string_Type legacyNames = {"Fibre angle", "LambdaC50", "Gamma3", "LambdaBarCDotMax",
+        "LambdaBarCDotMin", "Gamma2", "Gamma1", "Eta", "Ca50", "K2", "K5", "K3", "K4", "K7",
+        "Kappa", "Beta1", "MuA", "Beta2", "Alpha2", "Alpha3", "Alpha1", "Alpha4", "Alpha5",
+        "Gamma6", "LambdaP50", "KDotMin", "Zeta1", "KDotMax", "Gamma4", "LambdaBarDotPMin",
+        "LambdaBarDotPMax", "Gamma5", "Zeta2", "DeltaLambdaBarPMin", "P1", "P3", "C50", "D0",
+        "M", "ActiveStartTime", "kEtaPlus", "mEtaPlus", "growthStartTime", "reorientationStartTime",
+        "growthEndTime", "reorientationEndTime", "KThetaPlus", "KThetaMinus", "MThetaPlus",
+        "MThetaMinus", "ThetaPlus1", "ThetaPlus2", "ThetaPlus3", "ThetaMinus1", "ThetaMinus2",
+        "ThetaMinus3", "KMin", "Density"};
+    vec_dbl_Type ordered;
+    auto& parameters = this->params_->sublist("Parameter Solid");
+    for (int i = 0; i < metadata.getNumberOfDomainData(); ++i) {
+        // AceGen supplies descriptions such as "$[Mu]$a -MuA_15".
+        const std::string description = metadata.getDomainDataNames()[i];
+        const auto separator = description.find(" -");
+        std::string name = separator == std::string::npos ? description : description.substr(separator + 2);
+        const auto suffix = name.find_last_of('_');
+        if (suffix != std::string::npos)
+            name.erase(suffix);
+        if (name == "PostProcessingType") {
+            ordered.push_back(1.);
+            continue;
+        }
+        if (name == "PostProcessingPower") {
+            ordered.push_back(parameters.get("PostProcessingPower", 1.));
+            continue;
+        }
+        // The maxima retain the older Gamma1/Gamma3 interpretation.
+        std::string legacyName = name == "Gamma1Max" ? "Gamma1" :
+                                 name == "Gamma3Max" ? "Gamma3" : name;
+        auto found = std::find(legacyNames.begin(), legacyNames.end(), legacyName);
+        if (found != legacyNames.end())
+            ordered.push_back(parameters.isParameter(name) ? parameters.template get<double>(name) :
+                domainData[std::distance(legacyNames.begin(), found)]);
+        else {
+            TEUCHOS_TEST_FOR_EXCEPTION(!parameters.isParameter(name), std::logic_error,
+                "The installed AceGen model requires Parameter Solid/" << name
+                << ". Supply its value explicitly; this adapter has no legacy equivalent.");
+            ordered.push_back(parameters.template get<double>(name));
+        }
+    }
+    domainData.swap(ordered);
+#endif
+    return domainData;
+}
+
+template <class SC, class LO, class GO, class NO>
+void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC,LO,GO,NO>::postProcessing()
+{
+#ifdef FEDD_HAVE_ACEGENINTERFACE
+    double positions[30], displacements[30], concentrations[10], rates[10];
+    double accelerations[30] = {};
+    for (int i = 0; i < 10; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            positions[3*i+j] = this->nodesRefConfig_[i][j];
+            displacements[3*i+j] = (*this->solution_)[3*i+j];
+        }
+        concentrations[i] = (*this->solution_)[30+i];
+        rates[i] = (concentrations[i] - solutionC_n_[i]) / this->timeIncrement_;
+    }
+    auto domainData = getDomainData();
+    auto history = history_; // Post-processing must not commit material history.
+    AceGenInterface::DeformationDiffusionSmoothMuscleActiveGrowthReorientationTetrahedra3D10 elem(
+        positions, displacements, concentrations, accelerations, rates, domainData.data(), history.data(),
+        1.e-7, this->timeIncrement_, this->timeStep_ + this->timeIncrement_, iCode_, this->getGlobalElementID());
+    const int numberOfFields = elem.getNumberOfPostData();
+    TEUCHOS_TEST_FOR_EXCEPTION(numberOfFields == 0 || std::string(elem.getPostDataNames()[0]) != "Volume",
+        std::logic_error, "AceGen post-processing must provide volume weights in column zero.");
+    // Recompute the local state at the converged displacement before projection.
+    const int errorCode = elem.compute();
+    TEUCHOS_TEST_FOR_EXCEPTION(errorCode >= 2, std::runtime_error,
+        "AceGen post-processing failed in element " << this->getGlobalElementID());
+    // postProcess resets the element's internal updated-history buffer. Preserve
+    // the computed values before handing them back through its pointer API.
+    const double* computedHistory = elem.getHistoryUpdated();
+    vec_dbl_Type updatedHistory(computedHistory, computedHistory + historyLength_);
+    double** values = elem.postProcess(displacements, concentrations, updatedHistory.data(), rates, accelerations);
+    this->postProcessingData_ = Teuchos::rcp(new vec2D_dbl_Type(10, vec_dbl_Type(numberOfFields)));
+    for (int i = 0; i < 10; ++i)
+        for (int j = 0; j < numberOfFields; ++j)
+            (*this->postProcessingData_)[i][j] = values[i][j];
+#else
+    TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Material post-processing requires AceGen Interface.");
+#endif
+}
+
 template <class SC, class LO, class GO, class NO>
 void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC,LO,GO,NO>::assembleJacobian() {
 
@@ -274,12 +373,7 @@ void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC,LO,GO,NO>::assembleRHS(){
 	
     double accelerations[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
    	
-	std::vector<double> domainData = {this->fA_, this->lambdaC50_, this->gamma3_, this->lambdaBarCDotMax_, this->lambdaBarCDotMin_, this->gamma2_, this->gamma1_, this->eta_, this->ca50_, this->k2_, this->k5_,
-						   this->k3_, this->k4_, this->k7_, this->kappa_, this->beta1_, this->muA_, this->beta2_, this->alpha2_, this->alpha3_, this->alpha1_, this->alpha4_, this->alpha5_,
-						   this->gamma6_, this->lambdaP50_, this->kDotMin_, this->zeta1_, this->kDotMax_, this->gamma4_, this->lambdaBarDotPMin_, this->lambdaBarDotPMax_, this->gamma5_, this->zeta2_,
-		 				   this->DeltaLambdaBarPMin_, this->p1_, this->p3_, this->c50_, this->d0_, this->m_, this->activeStartTime_, this->kEtaPlus_, this->mEtaPlus_, this->growthStartTime_,
-						   this->reorientationStartTime_, this->growthEndTime_, this->reorientationEndTime_, this->kThetaPlus_, this->kThetaMinus_, this->mThetaPlus_, this->mThetaMinus_, this->thetaPlus1_,
-						   this->thetaPlus2_, this->thetaPlus3_, this->thetaMinus1_, this->thetaMinus2_, this->thetaMinus3_, this->kMin_, this->rho_};
+	std::vector<double> domainData = getDomainData();
 
     double rates[10];
 
@@ -394,12 +488,7 @@ void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC,LO,GO,NO>::assemble_SCI_S
     double accelerations[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
    
    
-    std::vector<double> domainData = {this->fA_, this->lambdaC50_, this->gamma3_, this->lambdaBarCDotMax_, this->lambdaBarCDotMin_, this->gamma2_, this->gamma1_, this->eta_, this->ca50_, this->k2_, this->k5_,
-						   this->k3_, this->k4_, this->k7_, this->kappa_, this->beta1_, this->muA_, this->beta2_, this->alpha2_, this->alpha3_, this->alpha1_, this->alpha4_, this->alpha5_,
-						   this->gamma6_, this->lambdaP50_, this->kDotMin_, this->zeta1_, this->kDotMax_, this->gamma4_, this->lambdaBarDotPMin_, this->lambdaBarDotPMax_, this->gamma5_, this->zeta2_,
-		 				   this->DeltaLambdaBarPMin_, this->p1_, this->p3_, this->c50_, this->d0_, this->m_, this->activeStartTime_, this->kEtaPlus_, this->mEtaPlus_, this->growthStartTime_,
-						   this->reorientationStartTime_, this->growthEndTime_, this->reorientationEndTime_, this->kThetaPlus_, this->kThetaMinus_, this->mThetaPlus_, this->mThetaMinus_, this->thetaPlus1_,
-						   this->thetaPlus2_, this->thetaPlus3_, this->thetaMinus1_, this->thetaMinus2_, this->thetaMinus3_, this->kMin_, this->rho_};
+    std::vector<double> domainData = getDomainData();
 
 
 	double rates[10];

@@ -303,7 +303,8 @@ int main(int argc, char *argv[]) {
                     
                 }
             }
-            
+            domainVelocity->exportNodeFlags();
+
             std::vector<double> parameter_vec(1);
             if ( !bcType.compare("parabolic") || !bcType.compare("parabolic_benchmark") || !bcType.compare("parabolic_benchmark_sin") )
                 parameter_vec[0] = parameterListProblem->sublist("Parameter").get("MaxVelocity",1.5);

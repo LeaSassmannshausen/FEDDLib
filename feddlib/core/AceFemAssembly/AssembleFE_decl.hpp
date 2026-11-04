@@ -169,7 +169,10 @@ namespace FEDD {
         /*!
          \brief This function is called at the end of each Newton step after updating the solution vector.
         */
-        void postProcessing();
+        virtual void postProcessing();
+
+        vec2D_dbl_ptr_Type getPostProcessingData() const { return postProcessingData_; }
+
 		/// TODO: PostProcessing: Teuchos::Array with values and one global Array with Strings and names
 
         /*!
@@ -224,6 +227,7 @@ namespace FEDD {
         */
         void changeLinearization(std::string linearization) {this->linearization_ = linearization;};
     protected:
+        vec2D_dbl_ptr_Type postProcessingData_;
 
         /*!
          \brief Constructor

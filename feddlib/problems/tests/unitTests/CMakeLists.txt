@@ -1,4 +1,9 @@
 # Checkpoint compatibility failures must reach every MPI rank without hanging.
+if(TPL_ENABLE_AceGENInterface)
+    tribits_add_executable(aceGenStructureUnitTest SOURCES aceGenStructureUnitTest.cpp)
+    tribits_add_test(aceGenStructureUnitTest NAME tests_unitTests_aceGenStructure NUM_MPI_PROCS 1 TIMEOUT 120)
+endif()
+
 tribits_add_executable(timeSteppingUnitTest SOURCES timeSteppingUnitTest.cpp)
 tribits_add_test(timeSteppingUnitTest NAME tests_unitTests_timeStepping NUM_MPI_PROCS 2 TIMEOUT 60)
 tribits_add_executable(checkpointMetadataUnitTest SOURCES checkpointMetadataUnitTest.cpp)

@@ -33,6 +33,7 @@ public:
     typedef typename Problem_Type::MultiVectorPtr_Type MultiVectorPtr_Type;
     typedef typename Problem_Type::MultiVectorConstPtr_Type MultiVectorConstPtr_Type;
     typedef typename Problem_Type::BlockMultiVectorPtr_Type BlockMultiVectorPtr_Type;
+    typedef typename Problem_Type::BlockMultiVector_Type BlockMultiVector_Type;
     
     typedef typename Problem_Type::DomainConstPtr_Type DomainConstPtr_Type;
     typedef typename Problem_Type::CommConstPtr_Type CommConstPtr_Type;
@@ -70,7 +71,13 @@ public:
 
     void updateTime() const;
 
-    void updateConcentration(MultiVectorConstPtr_Type concentration) {concentration_.reset(new MultiVector_Type (concentration));}
+    BlockMultiVectorPtr_Type getPostProcessingData() const;
+    vec_string_Type getPostprocessingNames() const;
+
+    void updateConcentration(MultiVectorConstPtr_Type concentration)
+    {
+        concentration_->importFromVector(concentration, false);
+    }
 
     mutable Teuchos::RCP<TimeSteppingTools>	timeSteppingTool_;
 
@@ -87,6 +94,8 @@ private:
     bool loadStepping_;
     bool externalForce_;
     bool nonlinearExternalForce_;
+    bool useAceGenCoupledMaterial_ = false;
+    vec_string_Type postProcessingnames_;
     /*####################*/
 
 };

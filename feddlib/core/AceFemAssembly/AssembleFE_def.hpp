@@ -126,8 +126,8 @@ void AssembleFE<SC,LO,GO,NO>::preProcessing( ){
 
 template <class SC, class LO, class GO, class NO>
 void AssembleFE<SC,LO,GO,NO>::postProcessing( ){
-
-
+    TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error,
+        "Material post-processing is not implemented for this element.");
 };
 
 

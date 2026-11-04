@@ -163,6 +163,10 @@ class FE_ElementAssembly {
                                 bool callFillComplete = true,
                                 int FELocExternal=-1);
 
+    void postProcessing(int type, MultiVectorPtr_Type& postProcessingVec);
+
+    void updateSolutionAssemblyFEElements(MultiVectorPtr_Type d_rep, MultiVectorPtr_Type c_rep);
+
     void advanceInTimeAssemblyFEElements(double dt ,MultiVectorPtr_Type d_rep , MultiVectorPtr_Type c_rep) 
     {
         //UN FElocChem = 1; //checkFE(dim,FETypeChem); // Checks for different domains which belongs to a certain fetype

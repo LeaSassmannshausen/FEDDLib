@@ -25,20 +25,45 @@ u_rep_()
     this->initNOXParameters();
     this->addVariable( domain , FEType , "d_s" , domain->getDimension());
     this->dim_ = this->getDomain(0)->getDimension();
+    this->parameterList_->sublist("Parameter").set("Dimension", this->dim_);
     
     C_ = this->parameterList_->sublist("Parameter").get("C",1.);
     
     double density = this->parameterList_->sublist("Parameter").get("Density",1.);
-//    poissonRatio_ = this->parameterList_->sublist("Parameter").get("Poisson Ratio",0.4);
-//    mue_ = this->parameterList_->sublist("Parameter").get("Mu",2.0e+6);
-//    // Berechne daraus nun E (Youngsches Modul) und die erste Lamé-Konstante \lambda
-//    E_ = mue_*2.*(1. + poissonRatio_);
-//    lambda_ = (poissonRatio_*E_)/((1 + poissonRatio_)*(1 - 2*poissonRatio_));
+
     loadStepping_ =    !(parameterList->sublist("Timestepping Parameter").get("Class","Singlestep")).compare("Loadstepping");
     externalForce_ =   parameterList->sublist("Parameter").get("External Force",false);
     nonlinearExternalForce_ = parameterList->sublist("Parameter").get("Nonlinear External Force",false);
 
     timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter") , this->comm_));
+
+    // Mechanics-only FSI has no concentration equation. Keep an explicit zero
+    // field on the repeated solid map; coupled callers may replace its values.
+    concentration_ = Teuchos::rcp(new MultiVector_Type(domain->getMapRepeated(), 1));
+    concentration_->putScalar(0.);
+    auto& material = this->parameterList_->sublist("Parameter");
+    const std::string model = material.get("Material model", "Neo-Hooke");
+    const bool namedAceGenMaterial = model == "SCI_NH" || model == "SCI_SMC_MLCK" ||
+                                    model == "SCI_SMC_Active_Growth_Reorientation";
+    useAceGenCoupledMaterial_ = namedAceGenMaterial || material.get("SCI", false) || material.get("FSCI", false);
+    if (useAceGenCoupledMaterial_) {
+        TEUCHOS_TEST_FOR_EXCEPTION(!material.get("Use AceGen Interface", true), std::logic_error,
+            "SCI material models require Use AceGen Interface=true.");
+#ifndef FEDD_HAVE_ACEGENINTERFACE
+        TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error,
+            "SCI material models require a build with AceGen Interface enabled.");
+#endif
+        TEUCHOS_TEST_FOR_EXCEPTION(this->dim_ != 3 || FEType != "P2", std::logic_error,
+            "SCI material models require a 3D P2 solid discretization.");
+        const std::string structureModel = material.get("Structure Model", namedAceGenMaterial ? model : std::string("SCI_NH"));
+        TEUCHOS_TEST_FOR_EXCEPTION(namedAceGenMaterial && structureModel != model, std::logic_error,
+            "Material model and Structure Model select different AceGen materials.");
+    }
+    if (useAceGenCoupledMaterial_ &&
+        material.get("Structure Model", "SCI_NH") == "SCI_SMC_Active_Growth_Reorientation")
+        postProcessingnames_ = {"vonMisesStress", "SCirc", "SAxial", "SRadial", "W",
+            "a11", "a12", "a13", "a21", "a22", "a23", "Stretch1", "Stretch2",
+            "nC1", "nC2", "nD1", "nD2"};
 
 }
 
@@ -107,7 +132,18 @@ void NonLinElasticity<SC,LO,GO,NO>::assemble(std::string type) const{
 template<class SC,class LO,class GO,class NO>
 void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
 {
-    timeSteppingTool_->t_ = timeSteppingTool_->t_ + timeSteppingTool_->dt_prev_;
+    timeSteppingTool_->advanceTime();
+
+    if(this->verbose_)
+        std::cout << "NonLinElasticity: Update time to " << timeSteppingTool_->currentTime() << " with dt_prev = " << timeSteppingTool_->dt_prev_ << std::endl;
+
+    if (useAceGenCoupledMaterial_) {
+        MultiVectorConstPtr_Type d = this->solution_->getBlock(0);
+        u_rep_->importFromVector(d, true);
+        this->feFactory_->advanceInTimeAssemblyFEElements(timeSteppingTool_->dt_, u_rep_, concentration_);
+     }
+    this->newtonStep_ = 0; // Resetting newton step
+
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -127,13 +163,14 @@ void NonLinElasticity<SC,LO,GO,NO>::reAssemble(std::string type) const {
         
     #ifdef FEDD_HAVE_ACEGENINTERFACE
         bool useInterface = this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true);
-        if(this->getFEType(0) =="P2" && useInterface && this->dim_==3 && material_model == "Neo-Hooke"){
+        if (useAceGenCoupledMaterial_ ||
+            (this->getFEType(0) == "P2" && useInterface && this->dim_ == 3 && material_model == "Neo-Hooke")) {
             this->system_->addBlock( W, 0, 0 );  
            
             f->putScalar(0.);   
             this->residualVec_->addBlock( f, 0 ); 
 
-            if(this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true )
+            if (useAceGenCoupledMaterial_)
                 this->feFactory_->assemblyAceDeformDiffuBlock(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(0)->getFEType(), 2, 1,this->dim_,concentration_,u_rep_,this->system_,0,0,this->residualVec_,0, this->parameterList_, "Jacobian", true/*call fillComplete*/);
             else 
                 this->feFactory_->assemblyNonLinearElasticity(this->dim_, this->getDomain(0)->getFEType(),2, this->dim_, u_rep_, this->system_, this->residualVec_, this->parameterList_,true);
@@ -251,13 +288,12 @@ void NonLinElasticity<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type,
     this->reAssemble("Newton-Residual");
 
 #ifdef FEDD_HAVE_ACEGENINTERFACE
-    if(this->getFEType(0) =="P2" && this->parameterList_->sublist("Parameter").get("Use AceGen Interface", true)){
-        if(this->parameterList_->sublist("Parameter").get("SCI",false) == true || this->parameterList_->sublist("Parameter").get("FSCI",false) == true ){
+    if (useAceGenCoupledMaterial_) {
             this->feFactory_->assemblyAceDeformDiffuBlock(this->dim_, this->getDomain(0)->getFEType(), this->getDomain(0)->getFEType(), 2, 1,this->dim_,concentration_,u_rep_,this->system_,0,0,this->residualVec_,0, this->parameterList_, "Rhs", true/*call fillComplete*/);
-        }            
     }
  #endif
-    if(this->parameterList_->sublist("Parameter").get("SCI",false) == false && this->parameterList_->sublist("Parameter").get("FSCI",false) == false ){
+    // Both assembly backends supply internal forces. FSI requests rhs - f_int.
+    {
 
         if (!type.compare("standard")){
             this->residualVec_->update(-1.,*this->rhs_,1.);
@@ -277,5 +313,32 @@ void NonLinElasticity<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type,
         this->bcFactory_->setBCMinusVector( this->residualVec_, this->solution_, time );
     }
 }
+
+
+template<class SC,class LO,class GO,class NO>
+typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticity<SC,LO,GO,NO>::getPostProcessingData() const
+{
+    if (postProcessingnames_.empty())
+        return Teuchos::rcp(new BlockMultiVector_Type(0));
+
+    MultiVectorConstPtr_Type displacement = this->solution_->getBlock(0);
+    u_rep_->importFromVector(displacement, true);
+    this->feFactory_->updateSolutionAssemblyFEElements(u_rep_, concentration_);
+    const int columns[] = {10, 11, 12, 13, 23, 39, 40, 41, 42, 43, 44, 27, 28, 45, 46, 47, 48};
+    BlockMultiVectorPtr_Type result = Teuchos::rcp(new BlockMultiVector_Type(postProcessingnames_.size()));
+    for (UN i = 0; i < postProcessingnames_.size(); ++i) {
+        MultiVectorPtr_Type field = Teuchos::rcp(new MultiVector_Type(this->getDomain(0)->getMapUnique(), 1));
+        this->feFactory_->postProcessing(columns[i], field);
+        result->addBlock(field, i);
+    }
+    return result;
+}
+
+template<class SC,class LO,class GO,class NO>
+vec_string_Type NonLinElasticity<SC,LO,GO,NO>::getPostprocessingNames() const
+{
+    return postProcessingnames_;
+}
+
 }
 #endif

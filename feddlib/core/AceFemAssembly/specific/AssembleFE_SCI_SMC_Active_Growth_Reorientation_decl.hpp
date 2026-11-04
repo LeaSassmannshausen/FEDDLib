@@ -58,6 +58,8 @@ class AssembleFE_SCI_SMC_Active_Growth_Reorientation : public AssembleFE<SC,LO,G
 
 		void advanceInTime(double dt) override;
 
+        void postProcessing() override;
+
         void getMassMatrix(SmallMatrixPtr_Type &massMatrix ){massMatrix=massMatrix_;}
 
     protected:
@@ -66,6 +68,7 @@ class AssembleFE_SCI_SMC_Active_Growth_Reorientation : public AssembleFE<SC,LO,G
     private:
 
         void assemble_SCI_SMC_Active_Growth_Reorientation(SmallMatrixPtr_Type &elementMatrix);
+        vec_dbl_Type getDomainData() const;
 
 
         friend class AssembleFEFactory<SC,LO,GO,NO>; // Must have for specfic classes
