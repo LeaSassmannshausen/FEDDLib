@@ -259,17 +259,20 @@ public:
 
 private:
     /**
-     * @brief Restore the ALE displacement buffers used to compute mesh velocity.
+     * @brief Restore the geometry solution and ALE mesh-velocity history.
      *
      * Reads Solutiond_f.h5 from the configured restart directory at the key
      * std::to_string(restartTime), using geometry domain 4's unique vector map.
-     * Imports the saved displacement into both repeated-map buffers,
+     * Updates the geometry subproblem's unique solution, which is shared with
+     * coupled block 4 for GI, and imports both repeated-map buffers,
      * meshDisplacementOld_rep_ and meshDisplacementNew_rep_, so the first
      * resumed mesh update has the checkpoint geometry as its baseline.
-     * Moving the mesh and rebuilding operators are separate operations.
+     * Coordinates remain unchanged while reference operators are assembled.
+     * The resumed GI time loop moves the mesh before its first boundary or
+     * current-mesh mass evaluation; GE moves it after its geometry solve.
      *
      * @param[in] restartTime Physical time used to identify the checkpoint.
-     * @pre Geometry domain 4 and both ALE displacement buffers are initialized.
+     * @pre The geometry solution and both ALE displacement buffers are initialized.
      * @note Call collectively on the problem communicator. Primary solution
      *       restoration skips d_f because it is restored here separately.
      */

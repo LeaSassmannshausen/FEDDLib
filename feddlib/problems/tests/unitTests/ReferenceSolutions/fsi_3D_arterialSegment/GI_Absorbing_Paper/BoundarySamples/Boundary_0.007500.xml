@@ -1,0 +1,12 @@
+<ParameterList name="ANONYMOUS">
+  <Parameter docString="" id="0" isDefault="false" isUsed="true" name="Inlet area" type="double" value="2.78603299242518865e-02"/>
+  <Parameter docString="" id="1" isDefault="false" isUsed="true" name="Outlet area" type="double" value="2.77851683367507304e-02"/>
+  <Parameter docString="" id="2" isDefault="false" isUsed="true" name="Initial outlet area" type="double" value="2.53605041802993543e-02"/>
+  <Parameter docString="" id="3" isDefault="false" isUsed="true" name="Inlet flow" type="double" value="3.00002409368813439e+00"/>
+  <Parameter docString="" id="4" isDefault="false" isUsed="true" name="Outlet flow" type="double" value="2.96363886633714824e+00"/>
+  <Parameter docString="" id="5" isDefault="false" isUsed="true" name="Previous outlet flow" type="double" value="2.70018033456073425e+00"/>
+  <Parameter docString="" id="6" isDefault="false" isUsed="true" name="Averaged outlet flow" type="double" value="2.83190960044894124e+00"/>
+  <Parameter docString="" id="7" isDefault="false" isUsed="true" name="Outlet pressure" type="double" value="1.11531901390148960e+02"/>
+  <Validators/>
+</ParameterList>
+

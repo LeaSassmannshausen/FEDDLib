@@ -18,6 +18,7 @@
 #include <Xpetra_DefaultPlatform.hpp>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -38,6 +39,71 @@ typedef FSI<SC,LO,GO,NO> FSI_Type;
 typedef MultiVector<SC,LO,GO,NO> MultiVector_Type;
 
 namespace {
+
+/** @brief Sample the actual start-of-step pressure evaluation for GI restart tests.
+ * The uninterrupted run writes samples; a resumed run compares against the same
+ * physical times. No extra pressure evaluation is performed, so outlet history
+ * advances exactly as it does in the production time loop.
+ */
+class BoundaryCheckedFSI : public FSI_Type {
+public:
+    using FSI_Type::FSI_Type;
+
+    void setBoundarySamples(const std::string& output, const std::string& reference)
+    {
+        boundaryOutput_ = output;
+        boundaryReference_ = reference;
+    }
+
+    void assemble(std::string type = "") const override
+    {
+        const bool sample = type == "ComputePressureRHSInTime" && !boundaryOutput_.empty();
+        const double previousFlow = sample ? this->getOutletState().previousFlowRate : 0.;
+        FSI_Type::assemble(type);
+        if (!sample) return;
+
+        double inletArea = 0., outletArea = 0., inletFlow = 0.;
+        this->feFactory_->assemblyArea(3, inletArea, 4);
+        this->feFactory_->assemblyArea(3, outletArea, 5);
+        this->feFactory_->assemblyFlowRate(3, inletFlow, this->getFEType(0), 3, 4, this->u_rep_);
+        const FSIOutletState& state = this->getOutletState();
+        const double time = this->timeSteppingTool_->currentTime();
+        Teuchos::ParameterList values;
+        values.set("Inlet area", inletArea).set("Outlet area", outletArea)
+            .set("Initial outlet area", state.initialOutletArea)
+            .set("Inlet flow", inletFlow).set("Outlet flow", state.currentFlowRate)
+            .set("Previous outlet flow", previousFlow)
+            .set("Averaged outlet flow", 0.5 * (previousFlow + state.currentFlowRate))
+            .set("Outlet pressure", state.pressure);
+        checkpoint::onRoot(*this->comm_, [&] {
+            const std::string filename = "Boundary_" + std::to_string(time) + ".xml";
+            if (!boundaryReference_.empty()) {
+                const RCP<Teuchos::ParameterList> reference = Teuchos::getParametersFromXmlFile(
+                    joinPath(boundaryReference_, filename));
+                const double initialArea = reference->get<double>("Initial outlet area");
+                TEUCHOS_TEST_FOR_EXCEPTION(std::abs(reference->get<double>("Outlet area") - initialArea)
+                        <= 1.e-8 * initialArea, std::runtime_error,
+                    "GI boundary reference must have a deformed outlet to exercise mesh restoration.");
+                for (Teuchos::ParameterList::ConstIterator it = values.begin(); it != values.end(); ++it) {
+                    const std::string name = values.name(it);
+                    const double expected = reference->get<double>(name);
+                    const double error = std::abs(values.get<double>(name) - expected);
+                    const double allowed = 1.e-12 + 1.e-8 * std::abs(expected);
+                    std::cout << "GI boundary restart error at " << time << " (" << name << "): "
+                              << error << " (allowed " << allowed << "): "
+                              << (std::isfinite(error) && error <= allowed ? "PASS" : "FAIL") << '\n';
+                    TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(error) || error > allowed,
+                                               std::runtime_error, "GI boundary restart mismatch: " << name);
+                }
+            }
+            std::filesystem::create_directories(boundaryOutput_);
+            Teuchos::writeParameterListToXmlFile(values, joinPath(boundaryOutput_, filename));
+        });
+    }
+
+private:
+    std::string boundaryOutput_, boundaryReference_;
+};
 
 void zeroDirichlet(double*, double* result, double, const double*)
 {
@@ -112,12 +178,14 @@ bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, RCP<const T
     const double finalTime = timeParameters.get<double>("Final time");
     const double tolerance = timeParameters.get<double>("Restart tolerance");
     const double absoluteTolerance = timeParameters.get<double>("Restart absolute tolerance");
-    const char* checkpointNames[] = {"Solutionu_f", "Solutionp", "Solutiond_s"};
-    const char* fieldNames[] = {"fluid velocity", "fluid pressure", "solid displacement"};
+    const char* checkpointNames[] = {"Solutionu_f", "Solutionp", "Solutiond_s", "Solutiond_f"};
+    const char* fieldNames[] = {"fluid velocity", "fluid pressure", "solid displacement", "mesh displacement"};
+    const int solutionBlocks[] = {0, 1, 2, 4};
+    const int fieldCount = parameters->sublist("Parameter").get("Geometry Explicit", true) ? 3 : 4;
     bool passed = true;
 
-    for (int block = 0; block < 3; ++block) {
-        auto solution = fsi.getSolution()->getBlock(block);
+    for (int block = 0; block < fieldCount; ++block) {
+        auto solution = fsi.getSolution()->getBlock(solutionBlocks[block]);
         const auto referenceFile = timeParameters.isParameter("Reference directory")
             ? joinPath(timeParameters.get<std::string>("Reference directory"), checkpointNames[block])
             : restartFile(parameters, checkpointNames[block]);
@@ -195,6 +263,8 @@ int main(int argc, char* argv[])
     const std::string baseProblemFile = "parametersProblemFSI.xml";
     std::string problemFile = baseProblemFile;
     std::string pressureModel = "Absorbing Paper";
+    std::string solverFile = "parametersSolverFSI.xml";
+    std::string boundarySamples, boundaryReference;
     std::string checkpointOutput;
     double restartTime = -1.;
     int restartSteps = 0;
@@ -202,6 +272,9 @@ int main(int argc, char* argv[])
     Teuchos::CommandLineProcessor commandLine;
     commandLine.setOption("problemfile", &problemFile, "Case parameters or restart overrides.");
     commandLine.setOption("pressure-model", &pressureModel, "Resistance, Absorbing, or Absorbing Paper.");
+    commandLine.setOption("solverfile", &solverFile, "Coupled linear solver settings.");
+    commandLine.setOption("boundary-samples", &boundarySamples, "Write start-of-step boundary samples for a GI regression.");
+    commandLine.setOption("boundary-reference", &boundaryReference, "Compare boundary samples with an uninterrupted GI run.");
     commandLine.setOption("restart-time", &restartTime, "Override the restart time.");
     commandLine.setOption("restart-steps", &restartSteps, "Override restart length with a fixed step count; zero keeps the configured Final time.");
     commandLine.setOption("checkpoint-output", &checkpointOutput, "Enable checkpoint output to this directory.");
@@ -216,7 +289,7 @@ int main(int argc, char* argv[])
     if (problemFile != baseProblemFile)
         parameters->setParameters(*Teuchos::getParametersFromXmlFile(problemFile));
     parameters->setParameters(*Teuchos::getParametersFromXmlFile("parametersPrecGE.xml"));
-    parameters->setParameters(*Teuchos::getParametersFromXmlFile("parametersSolverFSI.xml"));
+    parameters->setParameters(*Teuchos::getParametersFromXmlFile(solverFile));
     parameters->sublist("Parameter Fluid").set("Pressure Boundary Condition", pressureModel);
     if (restartTime >= 0.) parameters->sublist("Timestepping Parameter").set("Time step", restartTime);
     if (!checkpointOutput.empty())
@@ -273,8 +346,11 @@ int main(int argc, char* argv[])
     fluid->setReferenceConfiguration();
     solid->setReferenceConfiguration();
 
-    RCP<SmallMatrix<int>> timeBlocks = rcp(new SmallMatrix<int>(4));
+    const bool geometryExplicit = parameters->sublist("Parameter").get("Geometry Explicit", true);
+    RCP<SmallMatrix<int>> timeBlocks = rcp(new SmallMatrix<int>(geometryExplicit ? 4 : 5));
     (*timeBlocks)[0][0] = (*timeBlocks)[0][1] = (*timeBlocks)[2][2] = 1;
+    if (!geometryExplicit)
+        (*timeBlocks)[0][4] = (*timeBlocks)[1][4] = 1;
     // Build the reference inlet profile before FSI restores and moves the mesh.
     // Its nodal values must match those used by the uninterrupted run.
     auto profile = rcp(new MultiVector_Type(fluid->getMapUnique()));
@@ -289,9 +365,10 @@ int main(int argc, char* argv[])
     if (pressureModel == "Resistance" && !validateOnly && !checkResistanceAssembly(fluid, comm))
         return EXIT_FAILURE;
 
-    FSI_Type fsi(fluid, discType, fluid, discType, solid, discType,
+    BoundaryCheckedFSI fsi(fluid, discType, fluid, discType, solid, discType,
                  interfaceDomain, discType, fluid, discType,
                  fluidParameters, solidParameters, parameters, geometryParameters, timeBlocks);
+    fsi.setBoundarySamples(boundarySamples, boundaryReference);
     if (validateOnly) return EXIT_SUCCESS;
 
     auto boundaries = rcp(new BCBuilder_Type());
