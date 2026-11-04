@@ -614,7 +614,7 @@ void FSI<SC,LO,GO,NO>::reAssemble(std::string type) const
             // TODO: Shape
             // domain(0) = domain(4)
             MatrixPtr_Type shapeVelocity = Teuchos::rcp(new Matrix_Type( this->getDomain(0)->getMapVecFieldUnique(), this->getDomain(0)->getDimension() * this->getDomain(0)->getApproxEntriesPerRow() ) );
-            MatrixPtr_Type shapeDiv = Teuchos::rcp(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(1)->getDimension() * this->getDomain(1)->getApproxEntriesPerRow() ) ); // shape fuer div-Nebenbedingung
+            MatrixPtr_Type shapeDiv = Teuchos::rcp(new Matrix_Type( this->getDomain(1)->getMapUnique(), this->getDomain(4)->getDimension() * this->getDomain(4)->getApproxEntriesPerRow() ) ); // shape fuer div-Nebenbedingung
 
             this->feFactory_->assemblyShapeDerivativeVelocity(this->dim_, this->domain_FEType_vec_.at(4), this->domain_FEType_vec_.at(1),
                             shapeVelocity, 4, u_rep_, w_rep_, p_rep_, dt, density, viscosity, true);
