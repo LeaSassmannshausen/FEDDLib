@@ -4,8 +4,6 @@ tribits_add_executable(
 )
 
 set(boundary_test_parameters
-    parametersPrecGE.xml
-    parametersPrecGI.xml
     parametersPrecGeometry.xml
     parametersProblemFSI.xml
     parametersSolverFSI.xml

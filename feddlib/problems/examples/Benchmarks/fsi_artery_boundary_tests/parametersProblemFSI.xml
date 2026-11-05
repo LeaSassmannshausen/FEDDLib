@@ -28,26 +28,31 @@
         <Parameter name="Criterion" type="string" value="Update"/><!-- Criterion for nonlinear solve, Residual or Update: Residual is the norm of the nonlinear residual; Update is the norm of the update -->
     </ParameterList>
      <ParameterList name="Parameter Solid">        
-        <Parameter name="Material model" type="string" value="Neo-Hooke"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
+        <Parameter name="Material model" type="string" value="SCI_SMC_MLCK"/><!--Saint Venant-Kirchhoff,Neo-Hooke, Mooney-Rivlin -->
         <Parameter name="Density" type="double"   value="1.0e-03"/><!-- kg/cm³ -->
         <!-- Parameters NH4 Neo Hooke Model from 'Comparison of arterial wall models in fluid–structure interaction simulations' -->
         <Parameter name="Mu" type="double" value="1476.5"/><!-- 1kg⋅cm/s² * 1/cm²-->
-        <Parameter name="Mu1" type="double" value="1476.5"/><!-- 1kg⋅cm/s² * 1/cm²-->
-        <Parameter name="Mu2" type="double" value="1476.5"/><!-- 1kg⋅cm/s² * 1/cm²-->
-
         <Parameter name="E" type="double" value="4400.0"/> <!-- 1kg⋅cm/s² * 1/cm² -->
-        <Parameter name="E1" type="double" value="4400.0"/><!-- 1kg⋅cm/s² * 1/cm²-->
-        <Parameter name="E2" type="double" value="4400.0"/><!-- 1kg⋅cm/s² * 1/cm²-->
-
-        <Parameter name="c1" type="double" value="0.25"/>
         <Parameter name="Poisson Ratio" type="double" value="0.49"/>
+
+          <!-- ######################################## -->
+        <Parameter name="Use AceGen Interface" type="bool" value="true"/>
+        <Parameter name="SCI" type="bool" value="true"/>
+ 	   <Parameter name="Structure Model" type="string" value="SCI_SMC_MLCK"/>
+        <Parameter name="FA" type="double" value="43.0" /><!-- ° - degree-->
+
+        <Parameter name="Alpha1" type="double" value="17.5e1" /><!-- 1kg⋅cm/s² * 1/cm²-->
+        <Parameter name="Alpha2" type="double" value="499.8e1" /> <!-- 1kg⋅cm/s² * 1/cm²-->
+        <Parameter name="Alpha3" type="double" value="2.4" /> <!-- dimensionless -->
+        <Parameter name="Alpha4" type="double" value="30001.9e1" /><!--1kg⋅cm/s² * 1/cm²-->
+        <Parameter name="Alpha5" type="double" value="5.1" /> <!-- dimensionless -->
+        <!-- ######################################## -->
     </ParameterList>
 
     <ParameterList name="Parameter Fluid">
         <!-- Analytic parabolic_artery inlet; lengths are in cm after mesh conversion. -->
         <Parameter name="BC Type" type="string" value="parabolic_artery"/>
         <Parameter name="Inflow Flag" type="int" value="4"/>
-        <Parameter name="MaxVelocity" type="double" value="118.28"/>
         <Parameter name="Inflow Ramp Time" type="double" value="0.1"/>
         <Parameter name="Inflow Center X" type="double" value="-0.005312206024366768"/>
         <Parameter name="Inflow Center Y" type="double" value="0.01241702653722231"/>
@@ -65,7 +70,7 @@
 
 
 
-        <Parameter name="Flowrate" type="double" value="3."/><!-- For Absorbing BC-->
+        <Parameter name="Flowrate" type="double" value="3."/><!-- Target inlet flow in cm^3/s; also used by the absorbing outlet model. -->
 
         <Parameter name="Viscosity" type="double" value="2.91e-2"/> <!-- kinematic viscosity cm^2/s converted from dynamic visco 0.003 Pa s -->
         <Parameter name="Density" type="double" value="1.03e-03"/><!-- kg/cm³ -->
@@ -123,6 +128,9 @@
         <Parameter name="Name coarse functions block2" type="string" value="phiP"/>
         <Parameter name="Name coarse functions block3" type="string" value="phiD"/>
         <Parameter name="Exclude coarse functions block4" type="bool" value="true"/>
+
+        <Parameter name="Export material fields" type="bool" value="true"/>
+        <Parameter name="Export every X timesteps" type="int" value="1"/>
         
     </ParameterList>
     <ParameterList name="General">

@@ -60,14 +60,19 @@ void inflowParabolicArtery(double* x, double* res, double t, const double* param
     }
     const double radiusSquared = major*major/(parameters[11]*parameters[11])
                                + minor*minor/(parameters[12]*parameters[12]);
+    const double speed = parameters[0] * std::max(0., 1. - radiusSquared);
+    for (int i = 0; i < 3; ++i)
+        res[i] = speed * direction[i];
+}
+
+void flowrateParabolicArtery(double* x, double* res, double t, const double* parameters)
+{
     double ramp = 1.;
     if (parameters[1] > 0.) {
         const double phase = std::max(0., std::min(1., t/parameters[1]));
         ramp = 0.5 * (1. - std::cos(M_PI * phase));
     }
-    const double speed = parameters[0] * ramp * std::max(0., 1. - radiusSquared);
-    for (int i = 0; i < 3; ++i)
-        res[i] = speed * direction[i];
+    res[0] = parameters[13] * ramp;
 }
 
 void rhsDummy(double* x, double* res, double* parameters){
@@ -126,10 +131,6 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
     Teuchos::CommandLineProcessor myCLP;
     string xmlProblemFile = "parametersProblemFSI.xml";
     myCLP.setOption("problemfile",&xmlProblemFile,".xml file with Inputparameters.");
-    string xmlPrecFileGE = "parametersPrecGE.xml"; // GE
-    string xmlPrecFileGI = "parametersPrecGI.xml"; // GI
-    myCLP.setOption("precfileGE",&xmlPrecFileGE,".xml file with Inputparameters.");
-    myCLP.setOption("precfileGI",&xmlPrecFileGI,".xml file with Inputparameters.");
     string xmlSolverFileFSI = "parametersSolverFSI.xml"; // GI
     myCLP.setOption("solverfileFSI",&xmlSolverFileFSI,".xml file with Inputparameters.");
     string xmlSolverFileGeometry = "parametersSolverGeometry.xml"; // GE
@@ -159,8 +160,6 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
 
     {
         ParameterListPtr_Type parameterListProblem = Teuchos::getParametersFromXmlFile(xmlProblemFile);
-        ParameterListPtr_Type parameterListPrecGE = Teuchos::getParametersFromXmlFile(xmlPrecFileGE);
-        ParameterListPtr_Type parameterListPrecGI = Teuchos::getParametersFromXmlFile(xmlPrecFileGI);
         ParameterListPtr_Type parameterListSolverFSI = Teuchos::getParametersFromXmlFile(xmlSolverFileFSI);
         ParameterListPtr_Type parameterListSolverGeometry = Teuchos::getParametersFromXmlFile(xmlSolverFileGeometry);
         ParameterListPtr_Type parameterListPrecGeometry = Teuchos::getParametersFromXmlFile(xmlPrecFileGeometry);
@@ -176,12 +175,6 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
         bool geometryExplicit = parameterListProblem->sublist("Parameter").get("Geometry Explicit",true);
 
         ParameterListPtr_Type parameterListAll(new Teuchos::ParameterList(*parameterListProblem)) ;
-        if(geometryExplicit)
-            parameterListAll->setParameters(*parameterListPrecGE);
-        
-        else
-            parameterListAll->setParameters(*parameterListPrecGI);
-        
         parameterListAll->setParameters(*parameterListSolverFSI);
 
         std::string preconditionerMethod = parameterListProblem->sublist("General").get("Preconditioner Method","Monolithic");
@@ -426,17 +419,18 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                     std::logic_error, "This benchmark requires the 3D parabolic_artery inlet.");
                 std::vector<double> parameter_vec;
                 parameter_vec = {
-                    inflow.get("MaxVelocity", 1.5), inflow.get("Inflow Ramp Time", 0.),
+                    1., inflow.get("Inflow Ramp Time", 0.),
                     inflow.get("Inflow Center X", 0.), inflow.get("Inflow Center Y", 0.), inflow.get("Inflow Center Z", 0.),
                     inflow.get("Inflow Direction X", 0.), inflow.get("Inflow Direction Y", 0.), inflow.get("Inflow Direction Z", 1.),
                     inflow.get("Inflow Axis X", 1.), inflow.get("Inflow Axis Y", 0.), inflow.get("Inflow Axis Z", 0.),
-                    inflow.get("Inflow Radius 1", 1.), inflow.get("Inflow Radius 2", 1.)};
+                    inflow.get("Inflow Radius 1", 1.), inflow.get("Inflow Radius 2", 1.),
+                    inflow.get("Flowrate", 3.)};
                 for (const double value : parameter_vec)
                     TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(value), std::logic_error,
                         "parabolic_artery parameters must be finite.");
-                TEUCHOS_TEST_FOR_EXCEPTION(parameter_vec[0] < 0. || parameter_vec[1] < 0. ||
+                TEUCHOS_TEST_FOR_EXCEPTION(parameter_vec[13] < 0. || parameter_vec[1] < 0. ||
                     parameter_vec[11] <= 0. || parameter_vec[12] <= 0., std::logic_error,
-                    "parabolic_artery requires positive radii and nonnegative velocity/ramp time.");
+                    "parabolic_artery requires positive radii and nonnegative flow rate/ramp time.");
                 double directionNorm = 0.;
                 for (int i = 0; i < 3; ++i)
                     directionNorm += parameter_vec[5+i]*parameter_vec[5+i];
@@ -464,18 +458,18 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                     std::logic_error, "Inflow Flag must match General/Flag Inlet Fluid.");
                 const bool zeroPressure = inflow.get("Set Outflow Pressure to Zero", false);
                 Teuchos::RCP<BCBuilder<SC,LO,GO,NO>> bcFactoryFluid(new BCBuilder<SC,LO,GO,NO>());
-                bcFactory->addBC(inflowParabolicArtery, inletFlag, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec);
-                bcFactoryFluid->addBC(inflowParabolicArtery, inletFlag, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec);
+                MultiVectorConstPtr_Type analyticProfile; // No imported profile; integrate the analytic callback.
+                bcFactory->addBC(inflowParabolicArtery, inletFlag, 0, domainFluidVelocity, "Dirichlet", dim,
+                    parameter_vec, analyticProfile, true, flowrateParabolicArtery);
+                bcFactoryFluid->addBC(inflowParabolicArtery, inletFlag, 0, domainFluidVelocity, "Dirichlet", dim,
+                    parameter_vec, analyticProfile, true, flowrateParabolicArtery);
                 if (verbose)
                     std::cout << "parabolic_artery: inlet flag " << inletFlag << ", inward direction ("
                               << parameter_vec[5] << ", " << parameter_vec[6] << ", " << parameter_vec[7]
-                              << "), radii " << parameter_vec[11] << ", " << parameter_vec[12] << " cm" << std::endl;
+                              << "), radii " << parameter_vec[11] << ", " << parameter_vec[12]
+                              << " cm, target flow rate " << parameter_vec[13] << " cm^3/s" << std::endl;
 
-                if (zeroPressure) {
-                    bcFactory->addBC(zeroBC, 5, 1, domainFluidPressure, "Dirichlet", 1); // outflow
-                    bcFactoryFluid->addBC(zeroBC, 5, 1, domainFluidPressure, "Dirichlet", 1); // outflow
-                }
-                
+                             
                 // Fuer die Teil-TimeProblems brauchen wir bei TimeProblems
                 // die bcFactory; vgl. z.B. Timeproblem::updateMultistepRhs()
                 fsi.problemFluid_->addBoundaries(bcFactoryFluid);

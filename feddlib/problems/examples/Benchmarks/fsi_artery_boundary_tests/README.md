@@ -26,7 +26,7 @@ manually run benchmark; it has no CTest registration or reference solution yet.
    `parametersProblemFSI.xml` to the new filenames. Absolute paths in the XML
    can also point to meshes outside the build directory.
 2. Set the analytic inlet parameters in `Parameter Fluid`: `BC Type` must be
-   `parabolic_artery`. Configure `MaxVelocity`, `Inflow Ramp Time`, `Inflow
+   `parabolic_artery`. Configure `Flowrate` (cm³/s), `Inflow Ramp Time`, `Inflow
    Center X/Y/Z`, `Inflow Direction X/Y/Z`, `Inflow Axis X/Y/Z`, and `Inflow
    Radius 1/2`. These describe a centre, inward normal, in-plane principal
    axis, and two ellipse radii. Lengths are in **centimetres after conversion**.
@@ -47,13 +47,22 @@ see [the AceGen FSI notes](../../../../../doc/acegen-fsi.md).
 ## Analytic inlet
 
 Only `parabolic_artery` is supported by this benchmark. It sets
-`u = MaxVelocity * ramp(t) * max(0, 1 - (s/a)^2 - (q/b)^2) * direction`,
+`u = amplitude(t) * max(0, 1 - (s/a)^2 - (q/b)^2) * direction`,
 where `s` and `q` are coordinates in the inlet plane. Direction and axis vectors
-are normalized; the axis is first projected onto the inlet plane. The peak
-speed is controlled directly by `MaxVelocity`. A positive `Inflow Ramp Time`
-applies a half-cosine ramp from zero; zero disables the ramp. The previous
-flow-rate normalization and HDF5 `solution` import have been removed.
-`Flowrate` remains available to the outlet model; it does not rescale the inlet.
+are normalized; the axis is first projected onto the inlet plane. The existing
+flow-rate boundary-condition mechanism integrates the unit vector profile on
+the current inlet mesh and sets `amplitude = Flowrate * ramp(t) / abs(profile flux)`.
+The integration uses finite-element nodal values, leaves non-inlet nodes
+(including coupled rings) zero in this profile, and sums contributions across MPI ranks. It is
+repeated when applying the boundary values, so mesh deformation is accounted for.
+A positive `Inflow Ramp Time` applies a half-cosine ramp to the requested flow
+rate; zero disables the ramp. No HDF5 inlet profile is required. `MaxVelocity`
+is no longer used. `Flowrate` also remains an input to the absorbing outlet model.
+
+This normalizes the prescribed profile's contribution to the inlet flux.
+The rings retain their FSI coupling; any normal velocity there adds to the
+total flux. Enforcing the target including that unknown contribution would
+require an additional coupling change.
 
 The same analytic Dirichlet condition is registered for the coupled problem
 and its fluid component. The fluid wall is the coupled solid interface, so no

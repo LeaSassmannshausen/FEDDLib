@@ -124,6 +124,9 @@ public:
      @param parameter_vec vector containing different parameters for bc
      @param externalSol vector with values for bc 
      @param determineFlowRate We determine the maximum velocity by the flow rate
+     @note A null externalSol evaluates funcBC at inlet nodes instead. In that case
+     funcBC must return a vector profile linear in parameter_vec[0]; its unit
+     amplitude flux is integrated on the current mesh before applying funcBC_flowRate.
 
     */
     void addBC(BC_func_Type funcBC, int flag, int block, const DomainPtr_Type &domain, std::string type, int dofs, vec_dbl_Type &parameter_vec, MultiVectorConstPtr_Type& externalSol, bool determineFlowRate ,BC_func_Type funcBC_flowRate);

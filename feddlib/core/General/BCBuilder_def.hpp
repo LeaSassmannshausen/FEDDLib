@@ -4,6 +4,7 @@
 #include "feddlib/core/Utils/FEDDUtils.hpp"
 #include <Teuchos_RCPDecl.hpp>
 #include <Teuchos_ScalarTraitsDecl.hpp>
+#include <cmath>
 
 
 inline void dummyFuncBC(double* x, double* res, double t, const double* parameters)
@@ -574,6 +575,43 @@ void BCBuilder<SC,LO,GO,NO>::determineVelocityForFlowrate(LO i, double time) con
     
     // Domain of the corresponing boundary condition. Most probably fluid domain
     DomainPtr_Type domain = vecDomain_.at(i);
+    if (vecExternalSol_[i].is_null()) {
+        const int dim = domain->getDimension();
+        TEUCHOS_TEST_FOR_EXCEPTION(vecDofs_[i] != dim || vecBCType_[i] != "Dirichlet" ||
+            vecBC_Parameters_[i].empty(), std::logic_error,
+            "Analytic flow-rate normalization requires a full vector Dirichlet profile and an amplitude parameter.");
+        auto profile = Teuchos::rcp(new MultiVector_Type(domain->getMapVecFieldRepeated()));
+        profile->putScalar(0.);
+        auto values = profile->getDataNonConst(0);
+        const auto points = domain->getPointsRepeated();
+        const auto flags = domain->getBCFlagRepeated();
+        auto parameters = vecBC_Parameters_[i];
+        parameters[0] = 1.;
+        vec_dbl_Type point(dim), result(dim, 0.);
+        for (LO node = 0; node < points->size(); ++node) {
+            // Other boundary nodes stay zero in this profile; their values
+            // are controlled by their own boundary conditions or coupling.
+            if ((*flags)[node] != vecFlag_[i])
+                continue;
+            point = (*points)[node];
+            vecBC_func_[i](point.data(), result.data(), time, parameters.data());
+            for (int d = 0; d < dim; ++d)
+                values[dim*node+d] = result[d];
+        }
+        auto feFactory = Teuchos::rcp(new FEFac_Type());
+        feFactory->addFE(domain);
+        double profileFlux = 0.;
+        feFactory->assemblyFlowRate(dim, profileFlux, domain->getFEType(), dim, vecFlag_[i], profile);
+        TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(profileFlux) || profileFlux <= 0., std::logic_error,
+            "Analytic inlet profile has zero or non-finite flux; check the inlet flag, direction and profile parameters.");
+        vec_dbl_Type flowRate(1, 0.);
+        vecBC_func_flowRate_[i](point.data(), flowRate.data(), time, parameters.data());
+        const double amplitude = flowRate[0] / profileFlux;
+        TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(amplitude), std::logic_error,
+            "Analytic inlet flow rate produces a non-finite velocity amplitude.");
+        vecBC_Parameters_[i][0] = amplitude;
+        return;
+    }
     // A vector containing and desribing the parabolic inflow
     MultiVectorConstPtr_Type parabolic_unique_const =  vecExternalSol_[i]; // e.g. Laplace soution on inlet
     MultiVectorPtr_Type parabolic_unique = Teuchos::rcp_const_cast<MultiVector_Type> ( parabolic_unique_const );  // dirty const casting
@@ -595,9 +633,9 @@ void BCBuilder<SC,LO,GO,NO>::determineVelocityForFlowrate(LO i, double time) con
     double flowRateParabolic=0.;
     feFactory->assemblyFlowRate(domain->getDimension(), flowRateParabolic, domain->getFEType(),1, vecFlag_[i] , parabolic_rep);
     // Then we have \int_{Inlet} vec * n dA * u_max == Q  <=> u_max = Q/\int_{Inlet} vec * n dA, and Q is given as 'desired flowrate' in flowrate
-    double maxVelocity = flowRate[0] / std::fabs(flowRateParabolic);
+    double amplitude = flowRate[0] / std::fabs(flowRateParabolic);
     // Then we replace the parameter which contains the maximum velocity with the updated one
-    vecBC_Parameters_[i][0] = maxVelocity;
+    vecBC_Parameters_[i][0] = amplitude;
 
 }
 

@@ -1,4 +1,10 @@
 # Checkpoint compatibility failures must reach every MPI rank without hanging.
+tribits_add_executable(flowRateBCUnitTest SOURCES flowRateBCUnitTest.cpp)
+foreach(mpi_procs 1 4)
+    tribits_add_test(flowRateBCUnitTest NAME tests_unitTests_flowRateBC_${mpi_procs}cores
+        NUM_MPI_PROCS ${mpi_procs} TIMEOUT 60)
+endforeach()
+
 if(TPL_ENABLE_AceGENInterface)
     tribits_add_executable(aceGenStructureUnitTest SOURCES aceGenStructureUnitTest.cpp)
     tribits_add_test(aceGenStructureUnitTest NAME tests_unitTests_aceGenStructure NUM_MPI_PROCS 1 TIMEOUT 120)
