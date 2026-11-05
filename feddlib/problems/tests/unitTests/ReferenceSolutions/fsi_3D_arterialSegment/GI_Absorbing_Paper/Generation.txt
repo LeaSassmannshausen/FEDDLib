@@ -1,0 +1,7 @@
+Uninterrupted GI Absorbing Paper reference on 4 MPI ranks, generated 2026-11-04.
+Geometry: supplied 0.5 mm artery, P1/P1 fluid, P1 solid and implicit ALE geometry.
+Final time: 0.0125; dt: 0.0025. Checkpoints at 0.005 and 0.010 with required history.
+Use parametersProblemFSI_GI.xml and parametersSolverFSI_GI.xml with --pressure-model="Absorbing Paper".
+BoundarySamples stores actual start-of-step areas, current/previous/averaged flow rates and pressure.
+Verified against a two-step restart at 0.005: all boundary samples, four solution fields and outlet state match exactly.
+CTest only reads this bundle. Regenerate explicitly with generateOutletReferences.cmake into a fresh directory.

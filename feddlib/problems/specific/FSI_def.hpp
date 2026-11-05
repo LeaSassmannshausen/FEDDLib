@@ -1690,6 +1690,10 @@ void FSI<SC,LO,GO,NO>::restoreGeometryFromCheckpoint(double restartTime)
     HDF5Import<SC,LO,GO,NO> importer(this->getDomain(4)->getMapVecFieldUnique(),
                                   restartFile(this->parameterList_, "Solutiond_f"));
     MultiVectorConstPtr_Type displacement = importer.readVariablesHDF5(std::to_string(restartTime));
+    // GI couples this vector into solution block 4 in setFromPartialVectorsInit().
+    // Restoring only the ALE buffers would leave that block at zero. Keep the
+    // existing vector so any coupled aliases retain the restored displacement.
+    this->problemGeometry_->getSolution()->getBlockNonConst(0)->update(1., *displacement, 0.);
     meshDisplacementOld_rep_->importFromVector(displacement, true);
     meshDisplacementNew_rep_->importFromVector(displacement, true);
 }
@@ -1746,9 +1750,8 @@ void FSI<SC,LO,GO,NO>::captureAdditionalRecoveryState(double time)
 {
     auto snapshot = this->getRecoverySnapshot();
     if (snapshot.is_null()) return;
-    // On the first resumed step initializeGE() has allocated a zero geometry
-    // solution; restoreGeometryFromCheckpoint() restored the ALE buffers instead.
-    // The retained ALE displacement is the checkpoint baseline in both cases.
+    // The retained ALE displacement is the accepted checkpoint baseline, even
+    // when the GE predictor has subsequently replaced the geometry solution.
     MultiVectorPtr_Type geometry = Teuchos::rcp(new MultiVector_Type(this->getDomain(4)->getMapVecFieldUnique()));
     geometry->exportFromVector(meshDisplacementNew_rep_, false, "Insert");
     snapshot->addVector("Solutiond_f", time, geometry);

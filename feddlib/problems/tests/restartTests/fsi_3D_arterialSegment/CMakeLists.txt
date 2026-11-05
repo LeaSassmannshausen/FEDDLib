@@ -1,9 +1,9 @@
 TRIBITS_ADD_EXECUTABLE(fsi_3D_arterialSegment SOURCES main.cpp)
 
 SET(fsi_3D_arterialSegment_parameter_files
-    parametersProblemFSI.xml parametersProblemFSI_restart.xml
+    parametersProblemFSI.xml parametersProblemFSI_restart.xml parametersProblemFSI_GI.xml
     parametersPrecGE.xml parametersPrecFluidMono.xml parametersPrecStructure.xml
-    parametersPrecGeometry.xml parametersSolverFSI.xml parametersSolverGeometry.xml
+    parametersPrecGeometry.xml parametersSolverFSI.xml parametersSolverFSI_GI.xml parametersSolverGeometry.xml
 )
 TRIBITS_COPY_FILES_TO_BINARY_DIR(data_fsi_3D_arterialSegment
     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
@@ -22,7 +22,7 @@ TRIBITS_COPY_FILES_TO_BINARY_DIR(meshes_fsi_3D_arterialSegment
 
 SET(arterial_reference_root
     ${CMAKE_CURRENT_SOURCE_DIR}/../../unitTests/ReferenceSolutions/fsi_3D_arterialSegment)
-FOREACH(reference_model Resistance Absorbing Absorbing_Paper)
+FOREACH(reference_model Resistance Absorbing Absorbing_Paper GI_Absorbing_Paper)
     SET(reference_source ${arterial_reference_root}/${reference_model})
     FILE(GLOB reference_files RELATIVE ${reference_source}
         "${reference_source}/*.h5" "${reference_source}/*.xml")
@@ -31,6 +31,11 @@ FOREACH(reference_model Resistance Absorbing Absorbing_Paper)
         DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions/${reference_model}
         DEST_FILES ${reference_files} EXEDEPS fsi_3D_arterialSegment)
 ENDFOREACH()
+TRIBITS_COPY_FILES_TO_BINARY_DIR(references_fsi_3D_arterialSegment_GI_boundary
+    SOURCE_DIR ${arterial_reference_root}/GI_Absorbing_Paper/BoundarySamples
+    SOURCE_FILES Boundary_0.005000.xml Boundary_0.007500.xml
+    DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ReferenceSolutions/GI_Absorbing_Paper/BoundarySamples
+    DEST_FILES Boundary_0.005000.xml Boundary_0.007500.xml EXEDEPS fsi_3D_arterialSegment)
 
 # Exercise all pressure models from frozen checkpoints. Each run has its own
 # files and one two-step simulation. Resistance restarts at 0.005 s; both absorbing
@@ -50,6 +55,14 @@ IF(TPL_ENABLE_MPI AND MPI_EXEC_MAX_NUMPROCS GREATER_EQUAL 4)
             PROCESSORS 4 LABELS ${PACKAGE_NAME} TIMEOUT 600
             REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_fsi_3D_arterialSegment>")
     ENDFOREACH()
+    SET(gi_test_name ${PACKAGE_NAME}_tests_restartTests_fsi_3D_arterialSegment_GI_Absorbing_Paper)
+    CONFIGURE_FILE(runGIRestartTest.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/${gi_test_name}.cmake @ONLY)
+    ADD_TEST(NAME ${gi_test_name} COMMAND ${CMAKE_COMMAND}
+        "-DEXECUTABLE=$<TARGET_FILE:${PACKAGE_NAME}_fsi_3D_arterialSegment>"
+        -P ${CMAKE_CURRENT_BINARY_DIR}/${gi_test_name}.cmake)
+    SET_TESTS_PROPERTIES(${gi_test_name} PROPERTIES
+        PROCESSORS 4 LABELS ${PACKAGE_NAME} TIMEOUT 600
+        REQUIRED_FILES "$<TARGET_FILE:${PACKAGE_NAME}_fsi_3D_arterialSegment>")
 ENDIF()
 
 # Explicit maintenance operation; normal CTest cases never execute this script.
@@ -57,4 +70,5 @@ CONFIGURE_FILE(generateOutletReferences.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/generateOutletReferences.cmake @ONLY)
 
 # Runtime tiers from the laptop baseline in doc/TestRuntimes.md.
-feddlib_set_test_runtimes(DEFAULT Medium)
+feddlib_set_test_runtimes(DEFAULT Medium
+    HIGH ${PACKAGE_NAME}_tests_restartTests_fsi_3D_arterialSegment_GI_Absorbing_Paper)

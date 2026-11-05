@@ -1,0 +1,35 @@
+# Restart a frozen, uninterrupted GI trajectory for two steps. Boundary samples
+# are captured by the actual time-loop dispatch, before its first Newton solve.
+SET(work "@CMAKE_CURRENT_BINARY_DIR@/@gi_test_name@")
+FILE(REMOVE_RECURSE "${work}")
+FILE(MAKE_DIRECTORY "${work}/restartCheckpoints")
+FOREACH(input IN ITEMS @fsi_3D_arterialSegment_parameter_files@ fsi_fluid_length_0_5_mm.mesh fsi_solid_length_0_5_mm.mesh)
+    FILE(COPY "@CMAKE_CURRENT_BINARY_DIR@/${input}" DESTINATION "${work}")
+ENDFOREACH()
+SET(reference "@CMAKE_CURRENT_BINARY_DIR@/ReferenceSolutions/GI_Absorbing_Paper")
+IF(NOT EXISTS "${reference}/Solutiond_f.h5")
+    MESSAGE(FATAL_ERROR "Missing GI arterial reference bundle: ${reference}. Generate it explicitly; CTest never regenerates references.")
+ENDIF()
+FILE(COPY "${reference}/" DESTINATION "${work}/restartCheckpoints")
+SET(command "@MPI_EXEC@" @MPI_EXEC_PRE_NUMPROCS_FLAGS@
+    @MPI_EXEC_NUMPROCS_FLAG@ 4 @MPI_EXEC_POST_NUMPROCS_FLAGS@
+    "${EXECUTABLE}" "--pressure-model=Absorbing Paper"
+    --problemfile=parametersProblemFSI_GI.xml --solverfile=parametersSolverFSI_GI.xml
+    --boundary-samples=boundarySamples --boundary-reference=restartCheckpoints/BoundarySamples)
+FILE(READ "${work}/parametersProblemFSI_GI.xml" restart)
+STRING(REPLACE "name=\"Restart\" type=\"bool\" value=\"false\""
+    "name=\"Restart\" type=\"bool\" value=\"true\"" restart "${restart}")
+STRING(REPLACE "name=\"Checkpointing\" type=\"bool\" value=\"true\""
+    "name=\"Checkpointing\" type=\"bool\" value=\"false\"" restart "${restart}")
+FILE(WRITE "${work}/parametersProblemFSI_GI.xml" "${restart}")
+MESSAGE(STATUS "GI artery: restart at 0.005 s, two timesteps")
+EXECUTE_PROCESS(COMMAND ${command} --restart-steps=2
+    WORKING_DIRECTORY "${work}" RESULT_VARIABLE result)
+IF(NOT result STREQUAL "0")
+    MESSAGE(FATAL_ERROR "GI restart failed: ${result}")
+ENDIF()
+FOREACH(time 0.005000 0.007500)
+    IF(NOT EXISTS "${work}/boundarySamples/Boundary_${time}.xml")
+        MESSAGE(FATAL_ERROR "Missing resumed GI boundary sample at ${time}")
+    ENDIF()
+ENDFOREACH()

@@ -775,6 +775,14 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
     bool restart = parameterList_->sublist("Timestepping Parameter").get("Restart", false);
     double timeStepRestart = parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
 
+    // Reference geometry/solid operators are now assembled. An uninterrupted GI
+    // run retains the mesh moved by the preceding nonlinear solve; a restart
+    // must apply its restored d_f before history capture, pressure/flow-rate
+    // evaluation and assembly of the current fluid mass matrix. The first GI
+    // residual evaluation would otherwise move the mesh only after these uses.
+    if (restart && !geometryExplicit)
+        this->problemTime_->assemble("MoveMesh");
+
     checkpoint::RecoveryCheckpointManager<SC,LO,GO,NO> recovery(parameterList_, *comm_);
     using RecoverySnapshot = checkpoint::RecoveryCheckpointSnapshot<SC,LO,GO,NO>;
     typename Problem_Type::RecoverySnapshotPtr recoverySnapshot;

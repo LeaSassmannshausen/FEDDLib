@@ -1,3 +1,98 @@
+/**
+ * @file CheckpointMetadata.hpp
+ * @brief Checkpoint metadata contents and restart compatibility validation.
+ *
+ * The XML manifest records the compatibility information and required state
+ * listed below. Solution vectors and histories are stored in the referenced
+ * HDF5 files; evolving FSI outlet state is stored in a separate XML file.
+ * Validation checks the manifest and required datasets before restoration.
+ * The manifest itself is not an atomic checkpoint completion marker.
+ *
+ * 1. Checkpoint identity:
+ *    - "Format version": new manifests use version 2; restart accepts 1 and 2.
+ *    - "FSI": whether the checkpoint belongs to a coupled FSI problem.
+ *    - "Role": main problem (empty), "FSI fluid" or "FSI structure".
+ *
+ * 2. Fields and discretization, for every registered field:
+ *    - Field name and presence.
+ *    - "FE type" (e.g. P1/P2), spatial "Dimension" and "Components".
+ *    - "Global DOFs" and the global numbering's "Index base".
+ *
+ * 3. Reference mesh and DOF identity:
+ *    - "Reference mesh and DOF fingerprint": a checksum of global node,
+ *      element and DOF numbering, reference coordinates, element connectivity,
+ *      boundary/element flags and subelements. The manifest stores the
+ *      fingerprint, not the mesh itself.
+ *    - The fingerprint is independent of MPI ownership; a different partition
+ *      is permitted if global numbering, coordinates and connectivity match.
+ *
+ * 4. Time-integration compatibility:
+ *    - "Class": Multistep or Newmark.
+ *    - "Layout": "accepted-step-bdf-v1" or "legacy-start-of-step-v1".
+ *    - For Multistep: "BDF" (1 or 2) and the "Extrapolation" flag.
+ *    - "Solution history": the required number of solution states.
+ *    - Newmark "beta" and "gamma", where applicable, including FSI.
+ *    - FSI "Geometry Explicit": distinguishes GE from GI coupling.
+ *
+ * 5. Saved clock and history:
+ *    - "Physical time" must agree with the requested restart time.
+ *    - "Step number" must be nonnegative and consistent with the saved clock.
+ *    - "dt" (next planned increment) and "dt_prev" (last completed increment)
+ *      must be finite and positive.
+ *    - Version 2 stores three explicit "History times". They must be finite
+ *      and strictly decreasing; the newest equals the checkpoint time, and
+ *      the first previous timestamp must agree with "dt_prev".
+ *    - Version 1 reconstructs uniform history and requires the checkpoint time
+ *      to lie on the saved fixed-dt grid.
+ *
+ * 6. Required field and history datasets:
+ *    - "Required datasets" records each expected "File", time "Key", "Field"
+ *      and "Global DOFs". "Required scalar state" names an FSI outlet snapshot
+ *      when an outlet pressure model is enabled.
+ *    - Required HDF5 files and time groups must exist and be readable.
+ *    - "GlobalLength" must match the field's global DOF count; "NumVectors"
+ *      and the dimensions of "Values" must match the expected vector layout.
+ *      "Values" must contain 64-bit floating-point data.
+ *    - Required state includes primary fields and, where applicable, BDF
+ *      solution history, Newmark displacement/velocity/acceleration history,
+ *      and FSI fluid RHS history.
+ *
+ * 7. FSI outlet configuration and state, when a pressure model is enabled:
+ *    - All models: "Model", "State format version", "Average Flowrate",
+ *      "Flag Inlet Fluid", "Flag Outlet Fluid", "Normal Scale" and the
+ *      legacy "BC Ramp" entry, which is fixed to zero.
+ *    - Resistance: "Resistance", "Viscosity", "Density" and
+ *      "Reference fluid pressure".
+ *    - Absorbing variants: "Poisson Ratio", "E", "Wall thickness", "Density",
+ *      "Reference fluid pressure", "Max Ramp Time" and "Flowrate".
+ *    - Absorbing uses "Heart Beat Start"; Absorbing Paper uses "Unsteady Start".
+ *    - The separate outlet snapshot records its format version, model, layout,
+ *      physical time, initial inlet/outlet areas, transition outlet area,
+ *      current/previous flow rates, outlet pressure, initialization flag and
+ *      transition-capture flag. Validation checks finite values, initialization
+ *      at nonzero times, applicable positive areas and the captured transition
+ *      area when required by the paper model.
+ *
+ * @par Settings allowed to change on restart
+ * Linear/nonlinear solver tolerances and output settings are excluded from
+ * compatibility comparison. Future timestep sizes may change: the saved clock
+ * and history are restored independently of the new timestep schedule. MPI rank
+ * count itself is not compared, but the global mesh and DOF identity must match.
+ * Other physical/material parameters are not generally included, except for the
+ * outlet-model settings listed above.
+ *
+ * @par Legacy checkpoints and initial solutions
+ * With "Allow legacy restart" enabled, a missing manifest is permitted, so mesh
+ * and integration compatibility cannot be verified. Required HDF5 datasets and
+ * applicable outlet state are still checked. Initial-solution loading uses a
+ * reduced check of identity, fields/mesh and the selected source datasets; the
+ * source integration method, timestep sizes and history do not constrain the
+ * new simulation at time zero.
+ *
+ * @see makeSchema(), atTime(), validate(), validateInitialSolution()
+ * @see meshAndDofFingerprint(), validateVectorDataset(), outletConfiguration()
+ */
+
 #ifndef FEDD_CHECKPOINT_METADATA_HPP
 #define FEDD_CHECKPOINT_METADATA_HPP
 
