@@ -1,5 +1,5 @@
 <!-- Boundary-condition benchmark: replace the two Mesh Partitioner filenames
-     and provide a matching inlet profile when adding the new geometry.
+     and update the analytic inlet ellipse when adding the new geometry.
      Boundary labels and the inherited unit conversion are described in README.md. -->
 <ParameterList name="FSI artery boundary tests">
     <ParameterList name="Parameter">
@@ -44,14 +44,26 @@
     </ParameterList>
 
     <ParameterList name="Parameter Fluid">
-        <!-- Prefix before P1/P2; HDF5Import appends .h5 and reads dataset "solution". -->
-        <Parameter name="Inflow Profile Prefix" type="string" value="laplace_parabolic_artery_"/>
+        <!-- Analytic parabolic_artery inlet; lengths are in cm after mesh conversion. -->
+        <Parameter name="BC Type" type="string" value="parabolic_artery"/>
+        <Parameter name="Inflow Flag" type="int" value="4"/>
+        <Parameter name="MaxVelocity" type="double" value="118.28"/>
+        <Parameter name="Inflow Ramp Time" type="double" value="0.1"/>
+        <Parameter name="Inflow Center X" type="double" value="-0.005312206024366768"/>
+        <Parameter name="Inflow Center Y" type="double" value="0.01241702653722231"/>
+        <Parameter name="Inflow Center Z" type="double" value="-0.11875"/>
+        <Parameter name="Inflow Direction X" type="double" value="0"/>
+        <Parameter name="Inflow Direction Y" type="double" value="0"/>
+        <Parameter name="Inflow Direction Z" type="double" value="1"/>
+        <Parameter name="Inflow Axis X" type="double" value="0.9999506226750519"/>
+        <Parameter name="Inflow Axis Y" type="double" value="-0.009937414743092777"/>
+        <Parameter name="Inflow Axis Z" type="double" value="0"/>
+        <Parameter name="Inflow Radius 1" type="double" value="0.1583064169518897"/>
+        <Parameter name="Inflow Radius 2" type="double" value="0.1352829875139744"/>
+
         <Parameter name="Preconditioner Type" type="string" value="PCD"/><!--only relevant for block preconditioner for fluid -->
 
 
-        <Parameter name="Ramp type" type="string" value="cos"/><!--cos, linear -->
-        <Parameter name="Max Velocity" type="double" value="118.28"/><!--2d:2.0, Richter 3d: 1.0-->
-        <Parameter name="Max Ramp Time" type="double" value="0.1"/>
 
         <Parameter name="Flowrate" type="double" value="3."/><!-- For Absorbing BC-->
 

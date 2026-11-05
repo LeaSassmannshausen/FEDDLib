@@ -2,7 +2,8 @@
 
 Independent boundary-condition benchmark copied from `fsi_artery`. The driver,
 solver settings, preconditioner settings, and problem XML can be edited here.
-The initial configuration reuses the existing artery meshes and inlet profiles.
+The source defaults reuse the existing artery meshes and prescribe an analytic
+elliptical inlet profile. No HDF5 inlet profile is loaded.
 
 ## Build and run
 
@@ -24,11 +25,11 @@ manually run benchmark; it has no CTest registration or reference solution yet.
    `CMakeLists.txt`. Set `Mesh Partitioner/Mesh 1 Name` and `Mesh 2 Name` in
    `parametersProblemFSI.xml` to the new filenames. Absolute paths in the XML
    can also point to meshes outside the build directory.
-2. Supply inlet profiles matching the geometry, discretization, and node
-   numbering. The driver reads dataset `solution` from
-   `<Inflow Profile Prefix><Discretization>.h5`; set `Parameter Fluid/Inflow
-   Profile Prefix` accordingly. Add the profiles to the CMake copy list or use
-   a path prefix. The inherited profile must be normalized to one.
+2. Set the analytic inlet parameters in `Parameter Fluid`: `BC Type` must be
+   `parabolic_artery`. Configure `MaxVelocity`, `Inflow Ramp Time`, `Inflow
+   Center X/Y/Z`, `Inflow Direction X/Y/Z`, `Inflow Axis X/Y/Z`, and `Inflow
+   Radius 1/2`. These describe a centre, inward normal, in-plane principal
+   axis, and two ellipse radii. Lengths are in **centimetres after conversion**.
 3. Match the boundary labels in `main.cpp` to the new meshes. The inherited
    labels are fluid inlet **4**, fluid outlet **5**, coupled interface **6**
    with inlet/outlet rings **9/10**, solid inlet/outlet **7/8**, and solid
@@ -37,8 +38,35 @@ manually run benchmark; it has no CTest registration or reference solution yet.
 4. Review the inherited `readAndPartition(15, "mm", true)` call: the original
    case converts millimetre mesh coordinates to centimetres. Material, fluid,
    and flow-rate parameters must use consistent units. The inherited inflow
-   callback and structural constraints also assume their original directions.
+   structural constraints also assume their original directions.
 
 The copied problem defaults to a 3D P1 Neo-Hookean solid. For AceGen SCI
 materials, use P2 and select the intended material in `Parameter Solid`;
 see [the AceGen FSI notes](../../../../../doc/acegen-fsi.md).
+
+## Analytic inlet
+
+Only `parabolic_artery` is supported by this benchmark. It sets
+`u = MaxVelocity * ramp(t) * max(0, 1 - (s/a)^2 - (q/b)^2) * direction`,
+where `s` and `q` are coordinates in the inlet plane. Direction and axis vectors
+are normalized; the axis is first projected onto the inlet plane. The peak
+speed is controlled directly by `MaxVelocity`. A positive `Inflow Ramp Time`
+applies a half-cosine ramp from zero; zero disables the ramp. The previous
+flow-rate normalization and HDF5 `solution` import have been removed.
+`Flowrate` remains available to the outlet model; it does not rescale the inlet.
+
+The same analytic Dirichlet condition is registered for the coupled problem
+and its fluid component. The fluid wall is the coupled solid interface, so no
+zero wall-velocity condition is added there. `Inflow Flag` defaults to 4 and
+must match `General/Flag Inlet Fluid`; the outlet and structural conditions
+keep their existing configuration.
+
+The active build-directory case is also saved as
+`parametersProblemFSI_parabolic_artery.xml`. It uses the new fluid and solid
+meshes already present there. Its inlet at `z=0` points along `+z`; the fitted
+centre is approximately `(0.00363215, 0.00843393, 0)` cm and the radii are
+`0.14054931` and `0.12337601` cm. The source default ellipse is fitted to the
+original plaque geometry instead. Update these entries when changing meshes.
+
+To retain build-directory mesh settings across later builds, run with
+`--problemfile=parametersProblemFSI_parabolic_artery.xml`.

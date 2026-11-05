@@ -1,7 +1,8 @@
 #include <Tpetra_Core.hpp>
 
 #include "feddlib/core/FEDDCore.hpp"
-#include "feddlib/core/General/HDF5Import.hpp"
+#include <algorithm>
+#include <cmath>
 #include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/core/Mesh/MeshPartitioner.hpp"
 #include "feddlib/core/General/ExporterParaView.hpp"
@@ -41,117 +42,32 @@ void zeroDirichlet3D(double* x, double* res, double t, const double* parameters)
     return;
 }
 
-// void flowrate3D(double* x, double* res, double t, const double* parameters)
-// {
-//     // parameters[0] is the maxium desired velocity
-//     // parameters[1] rampTime
-//     // parameters[2] flowrate
-
-//     // The center point of the inlet is (0,0,0)   
-
-//     // Distance from center
-//     double Q = 0.;
-//     if(t < parameters[1])
-//     {
-       
-//         Q = parameters[2] * 0.5*( 1. - cos( M_PI*t/parameters[1] ));
-//     }
-//     else
-//     {
-//         Q = parameters[2];
-//     }
-
-//     res[0] = Q;
-//     return;
-// }
-
-
-void flowrate3D(double* x, double* res, double t, const double* parameters)
+// Elliptical artery inlet. Direction and principal axis are orthonormalized
+// when registering the boundary condition below.
+void inflowParabolicArtery(double* x, double* res, double t, const double* parameters)
 {
-    // parameters[0] is the maxium desired velocity
-    // parameters[1] rampTime
-    // parameters[2] flowrate
-    // we use x[0] for the laplace solution in the considered point. Therefore, point coordinates are missing
-    double heartBeatStart = parameters[3];
-
-    if(t < parameters[1])
-    {
-        res[0] = parameters[2] * 0.5 * ( ( 1 - cos( M_PI*t/parameters[1]) ));
+    const double* direction = parameters + 5;
+    const double* axis = parameters + 8;
+    const double minorAxis[3] = {
+        direction[1]*axis[2] - direction[2]*axis[1],
+        direction[2]*axis[0] - direction[0]*axis[2],
+        direction[0]*axis[1] - direction[1]*axis[0]};
+    double major = 0., minor = 0.;
+    for (int i = 0; i < 3; ++i) {
+        const double offset = x[i] - parameters[2+i];
+        major += offset * axis[i];
+        minor += offset * minorAxis[i];
     }
-    else if(t > heartBeatStart)
-    {
-    
-        double a0    = 11.693284502463376;
-        double a [20] = {1.420706949636449,-0.937457438404759,0.281479818173732,-0.224724363786734,0.080426469802665,0.032077024077824,0.039516941555861, 
-            0.032666881040235,-0.019948718147876,0.006998975442773,-0.033021060067630,-0.015708267688123,-0.029038419813160,-0.003001255512608,-0.009549531539299, 
-            0.007112349455861,0.001970095816773,0.015306208420903,0.006772571935245,0.009480436178357};
-        double b [20] = {-1.325494054863285,0.192277311734674,0.115316087615845,-0.067714675760648,0.207297536049255,-0.044080204999886,0.050362628821152,-0.063456242820606,
-            -0.002046987314705,-0.042350454615554,-0.013150127522194,-0.010408847105535,0.011590255438424,0.013281630639807,0.014991955865968,0.016514327477078, 
-            0.013717154383988,0.012016806933609,-0.003415634499995,0.003188511626163};
-                    
-        double Q = 0.5*a0;
-        
-
-        double t_min = t - fmod(t,1.0)+heartBeatStart-std::floor(t); ; //FlowConditions::t_start_unsteady;
-        double t_max = t_min + 1.0; // One heartbeat lasts 1.0 second    
-        double y = M_PI * ( 2.0*( t-t_min ) / ( t_max - t_min ) -1.0)  ;
-        
-        for(int i=0; i< 20; i++)
-            Q += (a[i]*std::cos((i+1.)*y) + b[i]*std::sin((i+1.)*y) ) ;
-        
-        
-        // Remove initial offset due to FFT
-        Q -= 0.026039341343493;
-        Q = (Q - 2.85489)/(7.96908-2.85489);
-
-        res[0] =  parameters[2] + parameters[2]* Q *1.6563 - 0.13 ;
-        
+    const double radiusSquared = major*major/(parameters[11]*parameters[11])
+                               + minor*minor/(parameters[12]*parameters[12]);
+    double ramp = 1.;
+    if (parameters[1] > 0.) {
+        const double phase = std::max(0., std::min(1., t/parameters[1]));
+        ramp = 0.5 * (1. - std::cos(M_PI * phase));
     }
-    else
-    {
-        res[0] = parameters[2] ;
-
-    }
-
-    return;
-}
-
-void flowrate3DLinear(double* x, double* res, double t, const double* parameters)
-{
-    // parameters[0] is the maxium desired velocity
-    // parameters[1] rampTime
-    // parameters[3] flowrate
-
-    // The center point of the inlet is (0,0,0)   
-
-    // Distance from center
-    double Q = 0.;
-    if(t < parameters[1])
-    {
-       
-        Q = parameters[2] *  t / parameters[1];
-    }
-    else
-    {
-        Q = parameters[2];
-    }
-
-    res[0] = Q;
-    return;
-}
-
-void parabolicInflow3D(double* x, double* res, double t, const double* parameters)
-{
-    // parameters[0] is the maxium desired velocity
-    // parameters[1] end of ramp
-    // we use x[0] for the laplace solution in the considered point. Therefore, point coordinates are missing
-
-    res[0] = 0.;
-    res[1] = 0.;
-    res[2] = parameters[0]  * x[0];
-
-
-    return;
+    const double speed = parameters[0] * ramp * std::max(0., 1. - radiusSquared);
+    for (int i = 0; i < 3; ++i)
+        res[i] = speed * direction[i];
 }
 
 void rhsDummy(double* x, double* res, double* parameters){
@@ -490,11 +406,6 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
             domainGeometry->info();
             fsi.info();
                      
-            std::vector<double> parameter_vec(1, parameterListProblem->sublist("Parameter Fluid").get("Max Velocity",1.));
-            parameter_vec.push_back( parameterListProblem->sublist("Parameter Fluid").get("Max Ramp Time",2.) );
-            parameter_vec.push_back(parameterListProblem->sublist("Parameter Fluid").get("Flowrate",3.0));
-            parameter_vec.push_back(parameterListProblem->sublist("Parameter Fluid").get("Heart Beat Start",0.2));
-            
             Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactory( new BCBuilder<SC,LO,GO,NO>( ) );
 
             // TODO: Vermutlich braucht man keine bcFactoryFluid und bcFactoryStructure,
@@ -509,34 +420,57 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
 
             // Fluid-RW
             {
-                 MultiVectorConstPtr_Type solutionLaplace;
-                // string meshNumber = parameterListProblem->sublist("Mesh Partitioner").get("Mesh Number","2");
-
-                const std::string inflowProfilePrefix = parameterListProblem->sublist("Parameter Fluid")
-                    .get("Inflow Profile Prefix", "laplace_parabolic_artery_");
-                HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique(), inflowProfilePrefix + discType);
-                Teuchos::RCP<const MultiVector<SC,LO,GO,NO> > solutionImported = importer.readVariablesHDF5("solution");
-                solutionLaplace = solutionImported; // This must me normalized to 1!!
-
-                bool zeroPressure = parameterListProblem->sublist("Parameter Fluid").get("Set Outflow Pressure to Zero",false);
-                Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactoryFluid( new BCBuilder<SC,LO,GO,NO>( ) );
-                               
-                //bcFactory->addBC(zeroDirichlet3D, 1, 0, domainFluidVelocity, "Dirichlet", dim); // wall
-                 string rampType = parameterListProblem->sublist("Parameter Fluid").get("Ramp type","cos");
-                
-                
-                if (rampType == "cos") {                   
-                    bcFactory->addBC(parabolicInflow3D, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3D); // inflow 
-                    //bcFactory->addBC(parabolicInflow3DArtery, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace); // inflow without flow rate profile
-                    bcFactoryFluid->addBC(parabolicInflow3D, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3D); // inflow
+                auto& inflow = parameterListProblem->sublist("Parameter Fluid");
+                const std::string bcType = inflow.get("BC Type", "parabolic_artery");
+                TEUCHOS_TEST_FOR_EXCEPTION(bcType != "parabolic_artery" || dim != 3,
+                    std::logic_error, "This benchmark requires the 3D parabolic_artery inlet.");
+                std::vector<double> parameter_vec;
+                parameter_vec = {
+                    inflow.get("MaxVelocity", 1.5), inflow.get("Inflow Ramp Time", 0.),
+                    inflow.get("Inflow Center X", 0.), inflow.get("Inflow Center Y", 0.), inflow.get("Inflow Center Z", 0.),
+                    inflow.get("Inflow Direction X", 0.), inflow.get("Inflow Direction Y", 0.), inflow.get("Inflow Direction Z", 1.),
+                    inflow.get("Inflow Axis X", 1.), inflow.get("Inflow Axis Y", 0.), inflow.get("Inflow Axis Z", 0.),
+                    inflow.get("Inflow Radius 1", 1.), inflow.get("Inflow Radius 2", 1.)};
+                for (const double value : parameter_vec)
+                    TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(value), std::logic_error,
+                        "parabolic_artery parameters must be finite.");
+                TEUCHOS_TEST_FOR_EXCEPTION(parameter_vec[0] < 0. || parameter_vec[1] < 0. ||
+                    parameter_vec[11] <= 0. || parameter_vec[12] <= 0., std::logic_error,
+                    "parabolic_artery requires positive radii and nonnegative velocity/ramp time.");
+                double directionNorm = 0.;
+                for (int i = 0; i < 3; ++i)
+                    directionNorm += parameter_vec[5+i]*parameter_vec[5+i];
+                directionNorm = std::sqrt(directionNorm);
+                TEUCHOS_TEST_FOR_EXCEPTION(directionNorm == 0., std::logic_error,
+                    "Inflow Direction must be nonzero and point into the fluid.");
+                for (int i = 0; i < 3; ++i)
+                    parameter_vec[5+i] /= directionNorm;
+                double projection = 0., axisNorm = 0.;
+                for (int i = 0; i < 3; ++i)
+                    projection += parameter_vec[8+i]*parameter_vec[5+i];
+                for (int i = 0; i < 3; ++i) {
+                    parameter_vec[8+i] -= projection*parameter_vec[5+i];
+                    axisNorm += parameter_vec[8+i]*parameter_vec[8+i];
                 }
-                else if(rampType == "linear"){
-                
-                    bcFactory->addBC(parabolicInflow3D, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3DLinear); // inflow 
-                    bcFactoryFluid->addBC(parabolicInflow3D, 4, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec, solutionLaplace,true, flowrate3DLinear); // inflow
-                }        
-                                
-        
+                axisNorm = std::sqrt(axisNorm);
+                TEUCHOS_TEST_FOR_EXCEPTION(axisNorm < 1.e-12, std::logic_error,
+                    "Inflow Axis must have a component perpendicular to Inflow Direction.");
+                for (int i = 0; i < 3; ++i)
+                    parameter_vec[8+i] /= axisNorm;
+                // The wall is the moving FSI interface; its velocity is set by
+                // coupling to the solid, rather than a zero-velocity wall BC.
+                const int inletFlag = inflow.get("Inflow Flag", 4);
+                TEUCHOS_TEST_FOR_EXCEPTION(inletFlag != parameterListProblem->sublist("General").get("Flag Inlet Fluid", 4),
+                    std::logic_error, "Inflow Flag must match General/Flag Inlet Fluid.");
+                const bool zeroPressure = inflow.get("Set Outflow Pressure to Zero", false);
+                Teuchos::RCP<BCBuilder<SC,LO,GO,NO>> bcFactoryFluid(new BCBuilder<SC,LO,GO,NO>());
+                bcFactory->addBC(inflowParabolicArtery, inletFlag, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec);
+                bcFactoryFluid->addBC(inflowParabolicArtery, inletFlag, 0, domainFluidVelocity, "Dirichlet", dim, parameter_vec);
+                if (verbose)
+                    std::cout << "parabolic_artery: inlet flag " << inletFlag << ", inward direction ("
+                              << parameter_vec[5] << ", " << parameter_vec[6] << ", " << parameter_vec[7]
+                              << "), radii " << parameter_vec[11] << ", " << parameter_vec[12] << " cm" << std::endl;
+
                 if (zeroPressure) {
                     bcFactory->addBC(zeroBC, 5, 1, domainFluidPressure, "Dirichlet", 1); // outflow
                     bcFactoryFluid->addBC(zeroBC, 5, 1, domainFluidPressure, "Dirichlet", 1); // outflow

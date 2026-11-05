@@ -2,7 +2,6 @@
 
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Teuchos_StackedTimer.hpp>
-#include <algorithm>
 #include <cmath>
 
 #include "feddlib/core/FEDDCore.hpp"
@@ -102,34 +101,6 @@ void inflowParabolic3D(double* x, double* res, double t, const double* parameter
     res[2] = 0.;
 
     return;
-}
-
-// Elliptical artery inlet. Direction and principal axis are orthonormalized
-// when registering the boundary condition below.
-void inflowParabolicArtery(double* x, double* res, double t, const double* parameters)
-{
-    const double* direction = parameters + 5;
-    const double* axis = parameters + 8;
-    const double minorAxis[3] = {
-        direction[1]*axis[2] - direction[2]*axis[1],
-        direction[2]*axis[0] - direction[0]*axis[2],
-        direction[0]*axis[1] - direction[1]*axis[0]};
-    double major = 0., minor = 0.;
-    for (int i = 0; i < 3; ++i) {
-        const double offset = x[i] - parameters[2+i];
-        major += offset * axis[i];
-        minor += offset * minorAxis[i];
-    }
-    const double radiusSquared = major*major/(parameters[11]*parameters[11])
-                               + minor*minor/(parameters[12]*parameters[12]);
-    double ramp = 1.;
-    if (parameters[1] > 0.) {
-        const double phase = std::max(0., std::min(1., t/parameters[1]));
-        ramp = 0.5 * (1. - std::cos(M_PI * phase));
-    }
-    const double speed = parameters[0] * ramp * std::max(0., 1. - radiusSquared);
-    for (int i = 0; i < 3; ++i)
-        res[i] = speed * direction[i];
 }
 
 void inflow3DRichter(double* x, double* res, double t, const double* parameters)
@@ -350,57 +321,10 @@ int main(int argc, char *argv[]) {
                 parameter_vec.push_back(.41);//height of inflow region
             else if(!bcType.compare("Richter3D"))
                 parameter_vec.push_back(.4);
-            else if (bcType != "parabolic_artery")
+            else
                 TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Select a valid boundary condition.");
 
-            if (bcType == "parabolic_artery") {
-                TEUCHOS_TEST_FOR_EXCEPTION(dim != 3, std::logic_error,
-                    "parabolic_artery requires a 3D mesh.");
-                auto& inflow = parameterListProblem->sublist("Parameter");
-                parameter_vec = {
-                    inflow.get("MaxVelocity", 1.5), inflow.get("Inflow Ramp Time", 0.),
-                    inflow.get("Inflow Center X", 0.), inflow.get("Inflow Center Y", 0.), inflow.get("Inflow Center Z", 0.),
-                    inflow.get("Inflow Direction X", 0.), inflow.get("Inflow Direction Y", 0.), inflow.get("Inflow Direction Z", 1.),
-                    inflow.get("Inflow Axis X", 1.), inflow.get("Inflow Axis Y", 0.), inflow.get("Inflow Axis Z", 0.),
-                    inflow.get("Inflow Radius 1", 1.), inflow.get("Inflow Radius 2", 1.)};
-                for (const double value : parameter_vec)
-                    TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(value), std::logic_error,
-                        "parabolic_artery parameters must be finite.");
-                TEUCHOS_TEST_FOR_EXCEPTION(parameter_vec[0] < 0. || parameter_vec[1] < 0. ||
-                    parameter_vec[11] <= 0. || parameter_vec[12] <= 0., std::logic_error,
-                    "parabolic_artery requires positive radii and nonnegative velocity/ramp time.");
-                double directionNorm = 0.;
-                for (int i = 0; i < 3; ++i)
-                    directionNorm += parameter_vec[5+i]*parameter_vec[5+i];
-                directionNorm = std::sqrt(directionNorm);
-                TEUCHOS_TEST_FOR_EXCEPTION(directionNorm == 0., std::logic_error,
-                    "Inflow Direction must be nonzero and point into the fluid.");
-                for (int i = 0; i < 3; ++i)
-                    parameter_vec[5+i] /= directionNorm;
-                double projection = 0., axisNorm = 0.;
-                for (int i = 0; i < 3; ++i)
-                    projection += parameter_vec[8+i]*parameter_vec[5+i];
-                for (int i = 0; i < 3; ++i) {
-                    parameter_vec[8+i] -= projection*parameter_vec[5+i];
-                    axisNorm += parameter_vec[8+i]*parameter_vec[8+i];
-                }
-                axisNorm = std::sqrt(axisNorm);
-                TEUCHOS_TEST_FOR_EXCEPTION(axisNorm < 1.e-12, std::logic_error,
-                    "Inflow Axis must have a component perpendicular to Inflow Direction.");
-                for (int i = 0; i < 3; ++i)
-                    parameter_vec[8+i] /= axisNorm;
-                const int wallFlag = inflow.get("Wall Flag", 1);
-                const int inletFlag = inflow.get("Inflow Flag", 2);
-                TEUCHOS_TEST_FOR_EXCEPTION(wallFlag == inletFlag, std::logic_error,
-                    "Wall Flag and Inflow Flag must differ.");
-                bcFactory->addBC(zeroDirichlet3D, wallFlag, 0, domainVelocity, "Dirichlet", dim);
-                bcFactory->addBC(inflowParabolicArtery, inletFlag, 0, domainVelocity, "Dirichlet", dim, parameter_vec);
-                if (verbose)
-                    std::cout << "parabolic_artery: inlet flag " << inletFlag << ", wall flag " << wallFlag
-                              << ", inward direction (" << parameter_vec[5] << ", " << parameter_vec[6]
-                              << ", " << parameter_vec[7] << ")" << std::endl;
-            }
-            else if (!bcType.compare("parabolic") || !bcType.compare("parabolic_benchmark")) {//flag of obstacle
+            if (!bcType.compare("parabolic") || !bcType.compare("parabolic_benchmark")) {//flag of obstacle
                 if (dim==2){
                     bcFactory->addBC(zeroDirichlet2D, 1, 0, domainVelocity, "Dirichlet", dim);
                     bcFactory->addBC(inflowParabolic2D, 2, 0, domainVelocity, "Dirichlet", dim, parameter_vec);
