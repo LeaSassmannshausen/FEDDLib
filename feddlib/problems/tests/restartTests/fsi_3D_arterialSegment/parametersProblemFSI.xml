@@ -66,6 +66,11 @@
         <Parameter name="Unsteady Start" type="double" value="0.00625" />
         <!-- Use the mean of the two retained outlet flow rates in the pressure model. -->
         <Parameter name="Average Flowrate" type="bool" value="true" />
+        <!-- Absorbing Paper only: true uses the current inlet flow before Unsteady Start,
+             overriding Average Flowrate. At/after the transition, use the selected outlet
+             flow again. The outlet-backflow safeguard remains active. False preserves the
+             frozen reference settings; keep the same value when writing and restarting. -->
+        <Parameter name="Use Inflow" type="bool" value="false" />
         <!-- Legacy outlet-ramp parameter, ignored by all pressure models.
              Resistance is constant; both absorbing models use constant reference pressure. -->
         <Parameter name="BC Ramp" type="double" value="0.0" />

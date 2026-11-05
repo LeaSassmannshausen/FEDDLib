@@ -3336,6 +3336,11 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
     if(params->sublist("Parameter Fluid").get("Average Flowrate",false) )
         flowRateUse = flowRateOutletAveraged;
 
+    // During the paper model's steady phase, optionally use the current inlet
+    // flow instead of the instantaneous or averaged outlet flow.
+    if(params->sublist("Parameter Fluid").get("Use Inflow",false) && time < unsteadyStart)
+        flowRateUse = flowRateInlet;
+
     if(isNeg==1)
         flowRateUse = 0.;
 

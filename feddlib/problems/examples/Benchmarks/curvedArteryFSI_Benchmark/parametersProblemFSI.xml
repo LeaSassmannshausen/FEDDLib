@@ -131,6 +131,11 @@
         <Parameter name="Pressure Boundary Condition" type="string" value="Absorbing Paper"/>         <!-- Resistance , Absorbing , Absorbing Resistance-->
         <Parameter name="Unsteady Start" type="double" value="0.2"/><!-- Start of 'unsteady' phase -->
         <Parameter name="Average Flowrate" type="bool" value="true"/>
+        <!-- Absorbing Paper only: use the current inlet flow before Unsteady Start,
+             overriding Average Flowrate. At/after Unsteady Start, use the selected
+             outlet flow again. The outlet-backflow safeguard remains active.
+             Keep this setting unchanged when restarting. -->
+        <Parameter name="Use Inflow" type="bool" value="false"/>
         <Parameter name="BC Ramp" type="double" value="0.0"/>
         <Parameter name="Normal Scale" type="double" value="-1.0"/>
         <Parameter name="Poisson Ratio" type="double" value="0.49"/>

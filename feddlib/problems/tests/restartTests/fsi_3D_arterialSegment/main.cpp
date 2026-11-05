@@ -172,6 +172,64 @@ bool checkResistanceAssembly(DomainPtr_Type domain, RCP<const Teuchos::Comm<int>
     return passed;
 }
 
+// Distinct inlet/outlet flows and retained history exercise source selection
+// independently of the nonlinear solve and of the frozen restart references.
+bool checkAbsorbingPaperFlowSelection(DomainPtr_Type domain, RCP<const Teuchos::Comm<int>> comm)
+{
+    FE<SC,LO,GO,NO> fe;
+    fe.addFE(domain);
+    fe.addFE(domain);
+    RCP<MultiVector_Type> velocity = rcp(new MultiVector_Type(domain->getMapVecFieldRepeated()));
+    Teuchos::ArrayRCP<SC> values = velocity->getDataNonConst(0);
+    const vec2D_dbl_ptr_Type points = domain->getPointsRepeated();
+    for (unsigned i = 0; i < points->size(); ++i) {
+        values[3 * i] = values[3 * i + 1] = 0.;
+        values[3 * i + 2] = 1. + points->at(i).at(2);
+    }
+    double inlet = 0., outlet = 0., area = 0.;
+    fe.assemblyFlowRate(3, inlet, "P1", 3, 4, velocity);
+    const int backflow = fe.assemblyFlowRate(3, outlet, "P1", 3, 5, velocity);
+    fe.assemblyArea(3, area, 5);
+    TEUCHOS_TEST_FOR_EXCEPTION(backflow || std::abs(inlet - outlet) <= 1.e-6 * outlet,
+        std::runtime_error, "Flow-source check requires distinct forward inlet/outlet flows.");
+
+    ParameterListPtr_Type settings = rcp(new Teuchos::ParameterList);
+    settings->sublist("Parameter Fluid").set("Unsteady Start", 0.2)
+        .set("Poisson Ratio", 0.).set("E", 1.).set("Wall thickness", 1.)
+        .set("Density", 1.).set("Reference fluid pressure", 2.).set("Flowrate", 1.);
+    RCP<MultiVector_Type> load = rcp(new MultiVector_Type(domain->getMapVecFieldRepeated()));
+    const vec_dbl_Type history = {0.5 * outlet, outlet};
+    const double beta = M_PI / area;
+    const double root = std::sqrt(beta * std::sqrt(area));
+    const double steadyArea = 1. / ((std::sqrt(root * root + 2.) - root) * 2. * std::sqrt(2.));
+    const double expectedInletPressure = std::pow(inlet / (2. * std::sqrt(2.) * steadyArea) + root, 2)
+        - root * root;
+    bool passed = true;
+    for (bool average : {false, true}) {
+        settings->sublist("Parameter Fluid").set("Average Flowrate", average);
+        for (double time : {0.1, 0.2, 0.3}) {
+            settings->sublist("Parameter Fluid").remove("Use Inflow", false);
+            const double baseline = fe.assemblyAbsorbingBoundaryPaper(3, "P1", load, velocity,
+                history, time, area, area, settings);
+            settings->sublist("Parameter Fluid").set("Use Inflow", false);
+            const double disabled = fe.assemblyAbsorbingBoundaryPaper(3, "P1", load, velocity,
+                history, time, area, area, settings);
+            settings->sublist("Parameter Fluid").set("Use Inflow", true);
+            const double enabled = fe.assemblyAbsorbingBoundaryPaper(3, "P1", load, velocity,
+                history, time, area, area, settings);
+            const double expected = time < 0.2 ? expectedInletPressure : baseline;
+            const bool matches = disabled == baseline && std::isfinite(enabled) &&
+                std::abs(enabled - expected) <= 1.e-12 * std::max(1., std::abs(expected));
+            passed = passed && matches;
+            if (comm->getRank() == 0)
+                std::cout << "Absorbing Paper inlet-flow selection at " << time
+                          << " (Average Flowrate=" << average << "): "
+                          << (matches ? "PASS" : "FAIL") << '\n';
+        }
+    }
+    return passed;
+}
+
 bool compareRestart(FSI_Type& fsi, ParameterListPtr_Type parameters, RCP<const Teuchos::Comm<int>> comm)
 {
     const auto& timeParameters = parameters->sublist("Timestepping Parameter");
@@ -363,6 +421,8 @@ int main(int argc, char* argv[])
     }
 
     if (pressureModel == "Resistance" && !validateOnly && !checkResistanceAssembly(fluid, comm))
+        return EXIT_FAILURE;
+    if (pressureModel == "Absorbing Paper" && !validateOnly && !checkAbsorbingPaperFlowSelection(fluid, comm))
         return EXIT_FAILURE;
 
     BoundaryCheckedFSI fsi(fluid, discType, fluid, discType, solid, discType,

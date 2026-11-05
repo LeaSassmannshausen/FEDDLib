@@ -71,6 +71,10 @@ inline Teuchos::ParameterList outletConfiguration(Teuchos::ParameterList& parame
     }
     else {
         const bool paper = model == "Absorbing Paper";
+        // Absence represents the historical false default, preserving old
+        // checkpoints while rejecting a change of flow source on restart.
+        if (paper && fluid.get("Use Inflow", false))
+            result.set("Use Inflow", true);
         result.set("Poisson Ratio", fluid.get("Poisson Ratio", 0.49));
         result.set("E", fluid.get("E", 12.));
         result.set("Wall thickness", fluid.get("Wall thickness", 0.0006));

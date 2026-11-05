@@ -1,5 +1,6 @@
 <!-- GI overrides for the arterial restart regression. The base artery inputs
-     supply mesh, material and outlet settings. The producer advances one extra
+     supply mesh, material and outlet settings, including Parameter Fluid/Use Inflow.
+     The producer advances one extra
      step to write the 0.01 s checkpoint under FSI's start-of-step convention.
      Boundary samples compare deformed areas, current/previous flow and pressure
      before the first resumed Newton solve, including a paper-model transition. -->

@@ -5,6 +5,7 @@
     and compares with the frozen reference at 0.015 s after two timesteps.
     Absorbing Paper therefore tests only its unsteady phase, using the already
     captured transition area from the checkpoint. Normal Absorbing has no transition.
+    Parameter Fluid/Use Inflow is inherited from the base file and must match the checkpoint.
 -->
 <ParameterList name="FSI">
     <!-- Overrides for phase 2; the case is defined in parametersProblemFSI.xml. -->
