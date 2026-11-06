@@ -3332,7 +3332,7 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
 
     }
     // Value of h_x for this timestep
-    double flowRateUse = flowRateOutlet;
+    double flowRateUse = 2 * flowrateOutlet - flowRate_vec[1];
     if(params->sublist("Parameter Fluid").get("Average Flowrate",false) )
         flowRateUse = flowRateOutletAveraged;
 
@@ -3881,7 +3881,8 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
 
     }
 
-    double flowRateUse = flowRateOutlet;
+    double flowRateUse = 2 * flowrateOutlet - flowRate_vec[1];
+    // Averaged flowrate
     if(params->sublist("Parameter Fluid").get("Average Flowrate",false) )
         flowRateUse = flowRateOutletAveraged;
 
