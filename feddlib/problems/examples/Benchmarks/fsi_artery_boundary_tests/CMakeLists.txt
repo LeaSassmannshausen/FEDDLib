@@ -33,6 +33,7 @@ tribits_copy_files_to_binary_dir(meshes_fsiArteryBoundaryTests
 set(artery_adaptation_meshes
     fsi_artery_fluid_res_1_Flags_4_5_6_9_10_15.mesh
     fsi_artery_fluid_res_2_Flags_4_5_6_9_10_15.mesh
+    fsi_solid_res_0_flags_6_7_8_9_10_11_12_13_14_15.mesh
     fsi_solid_res_1_flags_6_7_8_9_10_11_12_13_14_15.mesh
     fsi_solid_res_2_flags_6_7_8_9_10_11_12_13_14_15.mesh
     fsi_solid_res_3_flags_6_7_8_9_10_11_12_13_14_15.mesh

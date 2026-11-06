@@ -6,6 +6,9 @@
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/LinearAlgebra/Matrix.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
+#include <map>
+#include <string>
+#include <vector>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,8 +70,14 @@ class AssembleFE_SCI_SMC_Active_Growth_Reorientation : public AssembleFE<SC,LO,G
 
     private:
 
-        void assemble_SCI_SMC_Active_Growth_Reorientation(SmallMatrixPtr_Type &elementMatrix);
-        vec_dbl_Type getDomainData() const;
+        void assemble_SCI_SMC_Active_Growth_Reorientation(bool computeTangent);
+        void checkingReorientationActiveGrowth();
+        void initializeGrowth();
+        void initializeActiveResponse();
+        void updateDomainData(std::string dataName, double dataValue);
+        int findPosition(std::string subString, std::vector<std::string>& stringArray);
+        vec2D_dbl_Type computeElementGaussFibersP2Tet();
+        vec_dbl_Type computeFiberDirections(double x1, double x2, double x3);
 
 
         friend class AssembleFEFactory<SC,LO,GO,NO>; // Must have for specfic classes
@@ -100,8 +109,43 @@ class AssembleFE_SCI_SMC_Active_Growth_Reorientation : public AssembleFE<SC,LO,G
 		vec_dbl_Type solutionC_n_;
 		vec_dbl_Type solutionC_n1_; 
 
-		vec2D_dbl_Type timeParametersVec_;
-    	double numSegments_ ;
+		vec2D_dbl_Type timeParametersVecActive_;
+		vec2D_dbl_Type timeParametersVecGrowth_;
+		vec2D_dbl_Type timeParametersVecReorientation_;
+
+        int numberOfIntegrationPoints_ = 0;
+        int domainDataLength_ = 0;
+        int postDataLength_ = 0;
+        std::vector<std::string> domainDataNames_;
+        std::vector<std::string> postDataNames_;
+        std::map<std::string, int> fieldNameToPosition_;
+        vec_dbl_Type domainData_;
+        std::vector<int> acceleratedParamIndices_;
+        std::vector<int> deceleratedParamIndices_;
+
+        vec_dbl_Type positions_;
+        vec_dbl_Type displacements_;
+        vec_dbl_Type accelerations_;
+        vec_dbl_Type concentrations_;
+        vec_dbl_Type rates_;
+        vec_dbl_Type residuumRint_;
+        vec_dbl_Type residuumRdyn_;
+        vec_dbl_Type residuumRc_;
+        vec2D_dbl_Type stiffnessMatrixKuu_;
+        vec2D_dbl_Type stiffnessMatrixKuc_;
+        vec2D_dbl_Type stiffnessMatrixKcu_;
+        vec2D_dbl_Type stiffnessMatrixKcc_;
+        vec2D_dbl_Type massMatrixMc_;
+
+        double subiterationTolerance_ = 1.e-7;
+        double activeAcceleratedEndTime_ = 0.;
+        double activeAcceleratedMultiplier_ = 0.;
+        double activeBool_ = 0.;
+        double growthBool_ = 0.;
+        double reorientationBool_ = 0.;
+        bool activeInitialized_ = false;
+        bool growthInitialized_ = false;
+        bool computeFA_ = false;
 	    /*
 		fA -Fibre angle_1
 		$[Lambda]$C50 -LambdaC50_2
