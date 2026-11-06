@@ -3341,8 +3341,6 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundaryPaper(int dim,
     if(params->sublist("Parameter Fluid").get("Use Inflow",false) && time < unsteadyStart)
         flowRateUse = flowRateInlet;
 
-    // if(isNeg==1)
-    //     flowRateUse = 0.;
 
     double A_bar = 1./((std::sqrt(beta*std::sqrt(areaOutlet_init)+p_ref_input)-std::sqrt(beta*std::sqrt(areaOutlet_init)))*2.*std::sqrt(2.)*(1./std::sqrt(density))*(1./flowRateInput));
     double h_x = 0.;
@@ -3528,9 +3526,6 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundary(int dim,
     double flowRateUse = flowRateOutlet;
     if(params->sublist("Parameter Fluid").get("Average Flowrate",false) )
         flowRateUse = flowRateOutletAveraged;
-
-    // if(isNeg==1)
-    //     flowRateUse = 0.;
 
     if(this->domainVec_.at(0)->getComm()->getRank()==0){
         std::cout << " ---------------------------------------------------------- " <<std::endl;
