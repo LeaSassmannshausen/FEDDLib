@@ -3702,8 +3702,8 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingResistanceBoundary(int dim,
 
                                                     // During the paper model's steady phase, optionally use the current inlet
     // flow instead of the instantaneous or averaged outlet flow.
-    if(params->sublist("Parameter Fluid").get("Use Inflow",false) && time < unsteadyStart)
-        flowRateUse = flowRateInlet;
+    // if(params->sublist("Parameter Fluid").get("Use Inflow",false) && time < unsteadyStart)
+    //     flowRateUse = flowRateInlet;
 
 
     double p_ref = flowRateUse*resistance;
