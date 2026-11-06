@@ -4,12 +4,12 @@
 <ParameterList name="FSI artery boundary tests">
     <ParameterList name="Parameter">
         <Parameter name="Dimension" type="int" value="3"/>
-        <Parameter name="Discretization" type="string" value="P1"/><!--P2-->
+        <Parameter name="Discretization" type="string" value="P2"/><!--P2-->
         
         <Parameter name="Model Geometry" type="string" value="Laplace"/>
         
         <Parameter name="FSI" type="bool" value="true"/>
-        <Parameter name="Geometry Explicit" type="bool" value="true"/>
+        <Parameter name="Geometry Explicit" type="bool" value="false"/>
         
         <Parameter name="relNonLinTol" type="double" value="1.0e-6"/>
         <Parameter name="absNonLinTol" type="double" value="1.0e-6"/>
@@ -180,10 +180,10 @@
 
 
     <ParameterList name="Mesh Partitioner">
-        <Parameter name="Contiguous" type="bool" value="true"/>
-        
-        <Parameter name="Mesh 1 Name" type="string" value="arterie_with_plaque_initma_media_adventitia_fluid_fine.mesh"/>
-        <Parameter name="Mesh 2 Name" type="string" value="arterie_with_plaque_initma_media_adventitia_solid_fine.mesh"/>
+        <Parameter name="Contiguous" type="bool" value="true"/> 
+      
+        <Parameter name="Mesh 1 Name" type="string" value="fsi_artery_fluid_res_2_Flags_4_5_6_9_10_15.mesh"/>
+        <Parameter name="Mesh 2 Name" type="string" value="fsi_solid_res_0_flags_6_7_8_9_10_11_12_13_14_15.mesh"/>
         
         <Parameter name="Automatic partition" type="bool" value="false"/> <!-- find ratio for ranks based on the number of elements of each mesh -->
         
