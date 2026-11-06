@@ -3881,7 +3881,7 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
 
     }
 
-    double flowRateUse = 2 * flowrateOutlet - flowRate_vec[1];
+    double flowRateUse = 2 * flowRateOutlet - flowRate_vec[1];
     // Averaged flowrate
     if(params->sublist("Parameter Fluid").get("Average Flowrate",false) )
         flowRateUse = flowRateOutletAveraged;
