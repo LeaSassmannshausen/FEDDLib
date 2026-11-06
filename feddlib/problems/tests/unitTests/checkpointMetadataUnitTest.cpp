@@ -358,6 +358,24 @@ int main(int argc, char** argv)
     writeOutlet();
     validate(outletFsi);
     {
+        Teuchos::ParameterList inflowSettings = outletSettings;
+        inflowSettings.sublist("Parameter Fluid").set("Use Inflow", false);
+        validate(checkpoint::makeSchema(inflowSettings, fsiFields));
+        if (comm->getRank() == 0)
+            std::cout << "PASS existing outlet metadata retains Use Inflow=false default\n";
+        inflowSettings.sublist("Parameter Fluid").set("Use Inflow", true);
+        const Teuchos::ParameterList inflowFsi = checkpoint::makeSchema(inflowSettings, fsiFields);
+        rejects("changed paper flow source to inlet", "Use Inflow", [&] { validate(inflowFsi); });
+        fixtureFor(inflowFsi);
+        writeOutlet();
+        validate(inflowFsi);
+        if (comm->getRank() == 0)
+            std::cout << "PASS paper inlet flow setting survives restart\n";
+        rejects("changed paper flow source to outlet", "Use Inflow", [&] { validate(outletFsi); });
+        fixtureFor(outletFsi);
+        writeOutlet();
+    }
+    {
         auto noRampSettings = outletSettings;
         noRampSettings.sublist("Parameter Fluid").set("BC Ramp", 0.5);
         validate(checkpoint::makeSchema(noRampSettings, fsiFields));

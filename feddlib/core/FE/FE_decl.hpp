@@ -150,7 +150,12 @@ class FE: public FE_ElementAssembly<SC,LO,GO,NO> {
                                 ParameterListPtr_Type params, 
                                 int FEloc=0);
 
-    /// Evaluate the paper model at physical time, including its steady/unsteady transition.
+    /** @brief Evaluate the paper model at physical time, including its steady/unsteady transition.
+     * "Parameter Fluid/Use Inflow" (default false) selects the current inlet flow
+     * for time < "Unsteady Start", overriding "Average Flowrate" during that phase.
+     * At and after the transition, the instantaneous or averaged outlet flow is
+     * used again. The existing outlet-backflow safeguard applies in both phases.
+     */
     double assemblyAbsorbingBoundaryPaper(int dim, 
                                 std::string FEType, 
                                 MultiVectorPtr_Type f, 

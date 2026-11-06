@@ -65,7 +65,8 @@
  *      "Reference fluid pressure".
  *    - Absorbing variants: "Poisson Ratio", "E", "Wall thickness", "Density",
  *      "Reference fluid pressure", "Max Ramp Time" and "Flowrate".
- *    - Absorbing uses "Heart Beat Start"; Absorbing Paper uses "Unsteady Start".
+ *    - Absorbing uses "Heart Beat Start"; Absorbing Paper uses "Unsteady Start"
+ *      and records "Use Inflow" when enabled (absence means false).
  *    - The separate outlet snapshot records its format version, model, layout,
  *      physical time, initial inlet/outlet areas, transition outlet area,
  *      current/previous flow rates, outlet pressure, initialization flag and
