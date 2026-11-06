@@ -3700,6 +3700,12 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingResistanceBoundary(int dim,
     if(params->sublist("Parameter Fluid").get("Average Flowrate",false) )
         flowRateUse = flowRateOutletAveraged;
 
+                                                    // During the paper model's steady phase, optionally use the current inlet
+    // flow instead of the instantaneous or averaged outlet flow.
+    if(params->sublist("Parameter Fluid").get("Use Inflow",false) && time < unsteadyStart)
+        flowRateUse = flowRateInlet;
+
+
     double p_ref = flowRateUse*resistance;
 
     double h_x =  pow( (sqrt(density)/(2*sqrt(2)) * flowRateUse/areaOutlet + sqrt(beta)),2) - beta + p_ref;
@@ -3858,6 +3864,7 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
 
     double flowRateOutletAveraged = (flowRate_vec[0] + flowRate_vec[1]) / 2.;
 
+
     if(this->domainVec_.at(0)->getComm()->getRank()==0){
         std::cout << " ---------------------------------------------------------- " << std::endl;
         std::cout << " ---------------------------------------------------------- " << std::endl;
@@ -3878,9 +3885,11 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
     if(params->sublist("Parameter Fluid").get("Average Flowrate",false) )
         flowRateUse = flowRateOutletAveraged;
 
-    if(isNeg==1)
-        flowRateUse = 0.;
-    
+    // During the paper model's steady phase, optionally use the current inlet
+    // flow instead of the instantaneous or averaged outlet flow.
+    if(params->sublist("Parameter Fluid").get("Use Inflow",false) && time < unsteadyStart)
+        flowRateUse = flowRateInlet;
+   
     double p_out = flowRateUse*resistance;
 
     // Second step: use flow rate to determine pressure with resistance
