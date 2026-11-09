@@ -199,7 +199,9 @@ inline Teuchos::ParameterList makeSchema(Teuchos::ParameterList& parameters,
     const double dt = time.get("dt", 0.01);
     TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(dt) || dt <= 0., std::logic_error,
                                "Checkpoint metadata requires a finite positive dt.");
-    const bool fsi = parameters.sublist("Parameter").get("FSI", false);
+    // Component settings may inherit FSI=true from the coupled problem, but
+    // their manifests describe only their own fields and auxiliary state.
+    const bool fsi = parameters.sublist("Parameter").get("FSI", false) && role.empty();
     const std::string method = role == "FSI structure" ? "Newmark" : time.get("Class", "Multistep");
     TEUCHOS_TEST_FOR_EXCEPTION(method != "Multistep" && method != "Newmark", std::logic_error,
                                "Checkpoint metadata does not support integration class " << method);

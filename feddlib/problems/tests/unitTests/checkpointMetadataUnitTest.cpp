@@ -287,6 +287,22 @@ int main(int argc, char** argv)
     auto structure = newmark;
     structure.set("Role", std::string("FSI structure"));
     checksSchema("version-1 FSI structure overrides integration class", structure, settings, {fields[0]});
+    {
+        // FSI drivers may merge the coupled Parameter sublist into component
+        // settings. A solid-only manifest must never request fluid fields.
+        auto inherited = settings;
+        inherited.sublist("Parameter").set("FSI", true);
+        auto solid = structure;
+        solid.sublist("Fields").sublist("d_s") = solid.sublist("Fields").sublist("u");
+        solid.sublist("Fields").remove("u");
+        auto solidField = fields[0];
+        solidField.name = "d_s";
+        checksSchema("FSI structure with inherited coupled flag", solid, inherited, {solidField});
+        auto fluid = schema;
+        fluid.set("Role", std::string("FSI fluid"));
+        fluid.sublist("Integration").set("Layout", std::string("legacy-start-of-step-v1"));
+        checksSchema("FSI fluid with inherited coupled flag", fluid, inherited, fields);
+    }
     fixtureFor(newmark);
     rejects("initial solution excludes Newmark", "standalone multistep Navier-Stokes", [&] { validateInitial(newmark); });
     validate(newmark);
