@@ -3554,7 +3554,6 @@ double FE<SC,LO,GO,NO>::assemblyAbsorbingBoundary(int dim,
         std::cout << " --------------------------------------------------------- " <<std::endl;
 
     }
-    // Second step: use flow rate to determine pressure with resistance
     for (UN T=0; T<elements->numberElements(); T++) {
         FiniteElement fe = elements->getElement( T );
         ElementsPtr_Type subEl = fe.getSubElements(); // might be null
