@@ -14,14 +14,16 @@ namespace FEDD {
 
 /** @brief Persistent pressure-boundary history at the start of an FSI timestep.
  * The previous flow rate is the value retained by the last pressure evaluation,
- * not the flow computed from the checkpoint's current velocity. Only Absorbing
- * Paper captures an area at its steady/unsteady transition; the normal Absorbing
- * model uses its initial area without a transition. Captured areas
- * retain their original capture time across restarts. Zero areas are allowed
- * only while the corresponding initialization/capture flag is false.
+ * not the flow computed from the checkpoint's current velocity. Absorbing Paper
+ * captures its outlet area at the steady/unsteady transition; the normal
+ * Absorbing model uses its initial area without a transition. Captured areas
+ * retain their original capture time across restarts. Absorbing areas must be
+ * positive once initialized/captured; Relative resistance permits zero areas
+ * while its unsteady-phase capture is pending.
  * The previous flow rate is required by all models when flow-rate averaging is
- * enabled. Relative resistance retains the initial inlet/outlet areas;
- * transition history is required only by the paper variant.
+ * enabled. For Relative resistance, initialInletArea/initialOutletArea instead
+ * retain A0 captured at Unsteady Start; both remain zero until that capture.
+ * The separate transition history is required only by the paper variant.
  */
 struct FSIOutletState
 {
@@ -72,6 +74,7 @@ inline Teuchos::ParameterList outletConfiguration(Teuchos::ParameterList& parame
         if (type == "Relative") {
             result.set("Resistance Type", type);
             result.set("Unsteady Start", fluid.get("Unsteady Start", 0.2));
+            result.set("Reference area time", std::string("Unsteady Start"));
         }
         const double distal = fluid.get("Distal Pressure", 0.);
         if (distal != 0.) result.set("Distal Pressure", distal);

@@ -485,7 +485,19 @@ int main(int argc, char** argv)
             validate(checkpoint::makeSchema(relativeSettings, fsiFields));
         });
         editOutlet([](Teuchos::ParameterList& data) { data.set("Initial inlet area", 0.); });
-        rejects("missing relative resistance reference area", "positive initial areas", [&] { validate(relativeFsi); });
+        rejects("missing relative resistance reference area", "positive reference areas", [&] { validate(relativeFsi); });
+        editOutlet([](Teuchos::ParameterList& data) { data.set("Initial outlet area", 0.); });
+        rejects("missing both captured relative resistance areas", "positive reference areas", [&] { validate(relativeFsi); });
+        // At a start-of-step snapshot the pressure evaluation at this time is
+        // still pending, so zero areas are valid when the transition is due now.
+        fluid.set("Distal Pressure", 0.).set("Unsteady Start", time);
+        const auto pendingFsi = checkpoint::makeSchema(relativeSettings, fsiFields);
+        fixtureFor(pendingFsi);
+        auto pending = outlet;
+        pending.initialInletArea = pending.initialOutletArea = 0.;
+        checkpoint::onRoot(*comm, [&] { checkpoint::writeOutletState(pending, outletFile, "Resistance", time); });
+        validate(pendingFsi);
+        if (comm->getRank() == 0) std::cout << "PASS relative resistance permits pending area capture at transition\n";
         fixtureFor(resistanceFsi);
         checkpoint::onRoot(*comm, [&] { checkpoint::writeOutletState(outlet, outletFile, "Resistance", time); });
     }

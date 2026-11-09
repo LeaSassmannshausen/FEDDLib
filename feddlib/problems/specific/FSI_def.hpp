@@ -1184,7 +1184,9 @@ void FSI<SC,LO,GO,NO>::setFluidMassmatrix( MatrixPtr_Type& massmatrix ) const
 
 
 /** @brief Evaluate the pressure boundary using the retained outlet history.
- * Initial areas are computed only for a fresh run. The previous flow rate and
+ * Absorbing reference areas are computed only for a fresh run; Relative
+ * resistance captures its reference areas when the unsteady phase starts.
+ * The previous flow rate and
  * captured transition area are restored verbatim for a resumed run, then advanced
  * exactly once here. Checkpoints are written before this start-of-step operation.
  */
@@ -1214,7 +1216,7 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const
         TEUCHOS_TEST_FOR_EXCEPTION(time != 0., std::runtime_error,
             "FSI outlet history must be restored before resuming a pressure boundary model.");
         outletState_.previousFlowRate = outletState_.currentFlowRate;
-        if (model != "Resistance" || fluid.get("Resistance Type", std::string("Constant")) == "Relative") {
+        if (model != "Resistance") {
             this->feFactory_->assemblyArea(this->dim_, outletState_.initialInletArea, flagInlet);
             this->feFactory_->assemblyArea(this->dim_, outletState_.initialOutletArea, flagOutlet);
         }
@@ -1226,6 +1228,15 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const
     // Extract both current and previous flow rates for the pressure boundary evaluation. 
     vec_dbl_Type flowRates = {outletState_.previousFlowRate, outletState_.currentFlowRate};
     if (model == "Resistance") {
+        // For Relative, the retained area pair is A0 at the start of the
+        // unsteady phase. Both zeros mean capture is still pending. Positive
+        // areas are retained across subsequent timesteps and restarts.
+        if (fluid.get("Resistance Type", std::string("Constant")) == "Relative" &&
+            time + 1.e-12 >= fluid.get("Unsteady Start", 0.2) &&
+            outletState_.initialInletArea == 0. && outletState_.initialOutletArea == 0.) {
+            this->feFactory_->assemblyArea(this->dim_, outletState_.initialInletArea, flagInlet);
+            this->feFactory_->assemblyArea(this->dim_, outletState_.initialOutletArea, flagOutlet);
+        }
         outletState_.pressure = this->feFactory_->assemblyResistanceBoundary(this->dim_,
             this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates, this->parameterList_, 0, time,
             outletState_.initialInletArea, outletState_.initialOutletArea);

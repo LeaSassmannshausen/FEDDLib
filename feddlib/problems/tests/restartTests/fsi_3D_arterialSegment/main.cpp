@@ -180,6 +180,14 @@ bool checkResistanceAssembly(DomainPtr_Type domain, RCP<const Teuchos::Comm<int>
     passed = passed && std::abs(constantPressure - (1.25 + 2. * flow)) < 1.e-12;
 
     fluid.set("Resistance Type", std::string("Relative")).set("Unsteady Start", 0.2);
+    // No reference areas exist before the transition. At capture, current
+    // areas are the references and the resistance must still equal R0.
+    const double beforeCapture = fe.assemblyResistanceBoundary(3, "P1", repeatedLoad, velocity,
+        flowRates, settings, 0, 0.1);
+    const double atCapture = fe.assemblyResistanceBoundary(3, "P1", repeatedLoad, velocity,
+        flowRates, settings, 0, 0.2, inletArea, area);
+    passed = passed && std::abs(beforeCapture - constantPressure) < 1.e-12 &&
+        std::abs(atCapture - constantPressure) < 1.e-12;
     // Unequal ratios (2 and 0.5) distinguish the mean of ratios from a ratio
     // of summed areas, and distinguish alpha^-2 from alpha^-1 or alpha^-4.
     const double initialInletArea = inletArea / 2., initialOutletArea = area * 2.;
@@ -219,7 +227,7 @@ bool checkResistanceAssembly(DomainPtr_Type domain, RCP<const Teuchos::Comm<int>
     }
     bool rejectedMissingArea = false;
     try {
-        fe.assemblyResistanceBoundary(3, "P1", repeatedLoad, velocity, history, settings);
+        fe.assemblyResistanceBoundary(3, "P1", repeatedLoad, velocity, history, settings, 0, 0.2);
     } catch (const std::logic_error&) { rejectedMissingArea = true; }
     passed = passed && rejectedMissingArea;
     return passed;

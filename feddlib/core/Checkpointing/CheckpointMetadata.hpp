@@ -64,7 +64,8 @@
  *    - Resistance: "Resistance", "Viscosity", "Density" and
  *      "Reference fluid pressure". Non-default "Distal Pressure" and enabled
  *      "Use Inflow" are also recorded. Relative resistance additionally records
- *      "Resistance Type" and "Unsteady Start" and requires initial areas.
+ *      "Resistance Type", "Unsteady Start" and "Reference area time";
+ *      its area pair is captured at the unsteady transition.
  *    - Absorbing variants: "Poisson Ratio", "E", "Wall thickness", "Density",
  *      "Reference fluid pressure", "Max Ramp Time" and "Flowrate".
  *    - Absorbing uses "Heart Beat Start"; Absorbing Paper uses "Unsteady Start"
@@ -477,9 +478,11 @@ inline void validate(const Teuchos::ParameterList& schema, const ParameterListPt
             const auto& outlet = schema.sublist("FSI outlet");
             const auto state = readOutletState(restartFile(parameters, outletStateName(time)),
                                                outlet.get<std::string>("Model"), time);
-            if (outlet.isParameter("Resistance Type") && outlet.get<std::string>("Resistance Type") == "Relative" && state.initialized &&
+            if (outlet.isParameter("Resistance Type") && outlet.get<std::string>("Resistance Type") == "Relative" &&
+                state.initialized && (state.initialInletArea != 0. || state.initialOutletArea != 0. ||
+                    time - restoredClock.get<double>("dt_prev") + 1.e-12 >= outlet.get<double>("Unsteady Start")) &&
                 (state.initialInletArea <= 0. || state.initialOutletArea <= 0.))
-                throw std::runtime_error("FSI relative resistance requires positive initial areas");
+                throw std::runtime_error("FSI relative resistance requires positive reference areas captured at Unsteady Start");
             // At a start-of-step checkpoint, the last pressure evaluation was
             // at the previous saved time. A transition due only now is pending.
             if (outlet.get<std::string>("Model") == "Absorbing Paper" && state.initialized &&

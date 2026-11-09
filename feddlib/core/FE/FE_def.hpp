@@ -3814,8 +3814,8 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
                                               ParameterListPtr_Type params,
                                               int FEloc,
                                               double time,
-                                              double areaInlet_init,
-                                              double areaOutlet_init) {
+                                              double areaInlet_ref,
+                                              double areaOutlet_ref) {
 
     ElementsPtr_Type elements = this->domainVec_.at(FEloc)->getElementsC();
 
@@ -3859,18 +3859,19 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
     double resistance = resistance0;
     double alpha = 1.;
     if (relative) {
-        TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(time) || !std::isfinite(unsteadyStart) || unsteadyStart < 0. ||
-            !std::isfinite(areaInlet_init) || areaInlet_init <= 0. ||
-            !std::isfinite(areaOutlet_init) || areaOutlet_init <= 0., std::logic_error,
-            "Relative resistance requires finite time, nonnegative Unsteady Start and positive finite initial inlet/outlet areas.");
+        TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(time) || !std::isfinite(unsteadyStart) || unsteadyStart < 0.,
+            std::logic_error, "Relative resistance requires finite time and nonnegative Unsteady Start.");
         if (time + 1.e-12 >= unsteadyStart) {
+            TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(areaInlet_ref) || areaInlet_ref <= 0. ||
+                !std::isfinite(areaOutlet_ref) || areaOutlet_ref <= 0., std::logic_error,
+                "Relative resistance requires positive finite reference inlet/outlet areas captured at Unsteady Start.");
             double areaInlet = 0., areaOutlet = 0.;
             this->assemblyArea(dim, areaInlet, flagInlet, FEloc);
             this->assemblyArea(dim, areaOutlet, flagOutlet, FEloc);
             TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(areaInlet) || areaInlet <= 0. ||
                 !std::isfinite(areaOutlet) || areaOutlet <= 0., std::logic_error,
                 "Relative resistance requires positive finite current inlet/outlet areas.");
-            alpha = 0.5 * (areaInlet / areaInlet_init + areaOutlet / areaOutlet_init);
+            alpha = 0.5 * (areaInlet / areaInlet_ref + areaOutlet / areaOutlet_ref);
             TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(alpha) || alpha <= 0., std::logic_error,
                 "Relative resistance has an invalid mean area ratio.");
             resistance = (resistance0 / alpha) / alpha;

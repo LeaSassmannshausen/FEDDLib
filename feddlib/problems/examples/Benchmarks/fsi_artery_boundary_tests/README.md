@@ -67,9 +67,12 @@ Set these entries in `Parameter Fluid` to enable the relative model:
 `Resistance Type = Constant` is the default and uses the configured `Resistance`
 as R0 throughout. `Relative` uses R0 before `Unsteady Start`; at and after that
 time it uses
-`alpha = 0.5 * (A_in(t)/A_in(0) + A_out(t)/A_out(0))` and `R(t) = R0/alpha^2`.
-The reference areas are taken from the initial mesh at time zero and retained
-across restarts. They are not reset at the unsteady transition.
+`alpha = 0.5 * (A_in(t)/A_in(t_u) + A_out(t)/A_out(t_u))` and `R(t) = R0/alpha^2`.
+Here `t_u` is `Unsteady Start`. Both reference areas are captured once on the
+first pressure evaluation at or after that time and retained across subsequent
+timesteps and restarts. At capture, alpha is one and the resistance equals R0.
+If the transition lies between time levels, capture occurs at the first time
+level reaching it; no interpolation of areas is performed.
 Both variants apply `p_out = Distal Pressure + R(t) * Q_used`; distal pressure
 defaults to zero. `Reference fluid pressure` belongs to the absorbing models
 and does not set the resistance model's distal pressure.

@@ -136,7 +136,7 @@ class FE: public FE_ElementAssembly<SC,LO,GO,NO> {
     /** @brief Assemble outlet traction with p = Distal Pressure + R * Q.
      * Resistance Type defaults to Constant. Relative uses R0 / alpha^2 at and
      * after Unsteady Start, with alpha the mean inlet/outlet area ratio.
-     * Initial areas are required for Relative; they refer to the initial mesh.
+     * Reference areas are captured at Unsteady Start and required from then on.
      */
     double assemblyResistanceBoundary(int dim, 
                                 std::string FEType, 
@@ -146,8 +146,8 @@ class FE: public FE_ElementAssembly<SC,LO,GO,NO> {
                                 ParameterListPtr_Type params, 
                                 int FEloc=0,
                                 double time=0.,
-                                double areaInlet_init=0.,
-                                double areaOutlet_init=0.);
+                                double areaInlet_ref=0.,
+                                double areaOutlet_ref=0.);
     double assemblyAbsorbingBoundary(int dim, 
                                 std::string FEType, 
                                 MultiVectorPtr_Type f, 
