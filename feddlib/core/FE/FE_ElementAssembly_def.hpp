@@ -961,21 +961,17 @@ void FE_ElementAssembly<SC,LO,GO,NO>::addFeBlockMatrix(BlockMatrixPtr_Type &A, S
 		int offset= numNodes1*dofs1;
 
 
-        Teuchos::Array<SC> value( 1, 0. );
-        Teuchos::Array<GO> columnIndex( 1, 0 );
+        // Keep the chemistry graph independent of the current solution. Entries
+        // that vanish in one Newton step may become nonzero in the next step.
         for (UN i=0; i < numNodes2 ; i++) {
             for(int di=0; di<dofs2; di++){
                 GO row =GO (dofs2* mapSecondRow->getGlobalElement( element2.getNode(i) )+di);
                 for(int d=0; d<dofs2; d++){
                     for (UN j=0; j < columnIndices2.size(); j++){
-                        double tmpValue =  (*elementMatrix)[offset+dofs2*i+di][offset+dofs2*j+d];
-                        if(std::fabs(tmpValue) > 1.e-13){
-                            columnIndex[0] = GO ( dofs2 * mapSecondRow->getGlobalElement( element2.getNode(j) ) + d );
-                            value[0] = tmpValue;
-                            A->getBlock(1,1)->insertGlobalValues( row, columnIndex(), value() ); // Automatically adds entries if a value already exists 
-
-                        }
+                        columnIndices2[j] = GO (dofs2 * mapSecondRow->getGlobalElement(element2.getNode(j)) + d);
+                        value2[j] = (*elementMatrix)[offset+dofs2*i+di][offset+dofs2*j+d];
                     }
+                    A->getBlock(1,1)->insertGlobalValues(row, columnIndices2(), value2());
                 }          
             }
         }

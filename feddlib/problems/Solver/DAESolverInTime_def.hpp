@@ -3,6 +3,7 @@
 
 
 #include "feddlib/problems/specific/FSI.hpp"
+#include "feddlib/problems/specific/SCI.hpp"
 #include "feddlib/core/Mesh/MeshUnstructured.hpp"
 #include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/core/FE/FE.hpp"
@@ -142,6 +143,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTime(){
     if(this->parameterList_->sublist("Parameter").get("FSI",false))
     {
         advanceInTimeFSI();
+    }
+    else if (this->parameterList_->sublist("Parameter").get("SCI", false)) {
+        advanceInTimeSCI();
     }
     else{
         if (!parameterList_->sublist("Timestepping Parameter").get("Class","Singlestep").compare("Loadstepping")) {
@@ -528,6 +532,349 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeNonLinearNewmark()
     {
         closeExporter();
     }
+}
+
+template<class SC,class LO,class GO,class NO>
+void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
+{
+    timeSteppingTool_->printInfo();
+
+    SCIProblemPtr_Type sci = Teuchos::rcp_dynamic_cast<SCIProblem_Type>(this->problemTime_->getUnderlyingProblem(), true);
+    TEUCHOS_TEST_FOR_EXCEPTION(parameterList_->sublist("Timestepping Parameter").get("Restart", false),
+        std::logic_error, "SCI restart requires porting the supplied material-history file I/O.");
+
+    bool print = parameterList_->sublist("General").get("ParaViewExport",false);
+    bool printStress = parameterList_->sublist("General").get("Export Stress",false) ||
+        parameterList_->sublist("Exporter").get("Export material fields", false);
+    bool printData = parameterList_->sublist("General").get("Export Data",true);
+    bool printExtraData = parameterList_->sublist("General").get("Export Extra Data",false);
+
+    ExporterPtr_Type materialExporter;
+    BlockMultiVectorPtr_Type materialOutput;
+    auto exportMaterialFields = [&](BlockMultiVectorPtr_Type fields, DomainConstPtr_Type domain,
+                                    const vec_string_Type& names) {
+        TEUCHOS_TEST_FOR_EXCEPTION(names.empty() || fields->size() != names.size(), std::logic_error,
+            "SCI postprocessing field count does not match its names.");
+        if (materialExporter.is_null()) {
+            materialOutput = fields;
+            materialExporter = Teuchos::rcp(new Exporter_Type());
+            auto mesh = Teuchos::rcp_const_cast<Mesh_Type>(domain->getMesh());
+            materialExporter->setup("solid_material", mesh, domain->getFEType(),
+                parameterList_->sublist("Exporter").get("Export every X timesteps", 1), parameterList_);
+            for (UN i = 0; i < names.size(); ++i) {
+                MultiVectorConstPtr_Type field = materialOutput->getBlock(i);
+                materialExporter->addVariable(field, names[i], "Scalar", 1, domain->getMapUnique());
+            }
+        } else {
+            materialOutput->update(1., *fields, 0.);
+        }
+        materialExporter->save(timeSteppingTool_->currentTime());
+    };
+    BlockMultiVectorPtr_Type stressVec;
+    if (print)
+    {
+        exportTimestep();
+    }
+
+    vec_dbl_ptr_Type its = Teuchos::rcp(new vec_dbl_Type ( 2, 0. ) ); //0:linear iterations, 1: nonlinear iterations
+    ExporterTxtPtr_Type exporterTimeTxt;
+    ExporterTxtPtr_Type exporterDisplXTxt;
+    ExporterTxtPtr_Type exporterDisplYTxt;
+    ExporterTxtPtr_Type exporterIterations;
+    ExporterTxtPtr_Type exporterNewtonIterations;
+    ExporterTxtPtr_Type exporterCornerValue;
+
+    GO idExport = parameterList_->sublist("General").get("ExportID",0);
+    LO valueCorner =-1;
+
+    if (printData) {
+        exporterTimeTxt = Teuchos::rcp(new ExporterTxt());
+        exporterDisplXTxt = Teuchos::rcp(new ExporterTxt());
+        exporterDisplYTxt = Teuchos::rcp(new ExporterTxt());
+        exporterTimeTxt->setup( "time", this->comm_ );
+
+        std::string suffix = parameterList_->sublist("General").get("Export Suffix","");
+
+        exporterNewtonIterations = Teuchos::rcp(new ExporterTxt());
+        exporterNewtonIterations->setup( "newtonIterations" + suffix, this->comm_ );
+
+        exporterIterations = Teuchos::rcp(new ExporterTxt());
+        exporterIterations->setup( "linearIterations" + suffix, this->comm_ );
+
+    }
+    if (printExtraData) {
+
+        vec_dbl_Type v(3,-9999.);
+        this->problemTime_->getValuesOfInterest(v);
+        vec_dbl_Type vGathered(this->comm_->getSize());
+        Teuchos::gatherAll<int,double>( *this->comm_, 1, &v[0], vGathered.size(), &vGathered[0] );
+        int targetRank=0;
+        while (vGathered[targetRank] < 0){
+            targetRank++;
+            TEUCHOS_TEST_FOR_EXCEPTION( targetRank == vGathered.size(), std::runtime_error, "No targetRank for export of displacements was found!" );
+        }
+
+        std::string suffix = parameterList_->sublist("General").get("Export Suffix","");
+
+        exporterDisplXTxt->setup( "displ_x" + suffix, this->comm_ , targetRank);
+        exporterDisplYTxt->setup( "displ_y" + suffix, this->comm_ , targetRank);
+
+    }
+
+    vec2D_dbl_Type timeParametersVec(0,vec_dbl_Type(2));
+
+    int numSegments = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").get("Number of Segments",0);
+
+    for(int i=1; i <= numSegments; i++){
+
+        double startTime = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("Start Time",0.);
+        double dtTmp = parameterList_->sublist("Timestepping Parameter").sublist("Timestepping Intervalls").sublist(std::to_string(i)).get("dt",0.1);
+
+        vec_dbl_Type segment = {startTime,dtTmp};
+        timeParametersVec.push_back(segment);
+    }
+    double loadStepSize = parameterList_->sublist("Parameter").get("Load Step Size",1.);
+
+    if(numSegments > 0 ){
+        TEUCHOS_TEST_FOR_EXCEPTION( loadStepSize != timeParametersVec[0][1], std::runtime_error, "Load Step Size and First Time Interval Size appear different" );
+    }
+    else{
+        TEUCHOS_TEST_FOR_EXCEPTION( loadStepSize != timeSteppingTool_->dt_, std::runtime_error, "Load Step Size and dt appear different" );
+    }
+
+    timeSteppingTool_->prepareStep();
+
+    double dt = timeSteppingTool_->dt_;
+
+    int sizeSCI = timeStepDef_.size();
+
+    int sizeChem = 1; //  c
+    int sizeStructure = 1; // d_s
+
+    double beta = timeSteppingTool_->get_beta();
+    double gamma = timeSteppingTool_->get_gamma();
+    int nmbBDF = 1;
+
+    SmallMatrix<double> massCoeffChem(sizeChem);
+    SmallMatrix<double> problemCoeffChem(sizeChem);
+    double coeffSourceTermChem = 0.0;
+
+    massCoeffChem[0][0] = 1/ dt; // 3/(2\Delta t)
+    problemCoeffChem[0][0] = 1; // 1
+    coeffSourceTermChem = 1; // 1
+
+    SmallMatrix<double> massCoeffStructure(sizeStructure);
+    SmallMatrix<double> problemCoeffStructure(sizeStructure);
+    double coeffSourceTermStructure = 0.0; // Koeffizient fuer den Source-Term (= rechte Seite der DGL); mit Null initialisieren
+
+    massCoeffStructure[0][0] = 1./(dt*dt*beta);
+    problemCoeffStructure[0][0] =  1.0;
+    coeffSourceTermStructure = 1.0; // ACHTUNG FUER SOURCE TERM, DER NICHT IN DER ZEIT DISKRETISIERT WIRD!
+
+    bool chemistryExplicit_ =    parameterList_->sublist("Parameter").get("Chemistry Explicit",false);
+
+    SmallMatrix<double> massCoeffSCI(sizeSCI);
+    SmallMatrix<double> problemCoeffSCI(sizeSCI);
+
+    massCoeffSCI[0][0] = massCoeffStructure[0][0];
+    problemCoeffSCI[0][0] = problemCoeffStructure[0][0];
+
+    if(!chemistryExplicit_){
+
+        massCoeffSCI[1][1] = massCoeffChem[0][0];
+        problemCoeffSCI[1][1] = problemCoeffChem[0][0];
+        problemCoeffSCI[0][1] = 1;
+        problemCoeffSCI[1][0] = 1;
+    }
+
+    this->problemTime_->setTimeParameters(massCoeffSCI, problemCoeffSCI);
+
+    if (printExtraData) {
+        exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
+        vec_dbl_Type v(3,0.);
+        this->problemTime_->getValuesOfInterest( v );
+
+        exporterDisplXTxt->exportData( v[0] );
+        exporterDisplYTxt->exportData( v[1] );
+    }
+
+    vec_dbl_Type linearIterations(0);
+    vec_dbl_Type newtonIterations(0);
+
+    double inflowRamp = parameterList_->sublist("Parameter").get("Inflow Ramp",0.01);
+    std::string structureModel = parameterList_->sublist("Parameter").get("Structure Model","SCI_NH");
+
+    bool restart = this->parameterList_->sublist("Timestepping Parameter").get("Restart", false);
+    double timeStepRestart = this->parameterList_->sublist("Timestepping Parameter").get("Time step", 0.0);
+    double timeStep = 0;
+
+    while(timeSteppingTool_->continueTimeStepping())
+    {
+
+        timeSteppingTool_->prepareStep();
+        dt = timeSteppingTool_->dt_;
+
+        if(timeSteppingTool_->currentTime()>0)
+            this->problemTime_->assemble("UpdateTime"); // Updates to next timestep
+
+        timeSteppingTool_->printInfo();
+
+        massCoeffSCI[0][0] = 1. / (dt * dt * beta);
+        this->problemTime_->setTimeParameters(massCoeffSCI, problemCoeffSCI);
+        massCoeffChem[0][0] = 1. / dt; // 3/(2\Delta t)
+        problemCoeffChem[0][0] = 1; // 1
+        coeffSourceTermChem = 1.; // 1
+
+        if(!chemistryExplicit_){
+            if(timeSteppingTool_->currentTime() > 0. + 1.e-12)
+            {
+                massCoeffSCI[1][1] = massCoeffChem[0][0];
+                this->problemTime_->setTimeParameters(massCoeffSCI, problemCoeffSCI);
+            }
+        }
+        problemTime_->updateTime ( timeSteppingTool_->currentTime() );
+
+        if (timeSteppingTool_->currentTime() != 0.0)
+        {
+            this->problemTime_->updateSolutionMultiPreviousStep(2);
+        }
+        else
+        {
+            this->problemTime_->updateSolutionMultiPreviousStep(1);
+        }
+
+        this->problemTime_->assemble("UpdateMeshDisplacement");
+
+        if(chemistryExplicit_)
+        {
+
+            this->problemTime_->assemble("SolveChemistryProblem");
+
+        }
+
+        {
+
+            if(timeSteppingTool_->currentTime() == 0.0 || (restart &&  timeSteppingTool_->currentTime() -1.e-5 < timeStepRestart ))
+            {
+                MatrixPtr_Type massmatrix;
+                sci->setSolidMassmatrix( massmatrix );
+                this->problemTime_->systemMass_->addBlock( massmatrix, 0, 0 );
+            }
+            this->problemTime_->assemble("ComputeSolidRHSInTime");
+        }
+
+        if (timeSteppingTool_->currentTime() == 0.) {
+            if(!chemistryExplicit_){
+                if (massCoeffSCI[1][1] != 0.){
+                    massCoeffSCI[1][1] = 1./dt ;
+                }
+                this->problemTime_->setTimeParameters(massCoeffSCI, problemCoeffSCI);
+            }
+        }
+
+        double time = timeSteppingTool_->currentTime() +  timeSteppingTool_->dt_;
+        problemTime_->updateTime ( time );
+
+        NonLinearSolver<SC, LO, GO, NO> nlSolver(parameterList_->sublist("General").get("Linearization","FixedPoint"));
+
+        if(this->comm_->getRank()==0)
+            std::cout << " ----- Nonlinear System Info|| Number of rows:" << problemTime_->getSystem()->size() << " || number of rhs:" << problemTime_->getRhs()->size() << " || solution: " << problemTime_->getSolution()->size() << std::endl;
+        nlSolver.solve(*this->problemTime_, time, its);
+
+        if(!chemistryExplicit_)
+        {
+            if (timeSteppingTool_->currentTime() <= dt+1.e-10)
+            {
+                massCoeffSCI[1][1] = massCoeffChem[0][0];
+                this->problemTime_->setTimeParameters(massCoeffSCI, problemCoeffSCI);
+            }
+        }
+
+        timeSteppingTool_->advanceTime(false);//output info
+
+        if (printData) {
+            exporterTimeTxt->exportData( timeSteppingTool_->currentTime() );
+            exporterIterations->exportData(timeSteppingTool_->currentTime(), (*its)[0] );
+            linearIterations.push_back((*its)[0]);
+
+            exporterNewtonIterations->exportData(timeSteppingTool_->currentTime(), (*its)[1] );
+            newtonIterations.push_back((*its)[1]);
+
+        }
+        if (printExtraData) {
+            vec_dbl_Type v(3,-9999.);
+            this->problemTime_->getValuesOfInterest(v);
+
+            exporterDisplXTxt->exportData( v[0] );
+            exporterDisplYTxt->exportData( v[1] );
+        }
+        if (print)
+        {
+            exportTimestep();
+
+        }
+        if (printStress){
+            timeStep = timeStep + 1.;
+            bool heartbeat= false;
+            double heartbeatStart1 = parameterList_->sublist("Parameter").get("Heart Beat Start 1",0.) ;
+            double heartbeatStart2 = parameterList_->sublist("Parameter").get("Heart Beat Start 2",0.) ;
+            double heartbeatEnd1 = parameterList_->sublist("Parameter").get("Heart Beat End 1",0.) ;
+            double heartbeatEnd2 = parameterList_->sublist("Parameter").get("Heart Beat End 2",0.) ;
+            double modValue = parameterList_->sublist("General").get("Every X Second",1.) ;
+            double modValueHeartBeat = parameterList_->sublist("General").get("Every X Second Heartbeat",0.1) ;
+
+            double time = timeSteppingTool_->currentTime();
+
+            if(time >= heartbeatStart1 && time <= heartbeatEnd1)
+                heartbeat=true;
+            else if(time >= heartbeatStart2 && time <= heartbeatEnd2)
+                heartbeat=true;
+
+            if(heartbeat)
+                modValue= modValueHeartBeat; // smaller post Processing steps in heart beat phases
+
+            if(fabs(remainder(timeStep,modValue)) < 0. + 1.e-8 ){
+                BlockMultiVectorPtr_Type stressVecTmp= sci->getPostProcessingData();
+                stressVec = stressVecTmp;
+                exportMaterialFields(stressVec, problemTime_->getDomain(0), sci->getPostprocessingNames());
+            }
+
+        }
+
+    }
+
+    comm_->barrier();
+    if (printData) {
+        exporterTimeTxt->closeExporter();
+        exporterIterations->closeExporter();
+        exporterNewtonIterations->closeExporter();
+
+         double sumLinear=0., sumNewton=0.;
+        for(int i=0; i < linearIterations.size(); i++){
+            sumLinear += linearIterations[i];
+            sumNewton += newtonIterations[i];
+        }
+        sumLinear = sumLinear / linearIterations.size();
+        sumNewton = sumNewton / newtonIterations.size();
+
+        if (verbose_) {
+            std::cout << " ######################################################## "<< std::endl;
+            std::cout << " Average linear iteration count over all time steps:  " << sumLinear << std::endl;
+            std::cout << " Average Newton iteration count over all time steps:  " << sumNewton << std::endl;
+            std::cout << " ######################################################## \n"<< std::endl;
+        }
+    }
+    if (printExtraData) {
+        exporterDisplXTxt->closeExporter();
+        exporterDisplYTxt->closeExporter();
+    }
+    if (print)
+    {
+        closeExporter();
+        // Material exporters are closed below, also when primary-field export is disabled.
+    }
+    if (!materialExporter.is_null()) materialExporter->closeExporter();
+
 }
 
 template<class SC,class LO,class GO,class NO>

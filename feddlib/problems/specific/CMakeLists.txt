@@ -32,6 +32,9 @@ set(problems_specific_HEADERS
     specific/FSI_decl.hpp
     specific/FSI_def.hpp
     specific/FSI.hpp
+    specific/SCI_decl.hpp
+    specific/SCI_def.hpp
+    specific/SCI.hpp
 CACHE INTERNAL "")
 
 set(problems_specific_SOURCES
@@ -46,6 +49,7 @@ set(problems_specific_SOURCES
     specific/NonLinLaplace.cpp
     specific/Stokes.cpp
     specific/FSI.cpp
+    specific/SCI.cpp
 CACHE INTERNAL "")
 
 

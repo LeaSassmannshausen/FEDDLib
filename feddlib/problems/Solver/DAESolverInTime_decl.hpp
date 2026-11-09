@@ -23,6 +23,8 @@ namespace FEDD {
 template <class SC, class LO, class GO, class NO>
 class FSI;
 template <class SC, class LO, class GO, class NO>
+class SCI;
+template <class SC, class LO, class GO, class NO>
 class MeshUnstructured;
 template <class SC, class LO, class GO, class NO>
 class Domain;
@@ -61,6 +63,8 @@ public:
 
     typedef FSI<SC,LO,GO,NO> FSIProblem_Type;
     typedef Teuchos::RCP<FSIProblem_Type> FSIProblemPtr_Type;
+    typedef SCI<SC,LO,GO,NO> SCIProblem_Type;
+    typedef Teuchos::RCP<SCIProblem_Type> SCIProblemPtr_Type;
 
     typedef Domain<SC,LO,GO,NO> Domain_Type;
     typedef Teuchos::RCP<Domain_Type > DomainPtr_Type;
@@ -104,6 +108,8 @@ public:
     // Wendet die Zeitdiskretisierung separat auf Fluid und Struktur an und
     // schreibe dann vor dem nlSolve() alles in das FSI-System hinein
     void advanceInTimeFSI();
+
+    void advanceInTimeSCI();
 
     void advanceInTimeLinearMultistep();
 
