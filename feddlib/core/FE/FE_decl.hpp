@@ -133,14 +133,21 @@ class FE: public FE_ElementAssembly<SC,LO,GO,NO> {
                                      BC_func_Type func,
                                      std::vector<SC>& funcParameter);
     
-    /// Assemble outlet traction with the constant configured resistance, p = R * Q.
+    /** @brief Assemble outlet traction with p = Distal Pressure + R * Q.
+     * Resistance Type defaults to Constant. Relative uses R0 / alpha^2 at and
+     * after Unsteady Start, with alpha the mean inlet/outlet area ratio.
+     * Initial areas are required for Relative; they refer to the initial mesh.
+     */
     double assemblyResistanceBoundary(int dim, 
                                 std::string FEType, 
                                 MultiVectorPtr_Type f, 
                                 MultiVectorPtr_Type u_rep,
                                 vec_dbl_Type flowRate_vec, 
                                 ParameterListPtr_Type params, 
-                                int FEloc=0);
+                                int FEloc=0,
+                                double time=0.,
+                                double areaInlet_init=0.,
+                                double areaOutlet_init=0.);
     double assemblyAbsorbingBoundary(int dim, 
                                 std::string FEType, 
                                 MultiVectorPtr_Type f, 

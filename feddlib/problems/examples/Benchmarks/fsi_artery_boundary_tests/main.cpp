@@ -8,6 +8,7 @@
 #include "feddlib/core/General/ExporterParaView.hpp"
 #include "feddlib/core/LinearAlgebra/MultiVector.hpp"
 #include "feddlib/core/General/BCBuilder.hpp"
+#include "feddlib/core/General/HDF5Import.hpp"
 
 #include "feddlib/problems/specific/FSI.hpp"
 #include "feddlib/problems/specific/Laplace.hpp"
@@ -42,27 +43,13 @@ void zeroDirichlet3D(double* x, double* res, double t, const double* parameters)
     return;
 }
 
-// Elliptical artery inlet. Direction and principal axis are orthonormalized
-// when registering the boundary condition below.
+// BCBuilder passes the imported scalar profile value in x[0].
+// Both artery_adaptations inlets lie at z=0 and point into the fluid along +z.
 void inflowParabolicArtery(double* x, double* res, double t, const double* parameters)
 {
-    const double* direction = parameters + 5;
-    const double* axis = parameters + 8;
-    const double minorAxis[3] = {
-        direction[1]*axis[2] - direction[2]*axis[1],
-        direction[2]*axis[0] - direction[0]*axis[2],
-        direction[0]*axis[1] - direction[1]*axis[0]};
-    double major = 0., minor = 0.;
-    for (int i = 0; i < 3; ++i) {
-        const double offset = x[i] - parameters[2+i];
-        major += offset * axis[i];
-        minor += offset * minorAxis[i];
-    }
-    const double radiusSquared = major*major/(parameters[11]*parameters[11])
-                               + minor*minor/(parameters[12]*parameters[12]);
-    const double speed = parameters[0] * std::max(0., 1. - radiusSquared);
-    for (int i = 0; i < 3; ++i)
-        res[i] = speed * direction[i];
+    res[0] = 0.;
+    res[1] = 0.;
+    res[2] = parameters[0] * x[0];
 }
 
 void flowrateParabolicArtery(double* x, double* res, double t, const double* parameters)
@@ -72,7 +59,7 @@ void flowrateParabolicArtery(double* x, double* res, double t, const double* par
         const double phase = std::max(0., std::min(1., t/parameters[1]));
         ramp = 0.5 * (1. - std::cos(M_PI * phase));
     }
-    res[0] = parameters[13] * ramp;
+    res[0] = parameters[2] * ramp;
 }
 
 void rhsDummy(double* x, double* res, double* parameters){
@@ -418,39 +405,12 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                 TEUCHOS_TEST_FOR_EXCEPTION(bcType != "parabolic_artery" || dim != 3,
                     std::logic_error, "This benchmark requires the 3D parabolic_artery inlet.");
                 std::vector<double> parameter_vec;
-                parameter_vec = {
-                    1., inflow.get("Inflow Ramp Time", 0.),
-                    inflow.get("Inflow Center X", 0.), inflow.get("Inflow Center Y", 0.), inflow.get("Inflow Center Z", 0.),
-                    inflow.get("Inflow Direction X", 0.), inflow.get("Inflow Direction Y", 0.), inflow.get("Inflow Direction Z", 1.),
-                    inflow.get("Inflow Axis X", 1.), inflow.get("Inflow Axis Y", 0.), inflow.get("Inflow Axis Z", 0.),
-                    inflow.get("Inflow Radius 1", 1.), inflow.get("Inflow Radius 2", 1.),
-                    inflow.get("Flowrate", 3.)};
+                parameter_vec = {1., inflow.get("Inflow Ramp Time", 0.), inflow.get("Flowrate", 3.)};
                 for (const double value : parameter_vec)
                     TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(value), std::logic_error,
                         "parabolic_artery parameters must be finite.");
-                TEUCHOS_TEST_FOR_EXCEPTION(parameter_vec[13] < 0. || parameter_vec[1] < 0. ||
-                    parameter_vec[11] <= 0. || parameter_vec[12] <= 0., std::logic_error,
-                    "parabolic_artery requires positive radii and nonnegative flow rate/ramp time.");
-                double directionNorm = 0.;
-                for (int i = 0; i < 3; ++i)
-                    directionNorm += parameter_vec[5+i]*parameter_vec[5+i];
-                directionNorm = std::sqrt(directionNorm);
-                TEUCHOS_TEST_FOR_EXCEPTION(directionNorm == 0., std::logic_error,
-                    "Inflow Direction must be nonzero and point into the fluid.");
-                for (int i = 0; i < 3; ++i)
-                    parameter_vec[5+i] /= directionNorm;
-                double projection = 0., axisNorm = 0.;
-                for (int i = 0; i < 3; ++i)
-                    projection += parameter_vec[8+i]*parameter_vec[5+i];
-                for (int i = 0; i < 3; ++i) {
-                    parameter_vec[8+i] -= projection*parameter_vec[5+i];
-                    axisNorm += parameter_vec[8+i]*parameter_vec[8+i];
-                }
-                axisNorm = std::sqrt(axisNorm);
-                TEUCHOS_TEST_FOR_EXCEPTION(axisNorm < 1.e-12, std::logic_error,
-                    "Inflow Axis must have a component perpendicular to Inflow Direction.");
-                for (int i = 0; i < 3; ++i)
-                    parameter_vec[8+i] /= axisNorm;
+                TEUCHOS_TEST_FOR_EXCEPTION(parameter_vec[2] < 0. || parameter_vec[1] < 0., std::logic_error,
+                    "parabolic_artery requires nonnegative flow rate/ramp time.");
                 // The wall is the moving FSI interface; its velocity is set by
                 // coupling to the solid, rather than a zero-velocity wall BC.
                 const int inletFlag = inflow.get("Inflow Flag", 4);
@@ -458,16 +418,26 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                     std::logic_error, "Inflow Flag must match General/Flag Inlet Fluid.");
                 const bool zeroPressure = inflow.get("Set Outflow Pressure to Zero", false);
                 Teuchos::RCP<BCBuilder<SC,LO,GO,NO>> bcFactoryFluid(new BCBuilder<SC,LO,GO,NO>());
-                MultiVectorConstPtr_Type analyticProfile; // No imported profile; integrate the analytic callback.
+                std::string meshStem = parameterListProblem->sublist("Mesh Partitioner").get<std::string>("Mesh 1 Name");
+                meshStem = meshStem.substr(meshStem.find_last_of("/\\") + 1);
+                const auto extension = meshStem.find_last_of('.');
+                if (extension != std::string::npos) meshStem.erase(extension);
+                const std::string profileFile = inflow.get("Inflow Profile File",
+                    "laplace_parabolic_" + meshStem + "_" + discType);
+                HDF5Import<SC,LO,GO,NO> importer(domainFluidVelocity->getMapUnique(), profileFile);
+                MultiVectorConstPtr_Type solutionLaplace = importer.readVariablesHDF5("solution");
+                importer.closeImporter();
+                const double profileMaximum = solutionLaplace->getMax();
+                TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(profileMaximum) || profileMaximum <= 0.,
+                    std::logic_error, "Imported inlet profile must have a positive finite maximum.");
                 bcFactory->addBC(inflowParabolicArtery, inletFlag, 0, domainFluidVelocity, "Dirichlet", dim,
-                    parameter_vec, analyticProfile, true, flowrateParabolicArtery);
+                    parameter_vec, solutionLaplace, true, flowrateParabolicArtery);
                 bcFactoryFluid->addBC(inflowParabolicArtery, inletFlag, 0, domainFluidVelocity, "Dirichlet", dim,
-                    parameter_vec, analyticProfile, true, flowrateParabolicArtery);
+                    parameter_vec, solutionLaplace, true, flowrateParabolicArtery);
                 if (verbose)
-                    std::cout << "parabolic_artery: inlet flag " << inletFlag << ", inward direction ("
-                              << parameter_vec[5] << ", " << parameter_vec[6] << ", " << parameter_vec[7]
-                              << "), radii " << parameter_vec[11] << ", " << parameter_vec[12]
-                              << " cm, target flow rate " << parameter_vec[13] << " cm^3/s" << std::endl;
+                    std::cout << "parabolic_artery: Laplace profile " << profileFile << ".h5, inlet flag "
+                              << inletFlag << ", inward direction +z, target flow rate " << parameter_vec[2]
+                              << " cm^3/s" << std::endl;
 
                              
                 // Fuer die Teil-TimeProblems brauchen wir bei TimeProblems

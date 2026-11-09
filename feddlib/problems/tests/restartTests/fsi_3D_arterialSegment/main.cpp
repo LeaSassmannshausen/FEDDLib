@@ -164,11 +164,64 @@ bool checkResistanceAssembly(DomainPtr_Type domain, RCP<const Teuchos::Comm<int>
         errorNegative += std::pow(total[i] + expected[i], 2);
     }
     const double error = std::sqrt(std::min(errorPositive, errorNegative));
-    const bool passed = std::isfinite(error) && error < 1.e-11 &&
+    bool passed = std::isfinite(error) && error < 1.e-11 &&
         std::abs(pressure - (backflow ? 0. : 2. * flow)) < 1.e-12;
     if (comm->getRank() == 0)
         std::cout << "Resistance affine-velocity traction error: " << error
                   << ": " << (passed ? "PASS" : "FAIL") << '\n';
+
+    double inletArea = 0., inletFlow = 0.;
+    fe.assemblyArea(3, inletArea, 4);
+    fe.assemblyFlowRate(3, inletFlow, "P1", 3, 4, velocity);
+    auto& fluid = settings->sublist("Parameter Fluid");
+    fluid.set("Distal Pressure", 1.25);
+    const double constantPressure = fe.assemblyResistanceBoundary(3, "P1", repeatedLoad, velocity,
+        flowRates, settings);
+    passed = passed && std::abs(constantPressure - (1.25 + 2. * flow)) < 1.e-12;
+
+    fluid.set("Resistance Type", std::string("Relative")).set("Unsteady Start", 0.2);
+    // Unequal ratios (2 and 0.5) distinguish the mean of ratios from a ratio
+    // of summed areas, and distinguish alpha^-2 from alpha^-1 or alpha^-4.
+    const double initialInletArea = inletArea / 2., initialOutletArea = area * 2.;
+    const vec_dbl_Type history = {0.25 * flow, 0.75 * flow};
+    for (bool average : {false, true}) {
+        fluid.set("Average Flowrate", average);
+        for (bool useInflow : {false, true}) {
+            fluid.set("Use Inflow", useInflow);
+            for (double time : {0.1, 0.2, 0.3}) {
+                const double effectiveR = time < 0.2 ? 2. : 2. / (1.25 * 1.25);
+                const double selectedFlow = useInflow && time < 0.2 ? inletFlow
+                    : (average ? 0.5 * flow : 1.25 * flow);
+                const double expectedPressure = 1.25 + effectiveR * selectedFlow;
+                const double actual = fe.assemblyResistanceBoundary(3, "P1", repeatedLoad, velocity,
+                    history, settings, 0, time, initialInletArea, initialOutletArea);
+                load.putScalar(0.);
+                load.exportFromVector(repeatedLoad, false, "Add");
+                std::fill(local, local + 3, 0.);
+                const auto assembled = load.getData(0);
+                for (int i = 0; i < assembled.size(); ++i) local[i % 3] += assembled[i];
+                Teuchos::reduceAll(*comm, Teuchos::REDUCE_SUM, 3, local, total);
+                const double expectedLoad[] = {-area * 0.375, -area * 0.75, area * (expectedPressure - 1.125)};
+                double positive = 0., negative = 0.;
+                for (int i = 0; i < 3; ++i) {
+                    positive += std::pow(total[i] - expectedLoad[i], 2);
+                    negative += std::pow(total[i] + expectedLoad[i], 2);
+                }
+                const bool matches = std::isfinite(actual) && std::abs(actual - expectedPressure) < 1.e-12 &&
+                    std::sqrt(std::min(positive, negative)) < 1.e-11;
+                passed = passed && matches;
+                if (comm->getRank() == 0)
+                    std::cout << "Relative resistance pressure/traction at " << time
+                              << " (Average Flowrate=" << average << ", Use Inflow=" << useInflow << "): "
+                              << (matches ? "PASS" : "FAIL") << '\n';
+            }
+        }
+    }
+    bool rejectedMissingArea = false;
+    try {
+        fe.assemblyResistanceBoundary(3, "P1", repeatedLoad, velocity, history, settings);
+    } catch (const std::logic_error&) { rejectedMissingArea = true; }
+    passed = passed && rejectedMissingArea;
     return passed;
 }
 

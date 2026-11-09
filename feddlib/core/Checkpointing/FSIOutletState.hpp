@@ -20,7 +20,8 @@ namespace FEDD {
  * retain their original capture time across restarts. Zero areas are allowed
  * only while the corresponding initialization/capture flag is false.
  * The previous flow rate is required by all models when flow-rate averaging is
- * enabled. Transition history is required only by the paper variant.
+ * enabled. Relative resistance retains the initial inlet/outlet areas;
+ * transition history is required only by the paper variant.
  */
 struct FSIOutletState
 {
@@ -64,6 +65,17 @@ inline Teuchos::ParameterList outletConfiguration(Teuchos::ParameterList& parame
     // All outlet models now ignore the removed ramp parameter.
     result.set("BC Ramp", 0.);
     if (model == "Resistance") {
+        const std::string type = fluid.get("Resistance Type", std::string("Constant"));
+        if (type != "Constant" && type != "Relative")
+            throw std::logic_error("Resistance Type must be Constant or Relative");
+        // Omit default settings to preserve compatibility with constant-R checkpoints.
+        if (type == "Relative") {
+            result.set("Resistance Type", type);
+            result.set("Unsteady Start", fluid.get("Unsteady Start", 0.2));
+        }
+        const double distal = fluid.get("Distal Pressure", 0.);
+        if (distal != 0.) result.set("Distal Pressure", distal);
+        if (fluid.get("Use Inflow", false)) result.set("Use Inflow", true);
         result.set("Resistance", fluid.get("Resistance", 1.));
         result.set("Viscosity", fluid.get("Viscosity", parameters.sublist("Parameter").get("Viscosity", 0.49)));
         result.set("Density", fluid.get("Density", 1.));

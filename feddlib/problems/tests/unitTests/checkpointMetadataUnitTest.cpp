@@ -465,6 +465,30 @@ int main(int argc, char** argv)
         const auto changedResistance = checkpoint::makeSchema(changedSettings, fsiFields);
         rejects("changed resistance " + setting, setting, [&] { validate(changedResistance); });
     }
+    {
+        auto relativeSettings = resistanceSettings;
+        auto& fluid = relativeSettings.sublist("Parameter Fluid");
+        fluid.set("Resistance Type", std::string("Constant")).set("Distal Pressure", 0.);
+        validate(checkpoint::makeSchema(relativeSettings, fsiFields));
+        fluid.set("Resistance Type", std::string("Relative")).set("Unsteady Start", 0.006);
+        const auto relativeFsi = checkpoint::makeSchema(relativeSettings, fsiFields);
+        rejects("changed resistance type", "Resistance Type", [&] { validate(relativeFsi); });
+        fixtureFor(relativeFsi);
+        checkpoint::onRoot(*comm, [&] { checkpoint::writeOutletState(outlet, outletFile, "Resistance", time); });
+        validate(relativeFsi);
+        fluid.set("Unsteady Start", 0.007);
+        rejects("changed resistance transition", "Unsteady Start", [&] {
+            validate(checkpoint::makeSchema(relativeSettings, fsiFields));
+        });
+        fluid.set("Unsteady Start", 0.006).set("Distal Pressure", 1.25);
+        rejects("changed resistance distal pressure", "Distal Pressure", [&] {
+            validate(checkpoint::makeSchema(relativeSettings, fsiFields));
+        });
+        editOutlet([](Teuchos::ParameterList& data) { data.set("Initial inlet area", 0.); });
+        rejects("missing relative resistance reference area", "positive initial areas", [&] { validate(relativeFsi); });
+        fixtureFor(resistanceFsi);
+        checkpoint::onRoot(*comm, [&] { checkpoint::writeOutletState(outlet, outletFile, "Resistance", time); });
+    }
     // Real version-2 fixtures retain actual history independently of the next dt.
     auto variableSchema = checkpoint::makeSchema(settings, fields);
     auto& runtime = parameters->sublist("Timestepping Parameter").sublist("_Checkpoint time state");

@@ -1,13 +1,12 @@
 # fsi_artery_boundary_tests
 
-Independent boundary-condition benchmark copied from `fsi_artery`. The driver,
-solver settings, preconditioner settings, and problem XML can be edited here.
-The source defaults reuse the existing artery meshes and prescribe an analytic
-elliptical inlet profile. No HDF5 inlet profile is loaded.
+Boundary-condition benchmark using the two fluid meshes in
+`meshes/artery_adaptations`. The inlet uses a precomputed Laplace profile,
+imported from HDF5 as in `curvedArteryFSI_Benchmark`.
 
 ## Build and run
 
-From the workspace root:
+From the workspace root, using an existing configured FEDDLib build:
 
 ```sh
 cmake -S source/FEDDLib -B build
@@ -16,66 +15,93 @@ cd build/feddlib/problems/examples/Benchmarks/fsi_artery_boundary_tests
 mpirun -np 4 ./problems_fsi_artery_boundary_tests.exe --problemfile=parametersProblemFSI.xml
 ```
 
-The configure command assumes an existing configured FEDDLib build. This is a
-manually run benchmark; it has no CTest registration or reference solution yet.
+CMake copies the meshes, XML settings and four inlet profiles to the build
+directory. Profiles are provided for fluid resolutions 1 and 2, each with P1
+and P2 velocity discretization. The driver automatically selects
+`laplace_parabolic_<fluid mesh basename>_<Discretization>.h5` from
+`Mesh Partitioner/Mesh 1 Name` and `Parameter/Discretization`.
+An optional `Parameter Fluid/Inflow Profile File` overrides this basename
+(without the `.h5` extension). Its scalar field must be named `solution` and
+use the same full fluid-node map and discretization as the benchmark.
 
-## Add the geometry
+This is a manually run benchmark; it has no CTest reference solution.
 
-1. Add the fluid and solid `.mesh` files and update the mesh-copy list in
-   `CMakeLists.txt`. Set `Mesh Partitioner/Mesh 1 Name` and `Mesh 2 Name` in
-   `parametersProblemFSI.xml` to the new filenames. Absolute paths in the XML
-   can also point to meshes outside the build directory.
-2. Set the analytic inlet parameters in `Parameter Fluid`: `BC Type` must be
-   `parabolic_artery`. Configure `Flowrate` (cm³/s), `Inflow Ramp Time`, `Inflow
-   Center X/Y/Z`, `Inflow Direction X/Y/Z`, `Inflow Axis X/Y/Z`, and `Inflow
-   Radius 1/2`. These describe a centre, inward normal, in-plane principal
-   axis, and two ellipse radii. Lengths are in **centimetres after conversion**.
-3. Match the boundary labels in `main.cpp` to the new meshes. The inherited
-   labels are fluid inlet **4**, fluid outlet **5**, coupled interface **6**
-   with inlet/outlet rings **9/10**, solid inlet/outlet **7/8**, and solid
-   support strips **13/14**. Review the fluid, structure, and ALE boundary
-   sections together when changing them.
-4. Review the inherited `readAndPartition(15, "mm", true)` call: the original
-   case converts millimetre mesh coordinates to centimetres. Material, fluid,
-   and flow-rate parameters must use consistent units. The inherited inflow
-   structural constraints also assume their original directions.
+## Inlet profile and flow rate
 
-The copied problem defaults to a 3D P1 Neo-Hookean solid. For AceGen SCI
-materials, use P2 and select the intended material in `Parameter Solid`;
-see [the AceGen FSI notes](../../../../../doc/acegen-fsi.md).
+`Parameter Fluid/BC Type` remains `parabolic_artery`. The spatial profile solves
+`-Delta_Gamma p = 1` on inlet surface flag **4**, with `p = 0` on its rim.
+It is stored with maximum value one and zero values away from the inlet.
+Both supplied meshes have an inlet at `z=0`, directed into the fluid along
+**+z**, so the velocity callback sets `u = (0, 0, amplitude(t) * p)`.
+The analytic ellipse parameters and `MaxVelocity` are no longer used.
 
-## Analytic inlet
+The existing imported-vector boundary-condition mechanism integrates this
+profile on the inlet mesh and scales its amplitude to
+`Parameter Fluid/Flowrate` (cm³/s). A positive `Inflow Ramp Time` applies the
+existing half-cosine ramp; zero disables the ramp. The same condition is
+registered for the coupled FSI problem and its fluid component.
+`Inflow Flag` must match `General/Flag Inlet Fluid` (4 for these profiles).
+`Flowrate` also remains an input to the absorbing outlet model.
 
-Only `parabolic_artery` is supported by this benchmark. It sets
-`u = amplitude(t) * max(0, 1 - (s/a)^2 - (q/b)^2) * direction`,
-where `s` and `q` are coordinates in the inlet plane. Direction and axis vectors
-are normalized; the axis is first projected onto the inlet plane. The existing
-flow-rate boundary-condition mechanism integrates the unit vector profile on
-the current inlet mesh and sets `amplitude = Flowrate * ramp(t) / abs(profile flux)`.
-The integration uses finite-element nodal values, leaves non-inlet nodes
-(including coupled rings) zero in this profile, and sums contributions across MPI ranks. It is
-repeated when applying the boundary values, so mesh deformation is accounted for.
-A positive `Inflow Ramp Time` applies a half-cosine ramp to the requested flow
-rate; zero disables the ramp. No HDF5 inlet profile is required. `MaxVelocity`
-is no longer used. `Flowrate` also remains an input to the absorbing outlet model.
+The inlet rim remains part of the FSI coupling, so its normal motion can add
+to the prescribed profile's flux. The fluid wall is the moving solid interface.
+The outlet, solid and ALE conditions are unchanged: fluid outlet **5**,
+interface **6**, inlet/outlet rings **9/10**, solid ends **7/8**, and solid
+support strips **13/14**.
 
-This normalizes the prescribed profile's contribution to the inlet flux.
-The rings retain their FSI coupling; any normal velocity there adds to the
-total flux. Enforcing the target including that unknown contribution would
-require an additional coupling change.
+Mesh loading uses `readAndPartition(15, "mm", true)`, converting millimetres
+to centimetres. All physical parameters must use consistent units.
 
-The same analytic Dirichlet condition is registered for the coupled problem
-and its fluid component. The fluid wall is the coupled solid interface, so no
-zero wall-velocity condition is added there. `Inflow Flag` defaults to 4 and
-must match `General/Flag Inlet Fluid`; the outlet and structural conditions
-keep their existing configuration.
+## Resistance outlet variants
 
-The active build-directory case is also saved as
-`parametersProblemFSI_parabolic_artery.xml`. It uses the new fluid and solid
-meshes already present there. Its inlet at `z=0` points along `+z`; the fitted
-centre is approximately `(0.00363215, 0.00843393, 0)` cm and the radii are
-`0.14054931` and `0.12337601` cm. The source default ellipse is fitted to the
-original plaque geometry instead. Update these entries when changing meshes.
+Set these entries in `Parameter Fluid` to enable the relative model:
 
-To retain build-directory mesh settings across later builds, run with
-`--problemfile=parametersProblemFSI_parabolic_artery.xml`.
+```xml
+<Parameter name="Pressure Boundary Condition" type="string" value="Resistance"/>
+<Parameter name="Resistance Type" type="string" value="Relative"/>
+<Parameter name="Resistance" type="double" value="3.6660e-4"/>
+<Parameter name="Distal Pressure" type="double" value="0.0"/>
+<Parameter name="Unsteady Start" type="double" value="0.2"/>
+```
+
+`Resistance Type = Constant` is the default and uses the configured `Resistance`
+as R0 throughout. `Relative` uses R0 before `Unsteady Start`; at and after that
+time it uses
+`alpha = 0.5 * (A_in(t)/A_in(0) + A_out(t)/A_out(0))` and `R(t) = R0/alpha^2`.
+The reference areas are taken from the initial mesh at time zero and retained
+across restarts. They are not reset at the unsteady transition.
+Both variants apply `p_out = Distal Pressure + R(t) * Q_used`; distal pressure
+defaults to zero. `Reference fluid pressure` belongs to the absorbing models
+and does not set the resistance model's distal pressure.
+
+The existing explicit timestep update, flow extrapolation and `Average Flowrate`
+option remain in use. For `Relative`, `Use Inflow = true` selects inlet flow
+only before `Unsteady Start`; afterward outlet flow/history is used. For
+`Constant`, `Use Inflow` retains its existing behavior throughout the run.
+The pressure is evaluated at the start of a timestep from the retained flow
+and current mesh; it has no additional Newton/Jacobian contribution.
+The benchmark's default outlet remains `Absorbing Paper`.
+
+## Regenerate the profiles
+
+The generator uses FEDDLib's mesh maps, basis functions and HDF5 format. It
+solves the inlet surface Poisson problem with conjugate gradients, checks the
+residual and verifies an HDF5 import/export round trip. It does not run FSI.
+
+```sh
+cmake --build build --target problems_fsi_artery_inlet_profile -j 4
+for resolution in 1 2; do
+    mesh="fsi_artery_fluid_res_${resolution}_Flags_4_5_6_9_10_15"
+    for fe in P1 P2; do
+        mpirun -np 1 build/feddlib/problems/examples/Benchmarks/fsi_artery_boundary_tests/problems_fsi_artery_inlet_profile.exe \
+            --mesh="source/FEDDLib/meshes/artery_adaptations/${mesh}.mesh" \
+            --discretization="${fe}" \
+            --output="source/FEDDLib/feddlib/problems/examples/Benchmarks/fsi_artery_boundary_tests/laplace_parabolic_${mesh}_${fe}"
+    done
+done
+cmake --build build --target problems_fsi_artery_boundary_tests -j 4
+```
+
+When adding another geometry, generate a matching profile and add it to the
+CMake copy list. Check the boundary labels, inlet direction in the velocity
+callback, unit conversion and solid/ALE conditions for that geometry.

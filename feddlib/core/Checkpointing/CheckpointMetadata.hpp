@@ -62,7 +62,9 @@
  *      "Flag Inlet Fluid", "Flag Outlet Fluid", "Normal Scale" and the
  *      legacy "BC Ramp" entry, which is fixed to zero.
  *    - Resistance: "Resistance", "Viscosity", "Density" and
- *      "Reference fluid pressure".
+ *      "Reference fluid pressure". Non-default "Distal Pressure" and enabled
+ *      "Use Inflow" are also recorded. Relative resistance additionally records
+ *      "Resistance Type" and "Unsteady Start" and requires initial areas.
  *    - Absorbing variants: "Poisson Ratio", "E", "Wall thickness", "Density",
  *      "Reference fluid pressure", "Max Ramp Time" and "Flowrate".
  *    - Absorbing uses "Heart Beat Start"; Absorbing Paper uses "Unsteady Start"
@@ -475,6 +477,9 @@ inline void validate(const Teuchos::ParameterList& schema, const ParameterListPt
             const auto& outlet = schema.sublist("FSI outlet");
             const auto state = readOutletState(restartFile(parameters, outletStateName(time)),
                                                outlet.get<std::string>("Model"), time);
+            if (outlet.isParameter("Resistance Type") && outlet.get<std::string>("Resistance Type") == "Relative" && state.initialized &&
+                (state.initialInletArea <= 0. || state.initialOutletArea <= 0.))
+                throw std::runtime_error("FSI relative resistance requires positive initial areas");
             // At a start-of-step checkpoint, the last pressure evaluation was
             // at the previous saved time. A transition due only now is pending.
             if (outlet.get<std::string>("Model") == "Absorbing Paper" && state.initialized &&

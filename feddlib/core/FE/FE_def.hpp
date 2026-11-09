@@ -3812,7 +3812,10 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
                                               MultiVectorPtr_Type u_rep,
                                               vec_dbl_Type flowRate_vec, 
                                               ParameterListPtr_Type params,
-                                              int FEloc) {
+                                              int FEloc,
+                                              double time,
+                                              double areaInlet_init,
+                                              double areaOutlet_init) {
 
     ElementsPtr_Type elements = this->domainVec_.at(FEloc)->getElementsC();
 
@@ -3842,8 +3845,39 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
     int flagOutlet = params->sublist("General").get("Flag Outlet Fluid", 5);
 
     double normalScale = params->sublist("Parameter Fluid").get("Normal Scale",1.0); 
-    double resistance = params->sublist("Parameter Fluid").get("Resistance",1.0); 
-    double referencePressure =  params->sublist("Parameter Fluid").get("Reference fluid pressure",11.99e1);
+    auto& fluid = params->sublist("Parameter Fluid");
+    const std::string resistanceType = fluid.get("Resistance Type", std::string("Constant"));
+    TEUCHOS_TEST_FOR_EXCEPTION(resistanceType != "Constant" && resistanceType != "Relative",
+        std::logic_error, "Resistance Type must be Constant or Relative.");
+    const bool relative = resistanceType == "Relative";
+    const double resistance0 = fluid.get("Resistance", 1.0);
+    const double distalPressure = fluid.get("Distal Pressure", 0.);
+    const double unsteadyStart = fluid.get("Unsteady Start", 0.2);
+    TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(resistance0) || resistance0 < 0. ||
+        !std::isfinite(distalPressure), std::logic_error,
+        "Resistance must be finite and nonnegative; Distal Pressure must be finite.");
+    double resistance = resistance0;
+    double alpha = 1.;
+    if (relative) {
+        TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(time) || !std::isfinite(unsteadyStart) || unsteadyStart < 0. ||
+            !std::isfinite(areaInlet_init) || areaInlet_init <= 0. ||
+            !std::isfinite(areaOutlet_init) || areaOutlet_init <= 0., std::logic_error,
+            "Relative resistance requires finite time, nonnegative Unsteady Start and positive finite initial inlet/outlet areas.");
+        if (time + 1.e-12 >= unsteadyStart) {
+            double areaInlet = 0., areaOutlet = 0.;
+            this->assemblyArea(dim, areaInlet, flagInlet, FEloc);
+            this->assemblyArea(dim, areaOutlet, flagOutlet, FEloc);
+            TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(areaInlet) || areaInlet <= 0. ||
+                !std::isfinite(areaOutlet) || areaOutlet <= 0., std::logic_error,
+                "Relative resistance requires positive finite current inlet/outlet areas.");
+            alpha = 0.5 * (areaInlet / areaInlet_init + areaOutlet / areaOutlet_init);
+            TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(alpha) || alpha <= 0., std::logic_error,
+                "Relative resistance has an invalid mean area ratio.");
+            resistance = (resistance0 / alpha) / alpha;
+            TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(resistance), std::logic_error,
+                "Relative resistance is non-finite.");
+        }
+    }
 
 
     SC elScaling;
@@ -3857,41 +3891,39 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
        
     double flowRateInlet=0.;
     double flowRateOutlet=0.;
-    this->assemblyFlowRate(dim, flowRateInlet, FEType , dim, flagInlet , u_rep);
-    int isNeg = this->assemblyFlowRate(dim, flowRateOutlet, FEType , dim, flagOutlet , u_rep);  
+    this->assemblyFlowRate(dim, flowRateInlet, FEType , dim, flagInlet , u_rep, FEloc);
+    this->assemblyFlowRate(dim, flowRateOutlet, FEType , dim, flagOutlet , u_rep, FEloc);
     
-    double resistanceRef = referencePressure/flowRateInlet; // The resistance based on a reference pressure value and the current inlet flow rate
-
-    double flowRateOutletAveraged = (flowRate_vec[0] + flowRate_vec[1]) / 2.;
-
-
-    if(this->domainVec_.at(0)->getComm()->getRank()==0){
-        std::cout << " ---------------------------------------------------------- " << std::endl;
-        std::cout << " ---------------------------------------------------------- " << std::endl;
-        std::cout << " Resistance Boundary Condition " << std::endl;
-        std::cout << " Volmetric flow Inlet: " << flowRateInlet << std::endl;
-        std::cout << " Volmetric flow Outlet: " << flowRateOutlet << std::endl;
-        std::cout << " Averaged volmetric flow Outlet: " << flowRateOutletAveraged << std::endl;
-        std::cout << " Resistance per Input: " << resistance << std::endl;
-        std::cout << " Assumed reference pressure at outlet " << referencePressure<< std::endl;
-        std::cout << " Implicit pressure at outlet with p=R*Q: " << flowRateOutlet*resistance << std::endl;
-        std::cout << " Resistance based on (referencePressure)/flowRateInlet at this point would be: " << resistanceRef << std::endl;
-        std::cout << " --------------------------------------------------------- " << std::endl;
-        std::cout << " --------------------------------------------------------- " << std::endl;
-
-    }
-
+    const double flowRateOutletAveraged = (flowRate_vec[0] + flowRate_vec[1]) / 2.;
     double flowRateUse = 2 * flowRateOutlet - flowRate_vec[1];
-    // Averaged flowrate
-    if(params->sublist("Parameter Fluid").get("Average Flowrate",false) )
+    if (fluid.get("Average Flowrate", false))
         flowRateUse = flowRateOutletAveraged;
 
-    // During the paper model's steady phase, optionally use the current inlet
-    // flow instead of the instantaneous or averaged outlet flow.
-    if(params->sublist("Parameter Fluid").get("Use Inflow",false))
+    // Preserve the constant model's flow selection. For Relative, inlet flow
+    // can drive the steady phase; the unsteady phase uses outlet flow/history.
+    if (fluid.get("Use Inflow", false) && (!relative || time + 1.e-12 < unsteadyStart))
         flowRateUse = flowRateInlet;
-   
-    double p_out = flowRateUse*resistance;
+
+    const double p_out = distalPressure + flowRateUse * resistance;
+    TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(p_out), std::logic_error,
+        "Resistance boundary produced a non-finite outlet pressure.");
+
+    if (this->domainVec_.at(FEloc)->getComm()->getRank() == 0) {
+        std::cout << " ---------------------------------------------------------- " << std::endl;
+        std::cout << " Resistance Boundary Condition (" << resistanceType << ")" << std::endl;
+        std::cout << " Volumetric flow Inlet: " << flowRateInlet << std::endl;
+        std::cout << " Volumetric flow Outlet: " << flowRateOutlet << std::endl;
+        std::cout << " Flow used for pressure: " << flowRateUse << std::endl;
+        std::cout << " Resistance per Input: " << resistance0 << std::endl;
+        if (relative) {
+            std::cout << " Unsteady start time: " << unsteadyStart << std::endl;
+            std::cout << " Mean relative area: " << alpha << std::endl;
+        }
+        std::cout << " Effective resistance: " << resistance << std::endl;
+        std::cout << " Distal pressure: " << distalPressure << std::endl;
+        std::cout << " Pressure at outlet: " << p_out << std::endl;
+        std::cout << " ---------------------------------------------------------- " << std::endl;
+    }
 
     // Second step: use flow rate to determine pressure with resistance
     for (UN T=0; T<elements->numberElements(); T++) {

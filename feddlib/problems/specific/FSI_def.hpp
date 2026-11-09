@@ -1214,7 +1214,7 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const
         TEUCHOS_TEST_FOR_EXCEPTION(time != 0., std::runtime_error,
             "FSI outlet history must be restored before resuming a pressure boundary model.");
         outletState_.previousFlowRate = outletState_.currentFlowRate;
-        if (model != "Resistance") {
+        if (model != "Resistance" || fluid.get("Resistance Type", std::string("Constant")) == "Relative") {
             this->feFactory_->assemblyArea(this->dim_, outletState_.initialInletArea, flagInlet);
             this->feFactory_->assemblyArea(this->dim_, outletState_.initialOutletArea, flagOutlet);
         }
@@ -1227,7 +1227,8 @@ void FSI<SC,LO,GO,NO>::computePressureRHSInTime() const
     vec_dbl_Type flowRates = {outletState_.previousFlowRate, outletState_.currentFlowRate};
     if (model == "Resistance") {
         outletState_.pressure = this->feFactory_->assemblyResistanceBoundary(this->dim_,
-            this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates, this->parameterList_, 0);
+            this->getDomain(0)->getFEType(), rhs, u_rep_, flowRates, this->parameterList_, 0, time,
+            outletState_.initialInletArea, outletState_.initialOutletArea);
     }
     else if (model == "Absorbing Paper") {
         // Capture once on the first evaluation reaching the transition. This
