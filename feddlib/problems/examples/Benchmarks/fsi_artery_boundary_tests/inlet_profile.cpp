@@ -19,15 +19,17 @@ int main(int argc, char** argv)
     Tpetra::ScopeGuard scope(&argc, &argv);
     auto comm = Tpetra::getDefaultComm();
     std::string mesh, feType = "P2", output;
+    int inletFlag = 5;
     Teuchos::CommandLineProcessor options;
     options.setOption("mesh", &mesh, "Fluid .mesh file.");
     options.setOption("discretization", &feType, "P1 or P2.");
     options.setOption("output", &output, "Output basename, without .h5.");
+    options.setOption("inlet-flag", &inletFlag, "Inlet surface flag (default 5).");
     options.throwExceptions(false);
     const auto parsed = options.parse(argc, argv);
     if (parsed == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED) return 0;
     TEUCHOS_TEST_FOR_EXCEPTION(parsed != Teuchos::CommandLineProcessor::PARSE_SUCCESSFUL ||
-        mesh.empty() || output.empty() || (feType != "P1" && feType != "P2"), std::logic_error,
+        mesh.empty() || output.empty() || inletFlag <= 0 || (feType != "P1" && feType != "P2"), std::logic_error,
         "Supply --mesh, --discretization=P1|P2 and --output.");
 
     auto parameters = Teuchos::rcp(new Teuchos::ParameterList);
@@ -59,7 +61,7 @@ int main(int argc, char** argv)
         auto& volume = elements->getElement(element);
         for (int face = 0; face < volume.numSubElements(); ++face) {
             auto& surface = volume.getSubElements()->getElement(face);
-            if (surface.getFlag() != 4 || volume.getSubElements()->getDimension() != 2) continue;
+            if (surface.getFlag() != inletFlag || volume.getSubElements()->getDimension() != 2) continue;
             ++localFaces;
             const auto nodes = surface.getVectorNodeList();
             double metric00 = 0., metric01 = 0., metric11 = 0.;
@@ -72,11 +74,11 @@ int main(int argc, char** argv)
             TEUCHOS_TEST_FOR_EXCEPTION(determinant <= 0., std::runtime_error, "Degenerate inlet triangle.");
             const double scaling = std::sqrt(determinant);
             for (UN i = 0; i < nodes.size(); ++i) {
-                if ((*flags)[nodes[i]] != 4) continue; // Homogeneous Dirichlet rim.
+                if ((*flags)[nodes[i]] != inletFlag) continue; // Homogeneous Dirichlet rim.
                 Teuchos::Array<default_go> columns;
                 Teuchos::Array<double> entries;
                 for (UN j = 0; j < nodes.size(); ++j) {
-                    if ((*flags)[nodes[j]] != 4) continue;
+                    if ((*flags)[nodes[j]] != inletFlag) continue;
                     double value = 0.;
                     for (UN q = 0; q < weights->size(); ++q) {
                         const auto& a = (*gradient)[q][i];
@@ -95,10 +97,10 @@ int main(int argc, char** argv)
     }
     long long faces = 0;
     Teuchos::reduceAll<int, long long>(*comm, Teuchos::REDUCE_SUM, 1, &localFaces, &faces);
-    TEUCHOS_TEST_FOR_EXCEPTION(faces == 0, std::runtime_error, "No inlet faces with flag 4.");
+    TEUCHOS_TEST_FOR_EXCEPTION(faces == 0, std::runtime_error, "No inlet faces with flag " << inletFlag << ".");
     const auto uniqueFlags = domain->getBCFlagUnique();
     for (default_lo node = 0; node < unique->getNodeNumElements(); ++node) {
-        if ((*uniqueFlags)[node] == 4) continue;
+        if ((*uniqueFlags)[node] == inletFlag) continue;
         Teuchos::Array<default_go> column(1, unique->getGlobalElement(node));
         Teuchos::Array<double> value(1, 1.);
         matrix->insertGlobalValues(column[0], column(), value());
@@ -144,7 +146,7 @@ int main(int argc, char** argv)
     TEUCHOS_TEST_FOR_EXCEPTION(error[0] != 0., std::runtime_error, "Inlet HDF5 round trip differs.");
     importer.closeImporter();
     if (comm->getRank() == 0)
-        std::cout << "Inlet profile: " << feType << ", " << faces << " faces, " << unique->getGlobalNumElements()
+        std::cout << "Inlet profile: " << feType << ", flag " << inletFlag << ", " << faces << " faces, " << unique->getGlobalNumElements()
                   << " global nodes, " << solver.getNumIters() << " iterations, relative residual "
                   << relativeResidual << ", exact HDF5 round trip, peak 1\n";
 }

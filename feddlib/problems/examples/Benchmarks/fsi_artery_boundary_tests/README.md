@@ -29,10 +29,10 @@ This is a manually run benchmark; it has no CTest reference solution.
 ## Inlet profile and flow rate
 
 `Parameter Fluid/BC Type` remains `parabolic_artery`. The spatial profile solves
-`-Delta_Gamma p = 1` on inlet surface flag **4**, with `p = 0` on its rim.
+`-Delta_Gamma p = 1` on inlet surface flag **5**, with `p = 0` on its rim.
 It is stored with maximum value one and zero values away from the inlet.
-Both supplied meshes have an inlet at `z=0`, directed into the fluid along
-**+z**, so the velocity callback sets `u = (0, 0, amplitude(t) * p)`.
+Both supplied meshes use the high-z end as the inlet, directed into the fluid
+along **-z**, so the velocity callback sets `u = (0, 0, -amplitude(t) * p)`.
 The analytic ellipse parameters and `MaxVelocity` are no longer used.
 
 The existing imported-vector boundary-condition mechanism integrates this
@@ -40,13 +40,13 @@ profile on the inlet mesh and scales its amplitude to
 `Parameter Fluid/Flowrate` (cm³/s). A positive `Inflow Ramp Time` applies the
 existing half-cosine ramp; zero disables the ramp. The same condition is
 registered for the coupled FSI problem and its fluid component.
-`Inflow Flag` must match `General/Flag Inlet Fluid` (4 for these profiles).
+`Inflow Flag` must match `General/Flag Inlet Fluid` (5 for these profiles).
 `Flowrate` also remains an input to the absorbing outlet model.
 
 The inlet rim remains part of the FSI coupling, so its normal motion can add
 to the prescribed profile's flux. The fluid wall is the moving solid interface.
-The outlet, solid and ALE conditions are unchanged: fluid outlet **5**,
-interface **6**, inlet/outlet rings **9/10**, solid ends **7/8**, and solid
+The fluid outlet is **4** (`General/Flag Outlet Fluid`), interface **6**,
+inlet/outlet rings **10/9**, solid ends **8/7**, and solid
 support strips **13/14**.
 
 Mesh loading uses `readAndPartition(15, "mm", true)`, converting millimetres
@@ -99,6 +99,7 @@ for resolution in 1 2; do
         mpirun -np 1 build/feddlib/problems/examples/Benchmarks/fsi_artery_boundary_tests/problems_fsi_artery_inlet_profile.exe \
             --mesh="source/FEDDLib/meshes/artery_adaptations/${mesh}.mesh" \
             --discretization="${fe}" \
+            --inlet-flag=5 \
             --output="source/FEDDLib/feddlib/problems/examples/Benchmarks/fsi_artery_boundary_tests/laplace_parabolic_${mesh}_${fe}"
     done
 done

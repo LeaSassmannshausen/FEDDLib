@@ -44,12 +44,12 @@ void zeroDirichlet3D(double* x, double* res, double t, const double* parameters)
 }
 
 // BCBuilder passes the imported scalar profile value in x[0].
-// Both artery_adaptations inlets lie at z=0 and point into the fluid along +z.
+// The flag-5 inlets lie at the high-z end and point into the fluid along -z.
 void inflowParabolicArtery(double* x, double* res, double t, const double* parameters)
 {
     res[0] = 0.;
     res[1] = 0.;
-    res[2] = parameters[0] * x[0];
+    res[2] = -parameters[0] * x[0];
 }
 
 void flowrateParabolicArtery(double* x, double* res, double t, const double* parameters)
@@ -161,6 +161,9 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
         
         bool geometryExplicit = parameterListProblem->sublist("Parameter").get("Geometry Explicit",true);
 
+        // Insert benchmark defaults before copying settings to the FSI problem.
+        parameterListProblem->sublist("General").get("Flag Inlet Fluid", 5);
+        parameterListProblem->sublist("General").get("Flag Outlet Fluid", 4);
         ParameterListPtr_Type parameterListAll(new Teuchos::ParameterList(*parameterListProblem)) ;
         parameterListAll->setParameters(*parameterListSolverFSI);
 
@@ -181,8 +184,8 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
 
         sublist( parameterListFluidAll, "General" )->set( "Preconditioner Method",precTypeFluid  );
         // Information used for PCD
-        sublist( parameterListFluidAll, "General" )->set( "Flag Inlet Fluid",parameterListProblem->sublist("General").get("Flag Inlet Fluid",4) );
-        sublist( parameterListFluidAll, "General" )->set( "Flag Outlet Fluid",parameterListProblem->sublist("General").get("Flag Outlet Fluid",5)  );
+        sublist( parameterListFluidAll, "General" )->set( "Flag Inlet Fluid",parameterListProblem->sublist("General").get("Flag Inlet Fluid",5) );
+        sublist( parameterListFluidAll, "General" )->set( "Flag Outlet Fluid",parameterListProblem->sublist("General").get("Flag Outlet Fluid",4)  );
         sublist( parameterListFluidAll, "General" )->set( "Flag Interface",parameterListProblem->sublist("General").get("Flag Interface",6)  );
         sublist( parameterListFluidAll, "Timestepping Parameter" )->setParameters( parameterListProblem->sublist("Timestepping Parameter") );
 
@@ -393,7 +396,7 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
 
             // #####################
             // Randwerte
-            // Fluid: 4 = inflow, 5=outflow,9 = inflow ring, 10 = outflow ring
+            // Fluid: 5 = inflow, 4 = outflow, 10 = inflow ring, 9 = outflow ring
             // Struktur: 7 = linke (z=0) Seite, 8 = rechte (z=L) seite. 13,14 einzelne Freiheitsgrade festgehalten in x,y Richtung
             // Interface: 6 , 9 , 10  
             // #####################
@@ -413,8 +416,8 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                     "parabolic_artery requires nonnegative flow rate/ramp time.");
                 // The wall is the moving FSI interface; its velocity is set by
                 // coupling to the solid, rather than a zero-velocity wall BC.
-                const int inletFlag = inflow.get("Inflow Flag", 4);
-                TEUCHOS_TEST_FOR_EXCEPTION(inletFlag != parameterListProblem->sublist("General").get("Flag Inlet Fluid", 4),
+                const int inletFlag = inflow.get("Inflow Flag", 5);
+                TEUCHOS_TEST_FOR_EXCEPTION(inletFlag != parameterListProblem->sublist("General").get("Flag Inlet Fluid", 5),
                     std::logic_error, "Inflow Flag must match General/Flag Inlet Fluid.");
                 const bool zeroPressure = inflow.get("Set Outflow Pressure to Zero", false);
                 Teuchos::RCP<BCBuilder<SC,LO,GO,NO>> bcFactoryFluid(new BCBuilder<SC,LO,GO,NO>());
@@ -436,7 +439,7 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                     parameter_vec, solutionLaplace, true, flowrateParabolicArtery);
                 if (verbose)
                     std::cout << "parabolic_artery: Laplace profile " << profileFile << ".h5, inlet flag "
-                              << inletFlag << ", inward direction +z, target flow rate " << parameter_vec[2]
+                              << inletFlag << ", inward direction -z, target flow rate " << parameter_vec[2]
                               << " cm^3/s" << std::endl;
 
                              
@@ -450,12 +453,12 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                 Teuchos::RCP<BCBuilder<SC,LO,GO,NO> > bcFactoryStructure( new BCBuilder<SC,LO,GO,NO>( ) );
                 bcFactory->addBC(zeroDirichlet3D, 14, 2, domainStructure, "Dirichlet_Y_Z", dim); // point in y=0 plane fixed in y-z direction
                 bcFactory->addBC(zeroDirichlet3D, 13, 2, domainStructure, "Dirichlet_X_Z", dim); // point in x=0 plane fixed in y direction
-                bcFactory->addBC(zeroDirichlet3D, 7, 2, domainStructure, "Dirichlet_Z", dim); // inlet fixed in Z direction
-                bcFactory->addBC(zeroDirichlet3D, 8, 2, domainStructure, "Dirichlet_Z", dim); // outlet fixed in Z direction
-                bcFactory->addBC(zeroDirichlet3D, 9, 2, domainStructure, "Dirichlet_Z", dim); // inlet ring in Z direction
-                bcFactory->addBC(zeroDirichlet3D, 10, 2, domainStructure, "Dirichlet_Z", dim); // outlet ring in Z direction
-                bcFactory->addBC(zeroDirichlet3D, 11, 2, domainStructure, "Dirichlet_Z", dim); // inlet outer ring in Z direction
-                bcFactory->addBC(zeroDirichlet3D, 12, 2, domainStructure, "Dirichlet_Z", dim); // outlet outer ring in Z direction
+                bcFactory->addBC(zeroDirichlet3D, 7, 2, domainStructure, "Dirichlet_Z", dim); // outlet fixed in Z direction
+                bcFactory->addBC(zeroDirichlet3D, 8, 2, domainStructure, "Dirichlet_Z", dim); // inlet fixed in Z direction
+                bcFactory->addBC(zeroDirichlet3D, 9, 2, domainStructure, "Dirichlet_Z", dim); // outlet ring in Z direction
+                bcFactory->addBC(zeroDirichlet3D, 10, 2, domainStructure, "Dirichlet_Z", dim); // inlet ring in Z direction
+                bcFactory->addBC(zeroDirichlet3D, 11, 2, domainStructure, "Dirichlet_Z", dim); // outlet outer ring in Z direction
+                bcFactory->addBC(zeroDirichlet3D, 12, 2, domainStructure, "Dirichlet_Z", dim); // inlet outer ring in Z direction
 
                 bcFactoryStructure->addBC(zeroDirichlet3D, 14, 0, domainStructure, "Dirichlet_Y_Z", dim); 
                 bcFactoryStructure->addBC(zeroDirichlet3D, 13, 0, domainStructure, "Dirichlet_X_Z", dim); 
@@ -498,8 +501,8 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
             if ( preconditionerMethod == "FaCSI" || preconditionerMethod == "FaCSI-Teko" || preconditionerMethod == "FaCSI-Block")
                fsi.getPreconditioner()->setFaCSIBCFactory( bcFactoryFluidInterface );
 
-            bcFactoryGeometry->addBC(zeroDirichlet3D, 9, 0, domainGeometry, "Dirichlet", dim); // inflow ring
-            bcFactoryGeometry->addBC(zeroDirichlet3D, 10, 0, domainGeometry, "Dirichlet", dim); // outflow ring
+            bcFactoryGeometry->addBC(zeroDirichlet3D, 9, 0, domainGeometry, "Dirichlet", dim); // outflow ring
+            bcFactoryGeometry->addBC(zeroDirichlet3D, 10, 0, domainGeometry, "Dirichlet", dim); // inflow ring
             // Die RW, welche nicht Null sind in der rechten Seite (nur Interface) setzen wir spaeter per Hand.
             // Hier erstmal Dirichlet Nullrand, wird spaeter von der Sturkturloesung vorgegeben
             bcFactoryGeometry->addBC(zeroDirichlet3D, 6, 0, domainGeometry, "Dirichlet", dim); // interface

@@ -130,7 +130,7 @@
     <ParameterList name="Parameter Fluid">
         <!-- Laplace inlet profile is selected from Mesh 1 Name and Discretization. -->
         <Parameter name="BC Type" type="string" value="parabolic_artery"/>
-        <Parameter name="Inflow Flag" type="int" value="4"/>
+        <Parameter name="Inflow Flag" type="int" value="5"/>
         <Parameter name="Inflow Ramp Time" type="double" value="0.1"/>
 
         <Parameter name="Preconditioner Type" type="string" value="PCD"/><!--only relevant for block preconditioner for fluid -->
@@ -202,6 +202,8 @@
         
     </ParameterList>
     <ParameterList name="General">
+        <Parameter name="Flag Inlet Fluid" type="int" value="5"/>
+        <Parameter name="Flag Outlet Fluid" type="int" value="4"/>
         <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
         <Parameter name="ParaViewExport" type="bool" value="true"/>
         <Parameter name="ParaViewCoarse" type="bool" value="false"/>
