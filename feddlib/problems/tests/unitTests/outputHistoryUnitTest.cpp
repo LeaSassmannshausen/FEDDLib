@@ -278,6 +278,43 @@ int main(int argc, char** argv)
         require(series.frames.back().step == 12 && std::abs(series.frames.back().time - 0.59) < 1.e-14,
                 "Nonzero output origin differs");
     });
+    // Material output starts after the first solve and resumes lazily after
+    // the next solve. Its output origin and sparse cadence must both survive.
+    auto material = settings();
+    material->sublist("Exporter").set("Write new mesh", false).set("Export every X timesteps", 2);
+    paraview("material", material, {0.1, 0.2, 0.25, 0.32, 0.36, 0.4}, 0., false, {1, 2, 3, 4, 5, 6});
+    auto materialResume = settings();
+    materialResume->sublist("Exporter").set("Write new mesh", false).set("Export every X timesteps", 2);
+    restartClock(materialResume, 0.32, 4, 0.07, 0.025);
+    paraview("material", materialResume, {0.345, 0.37, 0.395}, 100., false, {5, 6, 7});
+    output::onRank(*comm, 0, [&] {
+        checkSeries("material", 4);
+        const output::Collection series(output::read("material.xmf"));
+        const std::vector<double> expected = {0.1, 0.25, 0.345, 0.395};
+        for (std::size_t i = 0; i < expected.size(); ++i)
+            require(std::abs(series.frames[i].time - expected[i]) < 1.e-14 &&
+                    series.frames[i].step == static_cast<long long>(2 * i + 1),
+                    "Lazy material output lost its timestep origin/cadence");
+        std::cout << "PASS lazy material output after a nonuniform sparse restart\n";
+    });
+    // A legacy series beginning after time zero has no known timestep origin.
+    // Even a checkpoint counter cannot reconstruct it from nonuniform frames.
+    auto legacyMaterial = settings();
+    legacyMaterial->sublist("Exporter").set("Write new mesh", false).set("Export every X timesteps", 2);
+    paraview("legacyMaterial", legacyMaterial, {0.1, 0.2, 0.25, 0.32, 0.36}, 0., false);
+    output::onRank(*comm, 0, [&] { before = output::read("legacyMaterial.xmf"); });
+    restartClock(legacyMaterial, 0.32, 4, 0.07, 0.025);
+    rejected = 0;
+    try { paraview("legacyMaterial", legacyMaterial, {0.345}, 100., false, {5}); }
+    catch (const std::exception& error) {
+        rejected = std::string(error.what()).find("legacyMaterial.xmf: Nonuniform legacy output") != std::string::npos;
+    }
+    Teuchos::reduceAll(*comm, Teuchos::REDUCE_MIN, 1, &rejected, &allRejected);
+    require(allRejected, "Ambiguous legacy material output did not fail collectively");
+    output::onRank(*comm, 0, [&] {
+        require(output::read("legacyMaterial.xmf") == before, "Rejected legacy material resume changed output");
+        checkSeries("legacyMaterial", 3);
+    });
     // Wrong checkpoint counters must fail before rewinding either file.
     auto wrongClock = settings();
     restartClock(wrongClock, 0.25, 2, 0.05, 0.025);

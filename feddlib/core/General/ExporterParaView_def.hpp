@@ -212,7 +212,7 @@ void ExporterParaView<SC,LO,GO,NO>::setup(std::string filename,
 }
 
 template<class SC,class LO,class GO,class NO>
-void ExporterParaView<SC,LO,GO,NO>::initializeOutput()
+void ExporterParaView<SC,LO,GO,NO>::initializeOutput(double firstSaveTime)
 {
     if (outputInitialized_) return;
     checkpoint::Timer timer(parameterList_, "paraview_resume", output::resume(parameterList_));
@@ -233,7 +233,21 @@ void ExporterParaView<SC,LO,GO,NO>::initializeOutput()
             if (collection.frames.front().xml.find("<Grid Name=\"Mesh" + FEType_ + " ") == std::string::npos)
                 throw std::runtime_error("FE type differs from the existing output");
             const auto* clock = checkpoint::clockState(parameterList_, time);
-            nextIndex = output::resumeIndex(collection, saveTimestep_, time, clock);
+            try {
+                nextIndex = output::resumeIndex(collection, saveTimestep_, time, clock);
+            } catch (const std::exception& error) {
+                throw std::runtime_error(filename_ + ".xmf: " + error.what());
+            }
+            // Lazy exporters (e.g. material fields) first save after the next
+            // solve, rather than saving/skipping the restart frame itself.
+            if (clock && firstSaveTime > time + 1.e-12) {
+                if (const auto* firstClock = checkpoint::clockState(parameterList_, firstSaveTime)) {
+                    const auto elapsed = firstClock->get<long long>("Step number") - clock->get<long long>("Step number");
+                    if (elapsed <= 0 || elapsed >= std::numeric_limits<int>::max() - nextIndex)
+                        throw std::runtime_error("Invalid timestep counter for first resumed output");
+                    nextIndex += static_cast<int>(elapsed);
+                }
+            }
             std::set<std::string> keep;
             for (const auto& frame : collection.frames) {
                 if (frame.time > time + 1.e-12) continue;
@@ -347,7 +361,7 @@ void ExporterParaView<SC,LO,GO,NO>::addVariable(MultiVecConstPtr_Type &u,
 template<class SC,class LO,class GO,class NO>
 void ExporterParaView<SC,LO,GO,NO>::save(double time){
 
-    initializeOutput();
+    initializeOutput(time);
     if (resumeOutput_ && time <= lastOutputTime_ + 1.e-12) { ++timeIndex_; return; }
 
     if (timeIndex_ % saveTimestep_ == 0) {
@@ -381,7 +395,7 @@ template<class SC,class LO,class GO,class NO>
 void ExporterParaView<SC,LO,GO,NO>::save(double time, double dt){
 
     lastDt_ = dt;
-    initializeOutput();
+    initializeOutput(time);
     if (resumeOutput_ && time <= lastOutputTime_ + 1.e-12) { ++timeIndex_; return; }
 
     if (timeIndex_ % saveTimestep_ == 0) {

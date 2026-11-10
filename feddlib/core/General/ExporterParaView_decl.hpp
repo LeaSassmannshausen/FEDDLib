@@ -160,7 +160,7 @@ public:
      * Saved simulation counters preserve sparse export cadence with changed dt
      * and prescribed intervals. Physical timestamps determine which frames remain.
      */
-    void initializeOutput();
+    void initializeOutput(double firstSaveTime);
     
 protected:
     

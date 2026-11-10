@@ -1324,9 +1324,10 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
 
         }
         
-        this->problemTime_->computeValuesOfInterestAndExport();
-
         timeSteppingTool_->advanceTime(true/*output info*/);
+        // Publish the accepted clock for end-of-step output, while the FSI
+        // material still holds the history needed to evaluate this solution.
+        this->problemTime_->computeValuesOfInterestAndExport();
         this->problemTime_->assemble("UpdateTime"); // Zeit in FSI inkrementieren
         if (printData || printExtraData)
             exporterTimeTxt->exportDataAtTime(timeSteppingTool_->currentTime(), timeSteppingTool_->currentTime());
