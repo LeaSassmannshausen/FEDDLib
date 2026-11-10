@@ -507,6 +507,9 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
             // Hier erstmal Dirichlet Nullrand, wird spaeter von der Sturkturloesung vorgegeben
             bcFactoryGeometry->addBC(zeroDirichlet3D, 6, 0, domainGeometry, "Dirichlet", dim); // interface
 
+            bcFactoryGeometry->addBC(zeroDirichlet3D, 5, 0, domainGeometry, "Dirichlet_Z", dim);
+            bcFactoryGeometry->addBC(zeroDirichlet3D, 4, 0, domainGeometry, "Dirichlet_Z", dim);
+
             fsi.problemGeometry_->addBoundaries(bcFactoryGeometry);
            
 
