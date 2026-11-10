@@ -22,7 +22,8 @@ template<class SC,class LO,class GO,class NO>
 void ExporterParaViewAMR<SC,LO,GO,NO>::reSetup(MeshPtr_Type mesh){
     // The base exporter defers opening files until the first output operation.
     // AMR writes connectivity here, potentially before the first save().
-    this->initializeOutput();
+    // AMR output starts at refinement iteration zero.
+    this->initializeOutput(0.);
     
 	this->mesh_ = mesh;
     this->nmbElementsGlob_ = this->mesh_->getNumElementsGlobal();
