@@ -128,6 +128,7 @@ void AssembleFE_SCI_SMC_MLCK<SC,LO,GO,NO>::assembleJacobian() {
 }
 template <class SC, class LO, class GO, class NO>
 void AssembleFE_SCI_SMC_MLCK<SC,LO,GO,NO>::advanceInTime( double dt){
+    this->materialProcessState_.record(this->timeStep_ + this->timeIncrement_ > startTime_, false, false);
 
 	// If we have a time segment setting we switch to the demanded time increment
 	/*for(int i=0; i<numSegments_ ; i++){

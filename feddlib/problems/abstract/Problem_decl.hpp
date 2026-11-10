@@ -279,10 +279,19 @@ public:
     RecoverySnapshotPtr getRecoverySnapshot() const { return recoverySnapshot_; }
     /// Capture model-specific state without exporting or modifying it.
     virtual void captureAdditionalRecoveryState(double time) {}
+    /// Processes that have changed this problem's committed material history.
+    virtual checkpoint::MaterialProcessState getMaterialProcessState() const { return {}; }
+    /// Combine the static compatibility schema with current material markers.
+    Teuchos::ParameterList checkpointMetadataForWrite() const {
+        auto schema = checkpointSchema_;
+        if (schema.isSublist("Material process state"))
+            schema.sublist("Material process state") = getMaterialProcessState().metadata();
+        return schema;
+    }
     /// Add this problem's compatibility manifest to the attached recovery capture.
     void captureRecoveryMetadata() {
         prepareCheckpointMetadata();
-        if (!recoverySnapshot_.is_null()) recoverySnapshot_->addManifest(checkpointSchema_,
+        if (!recoverySnapshot_.is_null()) recoverySnapshot_->addManifest(checkpointMetadataForWrite(),
             checkpoint::clockState(parameterList_, recoverySnapshot_->time()));
     }
 

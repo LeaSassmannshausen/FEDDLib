@@ -494,7 +494,7 @@ namespace FEDD
         if (checkpointSchemaPrepared_)
         {
             checkpoint::Timer timer(parameterList_, "metadata_write");
-            checkpoint::write(checkpointSchema_, parameterList_, time, *comm_);
+            checkpoint::write(checkpointMetadataForWrite(), parameterList_, time, *comm_);
         }
     }
 

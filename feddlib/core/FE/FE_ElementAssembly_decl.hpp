@@ -19,6 +19,7 @@
 
 #include <Teuchos_Array.hpp>
 #include <Teuchos_BLAS.hpp>
+#include <Teuchos_CommHelpers.hpp>
 
 
 /*!
@@ -164,6 +165,16 @@ class FE_ElementAssembly {
                                 int FELocExternal=-1);
 
     void postProcessing(int type, MultiVectorPtr_Type& postProcessingVec);
+
+    checkpoint::MaterialProcessState getMaterialProcessState() const {
+        int local[3] = {0, 0, 0}, global[3] = {0, 0, 0};
+        for (const auto& element : assemblyFEElements_) {
+            const auto& state = element->getMaterialProcessState();
+            local[0] |= state.active; local[1] |= state.growth; local[2] |= state.reorientation;
+        }
+        Teuchos::reduceAll(*domainVec_.at(0)->getComm(), Teuchos::REDUCE_MAX, 3, local, global);
+        return {global[0] != 0, global[1] != 0, global[2] != 0};
+    }
 
     void updateSolutionAssemblyFEElements(MultiVectorPtr_Type d_rep, MultiVectorPtr_Type c_rep);
 

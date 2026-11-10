@@ -304,6 +304,43 @@ int main(int argc, char** argv)
         checksSchema("FSI fluid with inherited coupled flag", fluid, inherited, fields);
     }
     fixtureFor(newmark);
+    {
+        checkpoint::MaterialProcessState state;
+        state.record(true, false, false);
+        state.record(false, true, true);
+        state.record(false, false, false);
+        if (!state.active || !state.growth || !state.reorientation) ++failures;
+        auto passive = newmark;
+        passive.sublist("Material process state") = checkpoint::MaterialProcessState{}.metadata();
+        fixtureFor(passive);
+        validate(passive);
+        for (const char* marker : {"Active response took place", "Growth took place", "Reorientation took place"}) {
+            auto used = passive;
+            used.sublist("Material process state").set(marker, true);
+            fixtureFor(used);
+            rejects(std::string("material restart after ") + marker, marker, [&] { validate(passive); });
+            parameters->sublist("Timestepping Parameter").set("Allow legacy restart", true);
+            rejects(std::string("legacy mode cannot bypass ") + marker, marker, [&] { validate(passive); });
+            rejects(std::string("new settings cannot erase ") + marker, marker, [&] { validate(newmark); });
+            parameters->sublist("Timestepping Parameter").set("Allow legacy restart", false);
+        }
+        fixtureFor(newmark);
+        rejects("unknown legacy material history", "Missing material process state", [&] { validate(passive); });
+        auto trackedSettings = newmarkSettings;
+        trackedSettings.sublist("Parameter").set("Material model", std::string("SCI_SMC_Active_Growth_Reorientation"));
+        auto solidField = fields[0];
+        solidField.name = "d_s";
+        auto tracked = checkpoint::makeSchema(trackedSettings, {solidField});
+        if (!tracked.isSublist("Material process state")) ++failures;
+        trackedSettings.sublist("Parameter").remove("Material model");
+        trackedSettings.sublist("Parameter Solid").set("Material model", std::string("Neo-Hooke"))
+            .set("FSCI", true).set("Structure Model", std::string("SCI_SMC_Active_Growth_Reorientation"));
+        tracked = checkpoint::makeSchema(trackedSettings, {solidField});
+        if (!tracked.isSublist("Material process state")) ++failures;
+        auto fluid = checkpoint::makeSchema(trackedSettings, fields, "FSI fluid");
+        if (fluid.isSublist("Material process state")) ++failures;
+    }
+    fixtureFor(newmark);
     rejects("initial solution excludes Newmark", "standalone multistep Navier-Stokes", [&] { validateInitial(newmark); });
     validate(newmark);
     for (const std::string setting : {std::string("beta"), std::string("gamma")}) {

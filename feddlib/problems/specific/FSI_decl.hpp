@@ -134,6 +134,7 @@ public:
     virtual void getValuesOfInterest( vec_dbl_Type& values );
 
     virtual void exportValuesOfInterest(double time);
+    checkpoint::MaterialProcessState getMaterialProcessState() const override;
     
     // init FSI vectors from partial problems
     void setFromPartialVectorsInit() const;

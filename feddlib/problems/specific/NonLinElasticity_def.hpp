@@ -82,6 +82,8 @@ template<class SC,class LO,class GO,class NO>
 void NonLinElasticity<SC,LO,GO,NO>::assemble(std::string type) const{
     
     if (type == ""){
+        // initializeProblem() has now validated/restored the checkpoint clock.
+        timeSteppingTool_->prepareStep();
         if (this->verbose_)
             std::cout << "-- Assembly nonlinear elasticity ... " << std::flush;
 
@@ -132,6 +134,7 @@ void NonLinElasticity<SC,LO,GO,NO>::assemble(std::string type) const{
 template<class SC,class LO,class GO,class NO>
 void NonLinElasticity<SC,LO,GO,NO>::updateTime() const
 {
+    timeSteppingTool_->prepareStep();
     timeSteppingTool_->advanceTime();
 
     if(this->verbose_)
@@ -338,6 +341,12 @@ template<class SC,class LO,class GO,class NO>
 vec_string_Type NonLinElasticity<SC,LO,GO,NO>::getPostprocessingNames() const
 {
     return postProcessingnames_;
+}
+
+template<class SC,class LO,class GO,class NO>
+checkpoint::MaterialProcessState NonLinElasticity<SC,LO,GO,NO>::getMaterialProcessState() const
+{
+    return this->feFactory_->getMaterialProcessState();
 }
 
 }

@@ -73,6 +73,7 @@ public:
 
     BlockMultiVectorPtr_Type getPostProcessingData() const;
     vec_string_Type getPostprocessingNames() const;
+    checkpoint::MaterialProcessState getMaterialProcessState() const override;
 
     void updateConcentration(MultiVectorConstPtr_Type concentration)
     {

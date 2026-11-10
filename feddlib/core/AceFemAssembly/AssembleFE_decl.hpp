@@ -5,6 +5,7 @@
 #include "feddlib/core/FEDDCore.hpp"
 #include "feddlib/core/LinearAlgebra/Matrix.hpp"
 #include "feddlib/core/FE/Helper.hpp"
+#include "feddlib/core/Checkpointing/MaterialProcessState.hpp"
 
 namespace FEDD {
 
@@ -205,6 +206,8 @@ namespace FEDD {
         */
         double getTimeIncrement(){return timeIncrement_;}
 
+        const checkpoint::MaterialProcessState& getMaterialProcessState() const { return materialProcessState_; }
+
         void setGlobalElementID(GO goID){globalElementID_ = goID;}
 
         GO getGlobalElementID(){return globalElementID_;}
@@ -265,6 +268,7 @@ namespace FEDD {
         ParameterListPtr_Type params_;
         vec_dbl_ptr_Type solution_ ;
         double timeIncrement_;
+        checkpoint::MaterialProcessState materialProcessState_;
         GO globalElementID_;
 
         std::string linearization_; // Store in here which linearization e.g. FixedPoint or Newton is used -> Relevant for assembleFEElement-Specific construction of Jacobian in NavierStokes

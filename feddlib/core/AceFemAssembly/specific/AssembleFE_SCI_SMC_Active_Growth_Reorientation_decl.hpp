@@ -74,6 +74,7 @@ class AssembleFE_SCI_SMC_Active_Growth_Reorientation : public AssembleFE<SC,LO,G
         void checkingReorientationActiveGrowth();
         void initializeGrowth();
         void initializeActiveResponse();
+        void initializePassiveHistory();
         void updateDomainData(std::string dataName, double dataValue);
         int findPosition(std::string subString, std::vector<std::string>& stringArray);
         vec2D_dbl_Type computeElementGaussFibersP2Tet();

@@ -103,6 +103,7 @@
 #include "CheckpointFiles.hpp"
 #include "CheckpointTimeState.hpp"
 #include "FSIOutletState.hpp"
+#include "MaterialProcessState.hpp"
 #include "feddlib/core/General/HDF5VectorInfo.hpp"
 #include <Teuchos_XMLParameterListHelpers.hpp>
 #include <Teuchos_CommHelpers.hpp>
@@ -239,6 +240,8 @@ inline Teuchos::ParameterList makeSchema(Teuchos::ParameterList& parameters,
             .set("Index base", field.indexBase)
             .set("Reference mesh and DOF fingerprint", field.referenceFingerprint);
     }
+    if (descriptions.isSublist("d_s") && tracksMaterialProcesses(parameters))
+        schema.sublist("Material process state") = MaterialProcessState{}.metadata();
     return schema;
 }
 
@@ -449,6 +452,8 @@ inline void validate(const Teuchos::ParameterList& schema, const ParameterListPt
         std::ifstream input(file);
         Teuchos::ParameterList expected;
         if (!input) {
+            if (schema.isSublist("Material process state"))
+                requirePassiveMaterialRestart(Teuchos::ParameterList{});
             if (!parameters->sublist("Timestepping Parameter").get("Allow legacy restart", false))
                 throw std::runtime_error("Missing manifest " + file +
                     ". For an old checkpoint explicitly set 'Allow legacy restart' to true.");
@@ -459,12 +464,18 @@ inline void validate(const Teuchos::ParameterList& schema, const ParameterListPt
             std::ostringstream xml;
             xml << input.rdbuf();
             const auto saved = Teuchos::getParametersFromXmlString(xml.str());
+            // Inspect the saved markers even if the new input switches the
+            // processes off. Neither legacy mode nor new settings erase history.
+            if (schema.isSublist("Material process state") || saved->isSublist("Material process state"))
+                requirePassiveMaterialRestart(*saved);
             const int version = saved->get<int>("Format version");
             if ((version != 1 && version != 2) ||
                 (schema.get<int>("Format version") != 1 && schema.get<int>("Format version") != 2))
                 throw std::runtime_error("Format version: unsupported checkpoint metadata");
             auto compatible = schema;
             compatible.set("Format version", version);
+            if (saved->isSublist("Material process state"))
+                compatible.sublist("Material process state") = saved->sublist("Material process state");
             compatible.sublist("Integration").set("dt", saved->sublist("Integration").get<double>("dt"));
             expected = atTime(compatible, time, version == 2 ? &saved->sublist("Time state") : nullptr);
             compare(*saved, expected);

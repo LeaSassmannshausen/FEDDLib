@@ -1792,6 +1792,13 @@ vec_string_Type FSI<SC,LO,GO,NO>::getPostprocessingNames() const
 }
 
 template<class SC,class LO,class GO,class NO>
+checkpoint::MaterialProcessState FSI<SC,LO,GO,NO>::getMaterialProcessState() const
+{
+    return problemStructureNonLin_.is_null() ? checkpoint::MaterialProcessState{} :
+        problemStructureNonLin_->getMaterialProcessState();
+}
+
+template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::exportValuesOfInterest(double time)
 {
     writeOutletStateCheckpoint(time);

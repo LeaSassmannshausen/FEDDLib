@@ -1,5 +1,6 @@
 #ifndef ASSEMBLEFE_DEF_hpp
 #define ASSEMBLEFE_DEF_hpp
+#include "feddlib/core/Checkpointing/CheckpointTimeState.hpp"
 
 namespace FEDD {
 
@@ -24,6 +25,13 @@ solution_(0)
 	dim_= params_->sublist("Parameter").get("Dimension",-1);
 
 	timeIncrement_= params_->sublist("Timestepping Parameter").get("dt",0.1);
+    auto& stepping = params_->sublist("Timestepping Parameter");
+    if (stepping.get("Restart", false))
+        timeStep_ = stepping.get("Time step", 0.);
+    // The prepared clock supplies the actual continuation increment, including
+    // interval changes or a shortened step, rather than the input's base dt.
+    if (const auto* clock = checkpoint::clockState(params_, timeStep_))
+        timeIncrement_ = clock->get<double>("dt");
 
 	diskTuple_= tuple;
 	

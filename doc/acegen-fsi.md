@@ -14,6 +14,29 @@ Call `NonLinElasticity::updateConcentration()` to prescribe a concentration;
 the same field is used in assembly, post-processing, and history updates.
 The solid commits its material history after an accepted FSI timestep.
 
+## Passive restart and process markers
+
+The element clock starts at the validated restart time and uses the continuation
+increment selected by the time integrator. For example, restarting at `0.1`
+with `dt = 0.001` evaluates the next material response at `0.101`.
+
+Checkpoints for the MLCK and growth/reorientation materials contain a
+`Material process state` sublist with three boolean markers: `Active response
+took place`, `Growth took place`, and `Reorientation took place`. These stay
+true once recorded, including after the corresponding process is switched off.
+The markers are combined across all solid elements and MPI ranks and included
+in recovery checkpoints as well. Native activation after `ActiveStartTime`
+also counts as active history.
+Entering a process interval marks it immediately, so checkpoints exactly at the
+phase boundary are also excluded from passive restart.
+
+Only passive checkpoints can currently be resumed. The passive reference fibre
+state is initialized without resetting the physical clock. A saved true marker
+causes a clear error before checkpoint fields are restored; full material-history
+restoration remains separate work. Older checkpoints without these markers have
+unknown material history and are rejected for these materials, including with
+`Allow legacy restart = true`.
+
 ## Material output
 
 For `SCI_SMC_Active_Growth_Reorientation`, enable the following in the FSI

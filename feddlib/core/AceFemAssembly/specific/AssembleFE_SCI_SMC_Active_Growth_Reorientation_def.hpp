@@ -239,6 +239,8 @@ namespace FEDD
 		// 	cout << " Element initialized with timestep " << this->timeStep_ << endl;
 		// We check this here also in case we do a restart.
 
+        if (this->params_->sublist("Timestepping Parameter").get("Restart", false) && this->timeStep_ > 0.)
+            initializePassiveHistory();
 	
 #endif
 	}
@@ -357,6 +359,14 @@ namespace FEDD
 	template <class SC, class LO, class GO, class NO>
 	void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::advanceInTime(double dt)
 	{
+        // Commit markers for the step just solved, before changing the switches
+        // for the next step. The native model also gates kinetics by start time.
+        const auto value = [&](const std::string& name) {
+            return this->domainData_.at(findPosition(name, this->domainDataNames_));
+        };
+        this->materialProcessState_.record(value("ActiveBool") != 0. ||
+            this->timeStep_ + this->timeIncrement_ > value("ActiveStartTime"),
+            value("growthBool") != 0., value("reorientationBool") != 0.);
 
 		if(this->timeStep_ - 1.e-13 < 0 && dt > 1.e-13 && this->getGlobalElementID()==0) 
 		{
@@ -423,6 +433,9 @@ namespace FEDD
 
 		// Checking for Active Response Reorientation and Growth
 		checkingReorientationActiveGrowth();
+        // Phase initialization can already alter history at the interval boundary.
+        // Conservatively exclude checkpoints from a process phase from restart.
+        this->materialProcessState_.record(activeBool_ != 0., growthBool_ != 0., reorientationBool_ != 0.);
 		
 		if (this->globalElementID_ == 0)
 		{
@@ -694,6 +707,38 @@ namespace FEDD
 		}
 		return -1;
 	}
+
+    template <class SC, class LO, class GO, class NO>
+    void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::initializePassiveHistory()
+    {
+#ifdef FEDD_HAVE_ACEGENINTERFACE
+        // Reconstruct only the undeformed passive reference state. AceGen
+        // initializes reference fibers at time == dt; the physical element clock
+        // remains at the restart time. Process-dependent history is never rebuilt.
+        auto data = this->domainData_;
+        for (const std::string name : {"ActiveBool", "growthBool", "reorientationBool"})
+            data.at(findPosition(name, this->domainDataNames_)) = 0.;
+        data.at(findPosition("ActiveStartTime", this->domainDataNames_)) = 1.e30;
+        AceGenInterface::DeformationDiffusionSmoothMuscleActiveGrowthReorientationTetrahedra3D10 reference(
+            this->positions_.data(), this->displacements_.data(), this->concentrations_.data(),
+            this->accelerations_.data(), this->rates_.data(), data.data(), this->history_.data(),
+            this->subiterationTolerance_, this->timeIncrement_, this->timeIncrement_, this->iCode_, -1);
+        TEUCHOS_TEST_FOR_EXCEPTION(reference.compute(false) >= 2, std::runtime_error,
+            "Cannot initialize passive reference material history for restart.");
+        const auto* initialized = reference.getHistoryUpdated();
+        this->history_.assign(initialized, initialized + this->historyLength_);
+        if (this->computeFA_) {
+            const auto fibers = computeElementGaussFibersP2Tet();
+            const int stride = this->historyLength_ / this->numberOfIntegrationPoints_;
+            TEUCHOS_TEST_FOR_EXCEPTION(fibers.size() != this->numberOfIntegrationPoints_ || stride < 34,
+                std::logic_error, "Unsupported Gauss-point layout for passive restart fibers.");
+            for (int gp = 0; gp < this->numberOfIntegrationPoints_; ++gp)
+                for (int i = 0; i < 6; ++i)
+                    this->history_[gp * stride + 28 + i] = fibers[gp][i];
+        }
+        this->historyUpdated_ = this->history_;
+#endif
+    }
 
 	template <class SC, class LO, class GO, class NO>
 	void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::initializeGrowth()
