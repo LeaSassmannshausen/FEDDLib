@@ -31,7 +31,10 @@ void setPassiveMaterial(const ParameterListPtr_Type& parameters, int flag)
         1.000882, 1.234826, 1.141419, .98, .98, .98, .15, 0., 0., 0.,
         0., .13333333333333333, 2.958083520579672, 1., 1., 2.};
     AceGenInterface::DeformationDiffusionSmoothMuscleActiveGrowthReorientationTetrahedra3D10 model(18);
-    require(model.getNumberOfDomainData() == sizeof(defaults)/sizeof(double), "Material parameter fixture is outdated");
+    TEUCHOS_TEST_FOR_EXCEPTION(model.getNumberOfDomainData() != sizeof(defaults)/sizeof(double),
+        std::runtime_error, "Material parameter fixture is outdated: the test supplies "
+        << sizeof(defaults)/sizeof(double) << " parameters, but the linked AceGen model requires "
+        << model.getNumberOfDomainData() << ". Update the fixture for that material version.");
     auto& material = parameters->sublist("Parameter Solid").sublist("1");
     material.set("Volume Flag", flag);
     for (int i = 0; i < model.getNumberOfDomainData(); ++i) {

@@ -294,7 +294,7 @@ protected:
 /* ----------------------------------------------------------------------------------------*/
 private:
     // Functions to add element contributions to global system matrices/ vectors
-	void addFeBlockMatrix(BlockMatrixPtr_Type &A, SmallMatrixPtr_Type elementMatrix, FiniteElement element1,FiniteElement element2, MapConstPtr_Type mapFirstColumn,MapConstPtr_Type mapSecondColumn, tuple_disk_vec_ptr_Type problemDisk);
+	void addFeBlockMatrix(BlockMatrixPtr_Type &A, SmallMatrixPtr_Type elementMatrix, FiniteElement element1,FiniteElement element2, MapConstPtr_Type mapFirstColumn,MapConstPtr_Type mapSecondColumn, tuple_disk_vec_ptr_Type problemDisk, bool keepSecondBlockGraph = false);
 
 	void addFeBlock(BlockMatrixPtr_Type &A, SmallMatrixPtr_Type elementMatrix, FiniteElement element, MapConstPtr_Type mapFirstRow, int row, int column, tuple_disk_vec_ptr_Type problemDisk);
 

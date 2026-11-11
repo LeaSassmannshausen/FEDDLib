@@ -15,10 +15,17 @@ cd build/feddlib/problems/examples/Benchmarks/fsi_artery_boundary_tests
 mpirun -np 4 ./problems_fsi_artery_boundary_tests.exe --problemfile=parametersProblemFSI.xml
 ```
 
-CMake copies the meshes, XML settings and two inlet profiles to the build
-directory. Profiles are provided for the 10 mm and 12 mm fluid meshes with P2
-velocity discretization. The default mesh pair is 12 mm; to use 10 mm, change
-both `Mesh 1 Name` and `Mesh 2 Name` to their `_10mm.mesh` variants.
+CMake copies the meshes, XML settings and three inlet profiles to the build
+directory. P2 velocity profiles are provided for fluid resolution 1 at 10 mm
+and 12 mm, and fluid resolution 2 at 10 mm. The default mesh pair is 12 mm;
+to use the original 10 mm pair, change both `Mesh 1 Name` and `Mesh 2 Name`
+to their `_10mm.mesh` variants. To use the new 10 mm resolution, set:
+
+```xml
+<Parameter name="Mesh 1 Name" type="string" value="fsi_artery_fluid_res_2_Flags_4_5_6_9_10_15_10mm.mesh"/>
+<Parameter name="Mesh 2 Name" type="string" value="fsi_solid_res_1_flags_6_7_8_9_10_11_12_13_14_15_10mm.mesh"/>
+```
+
 The driver automatically selects
 `laplace_parabolic_<fluid mesh basename>_<Discretization>.h5` from
 `Mesh Partitioner/Mesh 1 Name` and `Parameter/Discretization`.
@@ -33,7 +40,7 @@ This is a manually run benchmark; it has no CTest reference solution.
 `Parameter Fluid/BC Type` remains `parabolic_artery`. The spatial profile solves
 `-Delta_Gamma p = 1` on inlet surface flag **4**, with `p = 0` on its rim.
 It is stored with maximum value one and zero values away from the inlet.
-Both supplied meshes use **z = 0** as the inlet, directed into the fluid
+All supplied fluid meshes use **z = 0** as the inlet, directed into the fluid
 along **+z**, so the velocity callback sets `u = (0, 0, amplitude(t) * p)`.
 The analytic ellipse parameters and `MaxVelocity` are no longer used.
 
@@ -103,6 +110,12 @@ for length in 10 12; do
         --inlet-flag=4 \
         --output="source/FEDDLib/feddlib/problems/examples/Benchmarks/fsi_artery_boundary_tests/laplace_parabolic_${mesh}_P2"
 done
+mesh="fsi_artery_fluid_res_2_Flags_4_5_6_9_10_15_10mm"
+mpirun -np 1 build/feddlib/problems/examples/Benchmarks/fsi_artery_boundary_tests/problems_fsi_artery_inlet_profile.exe \
+    --mesh="source/FEDDLib/meshes/artery_adaptations/${mesh}.mesh" \
+    --discretization=P2 \
+    --inlet-flag=4 \
+    --output="source/FEDDLib/feddlib/problems/examples/Benchmarks/fsi_artery_boundary_tests/laplace_parabolic_${mesh}_P2"
 cmake --build build --target problems_fsi_artery_boundary_tests -j 4
 ```
 

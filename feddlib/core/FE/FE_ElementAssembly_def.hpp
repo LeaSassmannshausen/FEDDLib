@@ -713,7 +713,7 @@ void FE_ElementAssembly<SC,LO,GO,NO>::assemblyAceDeformDiffu(int dim,
            // elementMatrix->print();
 			assemblyFEElements_[T]->advanceNewtonStep(); // n genereal non linear solver step
 			
-			addFeBlockMatrix(A, elementMatrix, elementsSolid->getElement(T), elementsSolid->getElement(T), mapSolid, mapChem, problemDisk);
+			addFeBlockMatrix(A, elementMatrix, elementsSolid->getElement(T), elementsSolid->getElement(T), mapSolid, mapChem, problemDisk, true);
 
           
 
@@ -927,7 +927,7 @@ void FE_ElementAssembly<SC,LO,GO,NO>::assemblyAceDeformDiffuBlock(int dim,
 
 */
 template <class SC, class LO, class GO, class NO>
-void FE_ElementAssembly<SC,LO,GO,NO>::addFeBlockMatrix(BlockMatrixPtr_Type &A, SmallMatrixPtr_Type elementMatrix, FiniteElement element1, FiniteElement element2, MapConstPtr_Type mapFirstRow,MapConstPtr_Type mapSecondRow, tuple_disk_vec_ptr_Type problemDisk){
+void FE_ElementAssembly<SC,LO,GO,NO>::addFeBlockMatrix(BlockMatrixPtr_Type &A, SmallMatrixPtr_Type elementMatrix, FiniteElement element1, FiniteElement element2, MapConstPtr_Type mapFirstRow,MapConstPtr_Type mapSecondRow, tuple_disk_vec_ptr_Type problemDisk, bool keepSecondBlockGraph){
 		
 		int numDisk = problemDisk->size();
 
@@ -961,8 +961,10 @@ void FE_ElementAssembly<SC,LO,GO,NO>::addFeBlockMatrix(BlockMatrixPtr_Type &A, S
 		int offset= numNodes1*dofs1;
 
 
-        // Keep the chemistry graph independent of the current solution. Entries
-        // that vanish in one Newton step may become nonzero in the next step.
+        // SCI needs a fixed chemistry graph across Newton steps. Fluid assembly
+        // may omit the zero pressure block, so retain its sparse insertion rule.
+        Teuchos::Array<SC> value(1, 0.);
+        Teuchos::Array<GO> columnIndex(1, 0);
         for (UN i=0; i < numNodes2 ; i++) {
             for(int di=0; di<dofs2; di++){
                 GO row =GO (dofs2* mapSecondRow->getGlobalElement( element2.getNode(i) )+di);
@@ -971,7 +973,17 @@ void FE_ElementAssembly<SC,LO,GO,NO>::addFeBlockMatrix(BlockMatrixPtr_Type &A, S
                         columnIndices2[j] = GO (dofs2 * mapSecondRow->getGlobalElement(element2.getNode(j)) + d);
                         value2[j] = (*elementMatrix)[offset+dofs2*i+di][offset+dofs2*j+d];
                     }
-                    A->getBlock(1,1)->insertGlobalValues(row, columnIndices2(), value2());
+                    if (keepSecondBlockGraph)
+                        A->getBlock(1,1)->insertGlobalValues(row, columnIndices2(), value2());
+                    else {
+                        for (UN j=0; j < columnIndices2.size(); j++) {
+                            if (std::fabs(value2[j]) > 1.e-13) {
+                                columnIndex[0] = columnIndices2[j];
+                                value[0] = value2[j];
+                                A->getBlock(1,1)->insertGlobalValues(row, columnIndex(), value());
+                            }
+                        }
+                    }
                 }          
             }
         }
