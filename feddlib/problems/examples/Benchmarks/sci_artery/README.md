@@ -16,9 +16,10 @@ cd build/feddlib/problems/examples/Benchmarks/sci_artery
 mpirun -np 4 ./problems_sci_artery.exe --problemfile=parametersProblemSCI.xml
 ```
 
-This is a manually run benchmark. CMake copies its XML settings and solid mesh
-resolutions 0–3 from `meshes/artery_adaptations`. Change `Mesh Partitioner/Mesh 1 Name`
-to select another solid resolution. Mesh coordinates are converted from mm to cm
+This is a manually run benchmark. CMake copies its XML settings and the 10 mm
+and 12 mm solid meshes from `meshes/artery_adaptations`. The default is 12 mm;
+change `Mesh Partitioner/Mesh 1 Name` to the `_10mm.mesh` variant to use 10 mm.
+Mesh coordinates are converted from mm to cm
 using the same `readAndPartition(15, "mm", true)` call as the FSI case.
 
 ## Configuration

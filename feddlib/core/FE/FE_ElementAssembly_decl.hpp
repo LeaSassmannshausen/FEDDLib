@@ -164,7 +164,8 @@ class FE_ElementAssembly {
                                 bool callFillComplete = true,
                                 int FELocExternal=-1);
 
-    void postProcessing(int type, MultiVectorPtr_Type& postProcessingVec);
+    // elementAverage writes one volume average per element on the element map.
+    void postProcessing(int type, MultiVectorPtr_Type& postProcessingVec, bool elementAverage = false);
 
     checkpoint::MaterialProcessState getMaterialProcessState() const {
         int local[3] = {0, 0, 0}, global[3] = {0, 0, 0};

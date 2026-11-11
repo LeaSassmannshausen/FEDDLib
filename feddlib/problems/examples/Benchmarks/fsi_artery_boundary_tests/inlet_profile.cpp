@@ -19,12 +19,12 @@ int main(int argc, char** argv)
     Tpetra::ScopeGuard scope(&argc, &argv);
     auto comm = Tpetra::getDefaultComm();
     std::string mesh, feType = "P2", output;
-    int inletFlag = 5;
+    int inletFlag = 4;
     Teuchos::CommandLineProcessor options;
     options.setOption("mesh", &mesh, "Fluid .mesh file.");
     options.setOption("discretization", &feType, "P1 or P2.");
     options.setOption("output", &output, "Output basename, without .h5.");
-    options.setOption("inlet-flag", &inletFlag, "Inlet surface flag (default 5).");
+    options.setOption("inlet-flag", &inletFlag, "Inlet surface flag (default 4).");
     options.throwExceptions(false);
     const auto parsed = options.parse(argc, argv);
     if (parsed == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED) return 0;

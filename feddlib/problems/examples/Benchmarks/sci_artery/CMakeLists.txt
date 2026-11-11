@@ -12,10 +12,8 @@ tribits_copy_files_to_binary_dir(data_sciArtery
     EXEDEPS sci_artery
 )
 set(sci_artery_meshes
-    fsi_solid_res_0_flags_6_7_8_9_10_11_12_13_14_15.mesh
-    fsi_solid_res_1_flags_6_7_8_9_10_11_12_13_14_15.mesh
-    fsi_solid_res_2_flags_6_7_8_9_10_11_12_13_14_15.mesh
-    fsi_solid_res_3_flags_6_7_8_9_10_11_12_13_14_15.mesh
+    fsi_solid_res_0_flags_6_7_8_9_10_11_12_13_14_15_10mm.mesh
+    fsi_solid_res_0_flags_6_7_8_9_10_11_12_13_14_15_12mm.mesh
 )
 tribits_copy_files_to_binary_dir(meshes_sciArtery
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes/artery_adaptations

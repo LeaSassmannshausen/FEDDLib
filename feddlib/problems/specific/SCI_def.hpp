@@ -937,7 +937,7 @@ void SCI<SC,LO,GO,NO>::updateChemInTime() const
 
 }
 template<class SC,class LO,class GO,class NO>
-typename SCI<SC,LO,GO,NO>::BlockMultiVectorPtr_Type SCI<SC,LO,GO,NO>::getPostProcessingData() const
+typename SCI<SC,LO,GO,NO>::BlockMultiVectorPtr_Type SCI<SC,LO,GO,NO>::getPostProcessingData(bool elementAverage) const
 {
     if (postProcessingnames_.empty())
         return Teuchos::rcp(new BlockMultiVector_Type(0));
@@ -946,10 +946,12 @@ typename SCI<SC,LO,GO,NO>::BlockMultiVectorPtr_Type SCI<SC,LO,GO,NO>::getPostPro
                                                : this->solution_->getBlock(1), true);
     this->feFactory_->updateSolutionAssemblyFEElements(d_rep_, c_rep_);
     const int columns[] = {10, 11, 12, 13, 23, 39, 40, 41, 42, 43, 44, 27, 28, 45, 46, 47, 48};
-    auto result = Teuchos::rcp(new BlockMultiVector_Type(postProcessingnames_.size()));
-    for (UN i = 0; i < postProcessingnames_.size(); ++i) {
-        auto field = Teuchos::rcp(new MultiVector_Type(this->getDomain(0)->getMapUnique(), 1));
-        this->feFactory_->postProcessing(columns[i], field);
+    const UN fieldCount = elementAverage ? 4 : postProcessingnames_.size();
+    const auto map = elementAverage ? this->getDomain(0)->getElementMap() : this->getDomain(0)->getMapUnique();
+    auto result = Teuchos::rcp(new BlockMultiVector_Type(fieldCount));
+    for (UN i = 0; i < fieldCount; ++i) {
+        auto field = Teuchos::rcp(new MultiVector_Type(map, 1));
+        this->feFactory_->postProcessing(columns[i], field, elementAverage);
         result->addBlock(field, i);
     }
     return result;

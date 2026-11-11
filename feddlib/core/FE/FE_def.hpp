@@ -4015,6 +4015,112 @@ double FE<SC,LO,GO,NO>::assemblyResistanceBoundary(int dim,
 
 
 template <class SC, class LO, class GO, class NO>
+void FE<SC,LO,GO,NO>::assemblyBackflowStabilizationBoundary(int dim,
+                                              std::string FEType,
+                                              MultiVectorPtr_Type f,
+                                              MultiVectorPtr_Type u_rep,
+                                              ParameterListPtr_Type params,
+                                              int FEloc,
+                                              MultiVectorPtr_Type w_rep) {
+
+    TEUCHOS_TEST_FOR_EXCEPTION((dim != 2 && dim != 3) || (FEType != "P1" && FEType != "P2"),
+        std::logic_error, "Backflow stabilization requires 2D/3D P1 or P2 simplex elements.");
+    TEUCHOS_TEST_FOR_EXCEPTION(f.is_null() || u_rep.is_null() || params.is_null() ||
+        f == u_rep || (!w_rep.is_null() && f == w_rep), std::logic_error,
+        "Backflow stabilization requires separate output and input vectors and a parameter list.");
+
+    ElementsPtr_Type elements = this->domainVec_.at(FEloc)->getElementsC();
+    vec2D_dbl_ptr_Type pointsRep = this->domainVec_.at(FEloc)->getPointsRepeated();
+    const LO localLength = dim * pointsRep->size();
+    TEUCHOS_TEST_FOR_EXCEPTION(f->getLocalLength() != localLength || u_rep->getLocalLength() != localLength ||
+        f->getNumVectors() != 1 || u_rep->getNumVectors() != 1 ||
+        (!w_rep.is_null() && (w_rep->getLocalLength() != localLength || w_rep->getNumVectors() != 1)),
+        std::logic_error, "Backflow stabilization vectors must use the repeated vector map with one column.");
+
+    auto& fluid = params->sublist("Parameter Fluid");
+    const double density = fluid.get("Density", 1.);
+    const double beta = fluid.get("Backflow Stabilization Coefficient", 0.5);
+    const int flagOutlet = params->sublist("General").get("Flag Outlet Fluid", 5);
+    TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(density) || density <= 0. ||
+        !std::isfinite(beta) || beta < 0., std::logic_error,
+        "Backflow stabilization requires positive finite density and a nonnegative finite coefficient.");
+
+    f->putScalar(0.);
+    if (beta == 0.) return;
+    Teuchos::ArrayRCP<SC> valuesF = f->getDataNonConst(0);
+    Teuchos::ArrayRCP<const SC> velocity = u_rep->getData(0);
+    Teuchos::ArrayRCP<const SC> meshVelocity;
+    if (!w_rep.is_null()) meshVelocity = w_rep->getData(0);
+
+    vec2D_dbl_ptr_Type phi;
+    vec_dbl_ptr_Type weights = Teuchos::rcp(new vec_dbl_Type(0));
+    // The integrand has degree 3*k on each backflow region. Use positive-weight
+    // rules (degree 4/6) so clipping at zero cannot produce negative dissipation.
+    const UN deg = FEType == "P2" ? 6 : 4;
+    Helper::getPhi(phi, weights, dim-1, FEType, deg);
+
+    SmallMatrix<SC> B(dim);
+    vec_dbl_Type b(dim);
+    for (UN T=0; T<elements->numberElements(); T++) {
+        FiniteElement fe = elements->getElement(T);
+        ElementsPtr_Type subEl = fe.getSubElements();
+        for (int surface=0; surface<fe.numSubElements(); surface++) {
+            FiniteElement feSub = subEl->getElement(surface);
+            if (subEl->getDimension() != dim-1 || feSub.getFlag() != flagOutlet) continue;
+            vec_int_Type nodeList = feSub.getVectorNodeListNonConst();
+            TEUCHOS_TEST_FOR_EXCEPTION(nodeList.size() != phi->at(0).size(), std::logic_error,
+                "Backflow stabilization surface nodes do not match the requested finite element type.");
+
+            vec_dbl_Type normal(dim, 0.);
+            double normNormal = 0.;
+            Helper::computeSurfaceNormal(dim, pointsRep, nodeList, normal, normNormal);
+            TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(normNormal) || normNormal <= 0.,
+                std::runtime_error, "Degenerate outlet face in backflow stabilization.");
+
+            // Orient geometrically outward, independently of boundary node ordering
+            // and of the Normal Scale used by pressure-load assembly.
+            double orientation = 0.;
+            for (int d=0; d<dim; d++) {
+                double center = 0.;
+                for (int node=0; node<dim+1; node++)
+                    center += pointsRep->at(fe.getNode(node)).at(d) / (dim+1);
+                orientation += normal[d] * (pointsRep->at(nodeList[0]).at(d) - center);
+            }
+            TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(orientation) || orientation == 0.,
+                std::runtime_error, "Cannot orient the outlet face in backflow stabilization.");
+            for (int d=0; d<dim; d++)
+                normal[d] *= (orientation < 0. ? -1. : 1.) / normNormal;
+
+            Helper::buildTransformationSurface(nodeList, pointsRep, B, b, FEType);
+            SC elScaling = B.computeScaling();
+            for (UN q=0; q<weights->size(); q++) {
+                vec_dbl_Type u(dim, 0.), w(dim, 0.);
+                for (UN node=0; node<nodeList.size(); node++)
+                    for (int d=0; d<dim; d++) {
+                        u[d] += velocity[dim*nodeList[node]+d] * phi->at(q).at(node);
+                        if (!w_rep.is_null())
+                            w[d] += meshVelocity[dim*nodeList[node]+d] * phi->at(q).at(node);
+                    }
+                double normalVelocity = 0.;
+                for (int d=0; d<dim; d++) {
+                    TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(u[d]) || !std::isfinite(w[d]),
+                        std::runtime_error, "Non-finite velocity in backflow stabilization.");
+                    normalVelocity += (u[d] - w[d]) * normal[d];
+                }
+                if (normalVelocity >= 0.) continue; // No damping on pure outflow.
+
+                // RHS traction: -beta*rho*max(-(u-w).n,0)*u.
+                const SC factor = -beta * density * (-normalVelocity) * weights->at(q) * elScaling;
+                for (UN node=0; node<nodeList.size(); node++)
+                    for (int d=0; d<dim; d++)
+                        valuesF[dim*nodeList[node]+d] += factor * phi->at(q).at(node) * u[d];
+            }
+        }
+    }
+}
+
+
+template <class SC, class LO, class GO, class NO>
 void FE<SC,LO,GO,NO>::assemblyArea(int dim,
                                     double &area,
                                     int inflowFlag,

@@ -207,6 +207,8 @@ FSI<SC,LO,GO,NO>::~FSI()
     }
     if (!exporterMaterial_.is_null())
         exporterMaterial_->closeExporter();
+    if (!exporterElementStress_.is_null())
+        exporterElementStress_->closeExporter();
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -1581,28 +1583,36 @@ void FSI<SC,LO,GO,NO>::getValuesOfInterest3DBenchmark( vec_dbl_Type& values ){
     
 template<class SC,class LO,class GO,class NO>
 void FSI<SC,LO,GO,NO>::computeValuesOfInterestAndExport(){
-    if (this->parameterList_->sublist("Exporter").get("Export material fields", false)) {
-        const auto names = getPostprocessingNames();
+    for (const bool elementAverage : {false, true}) {
+        if (!this->parameterList_->sublist("Exporter").get(
+                elementAverage ? "Export element stresses" : "Export material fields", false))
+            continue;
+        auto names = getPostprocessingNames();
         TEUCHOS_TEST_FOR_EXCEPTION(names.empty(), std::logic_error,
-            "Export material fields requires a solid material with post-processing support.");
-        auto values = getPostProcessingData();
-        if (exporterMaterial_.is_null()) {
-            materialOutput_ = values;
+            "Material field export requires a solid material with post-processing support.");
+        if (elementAverage) names.resize(4);
+        auto values = getPostProcessingData(elementAverage);
+        auto& exporter = elementAverage ? exporterElementStress_ : exporterMaterial_;
+        auto& output = elementAverage ? elementStressOutput_ : materialOutput_;
+        if (exporter.is_null()) {
+            output = values;
             auto domain = this->getDomain(2);
             auto mesh = Teuchos::rcp_const_cast<Mesh_Type>(domain->getMesh());
-            exporterMaterial_ = Teuchos::rcp(new Exporter_Type());
-            exporterMaterial_->setup("solid_material", mesh, domain->getFEType(),
+            exporter = Teuchos::rcp(new Exporter_Type());
+            exporter->setup(elementAverage ? "solid_stress_elements" : "solid_material", mesh,
+                elementAverage ? "P0" : domain->getFEType(),
                 this->parameterList_->sublist("Exporter").get("Export every X timesteps", 1),
                 this->parameterList_);
             for (UN i = 0; i < names.size(); ++i) {
-                MultiVectorConstPtr_Type field = materialOutput_->getBlock(i);
-                exporterMaterial_->addVariable(field, names[i], "Scalar", 1, domain->getMapUnique());
+                MultiVectorConstPtr_Type field = output->getBlock(i);
+                exporter->addVariable(field, names[i], "Scalar", 1,
+                    elementAverage ? domain->getElementMap() : domain->getMapUnique());
             }
         } else {
-            materialOutput_->update(1., *values, 0.);
+            output->update(1., *values, 0.);
         }
         // This hook runs after convergence, before committing the timestep.
-        exporterMaterial_->save(timeSteppingTool_->currentTime() + timeSteppingTool_->get_dt());
+        exporter->save(timeSteppingTool_->currentTime() + timeSteppingTool_->get_dt());
     }
     if ( this->getParameterList()->sublist("General").get("Export drag and lift",false) ) {
         
@@ -1777,11 +1787,11 @@ void FSI<SC,LO,GO,NO>::captureAdditionalRecoveryState(double time)
 }
 
 template<class SC,class LO,class GO,class NO>
-typename FSI<SC,LO,GO,NO>::BlockMultiVectorPtr_Type FSI<SC,LO,GO,NO>::getPostProcessingData() const
+typename FSI<SC,LO,GO,NO>::BlockMultiVectorPtr_Type FSI<SC,LO,GO,NO>::getPostProcessingData(bool elementAverage) const
 {
     if (problemStructureNonLin_.is_null())
         return Teuchos::rcp(new BlockMultiVector_Type(0));
-    return problemStructureNonLin_->getPostProcessingData();
+    return problemStructureNonLin_->getPostProcessingData(elementAverage);
 }
 
 template<class SC,class LO,class GO,class NO>

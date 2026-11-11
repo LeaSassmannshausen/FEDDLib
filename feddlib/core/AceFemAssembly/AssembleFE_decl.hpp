@@ -170,7 +170,8 @@ namespace FEDD {
         /*!
          \brief This function is called at the end of each Newton step after updating the solution vector.
         */
-        virtual void postProcessing();
+        // elementAverage requests volume integrals without nodal shape-function weights.
+        virtual void postProcessing(bool elementAverage = false);
 
         vec2D_dbl_ptr_Type getPostProcessingData() const { return postProcessingData_; }
 

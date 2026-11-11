@@ -546,29 +546,37 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     bool print = parameterList_->sublist("General").get("ParaViewExport",false);
     bool printStress = parameterList_->sublist("General").get("Export Stress",false) ||
         parameterList_->sublist("Exporter").get("Export material fields", false);
+    bool printElementStress = parameterList_->sublist("Exporter").get("Export element stresses", false);
     bool printData = parameterList_->sublist("General").get("Export Data",true);
     bool printExtraData = parameterList_->sublist("General").get("Export Extra Data",false);
 
     ExporterPtr_Type materialExporter;
     BlockMultiVectorPtr_Type materialOutput;
+    ExporterPtr_Type elementStressExporter;
+    BlockMultiVectorPtr_Type elementStressOutput;
     auto exportMaterialFields = [&](BlockMultiVectorPtr_Type fields, DomainConstPtr_Type domain,
-                                    const vec_string_Type& names) {
+                                    vec_string_Type names, bool elementAverage) {
+        if (elementAverage && !names.empty()) names.resize(4);
         TEUCHOS_TEST_FOR_EXCEPTION(names.empty() || fields->size() != names.size(), std::logic_error,
             "SCI postprocessing field count does not match its names.");
-        if (materialExporter.is_null()) {
-            materialOutput = fields;
-            materialExporter = Teuchos::rcp(new Exporter_Type());
+        auto& exporter = elementAverage ? elementStressExporter : materialExporter;
+        auto& output = elementAverage ? elementStressOutput : materialOutput;
+        if (exporter.is_null()) {
+            output = fields;
+            exporter = Teuchos::rcp(new Exporter_Type());
             auto mesh = Teuchos::rcp_const_cast<Mesh_Type>(domain->getMesh());
-            materialExporter->setup("solid_material", mesh, domain->getFEType(),
+            exporter->setup(elementAverage ? "solid_stress_elements" : "solid_material", mesh,
+                elementAverage ? "P0" : domain->getFEType(),
                 parameterList_->sublist("Exporter").get("Export every X timesteps", 1), parameterList_);
             for (UN i = 0; i < names.size(); ++i) {
-                MultiVectorConstPtr_Type field = materialOutput->getBlock(i);
-                materialExporter->addVariable(field, names[i], "Scalar", 1, domain->getMapUnique());
+                MultiVectorConstPtr_Type field = output->getBlock(i);
+                exporter->addVariable(field, names[i], "Scalar", 1,
+                    elementAverage ? domain->getElementMap() : domain->getMapUnique());
             }
         } else {
-            materialOutput->update(1., *fields, 0.);
+            output->update(1., *fields, 0.);
         }
-        materialExporter->save(timeSteppingTool_->currentTime());
+        exporter->save(timeSteppingTool_->currentTime());
     };
     BlockMultiVectorPtr_Type stressVec;
     if (print)
@@ -813,7 +821,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
             exportTimestep();
 
         }
-        if (printStress){
+        if (printStress || printElementStress){
             timeStep = timeStep + 1.;
             bool heartbeat= false;
             double heartbeatStart1 = parameterList_->sublist("Parameter").get("Heart Beat Start 1",0.) ;
@@ -834,9 +842,13 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
                 modValue= modValueHeartBeat; // smaller post Processing steps in heart beat phases
 
             if(fabs(remainder(timeStep,modValue)) < 0. + 1.e-8 ){
-                BlockMultiVectorPtr_Type stressVecTmp= sci->getPostProcessingData();
-                stressVec = stressVecTmp;
-                exportMaterialFields(stressVec, problemTime_->getDomain(0), sci->getPostprocessingNames());
+                if (printStress) {
+                    stressVec = sci->getPostProcessingData();
+                    exportMaterialFields(stressVec, problemTime_->getDomain(0), sci->getPostprocessingNames(), false);
+                }
+                if (printElementStress)
+                    exportMaterialFields(sci->getPostProcessingData(true), problemTime_->getDomain(0),
+                        sci->getPostprocessingNames(), true);
             }
 
         }
@@ -874,6 +886,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
         // Material exporters are closed below, also when primary-field export is disabled.
     }
     if (!materialExporter.is_null()) materialExporter->closeExporter();
+    if (!elementStressExporter.is_null()) elementStressExporter->closeExporter();
 
 }
 

@@ -6,6 +6,8 @@
 #include <iostream>
 #include <aceinterface.hpp>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 
 using namespace FEDD;
 using LO = default_lo;
@@ -35,6 +37,79 @@ void setPassiveMaterial(const ParameterListPtr_Type& parameters, int flag)
         const std::string name = model.getDomainDataNames()[i];
         const auto first = name.find('-') + 1;
         material.set(name.substr(first, name.find('_') - first), defaults[i]);
+    }
+}
+
+void checkElementStressExport(NonLinElasticity<>& problem,
+                             const Teuchos::RCP<Domain<>>& domain,
+                             const ParameterListPtr_Type& parameters)
+{
+    auto fields = problem.getPostProcessingData(true);
+    require(fields->size() == 4, "Element output must contain only the four stress fields");
+    auto repeated = Teuchos::rcp(new MultiVector<>(domain->getMapVecFieldRepeated(), 1));
+    repeated->importFromVector(problem.getSolution()->getBlock(0));
+    const auto displacement = repeated->getData(0);
+    const int columns[] = {10, 11, 12, 13};
+    for (UN j = 0; j < fields->size(); ++j) {
+        require(fields->getBlock(j)->getMap()->getTpetraMap()->isSameAs(*domain->getElementMap()->getTpetraMap()),
+            "Element output has the wrong map");
+        for (double value : fields->getBlock(j)->getData(0))
+            require(std::isfinite(value), "Element stress must be finite");
+    }
+
+    // Independent reference: for power one, summing all ten nodal integrals
+    // eliminates the shape functions by partition of unity. This must agree
+    // with the element average even though the problem uses nodal power two.
+    auto referenceParameters = Teuchos::rcp(new Teuchos::ParameterList(*parameters));
+    referenceParameters->sublist("Parameter Solid").sublist("1").set("PostProcessingPower", 1.);
+    auto discretization = Teuchos::rcp(new tuple_disk_vec_Type{
+        tuple_ssii_Type("Solid", "P2", 3, 10), tuple_ssii_Type("Chemistry", "P2", 1, 10)});
+    AssembleFEFactory<default_sc, default_lo, default_go, default_no> factory;
+    for (UN T = 0; T < domain->getElementsC()->numberElements(); ++T) {
+        auto element = domain->getElementsC()->getElement(T);
+        auto nodes = element.getVectorNodeList();
+        vec2D_dbl_Type positions;
+        auto solution = Teuchos::rcp(new vec_dbl_Type(40, 0.));
+        for (UN i = 0; i < nodes.size(); ++i) {
+            positions.push_back(domain->getPointsRepeated()->at(nodes[i]));
+            for (int k = 0; k < 3; ++k)
+                solution->at(3*i+k) = displacement[3*nodes[i]+k];
+        }
+        auto material = factory.build("SCI_SMC_Active_Growth_Reorientation", element.getFlag(),
+            positions, referenceParameters, discretization);
+        material->setGlobalElementID(domain->getElementMap()->getGlobalElement(T));
+        material->updateSolution(*solution);
+        material->postProcessing();
+        auto data = material->getPostProcessingData();
+        double volume = 0.;
+        for (const auto& row : *data) volume += row[0];
+        for (UN j = 0; j < fields->size(); ++j) {
+            double integral = 0.;
+            for (const auto& row : *data) integral += row[columns[j]];
+            const double expected = integral / volume;
+            require(std::abs(fields->getBlock(j)->getData(0)[T] - expected) < 1.e-9 * (1. + std::abs(expected)),
+                "Element stress differs from the partition-of-unity volume average");
+        }
+    }
+
+    const std::string filename = "aceGenStructureUnitTest-element-stresses";
+    ExporterParaView<> exporter;
+    exporter.setup(filename, domain->getMesh(), "P0");
+    const auto names = problem.getPostprocessingNames();
+    for (UN j = 0; j < fields->size(); ++j) {
+        Teuchos::RCP<const MultiVector<>> field = fields->getBlock(j);
+        exporter.addVariable(field, names[j], "Scalar", 1, domain->getElementMap());
+    }
+    exporter.save(.01);
+    exporter.closeExporter();
+    if (domain->getComm()->getRank() == 0) {
+        std::ifstream file(filename + ".xmf");
+        std::ostringstream contents;
+        contents << file.rdbuf();
+        const auto xml = contents.str();
+        require(xml.find("Center=\"Cell\"") != std::string::npos, "Stress output must be cell data");
+        require(xml.find("vonMisesStress") != std::string::npos, "Element von Mises output is missing");
+        require(xml.find("Stretch1") == std::string::npos, "Element exporter must contain stresses only");
     }
 }
 
@@ -80,7 +155,8 @@ int main(int argc, char** argv)
         auto displacement = problem.getSolution()->getBlockNonConst(0)->getDataNonConst(0);
         auto points = domain->getPointsUnique();
         for (LO i = 0; i < points->size(); ++i) {
-            displacement[3*i] = 0.02 * (*points)[i][0] + 0.03 * (*points)[i][2];
+            displacement[3*i] = 0.02 * (*points)[i][0] + 0.03 * (*points)[i][2]
+                + 0.002 * (*points)[i][0] * (*points)[i][2];
             displacement[3*i+1] = 0.01 * (*points)[i][1];
         }
         problem.calculateNonLinResidualVec("standard");
@@ -97,6 +173,7 @@ int main(int argc, char** argv)
         } else {
             require(names.size() == 17 && first->size() == 17, "Missing material output fields");
             require(names[11] == "Stretch1" && names[12] == "Stretch2", "Stretch field names");
+            checkElementStressExport(problem, domain, parameters);
             auto second = problem.getPostProcessingData();
             double stretchDifference = 0.;
             for (UN j = 0; j < first->size(); ++j) {

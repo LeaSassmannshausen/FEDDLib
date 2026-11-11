@@ -1203,13 +1203,36 @@ void FE_ElementAssembly<SC,LO,GO,NO>::updateSolutionAssemblyFEElements(
 // Project one AceGen output column using its nodal volume weights.
 // This lives in FE_ElementAssembly, which owns assemblyFEElements_ in this branch.
 template <class SC, class LO, class GO, class NO>
-void FE_ElementAssembly<SC,LO,GO,NO>::postProcessing(int type, MultiVectorPtr_Type& postProcessingVec)
+void FE_ElementAssembly<SC,LO,GO,NO>::postProcessing(int type, MultiVectorPtr_Type& postProcessingVec, bool elementAverage)
 {
     MapConstPtr_Type mapRep = this->domainVec_.at(0)->getMapRepeated();
     MapConstPtr_Type mapUni = this->domainVec_.at(0)->getMapUnique();
     ElementsPtr_Type elements = this->domainVec_.at(0)->getElementsC();
     TEUCHOS_TEST_FOR_EXCEPTION(type < 0 || assemblyFEElements_.size() != elements->numberElements(),
         std::logic_error, "Invalid post-processing column or uninitialized material elements.");
+
+    if (elementAverage) {
+        TEUCHOS_TEST_FOR_EXCEPTION(postProcessingVec->getNumVectors() != 1 ||
+            !postProcessingVec->getMap()->getTpetraMap()->isSameAs(
+                *this->domainVec_.at(0)->getElementMap()->getTpetraMap()),
+            std::logic_error, "Element post-processing requires a scalar vector on the element map.");
+        auto values = postProcessingVec->getDataNonConst(0);
+        for (UN T = 0; T < assemblyFEElements_.size(); ++T) {
+            assemblyFEElements_[T]->postProcessing(true);
+            auto data = assemblyFEElements_[T]->getPostProcessingData();
+            TEUCHOS_TEST_FOR_EXCEPTION(data.is_null() || data->empty() || type >= data->at(0).size(),
+                std::logic_error, "Material element post-processing column is unavailable: " << type);
+            // Power zero gives identical rows: column zero is the current volume,
+            // and column type is the integral of the Gauss-point quantity.
+            const double volume = data->at(0)[0];
+            TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(volume) || volume == 0., std::runtime_error,
+                "Cannot average material output over a zero or non-finite element volume.");
+            values[T] = data->at(0)[type] / volume;
+            TEUCHOS_TEST_FOR_EXCEPTION(!std::isfinite(values[T]), std::runtime_error,
+                "Element material post-processing returned a non-finite average.");
+        }
+        return;
+    }
 
     // Sum the nodal volume weights and weighted values over all local elements.
     MultiVectorPtr_Type multiRep = Teuchos::rcp(new MultiVector_Type(mapRep, 1));

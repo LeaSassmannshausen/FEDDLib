@@ -319,7 +319,7 @@ void NonLinElasticity<SC,LO,GO,NO>::calculateNonLinResidualVec(std::string type,
 
 
 template<class SC,class LO,class GO,class NO>
-typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticity<SC,LO,GO,NO>::getPostProcessingData() const
+typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticity<SC,LO,GO,NO>::getPostProcessingData(bool elementAverage) const
 {
     if (postProcessingnames_.empty())
         return Teuchos::rcp(new BlockMultiVector_Type(0));
@@ -328,10 +328,12 @@ typename NonLinElasticity<SC,LO,GO,NO>::BlockMultiVectorPtr_Type NonLinElasticit
     u_rep_->importFromVector(displacement, true);
     this->feFactory_->updateSolutionAssemblyFEElements(u_rep_, concentration_);
     const int columns[] = {10, 11, 12, 13, 23, 39, 40, 41, 42, 43, 44, 27, 28, 45, 46, 47, 48};
-    BlockMultiVectorPtr_Type result = Teuchos::rcp(new BlockMultiVector_Type(postProcessingnames_.size()));
-    for (UN i = 0; i < postProcessingnames_.size(); ++i) {
-        MultiVectorPtr_Type field = Teuchos::rcp(new MultiVector_Type(this->getDomain(0)->getMapUnique(), 1));
-        this->feFactory_->postProcessing(columns[i], field);
+    const UN fieldCount = elementAverage ? 4 : postProcessingnames_.size();
+    const auto map = elementAverage ? this->getDomain(0)->getElementMap() : this->getDomain(0)->getMapUnique();
+    BlockMultiVectorPtr_Type result = Teuchos::rcp(new BlockMultiVector_Type(fieldCount));
+    for (UN i = 0; i < fieldCount; ++i) {
+        MultiVectorPtr_Type field = Teuchos::rcp(new MultiVector_Type(map, 1));
+        this->feFactory_->postProcessing(columns[i], field, elementAverage);
         result->addBlock(field, i);
     }
     return result;

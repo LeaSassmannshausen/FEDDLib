@@ -71,7 +71,8 @@ public:
 
     void updateTime() const;
 
-    BlockMultiVectorPtr_Type getPostProcessingData() const;
+    // Element output contains only the first four fields (stresses).
+    BlockMultiVectorPtr_Type getPostProcessingData(bool elementAverage = false) const;
     vec_string_Type getPostprocessingNames() const;
     checkpoint::MaterialProcessState getMaterialProcessState() const override;
 

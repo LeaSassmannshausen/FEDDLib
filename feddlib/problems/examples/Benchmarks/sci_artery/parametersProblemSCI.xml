@@ -109,7 +109,7 @@
         <Parameter name="D0" type="double" value="0.001" />
     </ParameterList>
     <ParameterList name="Mesh Partitioner">
-        <Parameter name="Mesh 1 Name" type="string" value="fsi_solid_res_0_flags_6_7_8_9_10_11_12_13_14_15.mesh" />
+        <Parameter name="Mesh 1 Name" type="string" value="fsi_solid_res_0_flags_6_7_8_9_10_11_12_13_14_15_12mm.mesh" />
         <Parameter name="Automatic partition" type="bool" value="false" />
         <Parameter name="Contiguous" type="bool" value="true" />
         <Parameter name="Mesh 1 fraction ranks" type="int" value="-1" />
@@ -129,6 +129,7 @@
     <ParameterList name="Exporter">
         <Parameter name="Export every X timesteps" type="int" value="1" />
         <Parameter name="Export material fields" type="bool" value="false" />
+        <Parameter name="Export element stresses" type="bool" value="false" />
     </ParameterList>
     <ParameterList name="Timestepping Parameter">
         <Parameter name="Class" type="string" value="Multistep" />

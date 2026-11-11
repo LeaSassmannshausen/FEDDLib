@@ -170,7 +170,7 @@ public:
     // Hier wird timeSteppingTool_->t_ inkrementiert
     void updateTime() const;
 
-    BlockMultiVectorPtr_Type getPostProcessingData() const;
+    BlockMultiVectorPtr_Type getPostProcessingData(bool elementAverage = false) const;
     vec_string_Type getPostprocessingNames() const;
 
     /// Refresh the variable-step clock, component checkpoint state and interface scaling.
@@ -312,6 +312,8 @@ private:
     mutable ExporterPtr_Type exporterGeo_;
     ExporterPtr_Type exporterMaterial_;
     BlockMultiVectorPtr_Type materialOutput_;
+    ExporterPtr_Type exporterElementStress_;
+    BlockMultiVectorPtr_Type elementStressOutput_;
     /*####################*/
     mutable FSIOutletState outletState_;
 

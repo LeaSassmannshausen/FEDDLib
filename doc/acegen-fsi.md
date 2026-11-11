@@ -54,6 +54,22 @@ across MPI ranks and divides by the summed volume weights. Field columns use the
 27/28 for the two stretches), with column zero supplying the volume weight. Unsupported materials return
 empty data/name lists; explicitly requesting their export raises an error.
 
+For a separate stress-only series with one value per solid element, set:
+
+```xml
+<Parameter name="Export element stresses" type="bool" value="true"/>
+```
+
+This writes `solid_stress_elements.xmf`/`.h5` with cell fields `vonMisesStress`,
+`SCirc`, `SAxial`, and `SRadial`. It works independently of `Export material
+fields` in FSI and SCI and follows the existing export cadence. Each value is
+the current-volume-weighted Gauss-point average **before nodal recovery**;
+von Mises stress is evaluated by AceGen at each Gauss point and then averaged.
+The averaging uses a local copy of the material parameters with
+`PostProcessingType = 1` and `PostProcessingPower = 0`, so it does not depend on
+the configured nodal power or change material history. The existing P0 exporter
+uses the four corner nodes of each tetrahedron for visualization.
+
 ## AceGen versions
 
 The growth/reorientation adapter resolves material parameters by the names

@@ -183,7 +183,8 @@ public:
 
     virtual void calculateNonLinResidualVec(std::string type="standard", double time=0.) const; //standard or reverse
 
-    BlockMultiVectorPtr_Type getPostProcessingData() const;
+    // Element output contains only the first four fields (stresses).
+    BlockMultiVectorPtr_Type getPostProcessingData(bool elementAverage = false) const;
 
     vec_string_Type getPostprocessingNames() const;
 

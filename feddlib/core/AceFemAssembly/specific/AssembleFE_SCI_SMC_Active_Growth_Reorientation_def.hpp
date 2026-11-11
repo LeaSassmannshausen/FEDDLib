@@ -602,7 +602,7 @@ namespace FEDD
 	}
 
 	template <class SC, class LO, class GO, class NO>
-	void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::postProcessing()
+	void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::postProcessing(bool elementAverage)
 	{
 
 #ifdef FEDD_HAVE_ACEGENINTERFACE
@@ -647,6 +647,17 @@ namespace FEDD
 			for(int idx : deceleratedParamIndices_) {
 				domainDataModified[idx] = this->domainData_[idx] / this->activeAcceleratedMultiplier_;
 			}
+		}
+
+		// With h_i^0 = 1, every row contains the same volume integral, without
+		// nodal recovery weights. Only this local copy of the domain data changes.
+		if (elementAverage) {
+			const int type = findPosition("PostProcessingType", this->domainDataNames_);
+			const int power = findPosition("PostProcessingPower", this->domainDataNames_);
+			TEUCHOS_TEST_FOR_EXCEPTION(type < 0 || power < 0, std::logic_error,
+				"Element stress averaging requires AceGen post-processing parameters.");
+			domainDataModified[type] = 1.;
+			domainDataModified[power] = 0.;
 		}
 
 		// Evaluate the local state at the converged solution without committing history.

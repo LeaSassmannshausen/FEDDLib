@@ -130,7 +130,7 @@
     <ParameterList name="Parameter Fluid">
         <!-- Laplace inlet profile is selected from Mesh 1 Name and Discretization. -->
         <Parameter name="BC Type" type="string" value="parabolic_artery"/>
-        <Parameter name="Inflow Flag" type="int" value="5"/>
+        <Parameter name="Inflow Flag" type="int" value="4"/>
         <Parameter name="Inflow Ramp Time" type="double" value="0.1"/>
 
         <Parameter name="Preconditioner Type" type="string" value="PCD"/><!--only relevant for block preconditioner for fluid -->
@@ -172,8 +172,8 @@
     <ParameterList name="Mesh Partitioner">
         <Parameter name="Contiguous" type="bool" value="true"/> 
       
-        <Parameter name="Mesh 1 Name" type="string" value="fsi_artery_fluid_res_2_Flags_4_5_6_9_10_15.mesh"/>
-        <Parameter name="Mesh 2 Name" type="string" value="fsi_solid_res_0_flags_6_7_8_9_10_11_12_13_14_15.mesh"/>
+        <Parameter name="Mesh 1 Name" type="string" value="fsi_artery_fluid_res_1_Flags_4_5_6_9_10_15_12mm.mesh"/>
+        <Parameter name="Mesh 2 Name" type="string" value="fsi_solid_res_0_flags_6_7_8_9_10_11_12_13_14_15_12mm.mesh"/>
         
         <Parameter name="Automatic partition" type="bool" value="false"/> <!-- find ratio for ranks based on the number of elements of each mesh -->
         
@@ -198,12 +198,13 @@
         <Parameter name="Exclude coarse functions block4" type="bool" value="true"/>
 
         <Parameter name="Export material fields" type="bool" value="true"/>
+        <Parameter name="Export element stresses" type="bool" value="false"/>
         <Parameter name="Export every X timesteps" type="int" value="1"/>
         
     </ParameterList>
     <ParameterList name="General">
-        <Parameter name="Flag Inlet Fluid" type="int" value="5"/>
-        <Parameter name="Flag Outlet Fluid" type="int" value="4"/>
+        <Parameter name="Flag Inlet Fluid" type="int" value="4"/>
+        <Parameter name="Flag Outlet Fluid" type="int" value="5"/>
         <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
         <Parameter name="ParaViewExport" type="bool" value="true"/>
         <Parameter name="ParaViewCoarse" type="bool" value="false"/>

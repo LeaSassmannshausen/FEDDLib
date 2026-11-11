@@ -148,6 +148,25 @@ class FE: public FE_ElementAssembly<SC,LO,GO,NO> {
                                 double time=0.,
                                 double areaInlet_ref=0.,
                                 double areaOutlet_ref=0.);
+
+    /** @brief Assemble the backflow damping load on Flag Outlet Fluid.
+     * f_i = -beta*rho*integral max(-(u-w).n,0)*u*phi_i dS (RHS sign).
+     * n is the outward normal on the current mesh. beta is Parameter Fluid/
+     * Backflow Stabilization Coefficient (default 0.5, with no extra factor 1/2).
+     * Supports affine P1/P2 triangles/tetrahedra, like the other surface routines.
+     * f, u_rep and optional mesh velocity w_rep use the repeated vector map;
+     * f is cleared, and the caller exports it to the unique map with Add.
+     * A null w_rep means zero mesh velocity. This assembles a load only;
+     * it does not assemble a Jacobian or connect the term to a time solver.
+     */
+    void assemblyBackflowStabilizationBoundary(int dim,
+                                std::string FEType,
+                                MultiVectorPtr_Type f,
+                                MultiVectorPtr_Type u_rep,
+                                ParameterListPtr_Type params,
+                                int FEloc=0,
+                                MultiVectorPtr_Type w_rep=Teuchos::null);
+
     double assemblyAbsorbingBoundary(int dim, 
                                 std::string FEType, 
                                 MultiVectorPtr_Type f, 

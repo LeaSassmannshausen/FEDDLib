@@ -61,7 +61,7 @@ class AssembleFE_SCI_SMC_Active_Growth_Reorientation : public AssembleFE<SC,LO,G
 
 		void advanceInTime(double dt) override;
 
-        void postProcessing() override;
+        void postProcessing(bool elementAverage = false) override;
 
         void getMassMatrix(SmallMatrixPtr_Type &massMatrix ){massMatrix=massMatrix_;}
 
