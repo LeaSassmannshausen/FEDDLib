@@ -46,7 +46,22 @@ tribits_copy_files_to_binary_dir(adaptedMeshes_fsiArteryBoundaryTests
     EXEDEPS fsi_artery_boundary_tests
 )
 
+# Retain the original 8 mm pair under its existing filenames.
+set(legacy_artery_meshes
+    fsi_artery_fluid_res_1_Flags_4_5_6_9_10_15.mesh
+    fsi_solid_res_0_flags_6_7_8_9_10_11_12_13_14_15.mesh
+)
+
+tribits_copy_files_to_binary_dir(legacyMeshes_fsiArteryBoundaryTests
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/meshes/artery_adaptations/deprecated
+    SOURCE_FILES ${legacy_artery_meshes}
+    DEST_DIR ${CMAKE_CURRENT_BINARY_DIR}
+    DEST_FILES ${legacy_artery_meshes}
+    EXEDEPS fsi_artery_boundary_tests
+)
+
 set(artery_inlet_profiles
+    laplace_parabolic_fsi_artery_fluid_res_1_Flags_4_5_6_9_10_15_P2.h5
     laplace_parabolic_fsi_artery_fluid_res_1_Flags_4_5_6_9_10_15_10mm_P2.h5
     laplace_parabolic_fsi_artery_fluid_res_1_Flags_4_5_6_9_10_15_12mm_P2.h5
     laplace_parabolic_fsi_artery_fluid_res_2_Flags_4_5_6_9_10_15_10mm_P2.h5
