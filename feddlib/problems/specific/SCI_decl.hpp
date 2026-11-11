@@ -1,5 +1,6 @@
 #ifndef SCI_decl_hpp
 #define SCI_decl_hpp
+#include "feddlib/core/General/GaussPointStress.hpp"
 #include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/core/FE/FE.hpp"
 #include "feddlib/core/Mesh/MeshUnstructured.hpp"
@@ -185,6 +186,7 @@ public:
 
     // Element output contains only the first four fields (stresses).
     BlockMultiVectorPtr_Type getPostProcessingData(bool elementAverage = false) const;
+    ElementGaussPointStress getGaussPointStressData() const;
 
     vec_string_Type getPostprocessingNames() const;
 

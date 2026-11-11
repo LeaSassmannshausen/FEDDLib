@@ -68,6 +68,10 @@ public:
     
     ExporterParaView();
 
+    // A point cloud with fixed reference coordinates and one vertex per point.
+    void setupPointCloud(std::string filename, MapConstPtr_Type map,
+                         vec2D_dbl_ptr_Type points, ParameterListPtr_Type parameterList=Teuchos::null);
+
     void setup(std::string filename,
                MeshPtr_Type mesh,
                std::string FEType,

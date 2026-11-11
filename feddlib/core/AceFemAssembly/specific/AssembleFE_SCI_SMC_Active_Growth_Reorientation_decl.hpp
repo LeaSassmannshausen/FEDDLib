@@ -62,6 +62,7 @@ class AssembleFE_SCI_SMC_Active_Growth_Reorientation : public AssembleFE<SC,LO,G
 		void advanceInTime(double dt) override;
 
         void postProcessing(bool elementAverage = false) override;
+        std::vector<GaussPointStress> getGaussPointStressData() override;
 
         void getMassMatrix(SmallMatrixPtr_Type &massMatrix ){massMatrix=massMatrix_;}
 
@@ -69,6 +70,8 @@ class AssembleFE_SCI_SMC_Active_Growth_Reorientation : public AssembleFE<SC,LO,G
         AssembleFE_SCI_SMC_Active_Growth_Reorientation(int flag, vec2D_dbl_Type nodesRefConfig, ParameterListPtr_Type params,tuple_disk_vec_ptr_Type tuple);
 
     private:
+
+        std::vector<GaussPointStress> evaluatePostProcessing(bool elementAverage, bool gaussPoints);
 
         void assemble_SCI_SMC_Active_Growth_Reorientation(bool computeTangent);
         void checkingReorientationActiveGrowth();

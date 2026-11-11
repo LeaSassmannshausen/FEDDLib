@@ -1,6 +1,7 @@
 #ifndef NonLinElasticity_decl_hpp
 #define NonLinElasticity_decl_hpp
 #include "feddlib/problems/abstract/NonLinearProblem.hpp"
+#include "feddlib/core/General/GaussPointStress.hpp"
 #include "feddlib/problems/Solver/TimeSteppingTools.hpp"
 #include <Thyra_PreconditionerBase.hpp>
 #include <Thyra_ModelEvaluatorBase_decl.hpp>
@@ -73,6 +74,7 @@ public:
 
     // Element output contains only the first four fields (stresses).
     BlockMultiVectorPtr_Type getPostProcessingData(bool elementAverage = false) const;
+    ElementGaussPointStress getGaussPointStressData() const;
     vec_string_Type getPostprocessingNames() const;
     checkpoint::MaterialProcessState getMaterialProcessState() const override;
 

@@ -7,6 +7,7 @@
 #include "feddlib/core/Mesh/MeshUnstructured.hpp"
 #include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/core/FE/FE.hpp"
+#include "feddlib/core/General/StressPostProcessing.hpp"
 
 /*!
  Definition of DAESolverInTime
@@ -547,6 +548,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     bool printStress = parameterList_->sublist("General").get("Export Stress",false) ||
         parameterList_->sublist("Exporter").get("Export material fields", false);
     bool printElementStress = parameterList_->sublist("Exporter").get("Export element stresses", false);
+    bool printGaussStress = parameterList_->sublist("Exporter").get("Export Gauss point stresses", false) ||
+        parameterList_->sublist("Exporter").get("Export P1 stresses", false);
+    StressPostProcessing<SC,LO,GO,NO> recoveredStressExporter;
     bool printData = parameterList_->sublist("General").get("Export Data",true);
     bool printExtraData = parameterList_->sublist("General").get("Export Extra Data",false);
 
@@ -821,7 +825,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
             exportTimestep();
 
         }
-        if (printStress || printElementStress){
+        if (printStress || printElementStress || printGaussStress){
             timeStep = timeStep + 1.;
             bool heartbeat= false;
             double heartbeatStart1 = parameterList_->sublist("Parameter").get("Heart Beat Start 1",0.) ;
@@ -849,6 +853,11 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
                 if (printElementStress)
                     exportMaterialFields(sci->getPostProcessingData(true), problemTime_->getDomain(0),
                         sci->getPostprocessingNames(), true);
+                if (printGaussStress) {
+                    auto mesh = Teuchos::rcp_const_cast<Mesh_Type>(problemTime_->getDomain(0)->getMesh());
+                    recoveredStressExporter.save(mesh, sci->getGaussPointStressData(),
+                        parameterList_, timeSteppingTool_->currentTime());
+                }
             }
 
         }
@@ -887,6 +896,7 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
     }
     if (!materialExporter.is_null()) materialExporter->closeExporter();
     if (!elementStressExporter.is_null()) elementStressExporter->closeExporter();
+    recoveredStressExporter.close();
 
 }
 

@@ -212,6 +212,34 @@ void ExporterParaView<SC,LO,GO,NO>::setup(std::string filename,
 }
 
 template<class SC,class LO,class GO,class NO>
+void ExporterParaView<SC,LO,GO,NO>::setupPointCloud(std::string filename, MapConstPtr_Type map,
+                                               vec2D_dbl_ptr_Type points, ParameterListPtr_Type parameterList)
+{
+    TEUCHOS_TEST_FOR_EXCEPTION(points.is_null() || points->size() != map->getNodeNumElements(),
+        std::logic_error, "Point-cloud coordinates do not match their map.");
+    parameterList_ = parameterList;
+    comm_ = map->getComm();
+    verbose_ = comm_->getRank() == 0;
+    filename_ = filename; outputFilename_ = filename + ".h5";
+    FEType_ = "Points"; dim_ = 3; nmbPointsPerElement_ = 1;
+    nmbPointsGlob_ = nmbElementsGlob_ = map->getGlobalNumElements();
+    pointsUnique_ = points;
+    closingLines_ = "\n    </Grid>\n\n  </Domain>\n</Xdmf>\n";
+    timeIndex_ = 0; writeDt_ = false;
+    elementsHDF_ = Teuchos::rcp(new MultiVector_Type(map, 1));
+    for (LO i = 0; i < map->getNodeNumElements(); ++i) {
+        TEUCHOS_TEST_FOR_EXCEPTION(points->at(i).size() != 3, std::logic_error,
+            "Point-cloud output requires three coordinates per point.");
+        elementsHDF_->getDataNonConst(0)[i] = map->getGlobalElement(i);
+    }
+    pointsHDF_ = Teuchos::rcp(new MultiVector_Type(map, 3));
+    updatePoints();
+    saveTimestep_ = parameterList_.is_null() ? 1 :
+        parameterList_->sublist("Exporter").get("Export every X timesteps", 1);
+    TEUCHOS_TEST_FOR_EXCEPTION(saveTimestep_ < 1, std::logic_error, "Export interval must be positive");
+}
+
+template<class SC,class LO,class GO,class NO>
 void ExporterParaView<SC,LO,GO,NO>::initializeOutput(double firstSaveTime)
 {
     if (outputInitialized_) return;
@@ -661,7 +689,10 @@ void ExporterParaView<SC,LO,GO,NO>::writeXmfElements( std::string nameConn, doub
 
         //        writeTopology (M_xdmf);
         std::string FEstring;
-        if (FEType_=="P0") {
+        if (FEType_=="Points") {
+            FEstring = "Polyvertex";
+        }
+        else if (FEType_=="P0") {
             if (dim_ == 2) {
                 FEstring = "Triangle";
             }
@@ -809,7 +840,7 @@ void ExporterParaView<SC,LO,GO,NO>::writeXmfVariables(){
     else if (FEType_=="P1-disc") {
 
     }
-    else if (FEType_=="P1") {
+    else if (FEType_=="P1" || FEType_=="Points") {
         centerString = "Node";
     }
 

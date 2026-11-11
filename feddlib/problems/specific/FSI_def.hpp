@@ -9,6 +9,7 @@
 #include "feddlib/problems/specific/Geometry.hpp"
 #include "feddlib/core/Mesh/MeshUnstructured.hpp"
 #include "feddlib/core/General/ExporterParaView.hpp"
+#include "feddlib/core/General/StressPostProcessing.hpp"
 #include "feddlib//core/FE/FE.hpp"
 #include "feddlib/core/General/BCBuilder.hpp"
 
@@ -1613,6 +1614,16 @@ void FSI<SC,LO,GO,NO>::computeValuesOfInterestAndExport(){
         }
         // This hook runs after convergence, before committing the timestep.
         exporter->save(timeSteppingTool_->currentTime() + timeSteppingTool_->get_dt());
+    }
+    if (this->parameterList_->sublist("Exporter").get("Export Gauss point stresses", false) ||
+        this->parameterList_->sublist("Exporter").get("Export P1 stresses", false)) {
+        TEUCHOS_TEST_FOR_EXCEPTION(problemStructureNonLin_.is_null(), std::logic_error,
+            "Gauss-point stress output requires a nonlinear solid material.");
+        if (recoveredStressExporter_.is_null())
+            recoveredStressExporter_ = Teuchos::rcp(new StressPostProcessing<SC,LO,GO,NO>);
+        auto mesh = Teuchos::rcp_const_cast<Mesh_Type>(this->getDomain(2)->getMesh());
+        recoveredStressExporter_->save(mesh, problemStructureNonLin_->getGaussPointStressData(),
+            this->parameterList_, timeSteppingTool_->currentTime() + timeSteppingTool_->get_dt());
     }
     if ( this->getParameterList()->sublist("General").get("Export drag and lift",false) ) {
         

@@ -130,6 +130,8 @@
         <Parameter name="Export every X timesteps" type="int" value="1" />
         <Parameter name="Export material fields" type="bool" value="false" />
         <Parameter name="Export element stresses" type="bool" value="false" />
+        <Parameter name="Export Gauss point stresses" type="bool" value="false" />
+        <Parameter name="Export P1 stresses" type="bool" value="false" />
     </ParameterList>
     <ParameterList name="Timestepping Parameter">
         <Parameter name="Class" type="string" value="Multistep" />

@@ -958,6 +958,18 @@ typename SCI<SC,LO,GO,NO>::BlockMultiVectorPtr_Type SCI<SC,LO,GO,NO>::getPostPro
 }
 
 template<class SC,class LO,class GO,class NO>
+ElementGaussPointStress SCI<SC,LO,GO,NO>::getGaussPointStressData() const
+{
+    TEUCHOS_TEST_FOR_EXCEPTION(postProcessingnames_.empty(), std::logic_error,
+        "Gauss-point stress output requires a material with stress post-processing support.");
+    d_rep_->importFromVector(this->solution_->getBlock(0), true);
+    c_rep_->importFromVector(chemistryExplicit_ ? this->problemTimeChem_->getSolution()->getBlock(0)
+                                               : this->solution_->getBlock(1), true);
+    this->feFactory_->updateSolutionAssemblyFEElements(d_rep_, c_rep_);
+    return this->feFactory_->getGaussPointStressData();
+}
+
+template<class SC,class LO,class GO,class NO>
 vec_string_Type SCI<SC,LO,GO,NO>::getPostprocessingNames() const
 {
     return postProcessingnames_;

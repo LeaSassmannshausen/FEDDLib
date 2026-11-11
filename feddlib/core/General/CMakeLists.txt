@@ -1,4 +1,7 @@
 set(General_HEADERS
+	General/GaussPointStress.hpp
+	General/StressRecovery.hpp
+	General/StressPostProcessing.hpp
 	General/BCBuilder.hpp
 	General/BCBuilder_decl.hpp
 	General/BCBuilder_def.hpp

@@ -1,6 +1,7 @@
 #include "feddlib/problems/specific/NonLinElasticity.hpp"
 #include "feddlib/core/General/BCBuilder.hpp"
 #include "feddlib/core/General/HDF5Export.hpp"
+#include "feddlib/core/General/StressPostProcessing.hpp"
 #include <Tpetra_Core.hpp>
 #include <cmath>
 #include <iostream>
@@ -45,6 +46,8 @@ void checkElementStressExport(NonLinElasticity<>& problem,
                              const ParameterListPtr_Type& parameters)
 {
     auto fields = problem.getPostProcessingData(true);
+    const auto gauss = problem.getGaussPointStressData();
+    require(gauss.size() == domain->getElementsC()->numberElements(), "Missing Gauss-point elements");
     require(fields->size() == 4, "Element output must contain only the four stress fields");
     auto repeated = Teuchos::rcp(new MultiVector<>(domain->getMapVecFieldRepeated(), 1));
     repeated->importFromVector(problem.getSolution()->getBlock(0));
@@ -83,6 +86,24 @@ void checkElementStressExport(NonLinElasticity<>& problem,
         auto data = material->getPostProcessingData();
         double volume = 0.;
         for (const auto& row : *data) volume += row[0];
+        double gaussVolume = 0.;
+        for (const auto& q : gauss[T]) {
+            require(q.weight > 0., "The four-point rule must have positive volume weights");
+            gaussVolume += q.weight;
+            const auto& x = q.reference;
+            require(std::abs(q.displacement[0] - (.02*x[0]+.03*x[2]+.002*x[0]*x[2])) < 1.e-12,
+                "Gauss-point coordinate/displacement interpolation is inconsistent");
+        }
+        require(std::abs(gaussVolume-std::abs(volume)) < 1.e-12, "Gauss-point volume is incorrect");
+        for (int field = 0; field < 10; ++field) {
+            double nativeIntegral = 0., gaussIntegral = 0.;
+            const int column = field == 0 ? 10 : field;
+            for (const auto& row : *data) nativeIntegral += row[column];
+            for (const auto& q : gauss[T]) gaussIntegral += q.weight*gaussStressValue(q, field);
+            const double expected = nativeIntegral/volume;
+            require(std::abs(gaussIntegral/gaussVolume-expected) < 1.e-9*(1.+std::abs(expected)),
+                "Raw Gauss-point stresses disagree with native task-5 output");
+        }
         for (UN j = 0; j < fields->size(); ++j) {
             double integral = 0.;
             for (const auto& row : *data) integral += row[columns[j]];
@@ -102,6 +123,31 @@ void checkElementStressExport(NonLinElasticity<>& problem,
     }
     exporter.save(.01);
     exporter.closeExporter();
+
+    // A consistent projection must reproduce a linear field exactly, including
+    // values at P2 midsides, even with nonuniform current-volume weights.
+    auto linear = gauss;
+    for (auto& element : linear)
+        for (auto& q : element) {
+            const double value = 2.+.3*q.reference[0]-.2*q.reference[1]+.1*q.reference[2];
+            q.vonMises = value;
+            for (int field = 0; field < 9; ++field) q.cauchy[field] = (field+2)*value;
+        }
+    auto recovered = projectGaussPointStresses<default_sc,default_lo,default_go,default_no>(domain->getMesh(), linear);
+    for (int field = 0; field < 10; ++field)
+        for (LO i = 0; i < domain->getMapUnique()->getNodeNumElements(); ++i) {
+            const auto& x = domain->getPointsUnique()->at(i);
+            const double expected = (field+1)*(2.+.3*x[0]-.2*x[1]+.1*x[2]);
+            require(std::abs(recovered->getBlock(field)->getData(0)[i]-expected) < 1.e-9,
+                "P1 stress recovery does not reproduce a linear field");
+        }
+    auto exportParameters = Teuchos::rcp(new Teuchos::ParameterList(*parameters));
+    exportParameters->sublist("Exporter").set("Export Gauss point stresses", true)
+        .set("Export P1 stresses", true).set("Export every X timesteps", 1);
+    StressPostProcessing<> stressExporter;
+    stressExporter.save(domain->getMesh(), gauss, exportParameters, .01);
+    stressExporter.save(domain->getMesh(), gauss, exportParameters, .02);
+    stressExporter.close();
     if (domain->getComm()->getRank() == 0) {
         std::ifstream file(filename + ".xmf");
         std::ostringstream contents;
@@ -208,6 +254,17 @@ int main(int argc, char** argv)
             "Solid clock must follow variable timesteps");
         require(problem.timeSteppingTool_->step_ == 2, "Solid clock must maintain step history");
         if (structureModel == "SCI_SMC_Active_Growth_Reorientation") {
+            // Repeat the integral check after material history has advanced
+            // into the native active-response time interval.
+            const auto gauss = problem.getGaussPointStressData();
+            const auto averaged = problem.getPostProcessingData(true);
+            for (UN T = 0; T < gauss.size(); ++T) {
+                double volume = 0., mises = 0.;
+                for (const auto& q : gauss[T]) { volume += q.weight; mises += q.weight*q.vonMises; }
+                const double expected = averaged->getBlock(0)->getData(0)[T];
+                require(std::abs(mises/volume-expected) < 1.e-9*(1.+std::abs(expected)),
+                    "Gauss stresses disagree after advancing material history");
+            }
             const std::string directory = "aceGenStructureUnitTest-process";
             std::filesystem::create_directories(directory);
             parameters->sublist("Timestepping Parameter").set("Checkpointing", true)

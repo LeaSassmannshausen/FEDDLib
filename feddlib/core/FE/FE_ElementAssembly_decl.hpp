@@ -167,6 +167,16 @@ class FE_ElementAssembly {
     // elementAverage writes one volume average per element on the element map.
     void postProcessing(int type, MultiVectorPtr_Type& postProcessingVec, bool elementAverage = false);
 
+    ElementGaussPointStress getGaussPointStressData() {
+        TEUCHOS_TEST_FOR_EXCEPTION(assemblyFEElements_.size() != domainVec_.at(0)->getElementsC()->numberElements(),
+            std::logic_error, "Gauss-point stresses require initialized material elements.");
+        ElementGaussPointStress data;
+        data.reserve(assemblyFEElements_.size());
+        for (const auto& element : assemblyFEElements_)
+            data.push_back(element->getGaussPointStressData());
+        return data;
+    }
+
     checkpoint::MaterialProcessState getMaterialProcessState() const {
         int local[3] = {0, 0, 0}, global[3] = {0, 0, 0};
         for (const auto& element : assemblyFEElements_) {

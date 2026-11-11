@@ -6,6 +6,7 @@
 #include "feddlib/core/LinearAlgebra/Matrix.hpp"
 #include "feddlib/core/FE/Helper.hpp"
 #include "feddlib/core/Checkpointing/MaterialProcessState.hpp"
+#include "feddlib/core/General/GaussPointStress.hpp"
 
 namespace FEDD {
 
@@ -172,6 +173,12 @@ namespace FEDD {
         */
         // elementAverage requests volume integrals without nodal shape-function weights.
         virtual void postProcessing(bool elementAverage = false);
+
+        virtual std::vector<GaussPointStress> getGaussPointStressData() {
+            TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error,
+                "Gauss-point stress output is not implemented for this material.");
+            return {};
+        }
 
         vec2D_dbl_ptr_Type getPostProcessingData() const { return postProcessingData_; }
 

@@ -1,4 +1,5 @@
 set(AceFemAssemblyAceInterface_HEADERS
+	AceFemAssembly/AceInterface/GaussPointStress.hpp
 	AceFemAssembly/AceInterface/NeoHookQuadraticTets.hpp
   AceFemAssembly/AceInterface/NeoHookQuadraticTets2.hpp
     AceFemAssembly/AceInterface/NeoHookQuadraticTets3.hpp
@@ -22,6 +23,7 @@ set(AceFemAssemblyAceInterface_HEADERS
 CACHE INTERNAL "")
 
 set(AceFemAssemblyAceInterface_SOURCES
+	AceFemAssembly/AceInterface/GaussPointStress.cpp
 	AceFemAssembly/AceInterface/NeoHookQuadraticTets.f
   AceFemAssembly/AceInterface/NeoHookQuadraticTets_cbinding.f
   AceFemAssembly/AceInterface/NeoHookQuadraticTets2.f

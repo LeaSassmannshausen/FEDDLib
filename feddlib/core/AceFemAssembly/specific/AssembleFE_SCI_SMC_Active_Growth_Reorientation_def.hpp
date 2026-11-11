@@ -5,6 +5,7 @@
 
 #ifdef FEDD_HAVE_ACEGENINTERFACE
 #include <aceinterface.hpp>
+#include "feddlib/core/AceFemAssembly/AceInterface/GaussPointStress.hpp"
 #endif
 
 #include <algorithm>
@@ -604,6 +605,18 @@ namespace FEDD
 	template <class SC, class LO, class GO, class NO>
 	void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::postProcessing(bool elementAverage)
 	{
+		evaluatePostProcessing(elementAverage, false);
+	}
+
+	template <class SC, class LO, class GO, class NO>
+	std::vector<GaussPointStress> AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::getGaussPointStressData()
+	{
+		return evaluatePostProcessing(false, true);
+	}
+
+	template <class SC, class LO, class GO, class NO>
+	std::vector<GaussPointStress> AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::evaluatePostProcessing(bool elementAverage, bool gaussPoints)
+	{
 
 #ifdef FEDD_HAVE_ACEGENINTERFACE
 
@@ -675,6 +688,10 @@ namespace FEDD
 		// postProcess resets its internal history buffer, so pass an independent copy.
 		const double* computedHistory = elem.getHistoryUpdated();
 		vec_dbl_Type updatedHistory(computedHistory, computedHistory + this->historyLength_);
+		if (gaussPoints)
+			return acegen::gaussPointStress(this->positions_, displacements, concentrations,
+				rates, accelerations, domainDataModified, updatedHistory,
+				this->subiterationTolerance_, deltaT, time, this->iCode_, this->getGlobalElementID());
 		double **postProcessingResults = elem.postProcess(&displacements[0], &concentrations[0], updatedHistory.data(), &rates[0], &accelerations[0]);
 
 		for (int i = 0; i < 10; i++)
@@ -706,6 +723,7 @@ namespace FEDD
 			// }
 		}
 #endif
+		return {};
 	}
 
 	template <class SC, class LO, class GO, class NO>

@@ -70,6 +70,38 @@ The averaging uses a local copy of the material parameters with
 the configured nodal power or change material history. The existing P0 exporter
 uses the four corner nodes of each tetrahedron for visualization.
 
+Two additional, independent options are available in the same `Exporter` list:
+
+```xml
+<Parameter name="Export Gauss point stresses" type="bool" value="true"/>
+<Parameter name="Export P1 stresses" type="bool" value="true"/>
+```
+
+Both default to false and support the growth/reorientation material in FSI and
+SCI. `solid_stress_gauss.xmf`/`.h5` contains one point per integration point,
+with the nine Cauchy stress components, `vonMisesStress`, zero-based `elementID`
+and `gaussPointID`, and `currentVolumeWeight`. Coordinates are the reference
+Gauss-point positions. The point-data vector `displacement` gives the interpolated
+Gauss-point displacement; use ParaView's **Warp By Vector** with this field and
+scale one to view the current positions. The points and stresses are evaluated
+directly from AceGen task 6, without nodal averaging. The adapter computes
+coordinates itself because the native task's coordinate-buffer indices overlap.
+The external AceGen installation does not need modifications.
+
+`solid_stress_p1.xmf`/`.h5` contains a continuous P1 L2 recovery of the same ten
+stress quantities. It assembles the consistent mass matrix and right-hand side
+from the current-volume Gauss weights and solves with diagonally preconditioned
+CG. Von Mises stress is projected as its own scalar; it is not recomputed from
+the recovered tensor. The output retains the original P2 tetrahedral geometry,
+with every midside stress set to the mean of the two corner stresses. It therefore
+avoids the different P2 corner/midside recovery weights and can be coloured as
+point data in ParaView.
+
+The recovery is continuous across shared nodes, including shared material
+interfaces. It can smooth physical jumps and can overshoot Gauss-point extrema;
+no clipping is applied. Keep the raw series for inspecting those values. Both
+outputs follow the existing export cadence and leave material history unchanged.
+
 ## AceGen versions
 
 The growth/reorientation adapter resolves material parameters by the names

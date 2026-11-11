@@ -28,6 +28,8 @@ template <class SC , class LO , class GO , class NO >
 class MeshUnstructured;
 template <class SC , class LO , class GO , class NO >
 class ExporterParaView;
+template <class SC , class LO , class GO , class NO >
+class StressPostProcessing;
 
 template <class SC = default_sc, class LO = default_lo, class GO = default_go, class NO = default_no>
 class FSI : public NonLinearProblem<SC,LO,GO,NO>  {
@@ -314,6 +316,7 @@ private:
     BlockMultiVectorPtr_Type materialOutput_;
     ExporterPtr_Type exporterElementStress_;
     BlockMultiVectorPtr_Type elementStressOutput_;
+    Teuchos::RCP<StressPostProcessing<SC,LO,GO,NO>> recoveredStressExporter_;
     /*####################*/
     mutable FSIOutletState outletState_;
 
