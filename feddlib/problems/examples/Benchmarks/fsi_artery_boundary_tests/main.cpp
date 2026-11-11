@@ -457,7 +457,6 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                 bcFactory->addBC(zeroDirichlet3D, 8, 2, domainStructure, "Dirichlet_Z", dim); // outlet fixed in Z direction
                 bcFactory->addBC(zeroDirichlet3D, 9, 2, domainStructure, "Dirichlet_Z", dim); // inlet ring in Z direction
                 bcFactory->addBC(zeroDirichlet3D, 10, 2, domainStructure, "Dirichlet_Z", dim); // outlet ring in Z direction
-                bcFactory->addBC(zeroDirichlet3D, 11, 2, domainStructure, "Dirichlet_Z", dim); // outlet outer ring in Z direction
                 bcFactory->addBC(zeroDirichlet3D, 12, 2, domainStructure, "Dirichlet_Z", dim); // inlet outer ring in Z direction
 
                 bcFactoryStructure->addBC(zeroDirichlet3D, 14, 0, domainStructure, "Dirichlet_Y_Z", dim); 
@@ -466,7 +465,6 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
                 bcFactoryStructure->addBC(zeroDirichlet3D, 8, 0, domainStructure, "Dirichlet_Z", dim); 
                 bcFactoryStructure->addBC(zeroDirichlet3D, 9, 0, domainStructure, "Dirichlet_Z", dim);  
                 bcFactoryStructure->addBC(zeroDirichlet3D, 10, 0, domainStructure, "Dirichlet_Z", dim); 
-                bcFactoryStructure->addBC(zeroDirichlet3D, 11, 0, domainStructure, "Dirichlet_Z", dim); 
                 bcFactoryStructure->addBC(zeroDirichlet3D, 12, 0, domainStructure, "Dirichlet_Z", dim); 
                 // Fuer die Teil-TimeProblems brauchen wir bei TimeProblems
                 // die bcFactory; vgl. z.B. Timeproblem::updateMultistepRhs()
