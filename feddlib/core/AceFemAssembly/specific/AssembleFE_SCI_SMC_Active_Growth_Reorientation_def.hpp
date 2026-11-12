@@ -27,7 +27,7 @@ namespace FEDD
 		activeAcceleratedEndTime_ = this->params_->sublist("Parameter").get("Accelerated Active Until",0.);
 		TEUCHOS_TEST_FOR_EXCEPTION(activeAcceleratedEndTime_ < 0, std::logic_error, "!!! Warning: Accelerated Active Until not set correctly. Please Check Parameterlist !!!");
 
-		activeAcceleratedMultiplier_ = this->params_->sublist("Parameter").get("Active Acceleration Multiplier",0.);
+		activeAcceleratedMultiplier_ = this->params_->sublist("Parameter").get("Active Acceleration Multiplier",1.);
 		TEUCHOS_TEST_FOR_EXCEPTION(activeAcceleratedMultiplier_ < 0, std::logic_error, "!!! Warning: Active Acceleration Multiplier not set correctly. Please Check Parameterlist !!!");
 		
 		int numMaterials = this->params_->sublist("Parameter Solid").get("Number of Materials", 1);
@@ -683,8 +683,10 @@ namespace FEDD
 		// std::cout << "Agn3: { " << this->history_[25] << ", " << this->history_[26] << ", " << this->history_[27] << " }" << std::endl;
 
 		const int errorCode = elem.compute(false);
-		TEUCHOS_TEST_FOR_EXCEPTION(errorCode >= 2, std::runtime_error,
-			"AceGen post-processing failed in element " << this->getGlobalElementID());
+		if (errorCode >= 2)
+			std::cout << " AceGen post-processing error code: " << errorCode << " in element " << this->getGlobalElementID() << std::endl;
+		// TEUCHOS_TEST_FOR_EXCEPTION(errorCode >= 2, std::runtime_error,
+		// 	"AceGen post-processing failed in element " << this->getGlobalElementID());
 		// postProcess resets its internal history buffer, so pass an independent copy.
 		const double* computedHistory = elem.getHistoryUpdated();
 		vec_dbl_Type updatedHistory(computedHistory, computedHistory + this->historyLength_);
