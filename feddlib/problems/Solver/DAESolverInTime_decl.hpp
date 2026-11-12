@@ -25,6 +25,8 @@ class FSI;
 template <class SC, class LO, class GO, class NO>
 class SCI;
 template <class SC, class LO, class GO, class NO>
+class FSCI;
+template <class SC, class LO, class GO, class NO>
 class MeshUnstructured;
 template <class SC, class LO, class GO, class NO>
 class Domain;
@@ -63,6 +65,8 @@ public:
 
     typedef FSI<SC,LO,GO,NO> FSIProblem_Type;
     typedef Teuchos::RCP<FSIProblem_Type> FSIProblemPtr_Type;
+    typedef FSCI<SC,LO,GO,NO> FSCIProblem_Type;
+    typedef Teuchos::RCP<FSCIProblem_Type> FSCIProblemPtr_Type;
     typedef SCI<SC,LO,GO,NO> SCIProblem_Type;
     typedef Teuchos::RCP<SCIProblem_Type> SCIProblemPtr_Type;
 
@@ -110,6 +114,7 @@ public:
     void advanceInTimeFSI();
 
     void advanceInTimeSCI();
+    void advanceInTimeFSCI();
 
     void advanceInTimeLinearMultistep();
 

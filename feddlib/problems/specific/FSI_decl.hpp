@@ -176,7 +176,7 @@ public:
     vec_string_Type getPostprocessingNames() const;
 
     /// Refresh the variable-step clock, component checkpoint state and interface scaling.
-    void prepareTimeStep() const;
+    virtual void prepareTimeStep() const;
     mutable double interfaceDt_ = 0.;
 
     // Verschiebt die notwendigen Gitter
@@ -305,6 +305,7 @@ private:
     /// Copy geometry and pressure-boundary history at the existing start-of-step boundary.
     void captureAdditionalRecoveryState(double time) override;
 
+protected:
     std::string materialModel_;
     vec_dbl_Type valuesForExport_;
     bool geometryExplicit_;

@@ -14,7 +14,7 @@
 #include <Thyra_SpmdVectorSpaceBase_decl.hpp>
 /*!
  Declaration of PrecOpFaCSI
- 
+
  @brief  PrecOpFaCSI
  @author Christian Hochmuth
  @version 1.0
@@ -32,9 +32,9 @@ public:
     typedef Teuchos::RCP<const Comm_Type> CommConstPtr_Type;
 
     PrecOpFaCSI();
-    
+
     PrecOpFaCSI(CommConstPtr_Type comm, bool fluidPrecMonolithic, bool useFluidPreconditioner = true, bool useSolidPreconditioner = true, bool onlyDiagonal=false);
-    
+
     void setGE(ThyraLinOpPtr_Type C1,
           ThyraLinOpPtr_Type C1T,
           ThyraLinOpPtr_Type C2,
@@ -42,6 +42,26 @@ public:
           ThyraLinOpPtr_Type fInv,
           ThyraLinOpPtr_Type fF,
           ThyraLinOpPtr_Type fBT);
+
+    void setGE(ThyraLinOpPtr_Type C1,
+            ThyraLinOpPtr_Type C1T,
+            ThyraLinOpPtr_Type C2,
+            ThyraLinOpPtr_Type sciInv,
+            ThyraLinOpPtr_Type sciS,
+            ThyraLinOpPtr_Type sciC,
+            ThyraLinOpPtr_Type fInv,
+            ThyraLinOpPtr_Type fF,
+            ThyraLinOpPtr_Type fBT);
+
+    void setCE(ThyraLinOpPtr_Type C1,
+            ThyraLinOpPtr_Type C1T,
+            ThyraLinOpPtr_Type C2,
+            ThyraLinOpPtr_Type sciInv,
+            ThyraLinOpPtr_Type sciS,
+            ThyraLinOpPtr_Type fInv,
+            ThyraLinOpPtr_Type fF,
+            ThyraLinOpPtr_Type fBT);
+
 
     void setGI(ThyraLinOpPtr_Type C1,
           ThyraLinOpPtr_Type C1T,
@@ -53,17 +73,12 @@ public:
           ThyraLinOpPtr_Type fBT,
           ThyraLinOpPtr_Type gInv);
 
-    void setGIShape(ThyraLinOpPtr_Type C1,
-               ThyraLinOpPtr_Type C1T,
-               ThyraLinOpPtr_Type C2,
-               ThyraLinOpPtr_Type C4,
-               ThyraLinOpPtr_Type sInv,
-               ThyraLinOpPtr_Type fInv,
-               ThyraLinOpPtr_Type fF,
-               ThyraLinOpPtr_Type fBT,
-               ThyraLinOpPtr_Type gInv,
-               ThyraLinOpPtr_Type shape_v,
-               ThyraLinOpPtr_Type shape_p);
+    // GI with SCI
+    void setGI(ThyraLinOpPtr_Type C1, ThyraLinOpPtr_Type C1T, ThyraLinOpPtr_Type C2, ThyraLinOpPtr_Type C4, ThyraLinOpPtr_Type sciInv, ThyraLinOpPtr_Type sciS, ThyraLinOpPtr_Type sciC,
+               ThyraLinOpPtr_Type fInv, ThyraLinOpPtr_Type fF, ThyraLinOpPtr_Type fBT, ThyraLinOpPtr_Type gInv);
+
+    void setGIShape(ThyraLinOpPtr_Type C1, ThyraLinOpPtr_Type C1T, ThyraLinOpPtr_Type C2, ThyraLinOpPtr_Type C4, ThyraLinOpPtr_Type sInv, ThyraLinOpPtr_Type fInv, ThyraLinOpPtr_Type fF,
+                    ThyraLinOpPtr_Type fBT, ThyraLinOpPtr_Type gInv, ThyraLinOpPtr_Type shape_v, ThyraLinOpPtr_Type shape_p);
 
     void setC1(ThyraLinOpPtr_Type C1);
     void setC1T(ThyraLinOpPtr_Type C1T);
@@ -76,8 +91,14 @@ public:
     void setFluidF(ThyraLinOpPtr_Type fF);
     void setFluidBT(ThyraLinOpPtr_Type fBT);
 
+    void setSCIInv(ThyraLinOpPtr_Type sciInv);
+    void setSCIC(ThyraLinOpPtr_Type sciC);
+    void setSCIS(ThyraLinOpPtr_Type sciS);
+
     void initialize();
-    
+
+    void initializeWithSCI();
+
     virtual void applyIt(
                            const Thyra::EOpTransp M_trans,
                            const Thyra::MultiVectorBase<SC> &X,
@@ -87,7 +108,7 @@ public:
                            ) const;
 
 protected:
-    
+
     virtual void applyImpl(
                            const Thyra::EOpTransp M_trans,
                            const Thyra::MultiVectorBase<SC> &X,
@@ -96,16 +117,20 @@ protected:
                            const SC beta
                            ) const;
 
-    
 
 
-    
-private:    
+
+
+private:
 
     void copyToMono(Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > X_fluid) const;
-    
+
     void copyFromMono(Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_fluid) const;
-    
+
+    void copyToMonoSCI(Teuchos::Array<Teuchos::RCP<Thyra::MultiVectorBase<SC>>> X_sci) const;
+
+    void copyFromMonoSCI(Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_sci) const;
+
     ThyraLinOpPtr_Type C1_;
     ThyraLinOpPtr_Type C1T_;
     ThyraLinOpPtr_Type C2_;
@@ -117,10 +142,16 @@ private:
     ThyraLinOpPtr_Type gInv_;
     ThyraLinOpPtr_Type shape_v_;
     ThyraLinOpPtr_Type shape_p_;
+    ThyraLinOpPtr_Type sciInv_; // Structure Chemical Interaction preconditioner
+    ThyraLinOpPtr_Type sciS_; // Structure System
+    ThyraLinOpPtr_Type sciC_; // Chemi    ThyraLinOpPtr_Type fInv_; // Complete Fluid Preconditioner
+
     mutable Teuchos::RCP<const Thyra::DefaultProductVectorSpace<SC> > productRangeFluid_;
     bool fluidPrecMonolithic_;
     mutable Teuchos::RCP< Thyra::MultiVectorBase<SC> > X_fmono_;
     mutable Teuchos::RCP< Thyra::MultiVectorBase<SC> > Y_fmono_;
+    mutable Teuchos::RCP< Thyra::MultiVectorBase<SC> > X_scimono_;
+    mutable Teuchos::RCP< Thyra::MultiVectorBase<SC> > Y_scimono_;
     CommConstPtr_Type comm_;
     bool useFluidPreconditioner_;
     bool useSolidPreconditioner_;

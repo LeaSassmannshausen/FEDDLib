@@ -123,6 +123,7 @@ public:
     MatrixPtr_Type getPressureMassMatrix(){return pressureMassMatrixPtr_;}
 
     void buildPreconditionerFaCSI( std::string type );
+    void buildPreconditionerFaCSCI(std::string type);
 
     void buildPreconditionerBlock2x2();
 
@@ -165,6 +166,8 @@ private:
     ThyraLinOpPtr_Type precGeo_;
     MinPrecProblemPtr_Type probFluid_;
     MinPrecProblemPtr_Type probSolid_;
+    MinPrecProblemPtr_Type probSCI_;
+    ThyraLinOpPtr_Type precSCI_;
     MinPrecProblemPtr_Type probGeo_;
     BCConstPtr_Type faCSIBCFactory_;
 

@@ -245,6 +245,11 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
         assign(Y_fp.ptr(), *X_fp);
         assign(Y_s.ptr(), *X_s);
         assign(Y_l.ptr(), *X_l);
+        if (!sciInv_.is_null()) {
+            const int count = this->defaultProductRange_->numBlocks();
+            for (int block=4; block<count; ++block)
+                assign(Y->getNonconstMultiVectorBlock(block).ptr(), *X->getMultiVectorBlock(block));
+        }
         
 //        Teuchos::RCP< Thyra::TpetraMultiVector< SC, LO, GO, NO > > YsTpetra =
 //        Teuchos::rcp_dynamic_cast< Thyra::TpetraMultiVector< SC, LO, GO, NO > > ( Y_s );
@@ -412,14 +417,67 @@ void PrecOpFaCSI<SC,LO,GO,NO>::applyImpl(
     
     
     // apply solid preconditioner
-    if (useSolidPreconditioner_)
-        sInv_->apply(Thyra::NOTRANS, *X_s, Y_s.ptr(), 1., 0.);
-    else
-        assign(Y_s.ptr(), *X_s);
-    
-//    std::cout << "Ys" << std::endl;
-//    Y_s->describe(*out,Teuchos::VERB_EXTREME);
-//    comm_->barrier();    comm_->barrier();    comm_->barrier();
+        if (useSolidPreconditioner_){
+            if(!sInv_.is_null())
+                sInv_->apply(Thyra::NOTRANS, *X_s, Y_s.ptr(), 1., 0.);
+            else{
+                if(!sciC_.is_null()){
+                    // std::cout << "FACSCI:: Implicit Case " << std::endl;
+                    Teuchos::RCP< const Thyra::MultiVectorBase< SC > > X_chem;
+                    Teuchos::RCP< Thyra::MultiVectorBase< SC > > Y_chem ;
+
+                    if ( !gInv_.is_null() ) {
+                        X_chem = X->getMultiVectorBlock(5);
+                        Y_chem = Y->getNonconstMultiVectorBlock(5);
+                    }
+                    else{
+                        X_chem = X->getMultiVectorBlock(4);
+                        Y_chem = Y->getNonconstMultiVectorBlock(4);
+                    }
+
+                    assign(Y_s.ptr(), *X_s);
+                    assign(Y_chem.ptr(), *X_chem);
+                    Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > X_sci( 2 );
+                    Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_sci( 2 );
+
+                    X_sci[0] = Y_s;
+                    X_sci[1] = Y_chem;
+
+                    Y_sci[0] = Y_s;
+                    Y_sci[1] = Y_chem;
+                    Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > sciMonoVS = sciInv_->domain();
+                    // std::cout << " Initi X_scimono_ " << std::endl;
+                    if ( X_scimono_.is_null() ){
+                        X_scimono_ = Thyra::createMembers( sciMonoVS, X_sci[0]->domain()->dim() );
+                        Y_scimono_ = Thyra::createMembers( sciMonoVS, Y_sci[0]->domain()->dim() );
+                    }
+                    //We can/should speedup this process
+                   // std::cout << " Copy to mono " << std::endl;
+
+                    copyToMonoSCI(X_sci);
+                    //std::cout << " Apply " << std::endl;
+
+                    sciInv_->apply(Thyra::NOTRANS, *X_scimono_, Y_scimono_.ptr(), 1., 0.);
+                    copyFromMonoSCI(Y_sci);
+                }
+                else{
+                    sciInv_->apply(Thyra::NOTRANS, *X_s, Y_s.ptr(), 1., 0.);
+                }
+            }
+
+        }
+        else{
+            assign(Y_s.ptr(), *X_s);
+            if(!sciC_.is_null()){
+                const int chemistryBlock = gInv_.is_null() ? 4 : 5;
+                Teuchos::RCP< const Thyra::MultiVectorBase< SC > > X_chem = X->getMultiVectorBlock(chemistryBlock);
+                Teuchos::RCP< Thyra::MultiVectorBase< SC > > Y_chem = Y->getNonconstMultiVectorBlock(chemistryBlock);
+                assign(Y_chem.ptr(), *X_chem);
+            }
+
+        }
+
+
     Teuchos::RCP< const Thyra::MultiVectorBase< SC > > X_g;
     Teuchos::RCP< Thyra::MultiVectorBase< SC > > Y_g;
     // apply geometry preconditioner
@@ -707,6 +765,228 @@ void PrecOpFaCSI<SC,LO,GO,NO>::copyFromMono(Teuchos::Array< Teuchos::RCP< Thyra:
     }    
 }
 
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setGE(ThyraLinOpPtr_Type C1,
+                                     ThyraLinOpPtr_Type C1T,
+                                     ThyraLinOpPtr_Type C2,
+                                     ThyraLinOpPtr_Type sciInv,
+                                     ThyraLinOpPtr_Type sciS,
+                                     ThyraLinOpPtr_Type sciC,
+                                     ThyraLinOpPtr_Type fInv,
+                                     ThyraLinOpPtr_Type fF,
+                                     ThyraLinOpPtr_Type fBT){
+
+    // GE setup with SCI: use the structure-chemical inverse instead of a
+    // standalone structure inverse.
+    setC1(C1);
+    setC1T(C1T);
+    setC2(C2);
+    setSCIC(sciC);
+    setSCIS(sciS);
+    setSCIInv(sciInv);
+    setFluidInv(fInv);
+    setFluidF(fF);
+    setFluidBT(fBT);
+
+    initializeWithSCI();
+}
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setGI(ThyraLinOpPtr_Type C1,
+                                     ThyraLinOpPtr_Type C1T,
+                                     ThyraLinOpPtr_Type C2,
+                                     ThyraLinOpPtr_Type C4,
+                                     ThyraLinOpPtr_Type sciInv,
+                                     ThyraLinOpPtr_Type sciS,
+                                     ThyraLinOpPtr_Type sciC,
+                                     ThyraLinOpPtr_Type fInv,
+                                     ThyraLinOpPtr_Type fF,
+                                     ThyraLinOpPtr_Type fBT,
+                                     ThyraLinOpPtr_Type gInv){
+
+    // GI setup with SCI: geometry and structure-chemical blocks are both
+    // active, so applyImpl() expects the chemical block after the geometry
+    // block in the product vector.
+    setC1(C1);
+    setC1T(C1T);
+    setC2(C2);
+    setC4(C4);
+    setSCIC(sciC);
+    setSCIS(sciS);
+    setSCIInv(sciInv);
+    setFluidInv(fInv);
+    setFluidF(fF);
+    setFluidBT(fBT);
+    setGeoInv(gInv);
+
+    initializeWithSCI();
+}
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setCE(ThyraLinOpPtr_Type C1,
+                                     ThyraLinOpPtr_Type C1T,
+                                     ThyraLinOpPtr_Type C2,
+                                     ThyraLinOpPtr_Type sciInv,
+                                     ThyraLinOpPtr_Type sciS,
+                                     ThyraLinOpPtr_Type fInv,
+                                     ThyraLinOpPtr_Type fF,
+                                     ThyraLinOpPtr_Type fBT){
+
+    // CE setup: SCI preconditioning without an explicit chemical coupling
+    // block in applyImpl().
+    setC1(C1);
+    setC1T(C1T);
+    setC2(C2);
+    setSCIS(sciS);
+    setSCIInv(sciInv);
+    setFluidInv(fInv);
+    setFluidF(fF);
+    setFluidBT(fBT);
+
+    initializeWithSCI();
+}
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setSCIInv(ThyraLinOpPtr_Type sciInv){
+    sciInv_ = sciInv;
+}
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setSCIC(ThyraLinOpPtr_Type sciC){
+    sciC_ = sciC;
+}
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::setSCIS(ThyraLinOpPtr_Type sciS){
+    sciS_ = sciS;
+}
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::initializeWithSCI(){
+
+
+    TEUCHOS_TEST_FOR_EXCEPTION(fInv_.is_null(), std::runtime_error,"Can not initialize FaCSCI preconditioner: Fluid preconditioner not set.");
+    TEUCHOS_TEST_FOR_EXCEPTION(sciInv_.is_null(), std::runtime_error,"Can not initialize FaCSCI preconditioner: Structure preconditioner not set.");
+    TEUCHOS_TEST_FOR_EXCEPTION(C1_.is_null(), std::runtime_error,"Can not initialize FaCSCI preconditioner: C1 not set.");
+
+    // SCI uses the same first four FaCSI blocks, but the structure space is
+    // taken from sciS_. Optional geometry and chemical blocks are appended in
+    // the same order expected by applyImpl().
+    Teuchos::Array< Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > > vectorSpacesRange( 4 );
+    Teuchos::Array< Teuchos::RCP< const Thyra::VectorSpaceBase< SC > > > vectorSpacesDomain( 4 );
+    vectorSpacesRange[0] = fF_->range();
+    vectorSpacesRange[1] = fBT_->domain();
+    vectorSpacesRange[2] = sciS_->range();
+    vectorSpacesRange[3] = C1_->range();
+
+    vectorSpacesDomain[0] = fF_->domain();
+    vectorSpacesDomain[1] = fBT_->domain();
+    vectorSpacesDomain[2] = sciS_->domain();
+    vectorSpacesDomain[3] = C1T_->domain();
+
+    if ( !gInv_.is_null() ) {
+        vectorSpacesRange.push_back( gInv_->range() );
+        vectorSpacesDomain.push_back( gInv_->domain() );
+    }
+    if(!sciC_.is_null()){
+        vectorSpacesRange.push_back( sciC_->range() );
+        vectorSpacesDomain.push_back( sciC_->domain() );
+    }
+    //     defaultProductRange_;
+    //    Teuchos::RCP<const Thyra::DefaultProductVectorSpace<SC> > defaultProductDomain_;
+
+    Teuchos::RCP<const Thyra::DefaultProductVectorSpace<SC> > pR = Thyra::productVectorSpace<SC>( vectorSpacesRange );
+    Teuchos::RCP<const Thyra::DefaultProductVectorSpace<SC> > pD = Thyra::productVectorSpace<SC>( vectorSpacesDomain );
+//    Teuchos::RCP<const Thyra::VectorSpaceBase<SC> > pVSR = Teuchos::rcp_dynamic_cast<const Thyra::VectorSpaceBase<SC> >(pR);
+//    Teuchos::RCP<const Thyra::VectorSpaceBase<SC> > pVSD = Teuchos::rcp_dynamic_cast<const Thyra::VectorSpaceBase<SC> >(pD);
+//
+//    this->defaultProductRange_ = Thyra::multiVectorProductVectorSpace<SC>( pVSR , 1);
+//    this->defaultProductDomain_ = Thyra::multiVectorProductVectorSpace<SC>( pVSD, 1);
+
+    this->defaultProductRange_ = pR;
+    this->defaultProductDomain_ = pD;
+
+}
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::copyToMonoSCI( Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > X_sci ) const{
+
+    // Pack the SCI product vector (structure, chemical) into the monolithic
+    // layout expected by sciInv_.
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_d = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(X_sci[0]->range());
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_c = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(X_sci[1]->range());
+
+    const LO localOffset_d = mpiVS_d->localOffset();
+    const LO localSubDim_d = mpiVS_d->localSubDim();
+
+    const LO localOffset_c = mpiVS_c->localOffset();
+    const LO localSubDim_c = mpiVS_c->localSubDim();
+
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_d =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( X_sci[0] ,Teuchos::Range1D(localOffset_d,localOffset_d+localSubDim_d-1) ) );
+
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_c =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( X_sci[1] ,Teuchos::Range1D(localOffset_c,localOffset_c+localSubDim_c-1) ) );
+
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_mono = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(X_scimono_->range());
+
+    const LO localOffset_mono = mpiVS_mono->localOffset();
+    const LO localSubDim_mono = mpiVS_mono->localSubDim();
+
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_sci =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( X_scimono_ ,Teuchos::Range1D(localOffset_mono,localOffset_mono+localSubDim_mono-1) ) );
+
+    for (int j=0; j<X_sci[0]->domain()->dim(); j++) {
+
+        for (LO i=0; i < localSubDim_d; i++)
+            (*thyData_sci)(i,j) = (*thyData_d)(i,j);
+
+        for (LO i=0; i<localSubDim_c; i++)
+            (*thyData_sci)( i + localSubDim_d, j ) = (*thyData_c)(i,j);
+
+    }
+}
+
+template<class SC, class LO, class GO, class NO>
+void PrecOpFaCSI<SC,LO,GO,NO>::copyFromMonoSCI(Teuchos::Array< Teuchos::RCP< Thyra::MultiVectorBase< SC > > > Y_sci) const{
+
+    // Scatter the SCI preconditioner result back into the structure and
+    // chemical product-vector blocks.
+
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_d = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(Y_sci[0]->range());
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_c = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(Y_sci[1]->range());
+
+    const LO localOffset_d = mpiVS_d->localOffset();
+    const LO localSubDim_d = mpiVS_d->localSubDim();
+
+    const LO localOffset_c = mpiVS_c->localOffset();
+    const LO localSubDim_c = mpiVS_c->localSubDim();
+
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_d =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( Y_sci[0] ,Teuchos::Range1D(localOffset_d,localOffset_d+localSubDim_d-1) ) );
+
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_c =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( Y_sci[1] ,Teuchos::Range1D(localOffset_c,localOffset_c+localSubDim_c-1) ) );
+
+    Teuchos::RCP<const Thyra::SpmdVectorSpaceBase<SC> > mpiVS_mono = Teuchos::rcp_dynamic_cast<const Thyra::SpmdVectorSpaceBase<SC> >(Y_scimono_->range());
+
+    const LO localOffset_mono = mpiVS_mono->localOffset();
+    const LO localSubDim_mono = mpiVS_mono->localSubDim();
+
+    Teuchos::RCP<Thyra::DetachedMultiVectorView<SC> > thyData_sci =
+    Teuchos::rcp(new Thyra::DetachedMultiVectorView<SC>( Y_scimono_ ,Teuchos::Range1D(localOffset_mono,localOffset_mono+localSubDim_mono-1) ) );
+
+    for (int j=0; j<Y_sci[0]->domain()->dim(); j++) {
+
+        for (LO i=0; i < localSubDim_d; i++)
+            (*thyData_d)(i,j) = (*thyData_sci)(i,j);
+
+        for (LO i=0; i<localSubDim_c; i++)
+            (*thyData_c)(i,j) = (*thyData_sci)( i + localSubDim_d, j );
+
+    }
+}
 }
 
 #endif

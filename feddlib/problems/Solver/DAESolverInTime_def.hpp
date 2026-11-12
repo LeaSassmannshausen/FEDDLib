@@ -4,6 +4,7 @@
 
 #include "feddlib/problems/specific/FSI.hpp"
 #include "feddlib/problems/specific/SCI.hpp"
+#include "feddlib/problems/specific/FSCI.hpp"
 #include "feddlib/core/Mesh/MeshUnstructured.hpp"
 #include "feddlib/core/FE/Domain.hpp"
 #include "feddlib/core/FE/FE.hpp"
@@ -141,7 +142,10 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTime(){
 
     checkTimeSteppingDef();
 
-    if(this->parameterList_->sublist("Parameter").get("FSI",false))
+    if (this->parameterList_->sublist("Parameter").get("FSCI", false)) {
+        advanceInTimeFSCI();
+    }
+    else if(this->parameterList_->sublist("Parameter").get("FSI",false))
     {
         advanceInTimeFSI();
     }
@@ -901,6 +905,13 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeSCI()
 }
 
 template<class SC,class LO,class GO,class NO>
+void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSCI()
+{
+    // FSCI shares the FSI BDF/Newmark/ALE clock and adds its chemistry stage.
+    advanceInTimeFSI();
+}
+
+template<class SC,class LO,class GO,class NO>
 void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
 {
     // problemCoeff vor A (= komplettes steady-System)
@@ -908,7 +919,10 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
     // coeffSourceTerm vor f (= rechte Seite der DGL)
     
     
-    FSIProblemPtr_Type fsi = Teuchos::rcp_dynamic_cast<FSIProblem_Type>( this->problemTime_->getUnderlyingProblem() );
+    FSIProblemPtr_Type fsi = Teuchos::rcp_dynamic_cast<FSIProblem_Type>( this->problemTime_->getUnderlyingProblem(), true );
+    FSCIProblemPtr_Type fsci = Teuchos::rcp_dynamic_cast<FSCIProblem_Type>(this->problemTime_->getUnderlyingProblem());
+    const bool implicitChemistry = !fsci.is_null() && !parameterList_->sublist("Parameter").get("Chemistry Explicit", false);
+    const int chemistryBlock = parameterList_->sublist("Parameter").get("Geometry Explicit", true) ? 4 : 5;
     
     bool print = parameterList_->sublist("General").get("ParaViewExport",false);
     bool printData = parameterList_->sublist("General").get("Export Data",false);
@@ -1117,6 +1131,12 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
         }
     }
 
+    if (implicitChemistry) {
+        // AceGen already assembles the chemical rate and Mc/dt tangent.
+        problemCoeffFSI[chemistryBlock][chemistryBlock] = 1.;
+        problemCoeffFSI[2][chemistryBlock] = 1.;
+        problemCoeffFSI[chemistryBlock][2] = 1.;
+    }
     this->problemTime_->setTimeParameters(massCoeffFSI, problemCoeffFSI);
     
     if (printExtraData) {
@@ -1232,6 +1252,9 @@ void DAESolverInTime<SC,LO,GO,NO>::advanceInTimeFSI()
             this->problemTime_->assemble("MoveMesh");
         }
 
+
+        if (!fsci.is_null() && !implicitChemistry)
+            this->problemTime_->assemble("SolveChemistryProblem");
 
         // ######################
         // Struktur Zeitsystem
@@ -1906,28 +1929,29 @@ void DAESolverInTime<SC,LO,GO,NO>::setupExporter(){
     for (int i=0; i<timeStepDef_.size(); i++) {
         // \lambda in FSI, koennen wir nicht exportieren, weil keine Elementliste dafuer vorhanden
         bool exportThisBlock  = true;
-        if(this->parameterList_->sublist("Parameter").get("FSI",false) == true  )
+        const bool fsci = this->parameterList_->sublist("Parameter").get("FSCI", false);
+        if (this->parameterList_->sublist("Parameter").get("FSI", false) || fsci)
             exportThisBlock = (i != 3);
-       else if(this->parameterList_->sublist("Parameter").get("FSCI",false) == true)
-            exportThisBlock = (i != 4);
+        const int field = fsci && i == 4 && this->parameterList_->sublist("Parameter").get("Geometry Explicit", true)
+            ? 5 : i;
 
         if(exportThisBlock)
         {
             ExporterPtr_Type exporterPtr(new Exporter_Type());
             MultiVectorConstPtr_Type exportVector = problemTime_->getSolution()->getBlock(i);
 
-            DomainConstPtr_Type dom = problemTime_->getDomain(i);
+            DomainConstPtr_Type dom = problemTime_->getDomain(field);
 
             int exportEveryXTimesteps = parameterList_->sublist("Exporter").get( "Export every X timesteps", 1 );
             std::string plSuffix = "Suffix variable" + std::to_string(i+1);
             std::string suffix = parameterList_->sublist("Exporter").get(plSuffix, "" );
-            std::string varName = problemTime_->getVariableName(i) + suffix;
+            std::string varName = problemTime_->getVariableName(field) + suffix;
             MeshPtr_Type meshNonConst = Teuchos::rcp_const_cast<Mesh_Type>(dom->getMesh());
             exporterPtr->setup(varName, meshNonConst, dom->getFEType(), exportEveryXTimesteps, parameterList_);
             
 //            exporterPtr->setup(dom->getDimension(), dom->getNumElementsGlobal(), dom->getElements(), dom->getPointsUnique(), dom->getMapUnique(), dom->getMapRepeated(), dom->getFEType(), varName, exportEveryXTimesteps, comm_ , parameterList_);
 
-            UN dofsPerNode = problemTime_->getDofsPerNode(i);
+            UN dofsPerNode = problemTime_->getDofsPerNode(field);
             
             if (dofsPerNode == 1)
                 exporterPtr->addVariable( exportVector, varName, "Scalar", dofsPerNode, dom->getMapUnique() );
@@ -1955,20 +1979,20 @@ void DAESolverInTime<SC,LO,GO,NO>::setupExporter(){
 //             MultiVectorConstPtr_Type exportVector = problemTime_->getSolution()->getBlock(i);
 //             MultiVectorConstPtr_Type exportVectorShort = solShort->getBlock(i);
 
-//             DomainConstPtr_Type dom = problemTime_->getDomain(i);
+//             DomainConstPtr_Type dom = problemTime_->getDomain(field);
 
 //             int exportEveryXTimesteps = parameterList_->sublist("Exporter").get( "Export every X timesteps", 1 );
 //             std::string plSuffix = "Suffix variable" + std::to_string(i+1);
 //             std::string suffix = parameterList_->sublist("Exporter").get(plSuffix, "" );
-//             std::string varName = problemTime_->getVariableName(i) + suffix;
-//             std::string varNameShort = problemTime_->getVariableName(i) + "_short_" + suffix;
+//             std::string varName = problemTime_->getVariableName(field) + suffix;
+//             std::string varNameShort = problemTime_->getVariableName(field) + "_short_" + suffix;
             
 //             MeshPtr_Type meshNonConst = Teuchos::rcp_const_cast<Mesh_Type>(dom->getMesh());
 //             exporterPtr->setup(varName, meshNonConst, dom->getFEType(), parameterList_);
             
 //            exporterPtr->setup(dom->getDimension(), dom->getNumElementsGlobal(), dom->getElements(), dom->getPointsUnique(), dom->getMapUnique(), dom->getMapRepeated(), dom->getFEType(), varName, exportEveryXTimesteps, comm_ , parameterList_);
 
-//             UN dofsPerNode = problemTime_->getDofsPerNode(i);
+//             UN dofsPerNode = problemTime_->getDofsPerNode(field);
             
 //             if (dofsPerNode == 1){
 //                 exporterPtr->addVariable( exportVector, varName, "Scalar", dofsPerNode, dom->getMapUnique() );
