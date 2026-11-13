@@ -26,7 +26,6 @@
         <!-- Parameter for Neo-Hooke and Mooney-Rivlin, additioanlly poisson ratio is used -->
         <Parameter name="E" type="double"   value="0.38"/>
         
-        <Parameter name="Load Stepping" type="bool" value="true"/>
         <Parameter name="External Force" type="bool" value="true"/>
         <Parameter name="Nonlinear External Force" type="bool" value="true"/>
         
@@ -59,7 +58,6 @@
         <Parameter name="Mpi Ranks Coarse"		                type="int"      value="0"/>
         <Parameter name="Linearization"                         type="string"   value="NOX"/> <!-- FixedPoint, Newton, Extrapolation-->
         <Parameter name="ParaViewExport"                        type="bool"   	value="true"/>
-        <Parameter name="ParaView export subdomain"             type="bool"   	value="false"/>
         <Parameter name="Preconditioner Method"                 type="string"   value="Monolithic"/><!-- Monolithic, Tri, Diag, TriBFBT, DiagBFBT-->
     </ParameterList>
     

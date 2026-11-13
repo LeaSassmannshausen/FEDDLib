@@ -23,12 +23,9 @@
         <!-- Parameters for linear elasticity and Saint Venant-Kirchhoff-->
         <Parameter name="Poisson Ratio" type="double" value="0.49e-0"/>
         <Parameter name="Mu" type="double" value="2.0e+6"/>
-        <Parameter name="Mu1" type="double" value="2.0e+6"/>
-        <Parameter name="Mu2" type="double" value="2.0e+8"/>
         <!-- Parameter for Neo-Hooke and Mooney-Rivlin, additioanlly poisson ratio is used -->
         <Parameter name="E" type="double"   value="3.0e-1"/>
         <Parameter name="E1" type="double"   value="1."/>
-        <Parameter name="E2" type="double"   value="1.e-1"/>
         
         <!-- Parameter for Mooney-Rivlin-->
         <Parameter name="C" type="double" value="1."/><!-- Mooney-Rivlin parameter -->
@@ -61,7 +58,6 @@
         <Parameter name="Mpi Ranks Coarse"		                type="int"      value="0"/>
         <Parameter name="Linearization"                         type="string"   value="NOX"/> <!-- FixedPoint, Newton, Extrapolation-->
         <Parameter name="ParaViewExport"                        type="bool"   	value="true"/>
-        <Parameter name="ParaView export subdomain"             type="bool"   	value="false"/>
         <Parameter name="Preconditioner Method"                 type="string"   value="Monolithic"/><!-- Monolithic, Tri, Diag, TriBFBT, DiagBFBT-->
     </ParameterList>
     

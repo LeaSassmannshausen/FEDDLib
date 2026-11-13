@@ -27,6 +27,5 @@
     <ParameterList name="General">
         <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
         <Parameter name="ParaViewExport" type="bool" value="true"/>
-        <Parameter name="ParaViewCoarse" type="bool" value="false"/>
     </ParameterList>
 </ParameterList>

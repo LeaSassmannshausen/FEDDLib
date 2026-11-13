@@ -103,12 +103,9 @@
         <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
         <Parameter name="Linearization" type="string" value="Newton"/> <!-- {FixedPoint, Newton, NOX} - Choose linearization approach if one chooses NOX one can set additional options e.g. for globalization strategy inside parametersSolver.xml -->
         <Parameter name="ParaViewExport" type="bool" value="true"/>
-        <Parameter name="ParaViewCoarse" type="bool" value="false"/>
-        <Parameter name="ParaViewCoarseSum" type="bool" value="false"/>
         <Parameter name="ParaView export subdomains" type="bool" value="false"/>
         <Parameter name="Preconditioner Method" type="string" value="Monolithic"/><!-- {Monolithic, Teko} -->
         <Parameter name="Assemble Velocity Mass" type="bool" value="false"/>
-        <Parameter name="Delete P1 Data" type="bool" value="false"/><!-- only for Monolithic and Newton -->
 
     
 

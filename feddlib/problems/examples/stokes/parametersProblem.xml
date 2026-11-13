@@ -3,7 +3,6 @@
         <Parameter name="Dimension" type="int"   	value="2"/>
         <Parameter name="Discretization Velocity" type="string" value="P2"/><!--P1, P2; velocity -->
         <Parameter name="Discretization Pressure" type="string" value="P1"/>
-        <Parameter name="Use single matrix" type="bool" value="true"/>
         <Parameter name="Mesh Type" type="string"   value="structured"/> <!--structured, unstructured, structured_bfs -->
         <Parameter name="BC Type" type="string"   value="parabolic"/><!-- parabolic, parabolic_benchmark-->
         <Parameter name="Volume ID" type="int"   	value="0"/>
@@ -22,9 +21,6 @@
     <ParameterList name="General">
         <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
         <Parameter name="ParaViewExport" type="bool" value="true"/>
-        <Parameter name="ParaViewCoarse" type="bool" value="false"/>
         <Parameter name="Preconditioner Method" type="string" value="Teko"/><!-- Monolithic, Teko, Diagonal, Triangular -->
-        <Parameter name="Scale mass matrix" type="bool" value="true"/>
-        <Parameter name="Set Zeros" type="bool" value="false"/>
     </ParameterList>
 </ParameterList>

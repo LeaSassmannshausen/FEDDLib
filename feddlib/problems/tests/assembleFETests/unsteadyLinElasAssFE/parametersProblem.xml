@@ -9,7 +9,6 @@
 	    <Parameter name="Density" type="double"   value="1000.e-0"/>
 	    <Parameter name="Poisson Ratio" type="double"   value="0.4e-0"/>
 	    <Parameter name="Mu" type="double"   value="0.5e+6"/>
-	    <Parameter name="degree" type="int"   value="5"/>
     </ParameterList>
     <ParameterList name="Mesh Partitioner">
         
@@ -20,10 +19,7 @@
     <ParameterList name="General">
         <Parameter name="Mpi Ranks Coarse"		                type="int"      value="0"/>
         <Parameter name="ParaViewExport"			            type="bool"     value="true"/>
-        <Parameter name="ParaViewCoarse"                        type="bool"     value="false"/>
         <Parameter name="Preconditioner Method"                 type="string"   value="Monolithic"/><!-- Monolithic, Diagonal, Triangular -->
-        <Parameter name="Scale mass matrix"                     type="bool"     value="true"/>
-        <Parameter name="Set Zeros"		                        type="bool"     value="true"/>
     </ParameterList>
     <ParameterList name="Timestepping Parameter">
         <Parameter name="Class"                                 type="string"		value="Newmark"/> <!-- Newmark -->

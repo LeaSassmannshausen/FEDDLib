@@ -16,7 +16,6 @@
         <!-- Parameter for Neo-Hooke and Mooney-Rivlin, additioanlly poisson ratio is used -->
         <Parameter name="E" type="double"   value="0.3160"/>
         <Parameter name="E1" type="double"   value="0.3160"/>
-        <Parameter name="E2" type="double"   value="0.3160"/>
         <!-- Parameter for Neo-Hooke and Mooney-Rivlin, additioanlly poisson ratio is used -->
         
         
@@ -48,10 +47,7 @@
     <ParameterList name="General">
         <Parameter name="Mpi Ranks Coarse"		                type="int"      value="0"/>
         <Parameter name="ParaViewExport"			            type="bool"     value="true"/>
-        <Parameter name="ParaViewCoarse"                        type="bool"     value="true"/>
         <Parameter name="Preconditioner Method"                 type="string"   value="Monolithic"/><!-- Monolithic, Diagonal, Triangular -->
-        <Parameter name="Scale mass matrix"                     type="bool"     value="true"/>
-        <Parameter name="Set Zeros"		                        type="bool"     value="true"/>
         <Parameter name="Linearization"                         type="string"   value="NOX"/> <!-- FixedPoint, Newton, Extrapolation-->
     </ParameterList>
 </ParameterList>

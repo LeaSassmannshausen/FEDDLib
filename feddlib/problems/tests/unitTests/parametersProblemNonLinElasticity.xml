@@ -31,7 +31,6 @@
     <ParameterList name="General">
         <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
         <Parameter name="ParaViewExport" type="bool"  value="true"/>
-        <Parameter name="Set Zeros" type="bool" value="true"/>
         <Parameter name="Linearization" type="string" value="Newton"/> <!-- FixedPoint, Newton, Mixed-->
     </ParameterList>
 </ParameterList>

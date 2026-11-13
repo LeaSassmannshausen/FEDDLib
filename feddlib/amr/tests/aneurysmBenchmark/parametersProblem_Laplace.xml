@@ -6,7 +6,6 @@
         <Parameter name="Mesh Name" type="string" value="aneurysmBenchmark.mesh"/><!--Turek3DCylinder_1400.mesh, circle2D.mesh-->
         <Parameter name="Mesh Delimiter" type="string" value=" "/>
         <Parameter name="H/h" type="int" value="5"/>
-        <Parameter name="skew" type="double" value="6."/>
     </ParameterList>
     
     <ParameterList name="Mesh Partitioner">
@@ -27,6 +26,5 @@
     <ParameterList name="General">
         <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
         <Parameter name="ParaViewExport" type="bool" value="true"/>
-        <Parameter name="ParaViewCoarse" type="bool" value="false"/>
     </ParameterList>
 </ParameterList>

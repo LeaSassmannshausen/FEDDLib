@@ -29,12 +29,9 @@
         <Parameter name="Density" type="double"   value="1.0e-03"/><!-- kg/cm³ -->
         <!-- Parameters NH4 Neo Hooke Model from 'Comparison of arterial wall models in fluid–structure interaction simulations' -->
         <Parameter name="Mu" type="double" value="1476.5"/><!-- 1kg⋅cm/s² * 1/cm²-->
-        <Parameter name="Mu1" type="double" value="1476.5"/><!-- 1kg⋅cm/s² * 1/cm²-->
-        <Parameter name="Mu2" type="double" value="1476.5"/><!-- 1kg⋅cm/s² * 1/cm²-->
 
         <Parameter name="E" type="double" value="4400.0"/> <!-- 1kg⋅cm/s² * 1/cm² -->
         <Parameter name="E1" type="double" value="4400.0"/><!-- 1kg⋅cm/s² * 1/cm²-->
-        <Parameter name="E2" type="double" value="4400.0"/><!-- 1kg⋅cm/s² * 1/cm²-->
 
         <Parameter name="c1" type="double" value="0.25"/>
         <Parameter name="Poisson Ratio" type="double" value="0.49"/>
@@ -66,7 +63,6 @@
         <Parameter name="E" type="double" value="120.0e1"/> <!-- 1kg⋅cm/s² * 1/cm²-->
         <!-- Resistance boundary condition -->
         <Parameter name="Resistance" type="double" value="3.6660e-4"/> <!-- ?? CHECK| old: g/cm s² s/cm³ (eigentliche Einheit mPa*s/m³ , 1mPa = 10e6 N/m² -->
-        <Parameter name="Resistance Ramp" type="double" value="0.0"/>
     </ParameterList>
 
     <ParameterList name="Parameter Geometry">
@@ -111,7 +107,6 @@
     <ParameterList name="General">
         <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
         <Parameter name="ParaViewExport" type="bool" value="true"/>
-        <Parameter name="ParaViewCoarse" type="bool" value="false"/>
         <Parameter name="ParaView export subdomains" type="bool" value="true"/>
         
         <Parameter name="Export Suffix" type="string" value=""/>
@@ -125,8 +120,6 @@
 
         <Parameter name="Only Diagonal" type="bool" value="false"/>
 
-        <Parameter name="Scale mass matrix" type="bool" value="true"/>
-        <Parameter name="Set Zeros" type="bool" value="true"/>
         
         <Parameter name="Linearization" type="string" value="NOX"/> <!-- FixedPoint, Newton, Extrapolation-->
     </ParameterList>

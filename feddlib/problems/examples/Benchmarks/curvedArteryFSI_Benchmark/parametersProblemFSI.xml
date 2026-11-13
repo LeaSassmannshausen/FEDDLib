@@ -145,7 +145,6 @@
         <Parameter name="E" type="double" value="120.0e1"/> <!-- 1kg⋅cm/s² * 1/cm²-->
         <!-- Resistance boundary condition -->
         <Parameter name="Resistance" type="double" value="3.6660e-4"/> <!-- ?? CHECK| old: g/cm s² s/cm³ (eigentliche Einheit mPa*s/m³ , 1mPa = 10e6 N/m² -->
-        <Parameter name="Resistance Ramp" type="double" value="0.0"/>
     </ParameterList>
     
     <ParameterList name="Parameter Geometry">
@@ -208,7 +207,6 @@
         <!-- Enable visualization output for both the source and resumed run.
              Exporter/Resume output controls whether existing files are continued. -->
         <Parameter name="ParaViewExport" type="bool" value="true"/>
-        <Parameter name="ParaViewCoarse" type="bool" value="false"/>
         <Parameter name="ParaView export subdomains" type="bool" value="true"/>
         
         <Parameter name="Export Suffix" type="string" value=""/>
@@ -233,8 +231,6 @@
 
         <Parameter name="Only Diagonal" type="bool" value="false"/>
 
-        <Parameter name="Scale mass matrix" type="bool" value="true"/>
-        <Parameter name="Set Zeros" type="bool" value="true"/>
         
         <!-- Ordinary checkpoint/restart and failure recovery support this NOX
              configuration. Built-in Newton and FixedPoint also supply recovery reports. -->

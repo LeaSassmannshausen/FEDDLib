@@ -41,9 +41,6 @@
         <Parameter name="Mpi Ranks Coarse" type="int" value="0"/>
         <Parameter name="Linearization" type="string" value="NOX"/> <!-- FixedPoint, Newton, Extrapolation, NOX-->
         <Parameter name="ParaViewExport" type="bool" value="true"/>
-        <Parameter name="ParaViewCoarse" type="bool" value="false"/>
-        <Parameter name="ParaViewCoarseSum" type="bool" value="false"/>
-        <Parameter name="ParaView export subdomain" type="bool" value="false"/>
         <Parameter name="Preconditioner Method" type="string" value="Monolithic"/><!-- Monolithic, Teko-->
     </ParameterList>
     <ParameterList name="Timestepping Parameter">

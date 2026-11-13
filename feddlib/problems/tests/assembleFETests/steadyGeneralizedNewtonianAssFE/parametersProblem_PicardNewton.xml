@@ -45,8 +45,6 @@
         
         
         
-        <Parameter name="Additional NeumannBoundaryIntegral" type="bool" value="false"/> <!-- For stress-divergence formulation we have to add boundary integral at outflow to obtain same outflow condition as in the convential formulation with the Laplacian term -->
-        <Parameter name="BoundaryFlag_Additional NeumannBoundaryIntegral" type="int" value="3" /> <!-- So if we want to add the additional boundary integral for the equivalent outflow condition we have to set the boundary flag"-->
         <!--************************* WE ONLY SET THIS FOR ONE FLAG NUMBER SO IF WE WANT TO ADD THE INTEGRAL ON MORE BOUNDARIES WE HAVE TO EXTEND IT -->
        
         
@@ -104,11 +102,7 @@
         <Parameter name="MaximumIteration_Switch" type="int" value="1"/>           <!-- Only relevant if SwitchingStrategy is AfterMaxIter - Number of nonlinear iterations to perform with initial linearization before switching to the other (Default is 1)-->
         <Parameter name="NonlinearTolerance_Switch" type="double" value="0.1"/>    <!-- Only relevant if SwitchingStrategy is AfterResidual - Value of relative nonlinear residual below which the switch is performed (Default is 0.1) -->
         <Parameter name="ParaViewExport" type="bool" value="true"/>
-        <Parameter name="ParaViewCoarse" type="bool" value="false"/>
-        <Parameter name="ParaViewCoarseSum" type="bool" value="false"/>
-        <Parameter name="ParaView export subdomain" type="bool" value="false"/>
         <Parameter name="Preconditioner Method" type="string" value="Monolithic"/><!-- Monolithic, Teko -->
         <Parameter name="Assemble Velocity Mass" type="bool" value="false"/>
-        <Parameter name="Delete P1 Data" type="bool" value="false"/><!-- only for Monolithic and Newton -->
     </ParameterList>
 </ParameterList>

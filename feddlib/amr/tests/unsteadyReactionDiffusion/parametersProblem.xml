@@ -31,10 +31,7 @@
         <Parameter name="Linearization" 						type="string" value="Newton"/> <!-- FixedPoint, NOX-->
         <Parameter name="Mpi Ranks Coarse"		                type="int"      value="0"/>
         <Parameter name="ParaViewExport"			            type="bool"     value="true"/>
-        <Parameter name="ParaViewCoarse"                        type="bool"     value="false"/>
         <Parameter name="Preconditioner Method"                 type="string"   value="Monolithic"/><!-- Monolithic -->
-        <Parameter name="Scale mass matrix"                     type="bool"     value="false"/>
-        <Parameter name="Set Zeros"		                        type="bool"     value="true"/>
     </ParameterList>
     <ParameterList name="Timestepping Parameter">
         <Parameter name="Class"                                 type="string"		value="Multistep"/> <!-- Newmark -->
