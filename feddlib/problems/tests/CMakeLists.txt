@@ -1,1 +1,1 @@
-add_subdirectories(assembleFETests interfaceTests unitTests restartTests)
+add_subdirectories(assembleFETests interfaceTests unitTests restartTests FSI_FSCI_Validation_Test)
