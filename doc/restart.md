@@ -2,8 +2,13 @@
 
 Time-dependent problems can write HDF5 checkpoints and resume from a saved
 solution. This branch provides the shared solution/BDF/Newmark checkpoint code
-and FSI restart support. SCI/FSCI solvers and material-history extensions are
-separate features.
+and FSI restart support. FSCI also supports passive restart with implicit
+chemistry and `SCI_SMC_Active_Growth_Reorientation`, for both GE and GI.
+Its checkpoints include concentration and component manifests. They must prove
+that active response, growth and reorientation have not occurred; otherwise
+restart is rejected because the corresponding AceGen material history cannot
+yet be restored. Standalone SCI restart, staggered-chemistry FSCI checkpoints
+and FSCI failure recovery remain unsupported.
 
 Configure an uninterrupted run with these entries in `Timestepping Parameter`:
 

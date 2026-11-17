@@ -58,9 +58,18 @@ advances once after each accepted coupled step. Existing `Exporter` flags for
 material fields, element stresses, Gauss-point stresses and P1 stress recovery
 also apply to FSCI.
 
-SCI's existing restrictions carry over: the removed linear SCI option and legacy
-material-history file I/O/restart are unavailable. This benchmark must start
-from an initial state with checkpointing/restart disabled.
+With implicit chemistry and `SCI_SMC_Active_Growth_Reorientation`, checkpointing
+and passive restart use the FSI checkpoint settings described in
+[restart.md](../../../../../doc/restart.md). Concentration is saved along with
+the mechanical fields, and its accepted value initializes the material's
+previous concentration on restart. Both GE and GI are supported. Keep the full
+checkpoint directory, including the component manifests.
+
+Restart requires saved markers proving that active response, growth and
+reorientation have not occurred. A checkpoint after any of these processes is
+rejected; changing their flags in the new input does not bypass that check.
+Legacy material-history file I/O, standalone SCI restart, staggered-chemistry
+checkpoints and FSCI failure recovery remain unavailable.
 
 ## Validation and open issue
 

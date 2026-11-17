@@ -155,7 +155,7 @@ namespace FEDD {
          \brief Update the solution vector.
          @param[in] solution
         */
-        void updateSolution(vec_dbl_Type solution);
+        virtual void updateSolution(vec_dbl_Type solution);
 
         /*!
          \brief Get the current local solution vector.

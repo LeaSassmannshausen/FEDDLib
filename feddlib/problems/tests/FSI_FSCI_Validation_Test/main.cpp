@@ -70,6 +70,7 @@ void zero(double*, double* result, double, const double*)
     result[0] = result[1] = result[2] = 0.;
 }
 void noReaction(double*, double* result, double*) { result[0] = 0.; }
+void concentrationBoundary(double*, double* result, double, const double*) { result[0] = .2; }
 // BCBuilder passes the scalar nodal inlet-profile value in profile[0], and
 // replaces parameters[0] with the scale needed to obtain the prescribed flux.
 // Inlet flag 4 is at z=0; positive z points into the arterial segment.
@@ -90,6 +91,7 @@ void flowRate(double*, double* result, double time, const double* parameters)
 struct Frame {
     double time, pressure, concentrationNorm;
     std::vector<VectorPtr> fields;
+    VectorPtr concentration;
 };
 struct Result {
     std::vector<Frame> frames;
@@ -126,6 +128,9 @@ public:
             Teuchos::Array<double> norm(1);
             fsci->getSCIProblem()->getSolution()->getBlock(1)->normInf(norm());
             frame.concentrationNorm = norm[0];
+            auto c = fsci->getSCIProblem()->getSolution()->getBlock(1);
+            frame.concentration = rcp(new Vector(c->getMap()));
+            frame.concentration->update(1., *c, 0.);
         }
         frames.push_back(frame);
         Base::computeValuesOfInterestAndExport();
@@ -232,7 +237,7 @@ Teuchos::RCP<SmallMatrix<int>> buildTimeSteppingDefinition(bool geometryExplicit
 // Common mechanical boundary setup. Return the solid BCs so main() can also
 // attach a copy to SCI's local displacement block for the FSCI run.
 Teuchos::RCP<Boundaries> addMechanicalBoundaries(FSIType& problem, const Domains& domains,
-                                                const ParameterListPtr_Type& parameters)
+                                                const ParameterListPtr_Type& parameters, bool loadChemistry = false)
 {
     const int dim = 3;
     auto fluid = domains.fluidVelocity;
@@ -282,6 +287,9 @@ Teuchos::RCP<Boundaries> addMechanicalBoundaries(FSIType& problem, const Domains
     problem.problemStructureNonLin_->addBoundaries(solidBoundaries);
     problem.problemGeometry_->addBoundaries(geometryBoundaries);
     problem.getPreconditioner()->setFaCSIBCFactory(interfaceBoundaries);
+    if (loadChemistry)
+        boundaries->addBC(concentrationBoundary, 7, parameters->sublist("Parameter").get("Geometry Explicit", true) ? 4 : 5,
+            solid, "Dirichlet", 1);
     problem.addBoundaries(boundaries);
     return solidBoundaries;
 }
@@ -398,6 +406,114 @@ bool compare(const Result& fsi, const Result& fsci, const ComparisonSettings& to
     Teuchos::reduceAll(*comm, Teuchos::REDUCE_MIN, 1, &local, &global);
     return global != 0;
 }
+// Restart regression uses the same small artery and assembly path, but with a
+// nonzero concentration boundary. This detects lost c_n in the material adapter,
+// which a zero-chemistry FSI/FSCI equivalence test cannot expose.
+bool checkPassiveRestart(ParameterListPtr_Type shared, const InputFiles& files,
+                         bool geometryExplicit, CommConstPtr_Type comm)
+{
+    const double dt = shared->sublist("Timestepping Parameter").get<double>("dt");
+    const std::string directory = std::string("passive_FSCI_") + (geometryExplicit ? "GE_" : "GI_") +
+        std::to_string(comm->getSize());
+    auto run = [&](bool restart, bool validateOnly = false) {
+        auto parameters = rcp(new Teuchos::ParameterList(*shared));
+        parameters->sublist("Parameter").set("FSI", false).set("FSCI", true)
+            .set("Geometry Explicit", geometryExplicit);
+        parameters->sublist("General").set("Preconditioner Method", "FaCSCI")
+            .set("Export Data", false).set("Export Suffix", "_" + directory);
+        parameters->sublist("Exporter").set("Resume output", false);
+        parameters->sublist("Timestepping Parameter").set("Checkpointing", !restart).set("Restart", restart)
+            .set("Time step", dt).set("Final time", 2.*dt).set("Number Checkpoints", 1)
+            .set("Checkpoint directory", directory).set("Restart directory", directory);
+        parameters->sublist("Timestepping Parameter").sublist("Checkpoints").set("1", dt);
+        parameters->sublist("Parameter Diffusion").set("D0", .001);
+        parameters->sublist("Parameter Solid").sublist("1").set("D0", .001);
+        auto components = buildComponentParameters(parameters, files);
+        auto domains = buildDomains(parameters, comm);
+        auto timeBlocks = buildTimeSteppingDefinition(geometryExplicit, true);
+        auto sciParameters = rcp(new Teuchos::ParameterList(*parameters));
+        sciParameters->setParameters(*Teuchos::getParametersFromXmlFile(files.solidPreconditioner));
+        sciParameters->set("Number of blocks", 2);
+        sciParameters->sublist("Parameter").set("SCI", true).set("FSCI", false);
+        sciParameters->sublist("General").set("Preconditioner Method", "Monolithic");
+        auto chemistry = rcp(new Teuchos::ParameterList(*sciParameters));
+        chemistry->set("Number of blocks", 1);
+        chemistry->sublist("Parameter") = parameters->sublist("Parameter Diffusion");
+        vec2D_dbl_Type diffusion(3, vec_dbl_Type(3, 0.));
+        for (int i = 0; i < 3; ++i) diffusion[i][i] = .001;
+
+        FSCIValidationProblem fsci(domains.fluidVelocity, "P2", domains.fluidPressure, "P1",
+            domains.solid, "P2", domains.solid, "P2", domains.interfaceDomain, "P2",
+            domains.fluidVelocity, "P2", diffusion, noReaction, components.fluid, components.solid,
+            chemistry, sciParameters, parameters, components.geometry, timeBlocks);
+        if (validateOnly) return std::vector<Frame>{};
+        auto boundaries = addMechanicalBoundaries(fsci, domains, parameters, true);
+        auto sciBoundaries = rcp(new Boundaries(*boundaries));
+        sciBoundaries->addBC(concentrationBoundary, 7, 1, domains.solid, "Dirichlet", 1);
+        fsci.getSCIProblem()->addBoundaries(sciBoundaries);
+        auto chemBoundaries = rcp(new Boundaries);
+        chemBoundaries->addBC(concentrationBoundary, 7, 0, domains.solid, "Dirichlet", 1);
+        fsci.getSCIProblem()->problemChem_->addBoundaries(chemBoundaries);
+        fsci.initializeProblem();
+        fsci.initializeGE();
+        fsci.assemble();
+        DAESolverInTime<SC,LO,GO,NO> solver(parameters, comm);
+        solver.defineTimeStepping(*timeBlocks);
+        solver.setProblem(fsci);
+        solver.setupTimeStepping();
+        solver.advanceInTime();
+        return fsci.frames;
+    };
+
+    const auto reference = run(false);
+    const auto restarted = run(true);
+    TEUCHOS_TEST_FOR_EXCEPTION(reference.size() != 2 || restarted.size() != 1,
+        std::runtime_error, "Passive FSCI restart must resume at dt and complete the second step.");
+    const auto& a = reference.back();
+    const auto& b = restarted.back();
+    TEUCHOS_TEST_FOR_EXCEPTION(a.concentrationNorm < .01 || b.concentrationNorm < .01 ||
+        std::abs(b.time-2.*dt) > 1.e-12, std::runtime_error, "Missing concentration or wrong restart clock.");
+    bool passed = std::abs(a.pressure-b.pressure) < 1.e-8;
+    for (int i = 0; i < 6; ++i) {
+        auto expected = i == 5 ? a.concentration : a.fields[i];
+        auto actual = i == 5 ? b.concentration : b.fields[i];
+        auto difference = rcp(new Vector(expected->getMap()));
+        difference->update(1., *expected, 0.);
+        difference->update(-1., *actual, 1.);
+        Teuchos::Array<double> error(1), scale(1);
+        difference->normInf(error());
+        expected->normInf(scale());
+        const double tolerance = 1.e-10 + 1.e-7*scale[0];
+        passed = passed && std::isfinite(error[0]) && error[0] <= tolerance;
+        if (comm->getRank() == 0)
+            std::cout << "Passive restart field " << i << ": error=" << error[0]
+                      << ", tolerance=" << tolerance << std::endl;
+    }
+
+    // Check the coupled manifest before any component restart read: marking any
+    // of the three irreversible processes must reject the otherwise valid run.
+    const std::string manifest = directory + "/Checkpoint_u_f_p_d_s_lambda_d_f_c_" + std::to_string(dt) + ".xml";
+    for (const char* marker : {"Active response took place", "Growth took place", "Reorientation took place"}) {
+        checkpoint::onRoot(*comm, [&] {
+            auto saved = Teuchos::getParametersFromXmlFile(manifest);
+            checkpoint::requirePassiveMaterialRestart(*saved);
+            saved->sublist("Material process state").set(marker, true);
+            Teuchos::writeParameterListToXmlFile(*saved, manifest);
+        });
+        bool rejected = false;
+        try { run(true, true); }
+        catch (const std::runtime_error& error) {
+            rejected = std::string(error.what()).find(std::string("Cannot restart: ") + marker) != std::string::npos;
+        }
+        checkpoint::onRoot(*comm, [&] {
+            auto saved = Teuchos::getParametersFromXmlFile(manifest);
+            saved->sublist("Material process state").set(marker, false);
+            Teuchos::writeParameterListToXmlFile(*saved, manifest);
+        });
+        passed = passed && rejected;
+    }
+    return passed;
+}
 } // namespace
 
 int main(int argc, char* argv[])
@@ -409,7 +525,9 @@ int main(int argc, char* argv[])
     auto comm = Tpetra::getDefaultComm();
     const bool verbose = comm->getRank() == 0;
     InputFiles files;
-    bool geometryExplicit = true;
+    // Default to GI: ALE displacement is solved in the coupled Newton system.
+    bool geometryExplicit = false;
+    bool passiveRestart = false;
     Teuchos::CommandLineProcessor commandLine;
     commandLine.setOption("problemfile", &files.problem, "Shared physical parameters and validation tolerances.");
     commandLine.setOption("solverfile", &files.solver, "Shared coupled linear solver parameters.");
@@ -419,6 +537,8 @@ int main(int argc, char* argv[])
     commandLine.setOption("solverfileGeometry", &files.geometrySolver, "ALE linear solver parameters.");
     commandLine.setOption("geometry-explicit", "geometry-implicit", &geometryExplicit,
                           "Compare both formulations with explicit or implicit ALE geometry.");
+    commandLine.setOption("passive-restart", "equivalence", &passiveRestart,
+                          "Compare passive FSCI restart with uninterrupted nonzero-chemistry evolution.");
     commandLine.throwExceptions(false);
     const auto parsed = commandLine.parse(argc, argv);
     if (parsed == Teuchos::CommandLineProcessor::PARSE_HELP_PRINTED) return EXIT_SUCCESS;
@@ -431,6 +551,11 @@ int main(int argc, char* argv[])
         // -----------------------------------------------------------------
         auto parameterListAll = Teuchos::getParametersFromXmlFile(files.problem);
         parameterListAll->setParameters(*Teuchos::getParametersFromXmlFile(files.solver));
+        if (passiveRestart) {
+            const bool passed = checkPassiveRestart(parameterListAll, files, geometryExplicit, comm);
+            if (verbose) std::cout << "FSCI passive restart: " << (passed ? "PASS" : "FAIL") << std::endl;
+            return passed ? EXIT_SUCCESS : EXIT_FAILURE;
+        }
         const auto& problemSettings = parameterListAll->sublist("Parameter");
         const auto& timeSettings = parameterListAll->sublist("Timestepping Parameter");
         const auto& material = parameterListAll->sublist("Parameter Solid").sublist("1");

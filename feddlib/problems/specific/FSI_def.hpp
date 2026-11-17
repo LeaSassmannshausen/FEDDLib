@@ -65,7 +65,8 @@ FSI<SC,LO,GO,NO>::FSI(const DomainConstPtr_Type &domainVelocity, std::string FET
                     const DomainConstPtr_Type &domainGeometry, std::string FETypeGeometry,
                     ParameterListPtr_Type parameterListFluid, ParameterListPtr_Type parameterListStructure,
                     ParameterListPtr_Type parameterListFSI, ParameterListPtr_Type parameterListGeometry,
-                    Teuchos::RCP<SmallMatrix<int> > &defTS):
+                    Teuchos::RCP<SmallMatrix<int> > &defTS,
+                    const DomainConstPtr_Type &domainChem, std::string FETypeChem):
 NonLinearProblem<SC,LO,GO,NO>( parameterListFSI, domainVelocity->getComm() ),
 // hasSourceTerm = drittes Arguement. assembleSourceTerm() fuer NS nicht programmiert.
 // Deswegen hier erstmal false (default Parameter).
@@ -103,6 +104,11 @@ exporterGeo_()
     this->addVariable( domainStructure, FETypeStructure, "d_s", domainStructure->getDimension() ); // Struktur
     this->addVariable( domainInterface, FETypeInterface, "lambda", domainInterface->getDimension() ); // Interface
     this->addVariable( domainGeometry, FETypeGeometry, "d_f", domainGeometry->getDimension() ); // Geometrie
+    // FSCI must register concentration before the coupled manifest is prepared.
+    if (!domainChem.is_null()) {
+        this->addVariable(domainChem, FETypeChem, "c", 1);
+        this->parameterList_->sublist("Parameter").set("FSCI", true).set("FSI", false);
+    }
     this->dim_ = this->getDomain(0)->getDimension();
     checkpoint::outletConfiguration(*this->parameterList_);
     // All components use the coupled clock and checkpoint configuration. In

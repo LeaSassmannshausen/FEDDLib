@@ -247,6 +247,8 @@ public:
     std::string getFEType(int i) const;
 
     std::string getVariableName(int i) const;
+    // A coupled formulation may omit explicitly solved fields from its solution.
+    virtual std::string getSolutionVariableName(int i) const { return getVariableName(i); }
 
     int getDofsPerNode(int i) const;
 

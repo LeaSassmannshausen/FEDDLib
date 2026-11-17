@@ -147,7 +147,6 @@ namespace FEDD
 
 		// historyGP: Vector of history variables [Order: LambdaBarC1, LambdaBarC2, nA1, nA2, nB1, nB2, nC1, nC2, nD1, nD2, LambdaA1, LambdaA2, k251, k252, LambdaBarP1, LambdaBarP2, Theta1, Theta2, Theta3, Ag11, Ag12, Ag13, Ag21, Ag22, Ag23, Ag31, Ag32, Ag33, a11, a12, a13, a21, a22, a23] (The length must be equal to number of history variables per gauss point(34) * number of gauss points)
 		std::vector<double> historyGP = {1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 1., 1., 1.82758, 1.82758, 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
-		
 		this->history_ = historyGP;
 
 		this->history_.reserve(this->historyLength_);
@@ -240,11 +239,27 @@ namespace FEDD
 		// 	cout << " Element initialized with timestep " << this->timeStep_ << endl;
 		// We check this here also in case we do a restart.
 
-        if (this->params_->sublist("Timestepping Parameter").get("Restart", false) && this->timeStep_ > 0.)
+        if (this->params_->sublist("Timestepping Parameter").get("Restart", false) && this->timeStep_ > 0.) {
             initializePassiveHistory();
+            restoreConcentration_ = true;
+        }
 	
 #endif
 	}
+
+    template <class SC, class LO, class GO, class NO>
+    void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::updateSolution(vec_dbl_Type solution)
+    {
+        AssembleFE_Type::updateSolution(solution);
+        if (restoreConcentration_) {
+            TEUCHOS_TEST_FOR_EXCEPTION(solution.size() != 40, std::logic_error,
+                "Passive SCI restart requires the accepted displacement and concentration at all ten nodes.");
+            // Seed c_n once from the accepted checkpoint, without advancing the
+            // element clock or committing any process-dependent material history.
+            std::copy(solution.begin() + 30, solution.end(), solutionC_n_.begin());
+            restoreConcentration_ = false;
+        }
+    }
 
 	template <class SC, class LO, class GO, class NO>
 	void AssembleFE_SCI_SMC_Active_Growth_Reorientation<SC, LO, GO, NO>::assembleJacobian()

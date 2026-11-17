@@ -322,6 +322,9 @@ int main(int argc, char** argv)
         for (int i = 0; i < 10; ++i) {
             solution[3*i] = .02 * coordinates[i][0] + .03 * coordinates[i][2];
             solution[3*i+1] = .01 * coordinates[i][1];
+            // Nonzero c exposes loss of the accepted concentration in restart
+            // rates, even while all material processes remain passive.
+            solution[30+i] = .2 + .05 * coordinates[i][2];
         }
         original->updateSolution(solution);
         original->assembleJacobian();

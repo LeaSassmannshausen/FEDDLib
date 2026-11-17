@@ -769,7 +769,7 @@ void TimeProblem<SC,LO,GO,NO>::captureMultistepRecoveryState(double time, double
 
     // 
     for (UN i = 0; i < problem_->getSolution()->size(); ++i) {
-        const auto file = "Solution" + problem_->getVariableName(i);
+        const auto file = "Solution" + problem_->getSolutionVariableName(i);
         snapshot->addVector(file, time, problem_->getSolution()->getBlock(i));
         for (int j = 1; j < historyBDF && checkpoint::historyTime(parameterList_, time, j, dt) >= -1.e-12; ++j) {
             const int index = completedStep ? j - 1 : j;
@@ -1001,7 +1001,7 @@ int TimeProblem<SC,LO,GO,NO>::getDofsPerNode(int i){
 template<class SC,class LO,class GO,class NO>
 std::string TimeProblem<SC,LO,GO,NO>::getVariableName(int i){
 
-    return problem_->getVariableName(i);
+    return problem_->getSolutionVariableName(i);
 }
 
 template<class SC,class LO,class GO,class NO>
@@ -1465,10 +1465,10 @@ void TimeProblem<SC,LO,GO,NO>::restoreMultistepHistory(int nmbSteps, double rest
         const std::string varName = std::to_string(historyTime);
         for (int i = 0; i < size; ++i)
         {
-            if (problem_->getVariableName(i) == "d_f")
+            if (problem_->getSolutionVariableName(i) == "d_f")
                 continue;
             MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
-            HDF5Import<SC,LO,GO,NO> importer(map, restartFile(parameterList_, "Solution" + problem_->getVariableName(i)));
+            HDF5Import<SC,LO,GO,NO> importer(map, restartFile(parameterList_, "Solution" + problem_->getSolutionVariableName(i)));
             solutionPreviousTimesteps_[j]->addBlock(importer.readVariablesHDF5(varName), i);
         }
     }
@@ -1489,7 +1489,7 @@ void TimeProblem<SC,LO,GO,NO>::restoreMassProductHistory(int nmbSteps, double re
         for (int i = 0; i < size; ++i)
         {
             MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
-            HDF5Import<SC,LO,GO,NO> importer(map, restartFile(parameterList_, "Rhs" + problem_->getVariableName(i)));
+            HDF5Import<SC,LO,GO,NO> importer(map, restartFile(parameterList_, "Rhs" + problem_->getSolutionVariableName(i)));
             restartMassSolutions_[j]->addBlock(importer.readVariablesHDF5(varName), i);
         }
     }
@@ -1513,7 +1513,7 @@ void TimeProblem<SC,LO,GO,NO>::restoreNewmarkDisplacementHistory(double restartT
         for (int i = 0; i < size; ++i)
         {
             MapConstPtr_Type map = problem_->getSolution()->getBlock(i)->getMap();
-            HDF5Import<SC,LO,GO,NO> importer(map, restartFile(parameterList_, "SolutionNewmark" + problem_->getVariableName(i)));
+            HDF5Import<SC,LO,GO,NO> importer(map, restartFile(parameterList_, "SolutionNewmark" + problem_->getSolutionVariableName(i)));
             solutionPreviousTimesteps_[j]->addBlock(importer.readVariablesHDF5(varName), i);
         }
     }
@@ -1554,7 +1554,7 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
         const double dt = getPreviousTimeIncrement();
         for (UN i = 0; i < this->getSolution()->size(); ++i) {
             const bool derivative = fileName == "ds_Velocity" || fileName == "ds_Acceleration";
-            const std::string file = derivative ? fileName : fileName + problem_->getVariableName(i);
+            const std::string file = derivative ? fileName : fileName + problem_->getSolutionVariableName(i);
             for (UN j = 0; j < solutionVec.size(); ++j)
                 if (checkpoint::historyTime(parameterList_, time_, j, dt) >= -1.e-12)
                     recovery->addVector(file, checkpoint::historyTime(parameterList_, time_, j, dt), solutionVec[j]->getBlock(i));
@@ -1621,7 +1621,7 @@ void TimeProblem<SC,LO,GO,NO>::checkForExportAndExport( BlockMultiVectorPtrArray
                             {
                                 LO idVarname = i;
                                 if (verbose_)
-                                    std::cout << " Export for filename " << fileName << " and " <<  problem_->getVariableName(idVarname) << " with i=" << i << std::endl;
+                                    std::cout << " Export for filename " << fileName << " and " <<  problem_->getSolutionVariableName(idVarname) << " with i=" << i << std::endl;
                                 std::string varName =  std::to_string(time_);
                                 this->getExporter(fileName, i)->writeVariablesHDF5(varName,solutionVec[0]->getBlock(i), false);  // We use 0, because it was not updated yet with the newest solution
 
@@ -1753,7 +1753,7 @@ void TimeProblem<SC,LO,GO,NO>::initExporter(std::string fileName  ){
         int size = this->getSolution()->size();
         for (UN i = 0; i < size; i++)
         {
-            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),checkpointFile(parameterList_, fileName+problem_->getVariableName(i)), parameterList_));
+            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),checkpointFile(parameterList_, fileName+problem_->getSolutionVariableName(i)), parameterList_));
             HDF5exporterRhs_.push_back(exporter);
         }
     }
@@ -1763,12 +1763,12 @@ void TimeProblem<SC,LO,GO,NO>::initExporter(std::string fileName  ){
         for (UN i = 0; i < size; i++)
         {
             LO idVarname = i;
-            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),checkpointFile(parameterList_, fileName+problem_->getVariableName(idVarname)), parameterList_));
+            Teuchos::RCP<HDF5Export<SC,LO,GO,NO>> exporter =Teuchos::RCP(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(i)->getMap(),checkpointFile(parameterList_, fileName+problem_->getSolutionVariableName(idVarname)), parameterList_));
             HDF5exporterSolution_.push_back(exporter);
         }
     }
     else if(fileName =="SolutionNewmark"){
-        HDF5exporterSolutionNewmark_.reset(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(0)->getMap(),checkpointFile(parameterList_, fileName+problem_->getVariableName(0)), parameterList_));
+        HDF5exporterSolutionNewmark_.reset(new HDF5Export<SC,LO,GO,NO>(this->getSolution()->getBlock(0)->getMap(),checkpointFile(parameterList_, fileName+problem_->getSolutionVariableName(0)), parameterList_));
     }
     else
         TEUCHOS_TEST_FOR_EXCEPTION( true, std::runtime_error,"TimeProblem:: Init Exporter - no exporter for file name");

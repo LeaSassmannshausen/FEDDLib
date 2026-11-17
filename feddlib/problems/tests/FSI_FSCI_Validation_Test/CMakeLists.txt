@@ -14,10 +14,19 @@ IF(TPL_ENABLE_AceGENInterface)
         SOURCE_FILES fsi_fluid_length_0_5_mm.mesh fsi_solid_length_0_5_mm.mesh
         EXEDEPS FSI_FSCI_Validation_Test)
     FOREACH(ranks 1 4)
+        # GI adds ALE work at each Newton update; allow for single-rank LU solves.
         TRIBITS_ADD_TEST(FSI_FSCI_Validation_Test
-            NAME tests_FSI_FSCI_Validation_Test
+            NAME tests_FSI_FSCI_Validation_Test_GI
+            ARGS "--geometry-implicit"
             NUM_MPI_PROCS ${ranks}
-            TIMEOUT 600)
+            TIMEOUT 900)
+    ENDFOREACH()
+    FOREACH(geometry implicit explicit)
+        TRIBITS_ADD_TEST(FSI_FSCI_Validation_Test
+            NAME tests_FSCI_passive_restart_${geometry}
+            ARGS "--passive-restart --geometry-${geometry}"
+            NUM_MPI_PROCS 4
+            TIMEOUT 900)
     ENDFOREACH()
     feddlib_set_test_runtimes(DEFAULT High)
 ENDIF()

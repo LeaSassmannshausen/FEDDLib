@@ -6,7 +6,7 @@
         <Parameter name="Discretization" type="string" value="P2" />
         <Parameter name="Model Geometry" type="string" value="Laplace" />
         <Parameter name="FSI" type="bool" value="true" />
-        <Parameter name="Geometry Explicit" type="bool" value="true" />
+        <Parameter name="Geometry Explicit" type="bool" value="false" />
         <Parameter name="relNonLinTol" type="double" value="1.e-8" />
         <Parameter name="MaxNonLinIts" type="int" value="15" />
         <Parameter name="Cancel MaxNonLinIts" type="bool" value="true" />

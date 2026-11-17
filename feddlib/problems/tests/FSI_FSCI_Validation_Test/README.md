@@ -4,7 +4,9 @@ This test runs FSI and implicit-chemistry FSCI independently on the simple arter
 segment used by `restartTests/fsi_3D_arterialSegment`. The coordinates remain in
 centimetres (radius 0.09 cm, length 0.05 cm). Both cases use P2 velocity, solid and
 ALE displacement, with P1 pressure, the same normalized circular inlet profile,
-and a constant resistance outlet. Each run starts from zero and takes two steps
+and a constant resistance outlet. Geometry is implicit (GI), so the ALE
+displacement is part of the coupled Newton system in both formulations.
+Each run starts from zero and takes two steps
 of 0.0025 s. The flow rate is 0.001 cm³/s with the restart fixture's cosine ramp.
 
 Both problems use identical `SCI_SMC_Active_Growth_Reorientation` material
@@ -68,12 +70,23 @@ cmake --build . --target problems_FSI_FSCI_Validation_Test -j4
 ctest --output-on-failure -R FSI_FSCI_Validation_Test
 ```
 
-CTest registers one- and four-rank cases when available, with AceGen Interface
-enabled. The default uses explicit geometry; the executable also accepts
-`--geometry-implicit`. Iteration logs use formulation/geometry/rank suffixes so
+CTest registers one- and four-rank **GI** cases when available, with AceGen
+Interface enabled, and explicitly passes `--geometry-implicit`. The executable
+also defaults to GI; `--geometry-explicit` selects GE for a manual comparison.
+Iteration logs use formulation/geometry/rank suffixes so
 the registered MPI runs can execute concurrently.
 
 As in the AssembleFE drivers, input files can be selected with `--problemfile`,
 `--solverfile`, `--precfileFluid`, `--precfileStructure`, `--precfileGeometry` and
 `--solverfileGeometry`; `--help` lists them. Custom physical inputs must retain
 the passive, zero-diffusion setup and exactly two timesteps from zero.
+
+## Passive FSCI restart regression
+
+`--passive-restart` runs an additional regression using the same artery, with
+nonzero prescribed concentration and diffusion. It writes a checkpoint after
+the first step, resumes it, and compares all five mechanical fields,
+concentration and outlet pressure against the uninterrupted second step.
+It also checks that each saved active/growth/reorientation marker rejects a
+restart before any component fields are loaded. CTest registers four-rank GE
+and GI variants. This mode leaves the original FSI/FSCI comparison unchanged.

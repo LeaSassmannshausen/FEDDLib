@@ -11,7 +11,8 @@ template<class SC,class LO,class GO,class NO>
 SCI<SC,LO,GO,NO>::SCI(const DomainConstPtr_Type &domainStructure, std::string FETypeStructure,
                     const DomainConstPtr_Type &domainChem, std::string FETypeChem, vec2D_dbl_Type diffusionTensor, RhsFunc_Type reactionFunc,
                     ParameterListPtr_Type parameterListStructure, ParameterListPtr_Type parameterListChem,
-                    ParameterListPtr_Type parameterListSCI, Teuchos::RCP<SmallMatrix<int> > &defTS):
+                    ParameterListPtr_Type parameterListSCI, Teuchos::RCP<SmallMatrix<int> > &defTS,
+                    bool coupledFSI):
 NonLinearProblem<SC,LO,GO,NO>( parameterListSCI, domainChem->getComm() ),
 problemChem_(),
 problemStructureNonLin_(),
@@ -27,8 +28,6 @@ materialModel_( parameterListSCI->sublist("Parameter").get("Structure Model","SC
 
     this->initNOXParameters();
 
-    timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter") , this->comm_));
-
     //std::string linearization = parameterListSCI->sublist("General").get("Linearization","FixedPoint");
 
     //TEUCHOS_TEST_FOR_EXCEPTION( !(linearization == "Newton"|| linearization == "NOX")  && materialModel_ != "linear", std::runtime_error, "Nonlinear material models can only be used with Newton's method or FixedPoint (nonlinear material Jacobian will still be used).");
@@ -41,12 +40,20 @@ materialModel_( parameterListSCI->sublist("Parameter").get("Structure Model","SC
         materialModel_ != "SCI_SMC_Active_Growth_Reorientation", std::logic_error,
         "SCI requires a nonlinear SCI material; the linear option has been removed.");
     auto& stepping = this->parameterList_->sublist("Timestepping Parameter");
-    TEUCHOS_TEST_FOR_EXCEPTION(stepping.get("Restart", false) || stepping.get("Checkpointing", false) ||
-        stepping.get("Import history", false) || stepping.get("Export history", false), std::logic_error,
-        "SCI material-history file I/O and restart are not ported; disable Restart, Checkpointing, Import history and Export history.");
+    TEUCHOS_TEST_FOR_EXCEPTION(stepping.get("Import history", false) || stepping.get("Export history", false),
+        std::logic_error, "Legacy SCI material-history file I/O is unavailable; disable Import history and Export history.");
+    TEUCHOS_TEST_FOR_EXCEPTION(!coupledFSI && (stepping.get("Restart", false) || stepping.get("Checkpointing", false)),
+        std::logic_error, "Standalone SCI restart/checkpointing is not ported; passive restart is supported through FSCI.");
+    if (coupledFSI)
+        this->prepareCheckpointMetadata("FSCI solid chemistry");
+    timeSteppingTool_ = Teuchos::rcp(new TimeSteppingTools(sublist(this->parameterList_,"Timestepping Parameter"), this->comm_));
     problemStructureNonLin_ = Teuchos::rcp(new StructureNonLinProblem_Type(domainStructure, FETypeStructure, parameterListStructure));
+    if (coupledFSI)
+        problemStructureNonLin_->prepareCheckpointMetadata("FSI structure");
     problemStructureNonLin_->initializeProblem();
     problemChem_ = Teuchos::rcp( new ChemProblem_Type( domainChem, FETypeChem, parameterListChem, diffusionTensor, reactionFunc ) );
+    if (coupledFSI)
+        problemChem_->prepareCheckpointMetadata("FSCI chemistry");
     problemChem_->initializeProblem();
 
     // assemble() shares the coupled solution vectors with the subproblems.
@@ -979,6 +986,12 @@ template<class SC,class LO,class GO,class NO>
 void SCI<SC,LO,GO,NO>::getValuesOfInterest(BlockMultiVectorPtr_Type&)
 {
     TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "Legacy SCI history file I/O is unavailable in this branch.");
+}
+
+template<class SC,class LO,class GO,class NO>
+checkpoint::MaterialProcessState SCI<SC,LO,GO,NO>::getMaterialProcessState() const
+{
+    return this->feFactory_->getMaterialProcessState();
 }
 
 template<class SC,class LO,class GO,class NO>

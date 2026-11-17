@@ -25,14 +25,27 @@ FSI<SC,LO,GO,NO>(domainVelocity,  FETypeVelocity,
                 domainInterface, FETypeInterface,
                 domainGeometry, FETypeGeometry,
                 parameterListFluid, parameterListStructure,
-                parameterListFSCI, parameterListGeometry,defTS),
+                parameterListFSCI, parameterListGeometry,defTS, domainChem, FETypeChem),
 problemSCI_()
 {
-    this->addVariable( domainChem, FETypeChem, "c", 1 ); // Chem last added component!
     this->initNOXParameters();
 
     chemistryExplicit_ =    parameterListSCI->sublist("Parameter").get("Chemistry Explicit",false);
-
+    auto& stepping = this->parameterList_->sublist("Timestepping Parameter");
+    const bool checkpointing = stepping.get("Restart", false) || stepping.get("Checkpointing", false) ||
+        this->parameterList_->sublist("General").get("Safe all solution", false);
+    TEUCHOS_TEST_FOR_EXCEPTION(checkpointing && (chemistryExplicit_ ||
+        parameterListSCI->sublist("Parameter").get("Structure Model", "SCI_NH") != "SCI_SMC_Active_Growth_Reorientation"),
+        std::logic_error, "FSCI passive checkpoints currently require implicit chemistry and SCI_SMC_Active_Growth_Reorientation.");
+    TEUCHOS_TEST_FOR_EXCEPTION(stepping.get("Failure recovery", false), std::logic_error,
+        "FSCI in-memory failure recovery is not ported.");
+    // The coupled manifest has restored the clock before SCI creates elements.
+    parameterListSCI->sublist("Timestepping Parameter") = stepping;
+    parameterListChem->sublist("Timestepping Parameter") = stepping;
+    if (this->parameterList_->sublist("General").get("Safe all solution", false)) {
+        parameterListSCI->sublist("General").set("Safe all solution", true);
+        parameterListChem->sublist("General").set("Safe all solution", true);
+    }
 
     Teuchos::RCP<SmallMatrix<int>> defTSSCI; // Seperate Timestepping Matrix for SCI
     defTSSCI.reset( new SmallMatrix<int> (1) );
@@ -44,7 +57,7 @@ problemSCI_()
     }
     (*defTSSCI)[0][0] = (*defTS)[2][2];
 
-    this->problemSCI_ = Teuchos::rcp( new SCIProblem_Type( domainStructure, FETypeStructure, domainChem, FETypeChem, diffusionTensor,reactionFunc, parameterListStructure, parameterListChem, parameterListSCI, defTSSCI ) );
+    this->problemSCI_ = Teuchos::rcp( new SCIProblem_Type( domainStructure, FETypeStructure, domainChem, FETypeChem, diffusionTensor,reactionFunc, parameterListStructure, parameterListChem, parameterListSCI, defTSSCI, true ) );
     this->problemSCI_->initializeProblem();
     this->problemSCI_->initializeCE();
     this->problemStructureNonLin_ = this->problemSCI_->problemStructureNonLin_;
@@ -985,12 +998,29 @@ template<class SC,class LO,class GO,class NO>
 void FSCI<SC,LO,GO,NO>::exportValuesOfInterest(double time)
 {
     FSI<SC,LO,GO,NO>::exportValuesOfInterest(time);
+    // Primary d_s and c (including BDF history) are written by the coupled
+    // TimeProblem. Component manifests validate those shared files on restart.
+    problemSCI_->writeCheckpointMetadata(time);
+    problemSCI_->problemChem_->writeCheckpointMetadata(time);
 }
 
 template<class SC,class LO,class GO,class NO>
-void FSCI<SC,LO,GO,NO>::importValuesOfInterest()
+void FSCI<SC,LO,GO,NO>::importValuesOfInterest(double time)
 {
-    TEUCHOS_TEST_FOR_EXCEPTION(true, std::logic_error, "FSCI material-history restart is not available in this branch.");
+    problemSCI_->importValuesOfInterest(time);
+}
+
+template<class SC,class LO,class GO,class NO>
+checkpoint::MaterialProcessState FSCI<SC,LO,GO,NO>::getMaterialProcessState() const
+{
+    // The material elements belong to SCI, rather than its Newmark wrapper.
+    return problemSCI_.is_null() ? checkpoint::MaterialProcessState{} : problemSCI_->getMaterialProcessState();
+}
+
+template<class SC,class LO,class GO,class NO>
+std::string FSCI<SC,LO,GO,NO>::getSolutionVariableName(int i) const
+{
+    return this->geometryExplicit_ && !chemistryExplicit_ && i == 4 ? "c" : this->getVariableName(i);
 }
 
 template<class SC,class LO,class GO,class NO>

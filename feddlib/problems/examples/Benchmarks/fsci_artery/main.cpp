@@ -561,9 +561,12 @@ typedef MeshUnstructured<SC,LO,GO,NO> MeshUnstr_Type;
             const int chemistryFlag = chemistry.get("Inflow Flag", 11);
             vec_dbl_Type chemistryParameters{chemistry.get("Inflow Start Time", 0.), chemistry.get("Inflow Concentration", 1.)};
             bcFactoryChem->addBC(concentrationInflow, chemistryFlag, 0, domainChem, "Dirichlet", 1, chemistryParameters);
+            bcFactoryChem->addBC(concentrationInflow, 12, 0, domainChem, "Dirichlet", 1, chemistryParameters);
             if (!chemistryExplicit) {
                 bcFactory->addBC(concentrationInflow, chemistryFlag, chemistryBlock, domainChem, "Dirichlet", 1, chemistryParameters);
                 bcFactorySCI->addBC(concentrationInflow, chemistryFlag, 1, domainChem, "Dirichlet", 1, chemistryParameters);
+                bcFactory->addBC(concentrationInflow, 12, chemistryBlock, domainChem, "Dirichlet", 1, chemistryParameters);
+                bcFactorySCI->addBC(concentrationInflow, 12, 1, domainChem, "Dirichlet", 1, chemistryParameters);
             }
             fsi.problemSCI_->problemChem_->addBoundaries(bcFactoryChem);
             fsi.problemSCI_->addBoundaries(bcFactorySCI);

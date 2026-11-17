@@ -339,6 +339,12 @@ int main(int argc, char** argv)
         if (!tracked.isSublist("Material process state")) ++failures;
         auto fluid = checkpoint::makeSchema(trackedSettings, fields, "FSI fluid");
         if (fluid.isSublist("Material process state")) ++failures;
+        trackedSettings.sublist("Parameter").set("FSI", false).set("FSCI", true);
+        auto coupled = checkpoint::makeSchema(trackedSettings, {solidField});
+        if (!coupled.get<bool>("FSI") ||
+            coupled.sublist("Integration").get<std::string>("Layout") != "legacy-start-of-step-v1") ++failures;
+        auto chemistry = checkpoint::makeSchema(trackedSettings, fields, "FSCI chemistry");
+        if (chemistry.get<bool>("FSI")) ++failures;
     }
     fixtureFor(newmark);
     rejects("initial solution excludes Newmark", "standalone multistep Navier-Stokes", [&] { validateInitial(newmark); });

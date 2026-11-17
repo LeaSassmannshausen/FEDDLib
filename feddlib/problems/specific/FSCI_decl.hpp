@@ -139,7 +139,9 @@ public:
 
     void exportValuesOfInterest(double time) override;
 
-    virtual void importValuesOfInterest();
+    void importValuesOfInterest(double time) override;
+    checkpoint::MaterialProcessState getMaterialProcessState() const override;
+    std::string getSolutionVariableName(int i) const override;
 
     // init FSCI vectors from partial problems
     void setFromPartialVectorsInit() const;

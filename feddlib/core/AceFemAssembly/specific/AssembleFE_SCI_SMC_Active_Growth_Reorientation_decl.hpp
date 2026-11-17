@@ -60,6 +60,7 @@ class AssembleFE_SCI_SMC_Active_Growth_Reorientation : public AssembleFE<SC,LO,G
 		void assembleJacobianBlock(LO i) override{}
 
 		void advanceInTime(double dt) override;
+        void updateSolution(vec_dbl_Type solution) override;
 
         void postProcessing(bool elementAverage = false) override;
         std::vector<GaussPointStress> getGaussPointStressData() override;
@@ -78,6 +79,7 @@ class AssembleFE_SCI_SMC_Active_Growth_Reorientation : public AssembleFE<SC,LO,G
         void initializeGrowth();
         void initializeActiveResponse();
         void initializePassiveHistory();
+        bool restoreConcentration_ = false;
         void updateDomainData(std::string dataName, double dataValue);
         int findPosition(std::string subString, std::vector<std::string>& stringArray);
         vec2D_dbl_Type computeElementGaussFibersP2Tet();

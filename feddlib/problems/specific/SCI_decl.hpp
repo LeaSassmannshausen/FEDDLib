@@ -93,7 +93,8 @@ public:
     SCI(const DomainConstPtr_Type &domainStructure, std::string FETypeStructure,
                     const DomainConstPtr_Type &domainChem, std::string FETypeChem,vec2D_dbl_Type diffusionTensor, RhsFunc_Type reactionFunc,
                     ParameterListPtr_Type parameterListStructure, ParameterListPtr_Type parameterListChem,
-                    ParameterListPtr_Type parameterListSCI, Teuchos::RCP<SmallMatrix<int> > &defTS);
+                    ParameterListPtr_Type parameterListSCI, Teuchos::RCP<SmallMatrix<int> > &defTS,
+                    bool coupledFSI = false);
 
     ~SCI();
 
@@ -171,6 +172,7 @@ public:
 
     virtual void getValuesOfInterest( BlockMultiVectorPtr_Type& values );
 
+    checkpoint::MaterialProcessState getMaterialProcessState() const override;
     virtual void exportValuesOfInterest(double time) override;
     virtual void importValuesOfInterest(double time) override;
 

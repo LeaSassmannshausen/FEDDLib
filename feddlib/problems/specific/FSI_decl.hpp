@@ -106,7 +106,8 @@ public:
          const DomainConstPtr_Type &domainGeometry, std::string FETypeGeometry,
          ParameterListPtr_Type parameterListFluid, ParameterListPtr_Type parameterListStructure,
          ParameterListPtr_Type parameterListFSI, ParameterListPtr_Type parameterListGeometry,
-         Teuchos::RCP<SmallMatrix<int> > &defTS );
+         Teuchos::RCP<SmallMatrix<int> > &defTS,
+         const DomainConstPtr_Type &domainChem = Teuchos::null, std::string FETypeChem = "" );
 
     ~FSI();
 
