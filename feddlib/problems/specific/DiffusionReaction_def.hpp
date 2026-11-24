@@ -17,7 +17,7 @@
 namespace FEDD {
 
 template<class SC,class LO,class GO,class NO>
-DiffusionReaction<SC,LO,GO,NO>::DiffusionReaction(const DomainConstPtr_Type &domain, std::string FEType, ParameterListPtr_Type parameterList, vec2D_dbl_Type diffusionTensor,  RhsFunc_Type reactionFunc, bool vectorDiffusion):
+DiffusionReaction<SC,LO,GO,NO>::DiffusionReaction(const DomainConstPtr_Type &domain, std::string FEType, ParameterListPtr_Type parameterList, vec2D_dbl_Type diffusionTensor, RhsFunc_Type reactionFunc, bool vectorDiffusion, std::string variableName):
 Problem<SC,LO,GO,NO>(parameterList, domain->getComm()),
 vectorDiffusion_(vectorDiffusion),
 A_(),
@@ -25,7 +25,7 @@ u_rep_(),
 reactionFunc_()
 {
  
-    this->addVariable( domain , FEType , "u" , 1);
+    this->addVariable( domain , FEType , variableName , 1);
     this->dim_ = this->getDomain(0)->getDimension();
 	
 	diffusionTensor_ = diffusionTensor;

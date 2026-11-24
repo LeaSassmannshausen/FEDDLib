@@ -51,7 +51,7 @@ materialModel_( parameterListSCI->sublist("Parameter").get("Structure Model","SC
     if (coupledFSI)
         problemStructureNonLin_->prepareCheckpointMetadata("FSI structure");
     problemStructureNonLin_->initializeProblem();
-    problemChem_ = Teuchos::rcp( new ChemProblem_Type( domainChem, FETypeChem, parameterListChem, diffusionTensor, reactionFunc ) );
+    problemChem_ = Teuchos::rcp( new ChemProblem_Type( domainChem, FETypeChem, parameterListChem, diffusionTensor, reactionFunc, false, coupledFSI ? "c" : "u" ) );
     if (coupledFSI)
         problemChem_->prepareCheckpointMetadata("FSCI chemistry");
     problemChem_->initializeProblem();

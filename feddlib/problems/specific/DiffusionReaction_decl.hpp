@@ -53,7 +53,7 @@ public:
 
    // typedef boost::function<void(double* x,double* res, const double* parameters)> Reac_func_Type;
 
-    DiffusionReaction (const DomainConstPtr_Type &domain, std::string FEType, ParameterListPtr_Type parameterList, vec2D_dbl_Type diffusionTensor,  RhsFunc_Type reactionFunc, bool vectorDiffusion=false);
+    DiffusionReaction (const DomainConstPtr_Type &domain, std::string FEType, ParameterListPtr_Type parameterList, vec2D_dbl_Type diffusionTensor, RhsFunc_Type reactionFunc, bool vectorDiffusion=false, std::string variableName="u");
     
     ~DiffusionReaction();
     
